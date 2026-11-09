@@ -91,9 +91,9 @@ test('svih 5 tabela ima scope i caption (1.3.1)', () => {
     capTotal += dtCaptions
     tableTotal += (src.match(/<table\b/g) || []).length + dt
   }
-  assert.equal(thTotal, 18, '18 <th> u ručno pisanim tabelama (Services 8 + Stylists 10)')
-  assert.equal(tableTotal, 5, '5 tabela u modulu (2 DataTable + 3 ručne)')
-  assert.equal(capTotal, 5, '5 tabela -> 5 caption-ova (2 preko propa + 3 ručno)')
+  assert.equal(thTotal, 10, '10 <th> u ručno pisanim tabelama (samo Stylists; Salon i Services su na DataTable)')
+  assert.equal(tableTotal, 5, '5 tabela u modulu (3 DataTable + 2 ručne)')
+  assert.equal(capTotal, 5, '5 tabela -> 5 caption-ova (3 preko propa + 2 ručno)')
 })
 
 test('svih 5 tabela opt-in u card mode (1.4.10)', () => {

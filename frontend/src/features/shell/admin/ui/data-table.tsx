@@ -29,11 +29,6 @@ type DataTableProps<T> = {
   /** Dodatne klase na `<table>`, kad stranica već ima ustaljen izgled (npr. `border-collapse`). */
   tableClassName?: string
   /**
-   * Klase na `<tr>` u `<thead>`. Bez ovoga zaglavlje gubi border i `text-xs uppercase`
-   * koje su postojeće tabele imale — dakle ovo nije kozmetika nego očuvanje izgleda.
-   */
-  headRowClassName?: string
-  /**
    * Prikazati `ArrowUpDown` na NESORTIRANIM kolonama (default). Postojeće tabele u repo-u
    * crtaju strelicu samo na sortiranoj koloni, pa im `false` čuva izgled.
    */
@@ -85,7 +80,6 @@ export function DataTable<T>({
   className,
   rowClassName,
   tableClassName,
-  headRowClassName,
   unsortedIndicator = true,
 }: DataTableProps<T>) {
   const { t } = useTranslation()
@@ -98,15 +92,12 @@ export function DataTable<T>({
       <table className={cn('app-table data-table w-full', tableClassName)}>
         <caption className="sr-only">{caption}</caption>
         <thead>
-          {/* Default je dominantni obrazac svih dashboard tabela (8/8 ima border, 3/8 i
-              uppercase) — vlasnik je 2026-11-09 potvrdio da je konzistentnost na
-              dashboardima obavezna, pa se lokalne varijante ne čuvaju propom. */}
-          <tr
-            className={cn(
-              'border-b border-slate-200 text-left dark:border-slate-800',
-              headRowClassName,
-            )}
-          >
+          {/* IZMJERENO 2026-11-09 nad izvornim `<thead><tr>` klasama svih 8 dashboard
+              tabela: `text-xs uppercase text-slate-500` ima 5 (Loyalty, Salon x2,
+              Services, Users), nema 3 (expense, income, Notifications). Uzglavlje je
+              dominantni obrazac, pa je ovdje default — vlasnik je potvrdio da je
+              konzistentnost na dashboardima obavezna, pa se lokalne varijante ne čuvaju. */}
+          <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
             {columns.map((column) => {
               // `sort` je opciono. Prijašnje `sort?.key === column.sortKey` dalo bi
               // `undefined === undefined` → true za kolonu bez `sortKey`, pa bi
@@ -121,7 +112,10 @@ export function DataTable<T>({
                   aria-sort={
                     !column.sortKey ? undefined : direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'
                   }
-                  className={cn(alignClass[column.align ?? 'left'], column.className)}
+                  /* IZMJERENO 2026-11-09: svih 36 <th> u svih 7 dashboard tabela imalo je
+                     `font-medium`, pa je to default uzglavlja. Ide ispred column.className
+                     da potrošač po potrebi može premostiti (twMerge). */
+                  className={cn('font-medium', alignClass[column.align ?? 'left'], column.className)}
                 >
                   {column.sortKey && onSortChange ? (
                     <button

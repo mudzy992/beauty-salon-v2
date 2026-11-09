@@ -670,6 +670,9 @@ jobs:
       - name: Test dashboard shell accessibility (skip link, landmarks, page titles)
         working-directory: frontend
         run: npm run test:shell-a11y
+      - name: Test data table consistency (shared classes, no per-consumer style overrides)
+        working-directory: frontend
+        run: npm run test:data-table-consistency
       - name: Test dashboard templates accessibility (data table, status, pagination, filters)
         working-directory: frontend
         run: npm run test:admin-templates-a11y

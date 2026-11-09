@@ -28,6 +28,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../components/ui/accordion'
+import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -474,6 +475,127 @@ export default function Services() {
     )
   }
 
+  const serviceColumns = (
+    sub: { id: string },
+  ): DataTableColumn<Service>[] => [
+    {
+      key: 'service',
+      headerKey: 'services.table.service',
+      className: 'p-3 font-medium',
+      render: (s) => s.name,
+    },
+    {
+      key: 'description',
+      headerKey: 'services.table.description',
+      className: 'hidden p-3 md:table-cell',
+      render: (s) => (
+        <span className="block max-w-[260px] truncate">{s.shortDescription ?? '-'}</span>
+      ),
+    },
+    {
+      key: 'duration',
+      headerKey: 'services.table.duration',
+      align: 'right',
+      className: 'p-3 tabular-nums',
+      render: (s) => t('services.durationValue', { count: s.durationMinutes }),
+    },
+    {
+      key: 'price',
+      headerKey: 'services.table.price',
+      align: 'right',
+      className: 'p-3 tabular-nums',
+      render: (s) =>
+        formatLocalizedNumber(s.price, i18n.language, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }),
+    },
+    {
+      key: 'gender',
+      headerKey: 'services.table.gender',
+      className: 'p-3',
+      render: (s) => (
+        <Badge
+          variant={s.gender === 'MALE' ? 'secondary' : 'brand'}
+          className="text-[10px]"
+        >
+          {s.gender === 'MALE' ? t('users.gender.male') : t('users.gender.female')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'loyalty',
+      headerKey: 'services.table.loyalty',
+      className: 'p-3',
+      render: (s) =>
+        s.loyaltyEnabled ? (
+          <Badge variant="brand" className="text-[10px]">
+            {t('services.loyaltyDiscount', {
+              percent: formatLocalizedNumber(s.loyaltyMaxDiscountPercent ?? 0, i18n.language),
+            })}
+          </Badge>
+        ) : (
+          <Badge variant="secondary" className="text-[10px]">
+            {t('services.withoutLoyalty')}
+          </Badge>
+        ),
+    },
+    {
+      key: 'status',
+      headerKey: 'services.table.status',
+      className: 'p-3',
+      render: (s) => (
+        <Badge variant={s.isActive ? 'success' : 'secondary'} className="text-[10px]">
+          {s.isActive
+            ? t('services.status.serviceActive')
+            : t('services.status.serviceInactive')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      headerKey: 'services.table.actions',
+      align: 'right',
+      className: 'p-3',
+      render: (s) => (
+        <div className="flex justify-end gap-1">
+          <Button
+            asChild
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label={t('services.aria.workGallery')}
+          >
+            <RouterLink to={`/admin/services/${s.id}/work-gallery`}>
+              <Eye className="h-4 w-4 text-purple-600" />
+            </RouterLink>
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label={t('services.aria.editService')}
+            onClick={() => openServiceForm(sub.id, s)}
+          >
+            <Pencil className="h-4 w-4 text-blue-600" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label={t('services.aria.deleteService')}
+            onClick={() => openServiceDeletion(s)}
+          >
+            <Trash2 className="h-4 w-4 text-rose-600" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -613,166 +735,12 @@ export default function Services() {
 
                           {sub.services?.length ? (
                             <div className="app-table-wrap rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                              <table className="app-table data-table w-full border-collapse">
-                                <caption className="sr-only">{t('services.tableCaption')}</caption>
-                                <thead>
-                                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                                    <th scope="col" className="p-3 font-medium">
-                                      {t('services.table.service')}
-                                    </th>
-                                    <th scope="col" className="hidden p-3 font-medium md:table-cell">
-                                      {t('services.table.description')}
-                                    </th>
-                                    <th scope="col" className="p-3 text-right font-medium">
-                                      {t('services.table.duration')}
-                                    </th>
-                                    <th scope="col" className="p-3 text-right font-medium">
-                                      {t('services.table.price')}
-                                    </th>
-                                    <th scope="col" className="p-3 font-medium">
-                                      {t('services.table.gender')}
-                                    </th>
-                                    <th scope="col" className="p-3 font-medium">
-                                      {t('services.table.loyalty')}
-                                    </th>
-                                    <th scope="col" className="p-3 font-medium">
-                                      {t('services.table.status')}
-                                    </th>
-                                    <th scope="col" className="p-3 text-right font-medium">
-                                      {t('services.table.actions')}
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {sub.services.map((s) => (
-                                    <tr
-                                      key={s.id}
-                                      className="border-b border-slate-100 dark:border-slate-800/80"
-                                    >
-                                      <td data-label={t('services.table.service')} className="p-3 font-medium">
-                                        {s.name}
-                                      </td>
-                                      <td data-label={t('services.table.description')} className="hidden max-w-[260px] truncate p-3 text-slate-600 dark:text-slate-300 md:table-cell">
-                                        {s.shortDescription ?? '-'}
-                                      </td>
-                                      <td data-label={t('services.table.duration')} className="p-3 text-right tabular-nums">
-                                        {t('services.durationValue', {
-                                          count: s.durationMinutes,
-                                        })}
-                                      </td>
-                                      <td data-label={t('services.table.price')} className="p-3 text-right tabular-nums">
-                                        {formatLocalizedNumber(
-                                          s.price,
-                                          i18n.language,
-                                          {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          },
-                                        )}
-                                      </td>
-                                      <td data-label={t('services.table.gender')} className="p-3">
-                                        <Badge
-                                          variant={
-                                            s.gender === 'MALE'
-                                              ? 'secondary'
-                                              : 'brand'
-                                          }
-                                          className="text-[10px]"
-                                        >
-                                          {s.gender === 'MALE'
-                                            ? t('users.gender.male')
-                                            : t('users.gender.female')}
-                                        </Badge>
-                                      </td>
-                                      <td data-label={t('services.table.loyalty')} className="p-3">
-                                        {s.loyaltyEnabled ? (
-                                          <Badge
-                                            variant="brand"
-                                            className="text-[10px]"
-                                          >
-                                            {t('services.loyaltyDiscount', {
-                                              percent: formatLocalizedNumber(
-                                                s.loyaltyMaxDiscountPercent ??
-                                                  0,
-                                                i18n.language,
-                                              ),
-                                            })}
-                                          </Badge>
-                                        ) : (
-                                          <Badge
-                                            variant="secondary"
-                                            className="text-[10px]"
-                                          >
-                                            {t('services.withoutLoyalty')}
-                                          </Badge>
-                                        )}
-                                      </td>
-                                      <td data-label={t('services.table.status')} className="p-3">
-                                        <Badge
-                                          variant={
-                                            s.isActive ? 'success' : 'secondary'
-                                          }
-                                          className="text-[10px]"
-                                        >
-                                          {s.isActive
-                                            ? t('services.status.serviceActive')
-                                            : t(
-                                                'services.status.serviceInactive',
-                                              )}
-                                        </Badge>
-                                      </td>
-                                      <td data-label={t('services.table.actions')} className="p-3 text-right">
-                                        <div className="flex justify-end gap-1">
-                                          <Button
-                                            asChild
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8"
-                                            aria-label={t(
-                                              'services.aria.workGallery',
-                                            )}
-                                          >
-                                            <RouterLink
-                                              to={`/admin/services/${s.id}/work-gallery`}
-                                            >
-                                              <Eye className="h-4 w-4 text-purple-600" />
-                                            </RouterLink>
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8"
-                                            aria-label={t(
-                                              'services.aria.editService',
-                                            )}
-                                            onClick={() =>
-                                              openServiceForm(sub.id, s)
-                                            }
-                                          >
-                                            <Pencil className="h-4 w-4 text-blue-600" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-8 w-8"
-                                            aria-label={t(
-                                              'services.aria.deleteService',
-                                            )}
-                                            onClick={() =>
-                                              openServiceDeletion(s)
-                                            }
-                                          >
-                                            <Trash2 className="h-4 w-4 text-rose-600" />
-                                          </Button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                              <DataTable
+                                caption={t('services.tableCaption')}
+                                columns={serviceColumns(sub)}
+                                rows={sub.services}
+                                rowKey={(s) => s.id}
+                              />
                             </div>
                           ) : (
                             <p className="text-sm italic text-slate-500">

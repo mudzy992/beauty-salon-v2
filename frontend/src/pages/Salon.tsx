@@ -576,7 +576,6 @@ export default function Salon() {
                   columns={workingHoursColumns}
                   rows={workingHours}
                   rowKey={(wh) => String(wh.dayOfWeek)}
-                  headRowClassName="text-xs uppercase text-slate-500"
                   rowClassName={(wh) => (!wh.isWorkingDay ? 'opacity-60' : undefined)}
                 />
               </div>
@@ -609,8 +608,7 @@ export default function Salon() {
                     columns={holidayColumns}
                     rows={sortedHolidays}
                     rowKey={(h) => h.id}
-                    headRowClassName="text-xs uppercase text-slate-500"
-                  />
+                    />
                 </div>
               )}
             </TabsContent>

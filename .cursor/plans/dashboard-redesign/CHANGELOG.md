@@ -3949,3 +3949,91 @@ Migracija to ispravlja: radno vrijeme dobija `salon.workingHoursCaption`, prazni
 ### Preostalo
 
 `Services.tsx` (1537 ln) i `Users.tsx` (1536 ln).
+
+---
+
+## 2026-11-09 — `DataTable` migracija: `Services` + zajedničke klase uzglavlja u default
+
+### Urađeno
+
+- **`pages/Services.tsx` migriran** (1538 → 1507 ln): ručna tabela od 8 `<th>` zamijenjena
+  `<DataTable>`-om; kolone izvučene u `serviceColumns(sub)` (funkcija, jer `render` zatvara
+  `sub.id` za `openServiceForm`). `tsc --noEmit` **exit 0**.
+- **`text-xs uppercase text-slate-500` premješten u default** `data-table.tsx` i uklonjen
+  `headRowClassName` prop iz komponente i iz svih potrošača (Salon ×2, Services ×1).
+- **`font-medium` premješten u default `<th>`** (`cn('font-medium', alignClass[...], column.className)`),
+  ispred `column.className` da potrošač može premostiti preko `twMerge`. `<td>` ga **ne** dobija.
+- Novi test **`test:data-table-consistency`**
+  (`src/features/shell/admin/ui/data-table-consistency.test.mjs`, 5 testova) registrovan u
+  `frontend/package.json` i u `.github/workflows/ci.yml` (posao `frontend`: 183 → **184** koraka,
+  176 → **177** `test:*`).
+
+### Izmjereno prije izmjena (izvorni markup, `git show <commit>:<fajl>`)
+
+Klase `<thead><tr>` svih 8 dashboard tabela **prije** migracije:
+
+| klasa | tabele | broj |
+|---|---|---|
+| `text-xs uppercase text-slate-500` | Loyalty · Salon (radno vrijeme) · Salon (praznici) · Services · Users | **5** |
+| bez nje | expense · income · Notifications | 3 |
+
+`font-medium` na `<th>`: **36 od 36** (Loyalty 7, expense 4, income 5, Notifications 3,
+Salon 9, Services 8) — dakle univerzalno.
+
+Zaključak: obje klase su dominantni/univerzalni obrazac, pa po direktivi o konzistentnosti
+idaju u default komponente, a ne u prop po potrošaču.
+
+### 🔴 Dvije vlastite regresije pronađene mjerenjem i ispravljene
+
+1. **`Loyalty.tsx` je pri pilot migraciji (`00fa566`) tiho izgubio `text-xs uppercase text-slate-500`**
+   na uzglavlju. Izvorno ga je imao (`6b733c0:frontend/src/pages/Loyalty.tsx:168`), a ja sam ga
+   skinuo kad sam „čistio" stil-propove i zatim testom **zabranio** da se vrati. Sada je default,
+   pa se ne može izgubiti po fajlu.
+2. **`Services` bi izgubio `font-medium` na 3 kolone** (duration, price, actions) jer sam za njih
+   koristio `align: 'right'` umjesto ručne klase. Uhvaćeno prije commit-a mjerenjem 36/36.
+
+Uzrok oba: uspoređivao sam klase na `<tr>`/`<table>`, ali ne i na `<th>`. Pravilo je dopunjeno:
+**usporediti klase na svakom elementu uključujući `<th>`.**
+
+### Napomena o namjernoj vizuelnoj promjeni
+
+`expense-table`, `income-entries-table` i `Notifications` dobijaju `text-xs uppercase text-slate-500`
+na uzglavlju (ranije ga nisu imali). To je namjerno uklanjanje nekonzistentnosti po direktivi
+vlasnika („konzistentnost na dashboardima uvijek se mora ispoštovati"), ne regresija.
+`Services`, `Salon` i `Loyalty` su vizuelno nepromijenjeni.
+
+### Mutacijska provjera (6/6)
+
+| # | mutacija | test pada? |
+|---|---|---|
+| M1 | `text-xs uppercase text-slate-500` izbačen iz defaulta | ✅ |
+| M2 | `headRowClassName` vraćen u `Loyalty` | ✅ |
+| M3 | `tableClassName` dodat u `Loyalty` | ✅ |
+| M4 | `caption` prop uklonjen iz `Loyalty` | ✅ |
+| M5 | `font-medium` izbačen iz `<th>` defaulta | ✅ |
+| M6 | `font-medium` pogrešno dodat i na `<td>` | ✅ |
+
+Sve mutacije vraćene; kontrolni prolaz 5/5.
+
+### Zamke uhvaćene u ovom koraku
+
+- `s.replace(old, '')` gdje je `old` (18 razmaka + `headRowClassName`) **podstring** duže linije
+  (32 razmaka + isto) → ostalo je 14 razmaka zalijepljenih na sljedeću liniju (`/>` na 44. koloni).
+  `tsc` to ne hvata. Provjereno `sed -n '/<DataTable/,/\/>/p'` + regex za linije samo-razmaci.
+- `new URL('../../../', import.meta.url)` računa od **fajla**, ne direktorija → `SRC` je pokazivao
+  na `src/features/` i test je nalazio 4 umjesto 8 potrošača. Ispravljeno na `join(HERE,'..','..','..','..')`.
+- Regex `<th[^>]*>` **hvata i `<thead>`** → prvi brojevi (Loyalty 8/7) bili su lažno uvećani.
+  Ispravan obrazac: `<th(?=[\s>])[^>]*>`.
+- `print(f'{n0} -> {len(s)}')` nakon `p.write_text(s.replace(...))` bez `s = ` → ispisao staru
+  veličinu. Provjera stvarnog stanja: `wc -c` + `git diff --stat`.
+
+### Kapije
+
+`test:*` **178/178** · `tsc --noEmit` **exit 0** · `test:hooks-order` **2/2** · lint
+**0 errors / 7 warnings** · build **273.9 KiB / 300** · `check_i18n --strict` **PASS**
+(2652/2652) · `check_doc_links` **PASS** (670/202) · `git diff --check` **čist**.
+
+### Preostalo
+
+`Users.tsx` (1536 ln, 8 `<th>`) — posljednji čisti kandidat. Zatim 8 nemigriranih
+(`colSpan`/`<tfoot>`).

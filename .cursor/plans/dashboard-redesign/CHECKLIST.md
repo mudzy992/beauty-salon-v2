@@ -348,15 +348,25 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
       fajlovima jer ih testovi čita po putanji"). Uz to `admin-settings-controls-a11y`
       asertuje tačno 29 `<Label>`, a `email-visual-editor` tačno 2 `<EmailVisualEditor`.
       Performansijski razlog je već riješen (`SettingsHub.tsx:26` → `lazy()`).
-- [x] **Migracija tabela na `DataTable` — masovni cilj se ne radi.** Izmjereno: 14 od 17
-      fajlova s `<table>` već ima `<caption>` + `scope="col"`; 3 već koriste `DataTable`.
+- [x] **Migracija tabela na `DataTable` — mjerenje pa odluka vlasnika.** Izmjereno: 14 od 17
+      fajlova s `<table>` već ima `<caption>` + `scope="col"`, pa je a11y dobitak nula; cilj je
+      **održavanje i konzistentnost**. Vlasnik je masovnu migraciju **odobrio**
+      („možeš krenuti sa masovnom implementacijom DataTable") uz direktivu da je konzistentnost
+      na dashboardima obavezna. Migrirano **6/7** čistih kandidata: `Loyalty`, `expense-table`,
+      `income-entries-table`, `Notifications`, `Salon` (×2), `Services`. Preostaje `Users.tsx`.
+      **8 fajlova se ne može migrirati** (`colSpan`/`rowSpan`/`<tfoot>` — `DataTable` ih ne
+      podržava): `blog-posts-table`, `daily-log/entry-table`, `Reservations`, `Reviews`,
+      `Stylists`, `ClientAnalytics`, `Analytics`, `expense-invoice-preview`.
 - [x] **Jedina stvarna rupa popravljena:** `pages/StylistAnalytics.tsx` — 7 `<th>` bez
       `scope`, 2 tabele bez imena, uz vidljive `<h2>` odmah iznad. Dodato `scope="col"` +
       `aria-labelledby` na postojeće naslove. **Nula vidljivih promjena**, `DataTable` nije
       upotrijebljen jer bi promijenio izgled. `test:stylist-analytics-tables-a11y`
       (5 testova, 8/8 mutacija).
-- [ ] **Napomena o mjerenju:** `grep -c '<th'` vraća 9 za taj fajl jer pogodi i `<thead>`.
-      Stvarno je 7 `<th>`. Za brojanje tagova koristiti `grep -o '<th[^>]*>'`.
+- [x] **Napomena o mjerenju (ispravljeno 2026-11-09):** `grep -c '<th'` vraća 9 za taj fajl jer
+      pogodi i `<thead>`. Stvarno je 7 `<th>`. **Ni `grep -o '<th[^>]*>'` nije ispravno** — i ono
+      hvata `<thead>` (`<th` + `ead>`), pa lažno uvećava za broj tabela. Ova greška je dala pogrešne
+      brojeve za `font-medium` (Loyalty 8/7 umjesto 7/7) prije nego je uhvaćena. Ispravan obrazac:
+      `<th(?=[\s>])[^>]*>` ili `re.compile(r'<th(?=[\s>])[^>]*>')` u pythonu.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
