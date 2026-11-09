@@ -192,7 +192,7 @@ export function MediaConsentPanel() {
                       className="aspect-[4/3] w-full bg-slate-100 object-cover"
                     />
                   ) : (
-                    <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-slate-400">
+                    <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-slate-600">
                       <ImageOff
                         className="h-6 w-6"
                         aria-label={t('mediaConsent.previewUnavailable')}
@@ -262,7 +262,7 @@ export function MediaConsentPanel() {
                       className="h-20 w-20 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                       <ImageOff
                         className="h-5 w-5"
                         aria-label={t('mediaConsent.previewUnavailable')}

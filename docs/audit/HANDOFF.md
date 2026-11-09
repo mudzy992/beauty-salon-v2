@@ -1062,3 +1062,31 @@ tastaturno dostupan i najavljen — dakle **nije** 2.1.1/2.1.2 prekršaj, a kao 
 destruktivne akcije **doprinosi** 3.3.4. Uvođenje blokirajućeg testa bilo bi čist churn bez
 a11y vrijednosti, pa test **nije** uveden. Ako se želi vizuelna konzistentnost
 (`ConfirmDialog`), to je dizajnerska odluka, ne pristupačnost.
+
+---
+
+## 2026-11-09 — Faza 13, nakon prvog axe runa: **najvažniji otvoreni korak je re-run**
+
+Prvi rendered dokaz postoji (vlasnikova mašina: 11 testova, **3 prošla / 8 palo**, 24.6 s).
+Četiri nalaza su ispravljena u izvoru i zakucana testom `test:public-a11y-axe-findings`
+(4 testa, 9/9 mutacija pada), ali:
+
+1. **Re-run `npm run test:a11y-routes` nakon ispravki NIJE izvršen.** Do tada ne tvrditi da
+   axe prolazi — imamo samo dokaz da je *padao* i izvor za koji vjerujemo da to popravlja.
+2. **Backend mora biti podignut.** U prvom runu nije bio (`ECONNREFUSED 127.0.0.1:10001`),
+   pa su stranice bile u praznom/fallback stanju. Kontrast, `alt` i label-in-name nalazi
+   važe za to stanje; stanje s podacima nije testirano.
+3. **`/admin/**` nije pokriven uopšte** — spec to eksplicitno traži (podignut backend +
+   `storageState` s tokenom), a to je najveći dio redizajna.
+
+Redoslijed koji ima smisla:
+
+```bash
+# 1) podignuti backend (port 10001), pa:
+cd frontend
+npm run build && npm run test:a11y-routes   # očekivano: 11/11
+# 2) tek onda pokriti /admin/** u e2e/a11y-routes.spec.ts (mjesto je označeno u specu)
+```
+
+**D10 (`formatLocalizedAmount` zaobiđen na 15 mjesta) ostaje neotvoren namjerno** — vidi
+prethodni odjeljak; ne popravljati tiho bez odluke o formatu.

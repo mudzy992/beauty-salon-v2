@@ -29,17 +29,17 @@ const PALETTE = {
   gray: { 100: '#f3f4f6', 200: '#e5e7eb', 300: '#d1d5db', 400: '#9ca3af', 500: '#6b7280', 600: '#4b5563', 700: '#374151', 800: '#1f2937', 900: '#111827', 950: '#030712' },
   zinc: { 300: '#d4d4d8', 400: '#a1a1aa', 500: '#71717a', 600: '#52525b' },
   neutral: { 400: '#a3a3a3', 500: '#737373', 600: '#525252' },
-  red: { 400: '#f87171', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
+  red: { 50: '#fef2f2', 100: '#fee2e2', 400: '#f87171', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' },
   rose: { 50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af', 400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 800: '#9f1239', 900: '#881337', 950: '#4c0519' },
   orange: { 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412' },
   amber: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309', 800: '#92400e', 900: '#78350f', 950: '#451a03' },
   yellow: { 400: '#facc15', 500: '#eab308', 600: '#ca8a04' },
-  green: { 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
+  green: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d' },
   emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b', 950: '#022c22' },
   teal: { 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
   cyan: { 500: '#06b6d4', 600: '#0891b2' },
   sky: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
-  blue: { 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+  blue: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
   indigo: { 500: '#6366f1', 600: '#4f46e5' },
   violet: { 500: '#8b5cf6', 600: '#7c3aed' },
   purple: { 500: '#a855f7', 600: '#9333ea', 900: '#581c87' },
@@ -72,7 +72,6 @@ const ALLOWLIST = {
   'features/finance/income/income-entries-table.tsx::rose-500': 'ikona (Trash2) aria-hidden, 3.67:1 ≥ 3:1',
   'features/finance/income/integrity-panel.tsx::amber-600': 'ikona aria-hidden, 3.19:1 ≥ 3:1',
   'features/finance/income/integrity-panel.tsx::emerald-600': 'ikona aria-hidden, 3.77:1 ≥ 3:1',
-  'features/media-consent/media-consent-panel.tsx::slate-400': 'placeholder-ikona na bg-slate-100, dekorativna',
   'features/settings/settings-module-page.tsx::slate-400': 'ikona (Search) aria-hidden',
   'features/shell/admin/ui/data-state.tsx::rose-500': 'ikona (AlertCircle) aria-hidden, 3.67:1 ≥ 3:1',
   'features/shell/admin/ui/data-state.tsx::slate-400': 'ikona (Inbox) aria-hidden',
@@ -172,6 +171,73 @@ test('svaki unos allowliste ima razlog i pokriva stvarni nalaz', () => {
     assert.match(key, /^[^:]+\.tsx::[a-z]+-\d{2,3}$/, `${key}: loš format ključa`)
   }
   assert.ok(Object.keys(ALLOWLIST).length >= 20, 'allowlista je sumnjivo mala')
+})
+
+/**
+ * 1.4.3 / 1.4.11 — kontrast teksta i pozadine **na istom elementu**.
+ *
+ * Ovaj sweep je dodan jer je prvi stvarni axe render (2026-11-09) našao prekršaj koji
+ * gornji sweep NIJE mogao vidjeti: gornji računa kontrast prema **bijeloj**, a na `/kontakt`
+ * je tekst stajao na `bg-slate-200` → `text-slate-500` = **3.86:1** (axe izmjerio).
+ *
+ * Dvije stvari koje sweep mora poštovati:
+ *  1. `dark:` tokeni se preskaču (mrtav kod, Q1).
+ *  2. Boje s **modifikatorom prozirnosti** (`bg-white/12`, `bg-white/25`) ne smiju se
+ *     tretirati kao pune boje — inače `bg-white/12 text-white` daje lažnih 1.00:1.
+ *     Takva dva mjesta postoje: `components/ui/button.tsx:23` i
+ *     `pages/public/PublicServices.tsx:252`. Preskakanje je **dvostruko** osigurano:
+ *     eksplicitnim `raw.includes('/')` i time što `solid()` za `white/12` vrati `null`
+ *     (`Number('900/5')` = NaN). Mutacijska provjera je pokazala da uklanjanje
+ *     eksplicitnog guard-a **ne mijenja** ishod — dakle on nije nosiv, nego dokumentuje
+ *     namjeru. Prvi naivni sweep (Python) bez te zaštite javio je oba kao 1.00:1.
+ */
+test('1.4.3/1.4.11: tekst i pozadina na istom elementu imaju >= 4.5:1', () => {
+  const names = Object.keys(PALETTE).join('|')
+  const textRe = new RegExp(`(?:^|:)text-((?:${names})-\\d{2,3}|white|black)(?![\\w-])`)
+  const solid = (cls) => {
+    if (cls === 'white') return '#ffffff'
+    if (cls === 'black') return '#000000'
+    const i = cls.lastIndexOf('-')
+    const pal = cls.slice(0, i)
+    const shade = Number(cls.slice(i + 1))
+    return PALETTE[pal]?.[shade] ?? null
+  }
+
+  let checked = 0
+  const bad = []
+  for (const file of collect()) {
+    const rel = relative(SRC, file).split('\\').join('/')
+    const lines = readFileSync(file, 'utf8').split('\n')
+    lines.forEach((line, idx) => {
+      const t = line.trim()
+      if (t.startsWith('*') || t.startsWith('//') || t.startsWith('{/*')) return
+      for (const str of line.match(/["'`]([^"'`]*)["'`]/g) ?? []) {
+        let bg = null
+        let fg = null
+        for (const tok of str.slice(1, -1).split(/\s+/)) {
+          if (!tok || tok.split(':')[0] === 'dark') continue
+          if (tok.startsWith('bg-') && bg === null) {
+            const raw = tok.slice(3)
+            if (raw.includes('/')) continue // prozirnost -> nije puna boja
+            const hex = solid(raw)
+            if (hex) bg = hex
+          } else {
+            const m = textRe.exec(tok)
+            if (!m || m[1].includes('/')) continue
+            const hex = solid(m[1])
+            if (hex) fg = hex
+          }
+        }
+        if (bg === null || fg === null) continue
+        checked += 1
+        const ratio = contrast(fg, bg)
+        if (ratio < 4.5) bad.push(`${rel}:${idx + 1} = ${ratio.toFixed(2)}:1`)
+      }
+    })
+  }
+  // 49 parova izmjereno 2026-11-09; donja granica sprječava tiho prolazenje na praznom skupu
+  assert.ok(checked >= 40, `sweep je obuhvatio samo ${checked} bg+text parova`)
+  assert.deepEqual(bad, [], `tekst/pozadina ispod 4.5:1 na istom elementu:\n${bad.join('\n')}`)
 })
 
 test('1.4.3 ispravljeno: statusni tekstovi više ne koriste emerald-600 / amber-600', () => {

@@ -484,6 +484,42 @@ Početni report `scripts/check_ui_contrast.py` našao je 9/23 selected source-to
 u sandboxu (`Failed to download Chrome for Testing 158.0.8127.18`), pa `test:a11y-routes`
 **nije** izvršen i **nije** dodat u CI kao blokirajući korak. A11Y-01 ostaje otvoren.
 
+**Dopuna 2026-11-09 (kasnije istog dana) — PRVI RENDERED DOKAZ: axe je izvršen i našao stvarne prekršaje.**
+Browser je instaliran na vlasnikovoj mašini i `npm run test:a11y-routes` se **stvarno
+izvršio**: 11 testova, **3 prošla / 8 palo**, 24.6 s. Time je tvrdnja iz prethodne dopune
+(„nije izvršen") prestala važiti. Ovo je prvi rendered dokaz u projektu i on je odmah
+opovrgao dio source-contract optimizma:
+
+| Axe nalaz | WCAG | Gdje | Stanje |
+|---|---|---|---|
+| `label-content-name-mismatch` (serious) | 2.5.3 | 6 javnih ruta | ispravljeno u izvoru |
+| `image-alt` (**critical**) | 1.1.1 | `/register` | ispravljeno u izvoru |
+| `color-contrast` (serious) ×2 | 1.4.3 | `/kontakt` | ispravljeno u izvoru |
+| skip-link nije prvi u tab redu | 2.4.1 | javni layout | ispravljeno u izvoru |
+
+**Zašto je ovo važno za A11Y-01:** source sweep kontrasta (`test:text-contrast-allowlist`)
+računao je svaku paleta-klasu prema **bijeloj** pozadini, pa `text-slate-500` (4.76:1 na
+bijeloj) nije mogao otkriti slučaj `bg-slate-200` + `text-slate-500` = **3.86:1**. Nalaz je
+uhvatio tek render. Sweep je proširen parovima „tekst i pozadina na istom elementu"
+(49 parova), a time je pronađen i dodatni prekršaj koji **nije** bio u axe izvještaju:
+`media-consent-panel.tsx:195,265`, `text-slate-400` na `bg-slate-100` = **2.34:1** na
+ikoni s `aria-label` (1.4.11 Non-text Contrast). **Pouka za ovaj finding: source-level
+sweep kontrasta nije zamjena za rendered provjeru, čak ni kada je pokrivenost 178 fajlova.**
+
+**Šta time NIJE dokazano (A11Y-01 ostaje otvoren):**
+1. **Re-run nakon ispravki nije izvršen** — sve četiri ispravke su sada zakucane
+   source-contract testom (`test:public-a11y-axe-findings`, 4 testa, 9/9 mutacija pada),
+   ali rendered potvrda da axe sada prolazi još ne postoji.
+2. **Backend nije bio podignut** — log je pun `ECONNREFUSED 127.0.0.1:10001`
+   (`/api/settings/public`, `/api/services`, `/api/salon`), pa su stranice renderovane u
+   **praznom/fallback stanju**. Kontrast, `alt` i label-in-name nalazi važe za to stanje;
+   stanje s podacima (npr. stvarne cijene, galerija s medijima) nije testirano.
+3. **`/admin/**` uopšte nije pokriven** — spec to eksplicitno traži (podignut backend +
+   `storageState` s tokenom), i to je najveći dio redizajna.
+4. Nema čitača ekrana (VoiceOver/TalkBack/NVDA), tastaturnog walkthrougha, zoom-a 200/400%,
+   text spacing-a ni touch-target provjere na stvarnom uređaju.
+
+
 Ovo nije rendered-page audit ni potpuna component-pair provjera: ne potvrđuje computed browser boje/opacity/gradients, sve hover/disabled kombinacije, text sizing, custom CSS backgrounde, accessibility tree, axe/Playwright, keyboard, touch target, VoiceOver/TalkBack, niti manual booking/profile journey. Generic mobile badge i dalje koristi tekstualnu status oznaku; zahtjev za poseban status icon i accessibility/reader signoff nije potvrđen. `A11Y-01` zato ostaje otvoren do rendered/browser/device/manual acceptance.
 
 **Preostalo:** browser computed-style + axe/Playwright pregled reprezentativnih public booking, profile/settings i finance tokova; provjera dark/light/hover/disabled i dinamičkih boja na stvarnim komponentama; status icon/label odluka; keyboard i screen-reader/manual signoff.

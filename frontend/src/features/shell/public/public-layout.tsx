@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink, Menu } from 'lucide-react'
 
+import { SkipLink } from '../../shell/admin/ui/skip-link'
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
@@ -151,6 +152,9 @@ export const PublicLayout = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      {/* WCAG 2.4.1 Bypass blocks — javni layout dosad NIJE imao skip-link (imao ga je samo
+          admin/stylist shell), pa je prvi Tab išao na logo. axe: 2.4.1. */}
+      <SkipLink />
       <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 flex-none">
@@ -386,7 +390,8 @@ export const PublicLayout = () => {
         </div>
       </header>
 
-      <main className="flex-1">
+      {/* `tabIndex={-1}` da skip-link zaista pomjeri fokus (WCAG 2.4.1 / 2.4.3). */}
+      <main id="main" tabIndex={-1} className="flex-1">
         <Outlet />
       </main>
 

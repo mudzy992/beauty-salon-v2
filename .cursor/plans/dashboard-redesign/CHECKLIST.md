@@ -140,6 +140,36 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > **Novi nalaz u `HANDOFF.md` (D10, bez tihog popravljanja):** 15 mjesta koristi
 > `toFixed(2) + ' KM'` umjesto `formatLocalizedAmount` → miješani format i `"NaN KM"`.
 
+> **🔴 Iznad stoji „ZATVORENA, ali bez rendered dokaza" — to više NE važi (2026-11-09).**
+> Vlasnik je instalirao browser i `npm run test:a11y-routes` se **stvarno izvršio**:
+> 11 testova, **3 prošla / 8 palo** (24.6 s). Prvi rendered dokaz u projektu, i odmah je
+> našao 4 stvarne stvari koje source-contract **nije** vidio:
+> `label-content-name-mismatch` (2.5.3, **6 ruta**), `image-alt` (**critical**, 1.1.1,
+> `/register`), `color-contrast` ×2 (1.4.3, `/kontakt`) i `2.4.1` skip-link (prvi Tab na
+> logo). Sve četiri su ispravljene u izvoru i zakucane novim testom
+> `test:public-a11y-axe-findings` (4 testa, **9/9** mutacija pada).
+>
+> **Brojevi u gornjoj napomeni su zastarjeli.** Matrica je sada
+> **27 ✅ · 1 ✅/❌ · 11 🟡 · 4 ❌ · 7 ➖ · 1 ➖/⚠️ = 51** (2.5.3 prešao 🟡 → ✅).
+> Prebrojano **skriptom** po redovima, ne napamet.
+>
+> **Najvažnija lekcija faze 13:** moj D3 sweep kontrasta računao je prema **bijeloj**
+> pozadini, pa `text-slate-500` na `bg-slate-200` (3.86:1) **nije mogao** uhvatiti. Sweep
+> je proširen parovima „tekst i pozadina na istom elementu" (49 parova, granica 40), što je
+> otkrilo i prekršaj van axe izvještaja: `media-consent-panel.tsx:195,265`
+> `text-slate-400` na `bg-slate-100` = **2.34:1** na ikoni s `aria-label` (1.4.11).
+> **Source-level sweep nije zamjena za rendered provjeru.**
+>
+> **DoD t. 64 („javni sajt bez diff-a") je u sukobu s ovim nalazima** → odluke vlasnika
+> **Q8** (zadržati `text-slate-600` na `/kontakt`, jedina vidljiva izmjena boje) i
+> **Q9** (zadržati `<SkipLink />` u `features/shell/public/`, 0 vidljivih izmjena),
+> zabilježene u `00_overview.md` §7b. `features/blog/` i `mobile/` = **0 diff** (provjereno
+> `git diff --stat`).
+>
+> **A11Y-01 ostaje otvoren:** re-run nakon ispravki nije izvršen, backend nije bio podignut
+> (stranice u praznom stanju, `ECONNREFUSED 127.0.0.1:10001`), a `/admin/**` — najveći dio
+> redizajna — uopšte nije pokriven.
+
 > **Faza 13, D3 — napomene.** Plan je tražio „grep sirovih boja → allowlist", ali sirova
 > klasa **nije** prekršaj ako kontrast prolazi (883 svjetle upotrebe), pa je to zamijenjeno
 > **mjerenjem kontrasta**: od 883 samo **4** su stvarni prekršaji (`amber-600` 3.19:1 ×1,

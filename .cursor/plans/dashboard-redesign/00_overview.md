@@ -120,6 +120,22 @@ Vlasnik: „postupi po svojoj preporuci“. Sve odluke su **prihvaćene** i važ
 | **Q6** | `Salon.tsx` 2× `<h1>` | Fiks u **fazi 8**. |
 | **Q7** | `client-analytics` / `stylist-analytics` | Postaju **tabovi** unutar `/admin/analytics` (posljedica Q3/M1); stare rute redirectuju. |
 
+## 7b. Dopunske odluke — 2026-11-09, **nakon prvog stvarnog axe runa**
+
+DoD faze 13 (`16_phase-13-finalization.md:64`) kaže „Javni sajt i mobilna aplikacija bez
+diff-a", a axe je dokazao stvarne WCAG prekršaje **upravo na javnom sajtu**. To je sukob
+unutar samog plana, pa nije riješen tiho:
+
+| # | Pitanje | **ODLUKA (vlasnik, 2026-11-09)** |
+|---|---|---|
+| **Q8** | `/kontakt` — axe `color-contrast` (serious, 1.4.3): `text-slate-500` na `bg-slate-200` = **3.86:1**. Fix mijenja **vidljivu boju** na javnom sajtu, što kosi s DoD t. 64. | **Zadržati fix** (`text-slate-600` = 6.15:1 na `bg-slate-200`). DoD t. 64 se tumači kao „bez nenamjernih vizuelnih regresija", ne kao „nula diff". Bilježi se u `CHANGELOG.md` uz grep + dokaz. |
+| **Q9** | 2.4.1 — javni layout **nema** skip-link (prvi Tab ide na logo). Fix dodaje `<SkipLink />` + `id="main"`/`tabIndex={-1}` u `features/shell/public/public-layout.tsx`, što je na ⚠️ listi „ne dirati". | **Zadržati.** 2.4.1 je WCAG **A** i javni sajt ga stvarno krši; izmjena ima **0 vidljivih promjena** (`.skip-link` je skriven do fokusa). Bilježi se grep upotreba + dokaz (`00_overview.md:107`). |
+
+> Ove dvije odluke **ne** šire ⚠️ listu: `features/blog/` i ostali javni template-i se i
+> dalje ne diraju bez posebnog odobrenja. Q2 i dalje važi za `Login`/`Register`/
+> `ResetPassword`/`Profile` („WCAG-popravke tek u fazi 13, uz zaseban dokaz" — dokaz je
+> sada axe nalaz `image-alt` na `/register`).
+
 ## 7a. Historija pitanja (prije odluke)
 
 | # | Pitanje | Preporuka agenta |

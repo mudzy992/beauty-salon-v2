@@ -277,7 +277,7 @@ export default function PublicContact() {
                   />
                 </div>
               ) : (
-                <div className="rounded-2xl overflow-hidden shadow-sm h-[300px] bg-slate-200 flex items-center justify-center flex-col text-slate-500">
+                <div className="rounded-2xl overflow-hidden shadow-sm h-[300px] bg-slate-200 flex items-center justify-center flex-col text-slate-600">
                   <div className="font-semibold">{t('public.contact.mapTitle')}</div>
                   <div className="text-sm">{t('public.contact.mapLocation')}</div>
                 </div>

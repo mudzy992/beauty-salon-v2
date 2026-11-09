@@ -147,11 +147,18 @@ Axe harness čeka odobrenje **Q4**.
 Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje nakon svih
 13 faza. Pravila za status su ista kao u legendi: ✅ samo uz test/skriptu/proračun.
 
-> **R1 i dalje važi:** rendered/browser/screen-reader provjere **nema**. `@axe-core/playwright`
-> i `@playwright/test` su instalirani (Q4), `npx playwright test --list` nabroji **11 testova**
-> i tipovi prolaze, ali browser binarni fajl se ne može preuzeti u sandboxu
-> (`Failed to download Chrome for Testing 158.0.8127.18`), pa `test:a11y-routes` **nije
-> izvršen** i nije CI gate. Sve ✅ ispod su **source-contract** dokazi.
+> **R1 je DJELIMIČNO UKINUT 2026-11-09.** Browser binarni fajl i dalje se ne može preuzeti
+> u sandboxu (`Failed to download Chrome for Testing 158.0.8127.18`), ali je vlasnik
+> `npm run test:a11y-routes` **pokrenuo na svojoj mašini**: 11 testova, **3 prošla / 8 palo**,
+> 24.6 s. To je prvi rendered dokaz u projektu.
+>
+> **Rezultat runa:** PASS na `/rezervacija`, `/login` i `2.4.2` (`<title>` na svim rutama).
+> FAIL na 4 različite stvari — sve četiri su u izvoru potvrđene i ispravljene (vidi redove
+> `1.1.1`, `1.4.3`, `2.4.1`, `2.5.3`). Backend nije bio podignut (log pun
+> `ECONNREFUSED 127.0.0.1:10001`), pa su stranice renderovane u **praznom/fallback stanju** —
+> nalazi važe za to stanje, a `/admin/**` i dalje nije pokriven.
+>
+> ✅ ispod su source-contract dokazi; **re-run axe nakon ispravki još nije izvršen**.
 
 ## Mjerenja (izvor, 2026-11-09)
 
@@ -172,13 +179,13 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 
 | SC | Status | Dokaz / šta NIJE dokazano |
 |---|---|---|
-| 1.1.1 | ✅ | `test:*-a11y` (ikone `aria-hidden`, grafikoni imaju tekstualni sažetak) |
+| 1.1.1 | ✅ | `test:*-a11y` (ikone `aria-hidden`, grafikoni imaju tekstualni sažetak). **Axe nalaz (critical):** `/register` je imao `<img … src="/brand/media-fallback.jpg">` bez `alt` — `AvatarImage` ga nije postavljao kada ga pozivalac ne prosljedi (`pages/Register.tsx:231`). Sada default `alt=""` (dekorativno) u `components/ui/avatar.tsx`; `StylistLayout` i `public-layout` već prosljeđuju `shell.profileForUser`. `test:public-a11y-axe-findings` |
 | 1.2.1–1.2.5 | ➖ | 0 pogodaka za `<video>`/`<audio>` u `pages/`, `features/`, `components/`, `layouts/` |
 | 1.3.1 | ✅ | jedan `<h1>` po stranici, `caption` ×21, `th scope` 115/152, landmark-i; testovi po modulu |
 | 1.3.2–1.3.4 | 🟡 | DOM redoslijed i orijentacija samo u kodu |
 | 1.3.5 | ✅ | grep + `test:i18n-language` |
 | 1.4.1 | ✅ | semantički tokeni (`test:semantic-tokens`, `test:settings-semantic-tokens`) |
-| 1.4.3 | ✅ | `check_ui_contrast.py --strict` 80/80 + `test:text-contrast-allowlist` (178 fajlova, 27 obrazloženih, 4 ispravljena) |
+| 1.4.3 | ✅ | `check_ui_contrast.py --strict` 80/80 + `test:text-contrast-allowlist` (178 fajlova, 27 obrazloženih, 4 ispravljena). **Axe nalaz (serious) ×2 na `/kontakt`:** `text-slate-500` `#64748b` na `bg-slate-200` `#e2e8f0` = **3.86:1** (placeholder Google mape, `PublicContact.tsx:280-282`). **Rupa u mom sweepu:** računao je kontrast prema **bijeloj**, pa parove „tekst i pozadina na istom elementu“ nije mogao vidjeti — sad je pokriveno posebnim testom. Plus nenadani nalaz: `media-consent-panel.tsx:195,265` `text-slate-400` na `bg-slate-100` = **2.34:1** na `<ImageOff aria-label>` (značenjska ikona → 1.4.11). Oba → `text-slate-600` = 6.92:1 na `bg-slate-100`; onaj na `/kontakt` je 6.15:1 jer mu je pozadina `bg-slate-200` |
 | 1.4.4 / 1.4.12 | 🟡 | `rem` skala postoji; zoom 200/400% i text spacing **nisu** mjereni |
 | 1.4.5 | 🟡 | SVG logo, bez teksta kao slike (nije render-provjereno) |
 | 1.4.10 | 🟡 | card prikaz i `overflow-x` + `tabindex="0"` postoje; reflow 320px **nije** mjeren |
@@ -193,7 +200,7 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 | 2.2.2 | ➖ | 60s poll za badge nije „moving content“; bez animiranog sadržaja |
 | 2.3.1 | 🟡 | nema bljeskajućeg sadržaja u kodu |
 | 2.3.3 (AAA) | ✅ | `globals.css:241` globalni `prefers-reduced-motion` na `*` (pokriva i Radix i Sonner) |
-| 2.4.1 | ✅ | skip-link postoji (`test:shell-a11y`); pozicija u tab redu 🟡 |
+| 2.4.1 | ✅ | skip-link postoji u admin/stylist shellu (`test:shell-a11y`). **Axe nalaz:** javni layout ga **nije imao** — prvi Tab išao je na `<a href="/" class="flex items-center gap-2 flex-none">` (logo), 14× isti rezultat. Sada `<SkipLink />` prvi u `features/shell/public/public-layout.tsx` + `<main id="main" tabIndex={-1}>`. `test:public-a11y-axe-findings` asertira i **redoslijed** (SkipLink prije `<header>`) |
 | 2.4.2 | ✅ | `seo/dashboard-titles.ts` + `test:analytics-hub-redirect` / `test:settings-hub-redirect` |
 | 2.4.3 | 🟡 | `tabIndex={-1}` na naslovu postoji; stvarni pomak fokusa 🟡 |
 | 2.4.4 | ✅ | `aria-current` ×6, jedinstvena imena akcija (testovi po modulu) |
@@ -204,7 +211,7 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 | 2.4.12 (AAA) | ➖ | odbijeno (Q5) |
 | 2.4.13 (AAA) | ✅ | 3px prsten, `outline-offset: 2px`, 11.56:1 |
 | 2.5.1 / 2.5.2 / 2.5.4 | 🟡 | aktivacija na `click`, nema gesta — u kodu |
-| 2.5.3 | 🟡 | vidljivi tekst je dio imena (nije AT-provjereno) |
+| 2.5.3 | ✅ | **Axe nalaz (serious) na 6 ruta** (`/`, `/usluge`, `/galerija`, `/kontakt`, `/zadovoljni-klijenti`, `/blog`): `<button aria-label="Prebaci jezik na Engleski">BS</button>` — vidljivi tekst „BS" **nije** bio dio pristupačnog imena. Uzrok u `components/i18n/language-switcher.tsx`: `aria-label={actionLabel}` (cijela rečenica) uz sadržaj `{currentLanguage.toUpperCase()}`. Sada `aria-label={`${visibleCode} — ${actionLabel}`}`; `title` je **namjerno ostao** `actionLabel` jer `aria-label` ionako preglasava `title` u računanju imena → 0 vidljivih izmjena na javnom sajtu. `test:public-a11y-axe-findings` |
 | 2.5.5 (AAA) 44px | ✅ | `minHeight/minWidth.target` = 2.75rem u tokenima |
 | 2.5.7 | 🟡 | kalendar: `onEventDrop`/`onEventResize` (`:673`/`:682`) ostaju, ali postoji **agenda** prikaz (`:409`, `:565`) i `type="time"` polja u detaljima (`:807`/`:817`, `:1197`/`:1206`) kao put bez povlačenja. **Nije provjereno** da li je `onSelectEvent` dostupan tastaturom. `before-after-spotlight`: **0** drag/pointer handlera → ➖ |
 | 2.5.8 24px | 🟡 | `h-8 w-8` (32px) / `h-7 w-7` (28px) prolaze minimum; nije izmjereno u renderu |
@@ -227,13 +234,16 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 ## Rezime (ETAPA B)
 
 Brojano **skriptom** po redovima donje tabele (neki redovi pokrivaju više SC-ova, npr.
-`1.3.2–1.3.4` i `2.5.1 / 2.5.2 / 2.5.4`), ne napamet:
+`1.3.2–1.3.4` i `2.5.1 / 2.5.2 / 2.5.4`), ne napamet. Prebrojano ponovo **2026-11-09
+nakon axe runa**: `2.5.3` je prešao 🟡 → ✅ (axe je dokazao prekršaj, izvor ispravljen,
+`test:public-a11y-axe-findings` ga zakucava), pa je ✅ 26→**27** a 🟡 12→**11**.
+Ukupno 51 — nepromijenjeno.
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (source-contract) | **26** |
+| ✅ verifikovano (source-contract) | **27** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **12** |
+| 🟡 u kodu, nije verifikovano u renderu | **11** |
 | ❌ nije zadovoljeno (`3.1.2`, `3.2.6`, `3.3.3`, `3.3.7`) | **4** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |

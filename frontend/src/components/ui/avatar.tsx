@@ -23,13 +23,17 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 export const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, src, onError, ...props }, ref) => {
+>(({ className, src, onError, alt = '', ...props }, ref) => {
   const remote = useMediaImageSource(typeof src === 'string' ? src : '')
   return (
     <AvatarPrimitive.Image
       ref={ref}
       className={cn('aspect-square h-full w-full object-cover', className)}
       {...props}
+      // WCAG 1.1.1: <img> bez alt-a je critical (axe: image-alt). Default je dekorativan
+      // (`alt=""`); pozivalac koji nosi značenje prosljeđuje svoj alt (StylistLayout i
+      // public-layout to već rade preko `shell.profileForUser`).
+      alt={alt}
       src={remote || MEDIA_FALLBACK_SRC}
       onError={(event) => {
         const img = event.currentTarget

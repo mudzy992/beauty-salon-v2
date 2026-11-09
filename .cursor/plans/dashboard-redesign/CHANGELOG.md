@@ -2796,3 +2796,122 @@ također čeka 180 s. `scripts/run-a11y-routes.mjs` sada to provjeri **odmah** i
 Provjereno: omotač traži `frontend/dist/index.html` (rezolucija putanje tačna, `existsSync` =
 true na izgrađenom projektu). Redoslijed provjera je namjeran — bez browsera se preskače
 prije provjere `dist/`, jer je tada `dist/` nebitan.
+
+---
+
+## 2026-11-09 — Faza 13, commit 5: **prvi stvarni axe run** → trijaža i ispravke
+
+### Šta se desilo
+
+Vlasnik je na svojoj mašini (`/home/administrator/Documents/GitHub/beauty-salon-v2`)
+instalirao browser i pokrenuo `npm run test:a11y-routes`. **Rezultat: 11 testova,
+3 prošla / 8 palo, 24.6 s.** Ovo su prvi rendered dokazi u cijelom projektu — do sada su
+sve ✅ bile source-contract.
+
+**Kontekst koji mijenja tumačenje:** backend nije bio podignut (log pun
+`http proxy error … connect ECONNREFUSED 127.0.0.1:10001` za `/api/settings/public`,
+`/api/services`, `/api/salon`), pa su stranice renderovane u **praznom/fallback stanju**.
+Nalazi važe za to stanje; `/admin/**` i dalje nije pokriven.
+
+| Test | Rezultat |
+|---|---|
+| axe `/rezervacija`, axe `/login`, `2.4.2` `<title>` (sve rute) | ✅ |
+| `label-content-name-mismatch` (serious, 2.5.3) | ❌ na **6 ruta** |
+| `color-contrast` (serious, 1.4.3) | ❌ ×2 na `/kontakt` |
+| `image-alt` (**critical**, 1.1.1) | ❌ ×1 na `/register` |
+| `2.4.1` skip-link | ❌ prvi Tab pada na logo, 14× |
+
+### Ispravka 1 — 2.5.3 Label in Name (6 ruta)
+
+`components/i18n/language-switcher.tsx`: `aria-label={actionLabel}` davao je
+„Prebaci jezik na Engleski", a vidljivi sadržaj dugmeta je
+`{currentLanguage.toUpperCase()}` = „BS". Vidljivi tekst **nije** bio dio pristupačnog
+imena → čitač ekrana najavi drugo ime nego što korisnik vidi.
+
+Sada `aria-label={`${visibleCode} — ${actionLabel}`}`. **`title` je namjerno ostao
+`actionLabel`** — `aria-label` ionako preglasava `title` u računanju imena (accname), pa je
+tooltip na javnom sajtu **piksel-identičan** (Q8/Q9 logika: bez nepotrebnih vizuelnih
+izmjena).
+
+### Ispravka 2 — 1.1.1 image-alt (critical, `/register`)
+
+`components/ui/avatar.tsx` — `AvatarImage` nije postavljao `alt` kada ga pozivalac ne
+prosljedi. Sada default `alt=""` (dekorativno).
+
+**Dokaz po `00_overview.md:107` (dijeljena komponenta — grep upotreba):**
+skript je prebrojao svih **11** `<AvatarImage>` u `pages/`, `features/`, `components/`,
+`layouts/` i parsirao svaki JSX element zasebno:
+
+- **10** već prosljeđuje `alt=` → `admin-chrome.tsx:88,109,126`, `admin-layout.tsx:95`,
+  `public-layout.tsx:215`, `StylistLayout.tsx:118`, `Profile.tsx:465`, `Users.tsx:762,863`,
+  `PublicHome.tsx:346`
+- **1** nije prosljeđivao → **`pages/Register.tsx:231`** — tačno onaj koji je axe našao.
+
+Dakle nalaz nije bio sistemski, nego jedna rupa. Za 10 postojećih pozivaoca **ponašanje je
+nepromijenjeno** (njihov `alt` pobjeđuje default), uključujući dva na javnom sajtu
+(`public-layout.tsx:215`, `PublicHome.tsx:346`).
+
+### Ispravka 3 — 1.4.3 color-contrast na `/kontakt` (odluka **Q8**)
+
+`PublicContact.tsx:280-282`, placeholder Google mape: `text-slate-500` `#64748b` na
+`bg-slate-200` `#e2e8f0` = **3.86:1** (axe izmjerio; moj proračun se poklapa). Treba 4.5:1.
+→ `text-slate-600` `#475569` = **6.15:1** na toj pozadini.
+
+**Ovo je jedina vidljiva izmjena boje na javnom sajtu** i bila je u sukobu s DoD t. 64
+(„javni sajt bez diff-a") → **odluka vlasnika Q8: zadržati**, DoD t. 64 se tumači kao „bez
+nenamjernih vizuelnih regresija". Zabilježeno u `00_overview.md` §7b.
+
+### Ispravka 4 — 2.4.1 skip-link na javnom sajtu (odluka **Q9**)
+
+`grep -rn "skip-link"` je pokazao da `SkipLink` postoji **samo** u
+`admin-layout.tsx:81` i `StylistLayout.tsx:80` — javni layout ga nije imao, pa je prvi Tab
+išao na logo. Dodato `<SkipLink />` kao prvi element glavnog `return`-a +
+`<main id="main" tabIndex={-1}>` (bez `tabIndex` fokus ne bi skočio → 2.4.3).
+
+**0 vidljivih izmjena**: `.skip-link` je vizuelno skriven dok ne dobije fokus
+(`styles/globals.css`). Odluka vlasnika **Q9** (`features/shell/public/` je na ⚠️ listi).
+
+### 🔴 Rupa u mom D3 sweepu koju je tek axe otkrio
+
+`test:text-contrast-allowlist` računao je kontrast svake tekstualne paleta-klase prema
+**bijeloj** pozadini. Zato `text-slate-500` (4.76:1 na bijeloj → PASS u mom sweepu) **nije
+mogao** uhvatiti slučaj gdje isti tekst stoji na `bg-slate-200` (3.86:1).
+**Source-level sweep kontrasta nije zamjena za rendered provjeru.**
+
+Sweep je proširen posebnim testom koji traži `bg-*` **i** `text-*` **na istom elementu**
+(49 takvih parova, donja granica 40 da test ne može tiho proći na praznom skupu).
+Dvije stvari koje je morao poštovati:
+1. `dark:` tokeni se preskaču (mrtav kod, Q1);
+2. boje s **prozirnošću** se ne tretiraju kao pune — inače `bg-white/12 text-white` daje
+   lažnih 1.00:1. Dva takva mjesta postoje (`components/ui/button.tsx:23`,
+   `PublicServices.tsx:252`); prvi naivni Python sweep javio je oba kao prekršaj, a nisu.
+
+### Nalaz koji axe NIJE vidio (bonus proširenog sweepa)
+
+`features/media-consent/media-consent-panel.tsx:195,265` — `text-slate-400` `#94a3b8` na
+`bg-slate-100` `#f1f5f9` = **2.34:1** na `<ImageOff aria-label={t('mediaConsent.previewUnavailable')}>`.
+Ikona nosi značenje (ima `aria-label`), pa pada pod **1.4.11 Non-text Contrast** (3:1),
+ne samo 1.4.3. → `text-slate-600` = **6.92:1**. Ujedno obrisan zastarjeli unos u allowlisti
+(`media-consent-panel.tsx::slate-400`) — čuvar zastarjelih unosa ga je tačno uhvatio.
+
+### Mutacijske provjere
+
+`public-a11y-axe-findings` (4 testa): **9/9** mutacija pada — uključujući vraćanje
+`aria-label={actionLabel}`, uklanjanje `alt` default-a, vraćanje `slate-500`, brisanje
+`SkipLink`-a, uklanjanje `id="main"`/`tabIndex`, i **premještanje `SkipLink`-a iza
+`</header>`** (mutacija redoslijeda, ne samo brisanja).
+
+Prošireni sweep: vraćanje `slate-500` i `slate-400` → test pada. **Dvije mutacije su
+namjerno zabilježene kao nenosive**, ne kao rupe: uklanjanje eksplicitnog
+`raw.includes('/')` guard-a **ne mijenja ishod** (jer `solid()` za `white/12` ionako vrati
+`null`, pošto je `Number('900/5')` = NaN), a olabavljena donja granica (40→1) ne krši
+invariant. Guard je tu da dokumentuje namjeru — to je sada upisano u komentar, umjesto da
+stoji kao lažna garancija.
+
+### Provjereno
+
+`tsc --noEmit` PASS · `npm run build` PASS (**273.8 KiB** gzip, budžet 300; calendar 95.5)
+· `npm run lint` 0 errors / 16 warnings · **171/171** `test:*` skripti (bez padova)
+· `check_i18n.py --strict` PASS · `check_ui_contrast.py --strict` 80/80
+· `check_repo_hygiene.py` PASS (1686 putanja) · `git diff --check` čisto
+· `mobile/` = **0 diff**.

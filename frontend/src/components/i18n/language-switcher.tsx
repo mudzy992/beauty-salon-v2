@@ -14,6 +14,12 @@ export function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
   const nextLanguage: AppLanguage = currentLanguage === 'bs' ? 'en' : 'bs'
   const targetLanguageName = t(`shell.languageNames.${nextLanguage}`)
   const actionLabel = t('shell.switchLanguageTo', { language: targetLanguageName })
+  // WCAG 2.5.3 Label in Name: vidljivi tekst ("BS"/"EN") MORA biti dio pristupačnog imena,
+  // inače čitač ekrana najavi drugo ime nego što korisnik vidi (axe: label-content-name-mismatch).
+  const visibleCode = currentLanguage.toUpperCase()
+  // `aria-label` preglasava `title` u računanju pristupačnog imena, pa `title` ostaje
+  // NEPROMIJENJEN — tooltip na javnom sajtu izgleda identično (DoD faze 13, t. 64).
+  const accessibleName = `${visibleCode} — ${actionLabel}`
 
   return (
     <Button
@@ -21,11 +27,11 @@ export function LanguageSwitcher({ className = '' }: LanguageSwitcherProps) {
       variant="outline"
       size="sm"
       className={`h-9 min-w-10 px-2 font-semibold ${className}`}
-      aria-label={actionLabel}
+      aria-label={accessibleName}
       title={actionLabel}
       onClick={() => void setAppLanguage(nextLanguage)}
     >
-      {currentLanguage.toUpperCase()}
+      {visibleCode}
     </Button>
   )
 }
