@@ -2,8 +2,9 @@
 
 **Stanje:** **FAZE 0–10 ZAVRŠENE** + **M1 i M2 (arhitektura) ZAVRŠENI**. Sljedeće: **faza 11
 (Stylist portal)**.
-**Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a` · **HEAD:** `9e4bdbc`
-**Zadnji green run:** 161/161 `test:*` · build 274.1 KiB · i18n/contrast/hygiene/doc_links PASS.
+**Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a`
+**Zadnji green run:** **165/165** `test:*` · build 274.1 KiB · i18n/contrast/hygiene/doc_links PASS.
+Faza 11 ima 4 commita; **DoD verificiran** (mobilna aplikacija 0 diff, `stylist-portal.api.ts` netaknut).
 
 > ⚠️ **D9 je riješen** u `019e58a` (`fix(dashboard): D9 error stanja +
 > test:daily-log-amount-parity`) — dodirnuo je **dvije** faze (Dashboard i dnevnu knjigu).
@@ -64,8 +65,11 @@ Sve što napišem o WCAG-u biće označeno 🟡 „zadovoljeno u kodu, nije veri
    korisnici, salon/usluge/frizeri, sadržaj, postavke)
 6. ~~**M1 / M2**~~ ✅ `9e4bdbc` / `56cee86`
 7. **Faza 11 — Stylist portal** → plan u
-   [`14_phase-11-stylist-portal.md`](14_phase-11-stylist-portal.md). Počni **auditom iz izvora**, ne
-   planom: plan je dosad bio **netačan u 8 navrata** (vidi §6).
+   [`14_phase-11-stylist-portal.md`](14_phase-11-stylist-portal.md). **4 commita urađena**;
+   preostaje samo ono što se **ne može** verificirati bez browsera (D10 reflow,
+   `FormSection`/`<fieldset>` migracija) i što je zato odgođeno na fazu 13.
+   Plan je ovdje bio najmanje tačan: **7 od 10 stavki** opovrgnuto, bespredmetno ili već
+   zadovoljeno (vidi CHANGELOG, faza 11).
 8. **Faza 12 — Onboarding / ForceChangePassword** (nedostaje `<h1>` na obje stranice).
 9. **Faza 13 — Zaključak:** globalni sweep, odgođeno razbijanje fajlova, axe/Playwright,
    `eslint-plugin-jsx-a11y`, završna dokumentacija.
