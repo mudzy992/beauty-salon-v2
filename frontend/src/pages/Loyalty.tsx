@@ -9,6 +9,7 @@ import { useAppToast } from '../lib/toast/useAppToast'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
+import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
@@ -26,6 +27,7 @@ interface LoyaltyAccountRow {
   user: { id: string; username: string; email: string; firstName: string | null; lastName: string | null }
   _count: { transactions: number }
 }
+
 
 export default function Loyalty() {
   const { t, i18n } = useTranslation()
@@ -138,6 +140,60 @@ export default function Loyalty() {
       .finally(() => setUpdating(null))
   }
 
+  const columns: DataTableColumn<LoyaltyAccountRow>[] = [
+    {
+      key: 'user',
+      headerKey: 'loyaltyAdmin.user',
+      className: 'p-3 font-medium text-slate-900 dark:text-slate-50',
+      render: (a) => userName(a.user),
+    },
+    { key: 'email', headerKey: 'loyaltyAdmin.email', className: 'p-3', render: (a) => a.user.email },
+    {
+      key: 'points',
+      headerKey: 'loyaltyAdmin.points',
+      align: 'right',
+      className: 'p-3',
+      render: (a) => formatLocalizedNumber(a.points, i18n.language),
+    },
+    { key: 'tier', headerKey: 'loyaltyAdmin.tier', className: 'p-3', render: (a) => a.tier ?? '-' },
+    {
+      key: 'status',
+      headerKey: 'loyaltyAdmin.status',
+      className: 'p-3',
+      render: (a) => (
+        <Badge variant={a.isActive ? 'success' : 'secondary'}>
+          {t(a.isActive ? 'loyaltyAdmin.active' : 'loyaltyAdmin.inactive')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'transactions',
+      headerKey: 'loyaltyAdmin.transactions',
+      className: 'p-3',
+      render: (a) => formatLocalizedNumber(a._count.transactions, i18n.language),
+    },
+    {
+      key: 'actions',
+      headerKey: 'loyaltyAdmin.actions',
+      className: 'p-3',
+      render: (a) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <Switch
+            checked={a.isActive}
+            disabled={updating === a.id}
+            onCheckedChange={(checked) => handleAccountActiveToggle(a.id, checked)}
+          />
+          <Button type="button" size="sm" variant="outline" onClick={() => openRedeem(a)}>
+            {t('loyaltyAdmin.redeem')}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => openAdjust(a)}>
+            {t('loyaltyAdmin.adjust')}
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div>
       <PageHeader
@@ -162,49 +218,15 @@ export default function Loyalty() {
             </p>
           ) : (
             <div className="app-table-wrap">
-              <table className="app-table data-table w-full border-collapse">
-                <caption className="sr-only">{t('loyaltyAdmin.caption')}</caption>
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.user')}</th>
-                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.email')}</th>
-                    <th scope="col" className="p-3 text-right font-medium">{t('loyaltyAdmin.points')}</th>
-                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.tier')}</th>
-                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.status')}</th>
-                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.transactions')}</th>
-                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {accounts.map((a) => (
-                    <tr key={a.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                      <td data-label={t('loyaltyAdmin.user')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{userName(a.user)}</td>
-                      <td data-label={t('loyaltyAdmin.email')} className="p-3">{a.user.email}</td>
-                      <td data-label={t('loyaltyAdmin.points')} className="p-3 text-right">{formatLocalizedNumber(a.points, i18n.language)}</td>
-                      <td data-label={t('loyaltyAdmin.tier')} className="p-3">{a.tier ?? '-'}</td>
-                      <td data-label={t('loyaltyAdmin.status')} className="p-3">
-                        <Badge variant={a.isActive ? 'success' : 'secondary'}>{t(a.isActive ? 'loyaltyAdmin.active' : 'loyaltyAdmin.inactive')}</Badge>
-                      </td>
-                      <td data-label={t('loyaltyAdmin.transactions')} className="p-3">{formatLocalizedNumber(a._count.transactions, i18n.language)}</td>
-                      <td data-label={t('loyaltyAdmin.actions')} className="p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Switch
-                            checked={a.isActive}
-                            disabled={updating === a.id}
-                            onCheckedChange={(checked) => handleAccountActiveToggle(a.id, checked)}
-                          />
-                          <Button type="button" size="sm" variant="outline" onClick={() => openRedeem(a)}>
-                            {t('loyaltyAdmin.redeem')}
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" onClick={() => openAdjust(a)}>
-                            {t('loyaltyAdmin.adjust')}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                caption={t('loyaltyAdmin.caption')}
+                columns={columns}
+                rows={accounts}
+                rowKey={(a) => a.id}
+                tableClassName="border-collapse"
+                headRowClassName="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800"
+                rowClassName={() => 'border-b border-slate-100 dark:border-slate-800/80'}
+              />
             </div>
           )}
         </div>

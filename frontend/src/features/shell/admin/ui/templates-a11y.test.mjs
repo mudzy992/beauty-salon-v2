@@ -35,7 +35,9 @@ test('every data cell keeps its column label for the sub-640px card mode', () =>
 
 test('sort control has a textual name and the direction is not conveyed by color alone', () => {
   assert.match(dataTable, /aria-label=\{t\('table\.sortBy', \{ column: t\(column\.headerKey\) \}\)\}/)
-  assert.match(dataTable, /<SortIndicator direction=\{direction\} \/>/)
+  // `unsorted` prop je dodan 2026-11-09 (migracija tabela): postojeće tabele crtaju
+  // strelicu samo na sortiranoj koloni, pa im `unsorted={false}` čuva izgled.
+  assert.match(dataTable, /<SortIndicator direction=\{direction\}[^/]*\/>/)
   assert.match(dataTable, /aria-hidden className="h-3\.5 w-3\.5/)
 })
 

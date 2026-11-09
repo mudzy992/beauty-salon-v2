@@ -24,6 +24,20 @@ type DataTableProps<T> = {
   rowKey: (row: T) => string
   sort?: { key: string; direction: 'asc' | 'desc' } | null
   onSortChange?: (sortKey: string) => void
+  /** Klase po redu — npr. `opacity-60` za neradne dane ili border između redova. */
+  rowClassName?: (row: T) => string | undefined
+  /** Dodatne klase na `<table>`, kad stranica već ima ustaljen izgled (npr. `border-collapse`). */
+  tableClassName?: string
+  /**
+   * Klase na `<tr>` u `<thead>`. Bez ovoga zaglavlje gubi border i `text-xs uppercase`
+   * koje su postojeće tabele imale — dakle ovo nije kozmetika nego očuvanje izgleda.
+   */
+  headRowClassName?: string
+  /**
+   * Prikazati `ArrowUpDown` na NESORTIRANIM kolonama (default). Postojeće tabele u repo-u
+   * crtaju strelicu samo na sortiranoj koloni, pa im `false` čuva izgled.
+   */
+  unsortedIndicator?: boolean
   loading?: boolean
   error?: ReactNode
   empty?: ReactNode
@@ -36,9 +50,16 @@ const alignClass = {
   center: 'text-center',
 } as const
 
-const SortIndicator = ({ direction }: { direction: 'asc' | 'desc' | null }) => {
+const SortIndicator = ({
+  direction,
+  unsorted = true,
+}: {
+  direction: 'asc' | 'desc' | null
+  unsorted?: boolean
+}) => {
   if (direction === 'asc') return <ArrowUp aria-hidden className="h-3.5 w-3.5" />
   if (direction === 'desc') return <ArrowDown aria-hidden className="h-3.5 w-3.5" />
+  if (!unsorted) return null
   return <ArrowUpDown aria-hidden className="h-3.5 w-3.5 opacity-50" />
 }
 
@@ -62,6 +83,10 @@ export function DataTable<T>({
   error,
   empty,
   className,
+  rowClassName,
+  tableClassName,
+  headRowClassName,
+  unsortedIndicator = true,
 }: DataTableProps<T>) {
   const { t } = useTranslation()
 
@@ -70,10 +95,10 @@ export function DataTable<T>({
 
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="app-table data-table w-full">
+      <table className={cn('app-table data-table w-full', tableClassName)}>
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr>
+          <tr className={headRowClassName}>
             {columns.map((column) => {
               // `sort` je opciono. Prijašnje `sort?.key === column.sortKey` dalo bi
               // `undefined === undefined` → true za kolonu bez `sortKey`, pa bi
@@ -98,7 +123,7 @@ export function DataTable<T>({
                       aria-label={t('table.sortBy', { column: t(column.headerKey) })}
                     >
                       {t(column.headerKey)}
-                      <SortIndicator direction={direction} />
+                      <SortIndicator direction={direction} unsorted={unsortedIndicator} />
                     </button>
                   ) : (
                     t(column.headerKey)
@@ -110,7 +135,7 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)}>
+            <tr key={rowKey(row)} className={rowClassName?.(row)}>
               {columns.map((column) => (
                 <td
                   key={column.key}

@@ -64,8 +64,11 @@ test('loyalty endpoints, settings keys, and idempotency payloads remain unchange
 
 test('configured tier, service, and account names remain dynamic content', () => {
   const [page, settings] = sources
-  assert.match(page, /\{a\.tier \?\? '-'\}/)
-  assert.match(page, /\{userName\(a\.user\)\}/)
+  // 2026-11-09: tabela je prešla na `DataTable`, pa se ovi izrazi više ne pojavljuju kao
+  // JSX `{...}` nego kao `render: (a) => ...`. Namjera asertacije je ista — vrijednost mora
+  // dolaziti iz podatka, ne biti hardkodirana — pa obrasci sada primaju oba oblika.
+  assert.match(page, /(\{|=> )a\.tier \?\? '-'\}?/)
+  assert.match(page, /(\{|=> )userName\(a\.user\)\}?/)
   assert.match(settings, /\{s\.name\}/)
   assert.match(settings, /value=\{tier\.name\}/)
   assert.match(settings, /value=\{tier\.id\}/)

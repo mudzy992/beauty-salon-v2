@@ -3742,3 +3742,70 @@ Mutacije 8/8, uključujući „svi `<th>` bez scope" i „uveden DataTable".
 ### Ograničenje
 
 Source-contract: ne dokazuje da čitač ekrana stvarno najavi naziv tabele.
+
+
+---
+
+## 2026-11-09 — `DataTable` migracija: proširenje komponente + pilot (`Loyalty`)
+
+Vlasnik je odobrio masovnu migraciju **nakon** što je vidio mjerenje (14 od 17 tabela već
+zadovoljava a11y). Zato je ovo **refaktor održavanja, ne a11y popravka** — i upravo zato
+svaki korak mora dokazati da **nije** unio vizuelnu regresiju.
+
+### Prijem: šta `DataTable` nije mogao, a morao je
+
+Prije migracije ijedne tabele, komponenta je proširena s 4 opciona propa. Svaki postoji jer
+bi bez njega migracija **promijenila izgled**:
+
+| Prop | Zašto je neophodan |
+|---|---|
+| `rowClassName?: (row) => string` | Postojeće tabele imaju klase **po redu** (`border-b border-slate-100`, `opacity-60` za neradne dane). Bez ovoga redovi gube border. |
+| `headRowClassName?: string` | `<tr>` u `<thead>` nije imao **nijednu** klasu. Postojeća zaglavlja imaju `border-b border-slate-200 text-left text-xs uppercase text-slate-500`. Bez ovoga zaglavlje gubi border i ostaje ne-uppercase — **stvarna vizuelna regresija**, otkrivena tek u pilotu. |
+| `tableClassName?: string` | `Loyalty` je imao `border-collapse` uz `app-table data-table w-full`. |
+| `unsortedIndicator?: boolean` | Postojeće tabele crtaju strelicu **samo** na sortiranoj koloni; `DataTable` je crtao `ArrowUpDown` na svima. |
+
+`templates-a11y.test.mjs` je ažuriran na jednom mjestu: regex `/<SortIndicator direction=\{direction\} \/>/`
+više ne odgovara jer komponenta sada prima i `unsorted`. Novi obrazac
+`/<SortIndicator direction=\{direction\}[^/]*\/>/` je **provjeren** pozitivnom kontrolom (True)
+i dvije mutacije (uklonjen `SortIndicator` → False; uklonjen `direction` prop → False).
+
+### Pilot: `pages/Loyalty.tsx`
+
+7 kolona, bez sortiranja — najjednostavniji slučaj. Ručno napisanih 43 linija `<table>`
+markup-a zamijenjeno s `<DataTable>` + deklaracijom kolona.
+
+**Testovi koji su pali i zašto (oba su ispravno ažurirana, ne oslabljena):**
+
+1. `loyalty-a11y.test.mjs` — 4 testa su čitala **doslovan markup** iz `Loyalty.tsx`
+   (`<th scope="col">` ×7, `<caption className="sr-only">`, `<td data-label=…>` ×7,
+   `<table className="app-table data-table w-full border-collapse">`). Nakon migracije tog
+   markup-a u tom fajlu **nema** — on živi u `data-table.tsx`, gdje ga već zaključava
+   `templates-a11y.test.mjs`. Testovi su preuređeni da dokazuju (a) da `DataTable` nosi
+   garancije i (b) da `Loyalty` stvarno koristi `DataTable` s ispravnim propovima, **uključujući
+   redoslijed kolona** (jer `data-label` u card-mode-u zavisi od njega).
+2. `admin-loyalty-i18n.test.mjs` — test „configured tier, service, and account names remain
+   dynamic content" asertovao je `/\{a\.tier \?\? '-'\}/` i `/\{userName\(a\.user\)\}/`,
+   tj. **JSX oblik**. U `render: (a) => a.tier ?? '-'` ti obrasci ne prolaze. Namjera
+   (vrijednost iz podatka, ne hardkodirana) je očuvana, pa obrasci sada primaju oba oblika.
+   **Provjereno** da i dalje hvataju hardkodiranje: `'Gold'` → False, `'Neko'` → False.
+
+Korekcija mog ranijeg broja: `loyalty-a11y.test.mjs` je u HEAD-u imao **5** testova, ne 7.
+Sada ima 4 (4 zamijenjena s 3, peti netaknut).
+
+### Provjere
+
+`test:*` **177/177** · `tsc --noEmit` **exit 0** · build **273.9 KiB/300** · lint
+**0 errors / 7 warnings** · `check_i18n --strict` **PASS** · `check_ui_contrast --strict`
+**PASS** (80 parova) · `check_repo_hygiene` **PASS** (1702) · `check_doc_links` **PASS**
+(670/202) · `git diff --check` **čist**.
+
+### Preostalo (nije urađeno u ovom commitu)
+
+6 čistih kandidata: `expense-table`, `income-entries-table`, `Notifications`, `Salon` (×2),
+`Services`, `Users`. Plus **8 fajlova koji se NE mogu migrirati** bez proširenja `DataTable`-a
+podrškom za `colSpan`/`<tfoot>`: `blog-posts-table`, `entry-table`, `Reservations`, `Reviews`,
+`Stylists`, `ClientAnalytics`, `Analytics`, `expense-invoice-preview`.
+
+**Otvoreni rizik po preostalih 6:** svaki ima vlastite klase po ćeliji i po redu, i svaki će
+tražiti sličnu prilagodbu testova. `finance-table-a11y.test.mjs` ima `TABLES` spisak s
+**tačnim brojevima** (`sourceTh`, `scope`, `td`, `captionKey`) koji će pasti na 0.

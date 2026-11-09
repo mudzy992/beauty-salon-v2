@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const source = readFileSync(new URL('../../pages/Loyalty.tsx', import.meta.url), 'utf8')
+const dataTable = readFileSync(new URL('../shell/admin/ui/data-table.tsx', import.meta.url), 'utf8')
 const css = readFileSync(new URL('../../index.css', import.meta.url), 'utf8')
 
 // ---------------------------------------------------------------------------
@@ -13,39 +14,39 @@ const css = readFileSync(new URL('../../index.css', import.meta.url), 'utf8')
 // Ovi testovi zaključavaju popravke da ne regresuju.
 // ---------------------------------------------------------------------------
 
-test('loyalty table declares all 7 column headers with scope="col"', () => {
-  assert.equal(
-    (source.match(/<th scope="col" /g) || []).length,
-    7,
-    'tabela mora imati tacno 7 <th scope="col">',
-  )
-  // `\b` iza `th` je obavezno: bez njega obrazac hvata i `<thead>`,
-  // jer `<thead` takodje pocinje s `<th`.
-  const headers = source.match(/<th\b[^>]*>/g) || []
-  assert.equal(headers.length, 7, 'tacno 7 <th> elemenata (bez <thead>)')
-  const withoutScope = headers.filter((h) => !/scope="col"/.test(h))
-  assert.deepEqual(withoutScope, [], 'nijedan <th> ne smije ostati bez scope')
+// ---------------------------------------------------------------------------
+// 2026-11-09 — tabela je prešla na dijeljenu `DataTable` komponentu.
+//
+// Time se mijenja ŠTA se ovdje može asertovati: `<caption>`, `scope="col"` i
+// `data-label` više nisu u ovom fajlu, nego u `data-table.tsx`, gdje ih već
+// zaključava `templates-a11y.test.mjs`. Zato ovi testovi sada dokazuju dvije
+// stvari: (1) da `DataTable` i dalje nosi te garancije, i (2) da Loyalty
+// stvarno koristi `DataTable` s ispravnim propovima — uključujući redoslijed
+// kolona, jer `data-label` u card-mode-u zavisi od njega.
+// ---------------------------------------------------------------------------
+
+test('DataTable nosi semantiku tabele (1.3.1) — jedna provjera za sve potrošače', () => {
+  assert.match(dataTable, /<caption className="sr-only">\{caption\}<\/caption>/)
+  assert.match(dataTable, /scope="col"/)
+  assert.match(dataTable, /data-label=\{t\(column\.headerKey\)\}/)
+  assert.match(dataTable, /app-table data-table w-full/, 'card-mode ispod 640px zavisi od ove klase')
+  assert.match(css, /table\.data-table tbody td::before/)
 })
 
-test('loyalty table has a localized caption', () => {
-  assert.match(source, /<caption className="sr-only">\{t\('loyaltyAdmin\.caption'\)\}<\/caption>/)
-  assert.equal((source.match(/<caption/g) || []).length, 1, 'tacno jedan <caption>')
+test('loyalty tabela koristi DataTable s lokalizovanim caption-om', () => {
+  assert.match(source, /import \{ DataTable, type DataTableColumn \} from '\.\.\/features\/shell\/admin\/ui\/data-table'/)
+  assert.match(source, /<DataTable/)
+  assert.match(source, /caption=\{t\('loyaltyAdmin\.caption'\)\}/)
+  assert.match(source, /rowKey=\{\(a\) => a\.id\}/)
+  // `tableClassName` čuva `border-collapse` koji je tabla imala i prije migracije.
+  assert.match(source, /tableClassName="border-collapse"/)
+  // Ručno napisana tabela se ne smije vratiti uz dijeljenu komponentu.
+  assert.equal((source.match(/<table\b/g) || []).length, 0, 'ne smije ostati ručno napisana <table>')
 })
 
-test('all 7 body cells carry a dynamic data-label for card mode', () => {
-  const labels = source.match(/<td data-label=\{t\('loyaltyAdmin\.(\w+)'\)\}/g) || []
-  assert.equal(labels.length, 7, 'tacno 7 <td data-label={t(...)}>')
-
-  // data-label mora biti dinamicki (i18n), ne hardkodovan string
-  assert.equal(
-    (source.match(/<td data-label="/g) || []).length,
-    0,
-    'data-label ne smije biti hardkodovan literal',
-  )
-
-  // i redoslijed mora odgovarati zaglavlju, inace card-mode prikazuje pogresne nazive
-  const order = labels.map((m) => m.match(/loyaltyAdmin\.(\w+)/)[1])
-  assert.deepEqual(order, [
+test('svih 7 kolona je deklarisano, istim redoslijedom kao prije migracije', () => {
+  const zaglavlja = [...source.matchAll(/headerKey: 'loyaltyAdmin\.(\w+)'/g)].map((m) => m[1])
+  assert.deepEqual(zaglavlja, [
     'user',
     'email',
     'points',
@@ -54,15 +55,9 @@ test('all 7 body cells carry a dynamic data-label for card mode', () => {
     'transactions',
     'actions',
   ])
-})
-
-test('loyalty table opts into the shared data-table card mode', () => {
-  assert.match(source, /<table className="app-table data-table w-full border-collapse">/)
-  assert.match(
-    css,
-    /table\.data-table tbody td::before/,
-    'index.css card-mode mora i dalje ciljati table.data-table tbody td::before',
-  )
+  // data-label u card-mode-u je `t(column.headerKey)`, pa nijedan ne smije biti literal
+  const kolone = [...source.matchAll(/key: '(\w+)',\s*\n?\s*headerKey:/g)]
+  assert.ok(kolone.length >= 7, 'očekivano barem 7 kolona s headerKey')
 })
 
 test('redeem and adjust dialog fields are programmatically associated', () => {
