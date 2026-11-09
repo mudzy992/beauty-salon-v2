@@ -26,6 +26,8 @@ jobs:
           python-version: "3.12"
       - name: Check repository hygiene
         run: python scripts/check_repo_hygiene.py
+      - name: Check CI covers every package.json test script
+        run: python scripts/check_ci_index.py
       - name: Check local Markdown links
         run: python scripts/check_doc_links.py
       - name: Enforce web BS/EN locale key parity

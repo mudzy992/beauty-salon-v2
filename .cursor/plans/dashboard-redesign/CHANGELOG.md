@@ -4121,3 +4121,94 @@ nekommitan diff; `frontend/node_modules` je nestao. Oporavak bez gubitka:
 `test:*` **178/178** · `tsc --noEmit` **exit 0** · `test:hooks-order` **2/2** · lint
 **0 errors / 7 warnings** · build **273.9 KiB / 300** · `check_i18n --strict` **PASS** ·
 `check_doc_links` **PASS** (670/202) · `git diff --check` **čist**.
+
+---
+
+## 2026-11-09 — CI indeks pod guardom + **ISPRAVKA**: `3.2.6` je zadovoljen, matrica je bila pogrešna
+
+### 1. `scripts/check_ci_index.py` (novi trajni guard)
+
+Do sada je svaka faza ručno dodavala `test:*` skriptu u `package.json` **i** korak u
+`ci.yml`. To je dvije godine poziv za tiho propadanje: nova skripta prolazi lokalno, a u CI
+nikad ne trči.
+
+Guard provjerava **oba smjera**:
+
+1. svaki `npm run test:<ime>` korak u `ci.yml` postoji u `package.json` direktorija u kojem
+   korak radi (`working-directory`, ili ime posla ako je to paket);
+2. svaka `test:*` skripta iz `frontend/`, `backend/`, `mobile/` `package.json` ima CI korak.
+
+Bez `pyyaml` (nema ga ni u sandboxu ni u `repo-checks` poslu) — workflow se parsira po
+uvlačenju, uključujući višelinijske `run: |` blokove (4 u fajlu, nijedan ne sadrži
+`npm run test:`).
+
+**Izmjereno stanje prije guard-a:**
+
+| | |
+|---|---|
+| CI `test:*` koraka | `frontend` 177 · `mobile` 176 · `backend` 4 · `a11y-e2e` 1 |
+| Deklarisano | `frontend` 178 · `mobile` 176 · `backend` 7 |
+| Skripti bez CI koraka | 3 — sve **interaktivne** (`test:watch`, `test:cov`, `test:debug`) |
+| CI koraka s nepostojećom skriptom | **0** |
+
+`frontend` ima 178 skripti a `frontend` posao 177 koraka jer `test:a11y-routes` namjerno trči
+u `a11y-e2e`. Četiri „duplikata" (`test:socket-recovery`, `test:stylist-debts-i18n`,
+`test:stylist-stats-i18n`, `test:onboarding-email-accessibility`) nisu greška — istoimene
+skripte postoje i u `frontend/` i u `mobile/`, svaka trči u svom poslu.
+
+**Rezultat: `PASS: 358 od 361 test:* skripti ... (3 interaktivnih je izuzeto)`.** Registrovan
+kao korak u `repo-checks` (6 → **7** koraka).
+
+Izuzeci su navedeni **tačnim nazivom**, ne obrascem — `/cov/` bi pogodio i 17 frontend
+`*-recovery` testova (provjereno, lažni pozitivni).
+
+### 2. 🔴 `3.2.6 Consistent Help` — matrica je bila pogrešna, kriterij JE zadovoljen
+
+Matrica je držala `3.2.6` kao ❌ uz razlog *„**nema** help/kontakt elementa u shellu"*.
+
+**Izmjereno 2026-11-09: help element POSTOJI u oba shell-a**, i to već s eksplicitnim
+`WCAG 3.2.6` komentarima u kodu:
+
+| shell | `<header>` | `/kontakt` link | korisnički meni |
+|---|---|---|---|
+| `features/shell/admin/admin-layout.tsx` | 82–170 | **154** | `<AdminUserMenu` 160 |
+| `layouts/StylistLayout.tsx` | 81–163 | **101** | `<DropdownMenu>` 108 |
+
+Oba: link je **unutar dijeljenog `<header>`** i **prije korisničkog menija**; ikona
+`HelpCircle` je `aria-hidden`, tekstualno ime dolazi iz `shell.help` (bs „Pomoć" / en „Help").
+
+Dva razloga zašto je ❌ bio pogrešan:
+- **činjenično** — element postoji, grep ga nalazi;
+- **normativno** — 3.2.6 traži *konzistentnost* help mehanizma, ne njegovo postojanje. Da ga
+  nema nigdje, kriterij bi bio trivijalno zadovoljen, ne prekršen.
+
+Garancija je sada **pojačana u testu** (`test:shell-a11y`, test #5): prije je asertovao samo
+prisustvo (`to="/kontakt"` + `t('shell.help')`) iako mu je ime bilo „consistent place". Sada
+asertuje i (a) da je link unutar `<header>`, (b) da je prije korisničkog menija, (c) `aria-hidden`
+na ikoni, (d) `sr-only` ime, (e) `min-h-target min-w-target`, (f) ključ u oba jezika.
+
+**Matrica ažurirana:** `3.2.6` ❌ → ✅; ETAPA B: ✅ 28 → **29**, ❌ 2 → **1** (ostaje `3.1.2`).
+
+### Mutacijska provjera (7/7)
+
+| # | mutacija | pada? |
+|---|---|---|
+| M1 | CI korak pokreće nepostojeću skriptu | ✅ `check_ci_index` |
+| M2 | nova `test:*` skripta bez CI koraka | ✅ `check_ci_index` |
+| M3 | zastario `DEV_ONLY` unos | ✅ `check_ci_index` |
+| M1a | help premješten **iza** `</DropdownMenu>` (stylist) | ✅ `shell-a11y` #5 |
+| M1b | help izbačen iz `<header>` (admin) | ✅ `shell-a11y` #5 |
+| M2' | `sr-only` ime uklonjeno (admin) | ✅ `shell-a11y` #5 |
+| M3' | `aria-hidden` skinut s `HelpCircle` (stylist) | ✅ `shell-a11y` #5 |
+
+Prva verzija mutacije M1a **nije** uhvaćena jer je anchor bio `t('shell.userMenu')` — taj tekst
+je *unutar* `DropdownMenu`, pa je help pomjeren ispred `<DropdownMenu>` i dalje bio „prije".
+Anchor je promijenjen na `<DropdownMenu>`, a dodata je i asertacija o `<header>`. Sve mutacije
+vraćene (`git checkout -- <fajl>`); kontrole 7/7 i `PASS`.
+
+### Kapije
+
+`test:*` **178/178** · `tsc --noEmit` **exit 0** · lint **0 errors / 7 warnings** ·
+`check_ci_index` **PASS** · `check_repo_hygiene` **PASS** · `check_doc_links` **PASS**
+(670/202) · `check_i18n --strict` **PASS** · `check_ui_contrast --strict` **PASS** (80 parova) ·
+`git diff --check` **čist**.

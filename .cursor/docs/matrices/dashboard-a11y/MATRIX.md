@@ -90,7 +90,7 @@
 | 3.2.2 | On input | Nema automatskog submit-a na promjenu; filteri se primjenjuju eksplicitno | modul | 0–11 | 🟡 | ručno |
 | 3.2.3 | Consistent navigation | Isti shell na svim admin ekranima; isti na svim stylist ekranima; `aria-current` | shell | 0 | ❌ — stylist shell ima dva `<nav>` sa dupliranim markupom | grep (potvrđeno) |
 | 3.2.4 | Consistent identification | Isti `StatusBadge`/`Button`/`DataTable` obrasci kroz module | ui | 0–11 | ❌ planirano | `test:semantic-tokens` |
-| 3.2.6 | Consistent Help **NOVO 2.2** | „Pomoć“ na istom relativnom mjestu u headeru oba shell-a | shell | 0 | ❌ — **nema** help/kontakt elementa u shellu | grep (potvrđeno); `test:shell-landmarks` |
+| 3.2.6 | Consistent Help **NOVO 2.2** | „Pomoć“ na istom relativnom mjestu u headeru oba shell-a | shell | 13 | ✅ — **ispravka 2026-11-09**: oba shell-a VEĆ imaju `/kontakt` + `HelpCircle` u dijeljenom `<header>`, prije korisničkog menija. Prethodni ❌ („nema help elementa") bio je pogrešan. | `test:shell-a11y` (4/4 mutacije) |
 | 3.3.1 | Error identification | `aria-invalid` + `role="alert"` + tekstualna greška; `ErrorState` sa retry | ui, modul | 0–13 | 🟡 djelimično — `ErrorState` postoji samo u finance | grep |
 | 3.3.2 | Labels or instructions | Vidljive labele + `aria-describedby` za zahtjeve/hint | ui, modul | 0–13 | 🟡 | ručno (M6) |
 | 3.3.3 | Error suggestion | **Normativno:** poznat prijedlog ispravke mora se korisniku dati **u tekstu**. Uz polje `aria-invalid` + `aria-describedby` → tekst; plus trajni sažetak (`role="alert"`, fokusabilan, linkovi na polja). Serverske 400 poruke se više ne odbacuju. | ui, modul | 0–13 | 🟡 u kodu — daily-log forma; nije provjereno u renderu ni čitačem ekrana | `test:form-error-suggestion` (15, 22/22 mutacija) |
@@ -232,7 +232,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 3.2.1 / 3.2.2 | 🟡 | nema akcije na fokus/input u kodu |
 | 3.2.3 | ✅ | jedinstven shell; `test:shell-a11y` (1 `<nav`, `aria-current`) |
 | 3.2.4 | ✅ | `StatusBadge`/`Button`/semantički tokeni kroz module |
-| 3.2.6 | ❌ | nema help elementa u shellu — **nije dodato** (bio bi novi feature) |
+| 3.2.6 | ✅ | oba shell-a imaju `/kontakt` + `HelpCircle` u dijeljenom `<header>` (`admin-layout.tsx:82-170`, `StylistLayout.tsx:81-163`), prije korisničkog menija; ime iz `shell.help` (bs „Pomoć" / en „Help"). **Ispravka:** raniji ❌ je tvrdio da help element ne postoji — izmjereno 2026-11-09 da postoji. |
 | 3.3.1 | ✅ | `role="alert"` ×63; `test:stylist-status-messages-a11y`, `test:onboarding-a11y` |
 | 3.3.2 | ✅ | `aria-describedby` + vidljiv zahtjev (faza 12); `test:onboarding-a11y` (7/7 mutacija) |
 | 3.3.3 | 🟡 | **Normativni kriterij:** ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se korisniku daje u tekstu. Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je tehnika (G84/G85), ne zahtjev. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao serverski 400 (`ValidationPipe` + `@IsUUID`/`@IsArray` daju konkretne poruke = poznat prijedlog) i vraćao generički toast. Sada `serverValidationMessages` te poruke čita, `FieldError` ih prikazuje uz polje, `FormErrorSummary` ih najavljuje i linkuje. Ostaje 🟡 jer nema render/AT provjere. |
@@ -253,10 +253,10 @@ Ukupno 51 — nepromijenjeno.
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (source-contract) | **28** |
+| ✅ verifikovano (source-contract) | **29** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
 | 🟡 u kodu, nije verifikovano u renderu | **12** |
-| ❌ nije zadovoljeno (`3.1.2`, `3.2.6`) | **2** |
+| ❌ nije zadovoljeno (`3.1.2`) | **1** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
 | **ukupno** | **51** |

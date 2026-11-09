@@ -42,11 +42,55 @@ test('each shell has exactly one named main navigation landmark', () => {
   assert.match(stylistLayout, /aria-label=\{t\('shell\.mainNavigation'\)\}/)
 })
 
-test('help is reachable from a consistent place in both shells', () => {
-  for (const source of [adminLayout, stylistLayout]) {
-    assert.match(source, /to="\/kontakt"/)
-    assert.match(source, /t\('shell\.help'\)/)
+test('help is reachable from a consistent place in both shells (WCAG 3.2.6)', () => {
+  // 3.2.6 Consistent Help ne trazi da pomoc POSTOJI — trazi da se, ako postoji,
+  // nalazi na ISTOM relativnom mjestu na svakoj stranici istog seta. Pomoc je u
+  // dijeljenom layoutu, pa je time na istom mjestu na svakoj stranici seta.
+  //
+  // Mjerenje 2026-11-09: oba shell-a vec imaju /kontakt + HelpCircle, i to na istom
+  // relativnom mjestu (odmah prije korisnickog menija). Matrica je tvrdila "nema
+  // help elementa u shellu" i drzala 3.2.6 kao ❌ — to je bilo pogresno.
+  const SHELLS = [
+    ['admin', adminLayout, '<AdminUserMenu'],
+    ['stylist', stylistLayout, '<DropdownMenu>'],
+  ]
+
+  for (const [name, source, userMenuAnchor] of SHELLS) {
+    const help = source.indexOf('to="/kontakt"')
+    assert.ok(help > -1, `${name}: shell mora imati link na /kontakt`)
+
+    // Pristupacno ime: ikona je dekorativna, tekst je sr-only.
+    const block = source.slice(help, source.indexOf('</Link>', help))
+    assert.match(block, /<HelpCircle aria-hidden/, `${name}: HelpCircle mora biti aria-hidden`)
+    assert.match(
+      block,
+      /<span className="sr-only">\{t\('shell\.help'\)\}<\/span>/,
+      `${name}: link mora imati tekstualno ime iz shell.help`,
+    )
+    assert.match(block, /min-h-target min-w-target/, `${name}: meta od 44px za dodir`)
+
+    // Pomoc mora biti u dijeljenom <header> — to je ono sto garantuje isto mjesto
+    // na svakoj stranici seta, jer se layout ne mijenja po ruti.
+    const headerStart = source.indexOf('<header')
+    const headerEnd = source.indexOf('</header>')
+    assert.ok(headerStart > -1 && headerEnd > headerStart, `${name}: header mora postojati`)
+    assert.ok(
+      help > headerStart && help < headerEnd,
+      `${name}: link za pomoc mora biti unutar dijeljenog <header>`,
+    )
+
+    // Relativni redoslijed: pomoc PRIJE korisnickog menija, u oba shell-a.
+    const userMenu = source.indexOf(userMenuAnchor, headerStart)
+    assert.ok(userMenu > -1, `${name}: nije nadjen anchor korisnickog menija u headeru`)
+    assert.ok(
+      help < userMenu,
+      `${name}: pomoc mora biti prije korisnickog menija (3.2.6 isti relativni redoslijed)`,
+    )
   }
+
+  // Kljuc postoji u oba jezika (inace bi ime bilo prazno).
+  assert.ok(resolveKey(bs, 'shell.help'), 'bs shell.help')
+  assert.ok(resolveKey(en, 'shell.help'), 'en shell.help')
 })
 
 test('forced-colors rules are scoped to the dashboard shells only', () => {
