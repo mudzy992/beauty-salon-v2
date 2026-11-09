@@ -409,7 +409,7 @@ export default function Reservations() {
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
                           {r.client ? (
                             <RouterLink
-                              to={`/admin/client-analytics?userId=${r.client.id}`}
+                              to={`/admin/analytics?tab=clients&userId=${r.client.id}`}
                               className="font-medium text-brand-gold-text hover:underline"
                             >
                               {getClientName(r.client)}
@@ -423,7 +423,7 @@ export default function Reservations() {
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
                           {r.confirmedStylist ? (
                             <RouterLink
-                              to={`/admin/stylist-analytics?stylistId=${r.confirmedStylist.id}`}
+                              to={`/admin/analytics?tab=stylists&stylistId=${r.confirmedStylist.id}`}
                               className="text-brand-gold-text hover:underline"
                             >
                               {getListStylistName(r.confirmedStylist)}

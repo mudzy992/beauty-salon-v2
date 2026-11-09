@@ -30,7 +30,7 @@ const fallbackTitle = (pathname: string): string | null => {
 }
 
 export function SeoRouteDefaults() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const { t } = useTranslation()
   const seo = useSeoSettings()
   const canonicalUrl = useMemo(() => trimSlash(pathname), [pathname])
@@ -38,8 +38,8 @@ export function SeoRouteDefaults() {
   const page = seo.forPath(canonicalUrl)
   // WCAG 2.4.2 — javne rute imaju hardcoded naslov, admin/stylist/onboarding idu kroz i18n.
   const dashboardTitle = useMemo(
-    () => (isNoIndexPath(pathname) || pathname === '/profile' ? t(dashboardTitleKey(pathname)) : null),
-    [pathname, t],
+    () => (isNoIndexPath(pathname) || pathname === '/profile' ? t(dashboardTitleKey(pathname, search)) : null),
+    [pathname, search, t],
   )
   const title = page.title || fallbackTitle(pathname) || dashboardTitle
   const description = page.description || (canonicalUrl === '/' ? seo.defaultDescription : null)

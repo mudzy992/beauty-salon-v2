@@ -43,6 +43,7 @@ test('dynamic financial categories, stylist and service names stay data', () => 
   assert.match(source, /\{row\.categoryName\}/)
   assert.match(source, /\{s\.stylistName\}/)
   assert.match(source, /\{s\.serviceName\}/)
-  assert.match(source, /to=\{`\/admin\/stylist-analytics\?stylistId=\$\{s\.stylistProfileId\}`\}/)
+  // M1 / Q7: stylist analitika je tab unutar /admin/analytics
+  assert.match(source, /to=\{`\/admin\/analytics\?tab=stylists&stylistId=\$\{s\.stylistProfileId\}`\}/)
   assert.match(source, /dataKey="label"/)
 })

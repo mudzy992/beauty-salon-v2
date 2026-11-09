@@ -155,11 +155,12 @@ test('table data, status conditions, action callbacks and navigation remain unch
   }
   assert.match(actions, /entry\.status !== 'COMPLETED'/)
   assert.match(actions, /if \(entry\.deletedAt\)/)
+  // M1 / Q7: oba deep linka sada nose ?tab= unutar /admin/analytics
   assert.match(
     table,
-    /\/admin\/stylist-analytics\?stylistId=\$\{e\.stylistProfile\.id\}/,
+    /\/admin\/analytics\?tab=stylists&stylistId=\$\{e\.stylistProfile\.id\}/,
   )
-  assert.match(table, /\/admin\/client-analytics\?userId=\$\{e\.client\.id\}/)
+  assert.match(table, /\/admin\/analytics\?tab=clients&userId=\$\{e\.client\.id\}/)
   assert.match(table, /e\.isManual\s*\?\s*'dailyLog\.table\.sources\.manual'/)
   assert.match(table, /getServiceAmount\(e\)/)
   assert.match(table, /getSettledDebtsSum\(e\)/)

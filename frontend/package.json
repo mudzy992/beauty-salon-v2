@@ -162,6 +162,7 @@
     "test:settings-semantic-tokens": "node --test src/features/settings/settings-semantic-tokens.test.mjs",
     "test:admin-settings-controls-a11y": "node --test src/features/settings/admin-settings-controls-a11y.test.mjs",
     "test:settings-hub-redirect": "node --test src/features/settings/settings-hub-redirect.test.mjs",
+    "test:analytics-hub-redirect": "node --test src/features/analytics/analytics-hub-redirect.test.mjs",
     "test:route-guards-i18n": "node --test src/components/route-guards-i18n.test.mjs",
     "test:navigation-drawer-accessibility": "node --test src/features/shell/navigation-drawer-accessibility.test.mjs",
     "test:shell-a11y": "node --test src/features/shell/shell-a11y.test.mjs",

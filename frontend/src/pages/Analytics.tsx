@@ -393,7 +393,7 @@ export default function Analytics() {
                     <tr key={s.stylistProfileId} className="border-b border-slate-100 dark:border-slate-800/80">
                       <td className="py-2 pr-3">
                         <RouterLink
-                          to={`/admin/stylist-analytics?stylistId=${s.stylistProfileId}`}
+                          to={`/admin/analytics?tab=stylists&stylistId=${s.stylistProfileId}`}
                           className="font-medium text-brand-gold-text hover:underline"
                         >
                           {s.stylistName}

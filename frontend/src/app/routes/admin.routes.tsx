@@ -17,9 +17,8 @@ const Blog = lazy(() => import('../../pages/Blog'))
 const Gallery = lazy(() => import('../../pages/Gallery'))
 const Reviews = lazy(() => import('../../pages/Reviews'))
 const SettingsHub = lazy(() => import('../../pages/SettingsHub'))
-const ClientAnalytics = lazy(() => import('../../pages/ClientAnalytics'))
-const StylistAnalytics = lazy(() => import('../../pages/StylistAnalytics'))
-const Analytics = lazy(() => import('../../pages/Analytics'))
+// M1 / Q7: tri analitike su tabovi jednog hub-a; kod-splitting je unutar AnalyticsHub-a.
+const AnalyticsHub = lazy(() => import('../../pages/AnalyticsHub'))
 const Loyalty = lazy(() => import('../../pages/Loyalty'))
 const ServiceWorkGallery = lazy(() => import('../../pages/ServiceWorkGallery'))
 
@@ -52,9 +51,9 @@ export const adminRoutes: RouteObject[] = [
       { path: 'app-releases', element: <TabRedirect to="/admin/settings" tab="releases" /> },
       { path: 'notifications', element: <TabRedirect to="/admin/settings" tab="notifications" /> },
       { path: 'email-settings', element: <TabRedirect to="/admin/settings" tab="email" /> },
-      { path: 'client-analytics', element: <ClientAnalytics /> },
-      { path: 'stylist-analytics', element: <StylistAnalytics /> },
-      { path: 'analytics', element: <Analytics /> },
+      { path: 'analytics', element: <AnalyticsHub /> },
+      { path: 'client-analytics', element: <TabRedirect to="/admin/analytics" tab="clients" /> },
+      { path: 'stylist-analytics', element: <TabRedirect to="/admin/analytics" tab="stylists" /> },
       { path: 'loyalty', element: <Loyalty /> },
     ],
   },

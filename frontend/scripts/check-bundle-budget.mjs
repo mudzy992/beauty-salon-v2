@@ -30,6 +30,23 @@ const gzipAssetBytes = (files) => {
   }, 0)
 }
 
+/**
+ * Da li je chunk dosezan iz entry-ja lancom dinamičkih importa.
+ *
+ * M1/M2 hub-ovi (`AnalyticsHub`, `SettingsHub`) su i sami `lazy`, pa teške rute
+ * vise jedan nivo dublje — `entry.dynamicImports` navodi samo DIREKTNE importe,
+ * pa bi stroga provjera bila lažno crvena iako code-splitting i dalje radi.
+ */
+const isDynamicallyReachable = (target, start = entryKey, seen = new Set()) => {
+  if (seen.has(start)) return false
+  seen.add(start)
+  for (const key of manifest[start]?.dynamicImports ?? []) {
+    if (key === target) return true
+    if (isDynamicallyReachable(target, key, seen)) return true
+  }
+  return false
+}
+
 const filesForChunks = (chunkKeys) => {
   const files = new Set()
   for (const key of chunkKeys) {
@@ -92,8 +109,13 @@ for (const route of requiredRoutes) {
   const routeChunk = manifest[route.key]
   assert.ok(routeChunk?.isDynamicEntry, `${route.name} must be emitted as a dynamic route chunk`)
   assert.ok(
-    entry.dynamicImports?.includes(route.key),
+    entry.dynamicImports?.includes(route.key) || isDynamicallyReachable(route.key),
     `${route.name} must be dynamically imported from the application entry`,
+  )
+  // Stvarni guard: teška ruta ne smije završiti u inicijalnom statičkom bundleu.
+  assert.ok(
+    !initialChunks.has(route.key),
+    `${route.name} must not be part of the initial static bundle`,
   )
 
   const { files, gzipBytes } = getRouteGzipBytes(route.key)

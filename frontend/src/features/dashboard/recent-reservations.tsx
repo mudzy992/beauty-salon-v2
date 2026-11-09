@@ -59,7 +59,7 @@ export const DashboardRecentReservations = ({ reservations }: Props) => {
       render: (r) =>
         r.client ? (
           <Link
-            to={`/admin/client-analytics?userId=${r.client.id}`}
+            to={`/admin/analytics?tab=clients&userId=${r.client.id}`}
             // WCAG 1.4.1 — link se ne oslanja samo na boju: uvijek je podvučen.
             className="text-brand-gold-text underline hover:no-underline"
           >

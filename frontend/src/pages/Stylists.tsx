@@ -271,7 +271,7 @@ export default function Stylists() {
                       <td data-label={t('stylists.table.actions')} className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.analytics')}>
-                            <RouterLink to={`/admin/stylist-analytics?stylistId=${s.id}`}>
+                            <RouterLink to={`/admin/analytics?tab=stylists&stylistId=${s.id}`}>
                               <Eye className="h-4 w-4 text-teal-600" />
                             </RouterLink>
                           </Button>

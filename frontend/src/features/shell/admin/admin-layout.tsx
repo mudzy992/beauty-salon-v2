@@ -49,8 +49,9 @@ export const AdminLayout = () => {
             (x.path !== '/admin' && location.pathname.startsWith(`${x.path}/`)),
     )
     if (match) return t(match.labelKey)
-    if (location.pathname.startsWith('/admin/client-analytics')) return t('nav.clientAnalytics')
-    if (location.pathname.startsWith('/admin/stylist-analytics')) return t('nav.stylistAnalytics')
+    // M1: client/stylist analitika su tabovi unutar /admin/analytics
+    if (location.pathname === '/admin/analytics' && searchTab === 'clients') return t('nav.clientAnalytics')
+    if (location.pathname === '/admin/analytics' && searchTab === 'stylists') return t('nav.stylistAnalytics')
     return location.pathname
   }, [location.pathname, location.search, t])
 

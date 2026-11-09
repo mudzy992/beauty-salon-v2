@@ -824,7 +824,7 @@ export default function Users() {
             variant="ghost"
             className="h-8 w-8"
             aria-label={t('users.aria.analytics', { username: u.username })}
-            onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)}
+            onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}
           >
             <Eye className="h-4 w-4 text-teal-600" aria-hidden="true" />
           </Button>
@@ -910,7 +910,7 @@ export default function Users() {
             {t('users.credentials.resetLinkAction')}
           </Button>
         ) : null}
-        <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)}>
+        <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}>
           {t('users.aria.analytics')}
         </Button>
         <Button type="button" size="sm" onClick={() => openEdit(u)}>

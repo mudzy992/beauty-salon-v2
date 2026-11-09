@@ -198,7 +198,7 @@ export const DailyLogEntryTable = ({
                   <td className="p-3">
                     {e.stylistProfile?.id ? (
                       <RouterLink
-                        to={`/admin/stylist-analytics?stylistId=${e.stylistProfile.id}`}
+                        to={`/admin/analytics?tab=stylists&stylistId=${e.stylistProfile.id}`}
                         className="font-medium text-brand-gold-text hover:underline"
                       >
                         {getStylistName(e.stylistProfile)}
@@ -235,7 +235,7 @@ export const DailyLogEntryTable = ({
                   <td className="p-3">
                     {e.client ? (
                       <RouterLink
-                        to={`/admin/client-analytics?userId=${e.client.id}`}
+                        to={`/admin/analytics?tab=clients&userId=${e.client.id}`}
                         className="text-brand-gold-text hover:underline"
                       >
                         {[e.client.firstName, e.client.lastName]

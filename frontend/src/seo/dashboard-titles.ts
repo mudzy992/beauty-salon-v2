@@ -5,31 +5,33 @@
  * (`SeoRouteDefaults`), čime BS/EN paritet ostaje pod kontrolom `check_i18n.py`.
  * Poredak je bitan — specifičnije rute moraju ići prije opštijih.
  */
-const ADMIN_TITLES: Array<{ test: (path: string) => boolean; key: string }> = [
+const ADMIN_TITLES: Array<{ test: (path: string, tab: string | null) => boolean; key: string }> = [
   { test: (path) => path === '/admin', key: 'nav.home' },
   { test: (path) => path === '/admin/reservations/calendar', key: 'pageTitles.reservationsCalendar' },
   { test: (path) => path === '/admin/reservations', key: 'nav.reservations' },
   { test: (path) => path.startsWith('/admin/services') && path.endsWith('/work-gallery'), key: 'pageTitles.serviceWorkGallery' },
   { test: (path) => path === '/admin/services', key: 'nav.services' },
-  { test: (path) => path === '/admin/settings/operations', key: 'pageTitles.settingsOperations' },
-  { test: (path) => path === '/admin/settings/appearance', key: 'pageTitles.settingsAppearance' },
-  { test: (path) => path === '/admin/settings/seo', key: 'pageTitles.settingsSeo' },
+  // M2: sedam modula na /admin/settings?tab=… — specifičnije prije opštijeg.
+  { test: (path, tab) => path === '/admin/settings' && tab === 'operations', key: 'pageTitles.settingsOperations' },
+  { test: (path, tab) => path === '/admin/settings' && tab === 'appearance', key: 'pageTitles.settingsAppearance' },
+  { test: (path, tab) => path === '/admin/settings' && tab === 'seo', key: 'pageTitles.settingsSeo' },
+  { test: (path, tab) => path === '/admin/settings' && tab === 'email', key: 'nav.emailSettings' },
+  { test: (path, tab) => path === '/admin/settings' && tab === 'notifications', key: 'nav.notifications' },
+  { test: (path, tab) => path === '/admin/settings' && tab === 'releases', key: 'nav.appReleases' },
   { test: (path) => path === '/admin/settings', key: 'nav.settings' },
   { test: (path) => path === '/admin/users', key: 'nav.users' },
   { test: (path) => path === '/admin/salon', key: 'nav.salon' },
   { test: (path) => path === '/admin/stylists', key: 'nav.stylists' },
   { test: (path) => path === '/admin/daily-log', key: 'nav.dailyLog' },
   { test: (path) => path === '/admin/finance', key: 'nav.finance' },
+  // M1 / Q7: client/stylist analitika su tabovi unutar /admin/analytics.
+  { test: (path, tab) => path === '/admin/analytics' && tab === 'clients', key: 'nav.clientAnalytics' },
+  { test: (path, tab) => path === '/admin/analytics' && tab === 'stylists', key: 'nav.stylistAnalytics' },
   { test: (path) => path === '/admin/analytics', key: 'nav.analytics' },
-  { test: (path) => path === '/admin/client-analytics', key: 'nav.clientAnalytics' },
-  { test: (path) => path === '/admin/stylist-analytics', key: 'nav.stylistAnalytics' },
   { test: (path) => path === '/admin/loyalty', key: 'nav.loyalty' },
   { test: (path) => path === '/admin/blog', key: 'nav.blog' },
   { test: (path) => path === '/admin/gallery', key: 'nav.gallery' },
   { test: (path) => path === '/admin/reviews', key: 'nav.reviews' },
-  { test: (path) => path === '/admin/notifications', key: 'nav.notifications' },
-  { test: (path) => path === '/admin/app-releases', key: 'nav.appReleases' },
-  { test: (path) => path === '/admin/email-settings', key: 'nav.emailSettings' },
 ]
 
 const STYLIST_TITLES: Array<{ test: (path: string) => boolean; key: string }> = [
@@ -52,12 +54,14 @@ const ONBOARDING_TITLES: Array<{ test: (path: string) => boolean; key: string }>
   { test: (path) => path === '/profile', key: 'pageTitles.profile' },
 ]
 
-export const dashboardTitleKey = (pathname: string): string => {
+export const dashboardTitleKey = (pathname: string, search = ''): string => {
   const table = pathname.startsWith('/admin')
     ? ADMIN_TITLES
     : pathname.startsWith('/stylist')
       ? STYLIST_TITLES
       : ONBOARDING_TITLES
 
-  return table.find(({ test }) => test(pathname))?.key ?? 'pageTitles.notFound'
+  // M1/M2: tabovi dijele pathname, pa naslov (2.4.2) mora gledati i ?tab=.
+  const tab = new URLSearchParams(search).get('tab')
+  return table.find(({ test }) => test(pathname, tab))?.key ?? 'pageTitles.notFound'
 }

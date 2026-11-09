@@ -572,6 +572,13 @@ jobs:
       - name: Test settings hub tab routing and redirects
         working-directory: frontend
         run: npm run test:settings-hub-redirect
+      - name: Test analytics hub tab routing and redirects
+        working-directory: frontend
+        run: npm run test:analytics-hub-redirect
+      # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
+      - name: Test reservation list API contract
+        working-directory: frontend
+        run: npm run test:reservation-list-api-contract
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

@@ -910,6 +910,12 @@
     }
   },
   "adminAnalytics": {
+    "tabsLabel": "Choose analytics",
+    "tabs": {
+        "overview": "Overview",
+        "clients": "Clients",
+        "stylists": "Stylists"
+    },
     "chartAriaLabel": "Bar chart of monthly revenue and expenses. Covers {{months}} months. Total revenue {{revenue}}, expenses {{expenses}}, tips {{tips}}. The same data is available as a table below the chart.",
     "showDataTable": "Show chart data as a table",
     "chartTableCaption": "Monthly revenue, expenses, tips, and net behind the chart.",
