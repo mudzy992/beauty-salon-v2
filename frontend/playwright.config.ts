@@ -16,6 +16,18 @@ import { ADMIN_STATE, STYLIST_STATE } from './e2e/auth-paths'
  * Da se pokrene lokalno / u CI s pristupom CDN-u:
  *   cd frontend && npx playwright install --with-deps chromium && npm run test:a11y-routes
  *
+ * 🔴 NIKAD nad produkcijskom bazom. Specovi sami po sebi ne mijenjaju ništa (samo
+ * `page.goto` + `Tab`/`Enter` za skip-link), ali:
+ *   - `auth.setup.ts` radi `POST /auth/login`, što upisuje `lastLoginAt`
+ *     (`backend/src/auth/auth.service.ts:133-136`);
+ *   - `trace: 'retain-on-failure'` (dolje) snima DOM i screenshotove admin stranica u
+ *     `frontend/test-results/` — nad pravom bazom to je PII klijenata na disku.
+ * Zato: jednokratna lokalna baza + testni nalozi, ne postojeći nalozi.
+ *   docker run -d --name bs-a11y-db -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=beauty_salon_dev -p 5432:5432 postgres:16
+ *   cd backend && npm run db:init && npm run e2e:users
+ * `npm run e2e:users` (`prisma/scripts/create-e2e-users.ts`) **odbija** raditi ako
+ * `DATABASE_URL` ne pokazuje na localhost.
+ *
  * Admin rute (`/admin/**`) traže prijavljenu sesiju i podignut backend. Riješeno
  * 2026-11-09: projekt `setup` (`e2e/auth.setup.ts`) se prijavi preko `POST /auth/login`
  * kroz vite proxy i snimi `storageState` u `e2e/.auth/admin.json`; projekt `admin`

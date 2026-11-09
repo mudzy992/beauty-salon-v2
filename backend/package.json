@@ -22,6 +22,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "e2e:users": "ts-node prisma/scripts/create-e2e-users.ts",
     "db:init": "prisma migrate deploy && prisma db seed",
     "db:studio": "prisma studio",
     "db:migrate:dev": "prisma migrate dev",

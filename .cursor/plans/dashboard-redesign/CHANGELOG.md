@@ -3206,3 +3206,69 @@ zamjena za source-contract testove, niti su oni zamjena za lint.
 273.8 KiB (budžet 300) · lint **0 errors / 7 warnings** · `check_ui_contrast --strict` PASS
 (80/80) · `check_i18n --strict` PASS · `check_doc_links` 670/202 · `git diff --check` čist ·
 `mobile/`, `features/blog/`, `features/shell/public/` = **0 diff**.
+
+---
+
+## 2026-11-09 — Testni nalozi za axe, jer se ne smije ići preko produkcijske baze
+
+Vlasnik je otvorio pitanje koje harness nije rješavao: admin/stylist axe testovi traže
+prijavljene naloge, a **jedini nalozi koji postoje su na produkciji**.
+
+### Procjena stvarnog rizika (izmjereno, ne pretpostavljeno)
+
+- Specovi **ne mijenjaju ništa**: jedine interakcije u sva tri fajla su
+  `keyboard.press('Tab')` ×3 i `'Enter'` ×1, sve za 2.4.1 skip-link. Nema `.click()`,
+  `.fill()` ni submit-a.
+- Ali `auth.setup.ts` radi `POST /auth/login`, a login **upisuje** `lastLoginAt`
+  (`auth.service.ts:133-136`).
+- 🔴 Najveći rizik nije pisanje nego **PII**: `trace: 'retain-on-failure'` snima DOM i
+  screenshotove admin stranica u `frontend/test-results/`. Nad pravom bazom to su podaci
+  stvarnih klijenata na disku.
+
+### Zašto rješenje nije postojalo
+
+`prisma/seed.ts` kreira **samo 4 uloge, nijednog korisnika**; nijedan `docker-compose` nema
+DB servis; `backend/scripts/` je prazan.
+
+### Dodano: `backend/prisma/scripts/create-e2e-users.ts` (`npm run e2e:users`)
+
+Idempotentan upsert admin (`SYSTEM_ADMIN` + `OWNER`) i stylist (`STYLIST` +
+`StylistProfile(status: ACTIVE)`) naloga, s lozinkama iz istih env varova koje čita
+`auth.setup.ts`. `OWNER` je dodat jer `pages/Dashboard.tsx:19-20` gate-uje outbox
+dijagnostiku po toj ulozi, a `ACTIVE` jer je default status profila `PENDING`.
+
+**Sigurnosna kočnica:** skript odbija raditi ako host iz `DATABASE_URL` nije
+`localhost`/`127.0.0.1`/`::1`, osim uz `E2E_ALLOW_REMOTE_DB=1`. Namjerno po **hostu**, ne po
+imenu baze — „dev"/„test" u imenu je nepouzdana heuristika.
+
+### Verificirano stvarnim izvršavanjem (5 scenarija, pravi fajl)
+
+| Scenarij | Ishod |
+|---|---|
+| produkcijski host, bez zastavice | **odbija**, exit 1 |
+| localhost, bez kredencijala | odbija i nabraja koji varovi fale |
+| udaljeni host + `E2E_ALLOW_REMOTE_DB=1` | upozorava i nastavlja |
+| localhost + svi kredencijali | prolazi obje kočnice |
+| `DATABASE_PROVIDER=mysql` | odbija (Postgres-only, kao `seed.ts`) |
+
+Imena polja verificirana mehanički protiv `schema.prisma`: sva postoje, obavezna skalarna
+polja bez defaulta su pokrivena, `UserRole @@unique([userId, roleId])` odgovara
+`where: { userId_roleId }`, `ACTIVE` je stvarna enum vrijednost.
+
+### Šta NIJE verificirano (i zašto)
+
+Prisma `upsert` pozivi i render `/stylist/**` s praznim profilom. `npx prisma generate`
+treba `binaries.prisma.sh`, koji nije dostupan, pa `@prisma/client` nije generisan — zbog
+toga cijeli backend `tsc --noEmit` ovdje daje **1508** grešaka, uključujući u postojećem
+`seed.ts`. Moj fajl ima tačno **1** grešku, identičnu `seed.ts`-ovoj.
+
+### Ispravka dvije moje ranije pretpostavke
+
+1. Tvrdio sam da `npm run lint` u `frontend/` pokreće `prettier --check`. **Nije** — skripta
+   je `eslint . --ext ts,tsx`. Zbog toga sam `prettier --write` nad `playwright.config.ts`
+   (koji nema konfiguraciju) reformatovao cijeli fajl na duple navodnike; vraćeno, a
+   komentar ponovo ubačen bez formatera. `backend/` **ima** `.prettierrc`, pa je tamo
+   formatiranje ispravno.
+2. Rekao sam da `frontend/test-results/` i `frontend/playwright-report/` „nisu ignorisani".
+   Jesu (`.gitignore:33-34`), ali s trailing slash-om, pa `git check-ignore` na
+   **nepostojećem** direktoriju ne prepoznaje podudaranje.

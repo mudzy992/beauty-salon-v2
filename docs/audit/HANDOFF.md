@@ -1145,6 +1145,89 @@ Mutacije **7/7** pada. Novi disable ne prolazi tiho — popis dozvoljenih je u s
 pozitivnu kontrolu (mutaciju), a čitanje tuđeg API-ja ne smije pretpostavljati tip povratne
 vrijednosti.
 
+## 2026-11-09 — Zašto se ovo ne smije pokretati nad produkcijskom bazom (i kako umjesto toga)
+
+Vlasnik je postavio pitanje koje harness do tada nije rješavao: **admin/stylist axe testovi
+traže prijavljene naloge, a jedini nalozi koji postoje su na produkcijskoj bazi.**
+
+### Koliki je stvarni rizik (izmjereno, ne pretpostavljeno)
+
+Provjerio sam šta specovi zaista rade, umjesto da pretpostavim najgore:
+
+- Specovi **ne mijenjaju ništa** — jedine interakcije u sva tri fajla su
+  `page.keyboard.press('Tab')` (`a11y-admin.spec.ts:81`, `a11y-stylist.spec.ts:73`,
+  `a11y-routes.spec.ts:49`) i jedan `'Enter'` (`a11y-routes.spec.ts:54`), oboje za 2.4.1
+  skip-link. Nema `.click()`, `.fill()` ni submit-a.
+- Ali `auth.setup.ts` radi `POST /auth/login`, a login **upisuje** `lastLoginAt`
+  (`backend/src/auth/auth.service.ts:133-136`).
+- 🔴 **Najveći rizik nije pisanje nego PII:** `playwright.config.ts` ima
+  `trace: 'retain-on-failure'`. Trace na padu snima DOM i screenshotove admin stranica u
+  `frontend/test-results/` — nad pravom bazom to su podaci stvarnih klijenata na disku.
+
+### Zašto nije postojalo rješenje u repozitoriju
+
+- `prisma/seed.ts` kreira **samo 4 uloge** (`SYSTEM_ADMIN`, `OWNER`, `STYLIST`, `CLIENT`) i
+  **nijednog korisnika**. Dakle nije bilo testnih naloga.
+- Nijedan `docker-compose` fajl nema DB servis — baza je van compose-a, ide preko
+  `DATABASE_URL`.
+- `backend/scripts/` je prazan; nije postojao CLI za kreiranje korisnika.
+
+### Rješenje: `backend/prisma/scripts/create-e2e-users.ts` (`npm run e2e:users`)
+
+Idempotentan upsert dva naloga, s lozinkama iz istih env varova koje čita `auth.setup.ts`:
+
+| Nalog | Uloge | Zašto tako |
+|---|---|---|
+| `E2E_ADMIN_USER` | `SYSTEM_ADMIN` + `OWNER` | `pages/Dashboard.tsx:19-20` gate-uje outbox dijagnostiku s `role === 'SYSTEM_ADMIN' \|\| role === 'OWNER'`; bez toga axe ne vidi taj panel |
+| `E2E_STYLIST_USER` | `STYLIST` + `StylistProfile(status: ACTIVE)` | `StylistRoute.tsx:24-27` traži ulogu `STYLIST`; default status profila je `PENDING` |
+
+**🔴 Sigurnosna kočnica:** skript **odbija** raditi ako host iz `DATABASE_URL` nije
+`localhost`/`127.0.0.1`/`::1`, osim uz izričiti `E2E_ALLOW_REMOTE_DB=1` (koji glasno
+upozorava). Namjerno strogo po hostu, a ne po imenu baze — heuristika „dev/test" u imenu je
+nepouzdana.
+
+### Procedura
+
+```bash
+# 1) jednokratna baza
+docker run -d --name bs-a11y-db -e POSTGRES_PASSWORD=dev \
+  -e POSTGRES_DB=beauty_salon_dev -p 5432:5432 postgres:16
+
+# 2) backend/.env -> DATABASE_URL na tu bazu, PORT=10001 (vite proxy cilja 10001)
+cd backend && npm run db:init
+
+# 3) testni nalozi
+E2E_ADMIN_USER=e2eadmin E2E_ADMIN_PASS='...' \
+E2E_STYLIST_USER=e2estylist E2E_STYLIST_PASS='...' npm run e2e:users
+
+# 4) backend + testovi
+PORT=10001 npm run start:dev          # terminal 1
+cd ../frontend && npm run build && npm run test:a11y-routes   # terminal 2
+```
+
+### Šta je verificirano, a šta nije
+
+**Verificirano stvarnim izvršavanjem skripte** (5 scenarija, pravi fajl):
+
+| Scenarij | Ishod |
+|---|---|
+| produkcijski host, bez zastavice | **odbija**, exit 1, ispisuje proceduru |
+| localhost, bez kredencijala | odbija i nabraja tačno koji env varovi fale |
+| udaljeni host + `E2E_ALLOW_REMOTE_DB=1` | glasno upozorava i nastavlja |
+| localhost + svi kredencijali | prolazi obje kočnice (pada tek na DB pozivu) |
+| `DATABASE_PROVIDER=mysql` | odbija (skript je Postgres-only, kao `seed.ts`) |
+
+Imena polja verificirana mehanički protiv `schema.prisma`: sva postoje, obavezna skalarna
+polja bez defaulta su pokrivena, `UserRole @@unique([userId, roleId])` odgovara
+`where: { userId_roleId }`, a `ACTIVE` je stvarna vrijednost `StylistProfileStatus`.
+
+**NIJE verificirano i mora se provjeriti pri prvom stvarnom pokretanju:** sami Prisma
+`upsert` pozivi i to da `/stylist/**` stranice renderuju s praznim profilom. Razlog je
+okruženje, a ne propust — `npx prisma generate` treba `binaries.prisma.sh`, koji nije
+dostupan, pa `@prisma/client` nije generisan. Zbog toga cijeli backend `tsc --noEmit` ovdje
+daje **1508** grešaka (uključujući u postojećem `seed.ts`), pa typecheck nad ovim fajlom
+nije moguć; moj fajl ima tačno **1** grešku, istu kao `seed.ts`.
+
 ## 1. Stanje na kraju
 
 | Provjera | Rezultat |
@@ -1194,6 +1277,8 @@ Najveća rupa je bila ta što je axe prošao **samo javne rute**. Sada postoji h
   Kredencijali **samo** iz `E2E_ADMIN_USER`/`E2E_ADMIN_PASS` i
   `E2E_STYLIST_USER`/`E2E_STYLIST_PASS`.
 - `frontend/e2e/a11y-admin.spec.ts` — projekt `admin`: axe nad **15** admin ruta + `2.4.1`.
+- 🔴 **Prije pokretanja obavezno pročitati** sekciju *„Zašto se ovo ne smije pokretati nad
+  produkcijskom bazom"* ispod — jedini postojeći nalozi su na produkciji.
 - `frontend/e2e/a11y-stylist.spec.ts` — projekt `stylist`: axe nad **8** ruta + `2.4.1`.
 - `frontend/tsconfig.e2e.json` + `npm run typecheck:e2e` — jer glavni `tsconfig.json` ima
   `include:['src']`, pa `e2e/` **nije** bio pokriven nijednom provjerom tipova.
