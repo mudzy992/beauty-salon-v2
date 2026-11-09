@@ -34,6 +34,9 @@ const ADMIN_ROUTES = [
   { path: '/admin/settings', name: 'Postavke (hub)' },
   { path: '/admin/analytics', name: 'Analitika (hub)' },
   { path: '/admin/loyalty', name: 'Loyalty' },
+  // ⚠️ Ova ruta NIJE u `admin.routes.tsx` — definisana je zasebno u `app/router.tsx:133`,
+  // pa je prvi grep po `admin.routes.tsx` nije uhvatio. Dodato 2026-11-09.
+  { path: '/admin/reservations/calendar', name: 'Kalendar rezervacija' },
 ]
 
 const status: AdminStatus = existsSync(ADMIN_STATUS)

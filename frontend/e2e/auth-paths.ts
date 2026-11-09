@@ -13,6 +13,10 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 export const AUTH_DIR = resolve(HERE, '.auth')
 export const ADMIN_STATE = resolve(AUTH_DIR, 'admin.json')
 export const ADMIN_STATUS = resolve(AUTH_DIR, 'admin-status.json')
+// Stilisti imaju ZASEBAN storageState: `StylistRoute` traži ulogu STYLIST
+// (`src/components/StylistRoute.tsx:24-27`), pa admin token nije dovoljan.
+export const STYLIST_STATE = resolve(AUTH_DIR, 'stylist.json')
+export const STYLIST_STATUS = resolve(AUTH_DIR, 'stylist-status.json')
 
 export type AdminStatus = { ok: boolean; reason: string }
 

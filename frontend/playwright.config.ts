@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-import { ADMIN_STATE } from './e2e/auth-paths'
+import { ADMIN_STATE, STYLIST_STATE } from './e2e/auth-paths'
 
 /**
  * Rendered a11y smoke (Q4 — odobreno 2026-11-08 za `@axe-core/playwright` + `@playwright/test`).
@@ -40,12 +40,12 @@ export default defineConfig({
   projects: [
     // Javne rute: ne traže prijavu ni backend, pa se izvršavaju uvijek.
     // ⚠️ `testIgnore` je OBAVEZAN: bez njega ovaj projekt globova SVE spec fajlove, pa bi
-    // se admin testovi izvršili dvaput — jednom ovdje BEZ `storageState` (gdje bi svaki pao
-    // na redirekciji na /login) i jednom u projektu `admin`. Izmjereno 2026-11-09:
-    // bez testIgnore `--project=chromium` nabroji 26 testova (11 javnih + 15 admin).
+    // se prijavljeni testovi izvršili dvaput — jednom ovdje BEZ `storageState` (gdje bi svaki
+    // pao na redirekciji) i jednom u svom projektu. Izmjereno 2026-11-09: bez testIgnore
+    // `--project=chromium` nabroji 26 testova (11 javnih + 15 admin).
     {
       name: 'chromium',
-      testIgnore: [/a11y-admin\.spec\.ts/, /auth\.setup\.ts/],
+      testIgnore: [/a11y-admin\.spec\.ts/, /a11y-stylist\.spec\.ts/, /auth\.setup\.ts/],
       use: { ...devices['Desktop Chrome'] },
     },
     // `/admin/**` traži prijavljenu sesiju → prvo setup (login), pa admin testovi.
@@ -56,6 +56,14 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /a11y-admin\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: ADMIN_STATE },
+    },
+    // `/stylist/**` traži ulogu STYLIST (`StylistRoute`), pa ima ZASEBAN storageState —
+    // admin token ovdje nije dovoljan. Bez uloge guard redirektuje na `/`, NE na `/login`.
+    {
+      name: 'stylist',
+      dependencies: ['setup'],
+      testMatch: /a11y-stylist\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: STYLIST_STATE },
     },
   ],
   webServer: {

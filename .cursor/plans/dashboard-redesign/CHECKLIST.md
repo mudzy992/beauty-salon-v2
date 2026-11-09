@@ -182,7 +182,13 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 >
 > **`/admin/**` harness je napisan 2026-11-09, ali NIJE izvršen.** Dodati `e2e/auth.setup.ts`
 > (login → `storageState`) i `e2e/a11y-admin.spec.ts` (axe nad 14 ruta + `2.4.1`), ukupno
-> **27 testova** po `npx playwright test --list` (chromium 11 + setup 1 + admin 16).
+> **38 testova** po `npx playwright test --list` (chromium 11 + setup 2 + admin 18 +
+> stylist 11). Naknadno su nađene **dvije rupe u prvoj verziji harnessa**: `/stylist/**`
+> (8 ruta) uopšte nije bio pokriven, a `/admin/reservations/calendar` je propušten jer je
+> definisan u `app/router.tsx:133`, ne u `admin.routes.tsx`. `/stylist/**` treba **zaseban
+> storageState i zasebnu asertiju**: `StylistRoute` bez uloge redirektuje na `/`, NE na
+> `/login`, pa kopirana admin asertija ne bi uhvatila neuspjeh (axe bi izmjerio naslovnu
+> i javio lažni prolaz).
 > Bez backend-a/kredencijala se glasno
 > preskaču. Agent nema ni browser ni backend, pa admin statusi ostaju 🟡 do prvog runa.
 >

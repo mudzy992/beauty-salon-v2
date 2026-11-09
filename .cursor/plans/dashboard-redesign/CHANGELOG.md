@@ -2983,3 +2983,59 @@ na mašini s backend-om, admin a11y statusi ostaju 🟡.
 `tsc --noEmit` (src) PASS · `npm run typecheck:e2e` PASS (uz negativnu kontrolu) ·
 `npm run build` PASS 273.8 KiB · **171/171** `test:*` · `check_doc_links` 670/202 ·
 `mobile/` i `features/blog/` = 0 diff.
+
+---
+
+## 2026-11-09 — dopuna: `/stylist/**` + propuštena admin ruta (napisano, **nije izvršeno**)
+
+### 🔴 Dvije rupe u harnessu koji sam upravo pushao (`e745593`)
+
+Provjera nakon commita, ne prije — i obje su stvarne:
+
+1. **`/stylist/**` (8 ruta) uopšte nije bio pokriven.** Matrica cijelo vrijeme govori o
+   „admin/stylist" dashboardu, a spec je pokrivao samo `/admin/**`.
+2. **`/admin/reservations/calendar` je propušten.** Ruta NIJE u `admin.routes.tsx` nego
+   zasebno u `app/router.tsx:133`, pa je grep po `admin.routes.tsx` nije uhvatio.
+
+### Zašto `/stylist/**` treba ZASEBAN spec i storageState
+
+Guard-ovi su različiti:
+
+| Rute | Guard | Bez sesije/uloge redirektuje na |
+|---|---|---|
+| `/admin/**` | `ProtectedRoute` (samo token) | `/login` |
+| `/stylist/**` | `StylistRoute` (token **+ uloga STYLIST**, `StylistRoute.tsx:24-27`) | **`/`** |
+
+Dvije posljedice:
+1. **Admin token nije dovoljan** za stilističke rute → zaseban `storageState`
+   (`e2e/.auth/stylist.json`) i zasebni kredencijali (`E2E_STYLIST_USER` / `E2E_STYLIST_PASS`).
+2. **Asertija „nismo redirektovani" mora biti drugačija.** U admin specu provjeravam da URL
+   ne sadrži `/login`; u stylist specu to **ne bi uhvatilo neuspjeh** (redirekt ide na `/`).
+   Zato stylist asertira `url.pathname.startsWith('/stylist')`. Da sam kopirao admin
+   asertiju, axe bi izmjerio **naslovnu** stranicu i javio lažni prolaz.
+
+Rute s parametrom (`workbook/:entryId`, `workbook/reschedule-preview/:reservationId`,
+`schedule/:reservationId`) namjerno nisu pokrivene — traže stvaran ID iz baze, pa bi bez
+seedovanog podatka testirale prazan/error ekran.
+
+### Novo stanje
+
+`npx playwright test --list`: **38 testova u 4 fajla**
+
+| Projekt | Testova | Sadržaj |
+|---|---:|---|
+| `chromium` | 11 | javne rute (izvršeno, 11/11) |
+| `setup` | 2 | login za admin i stilistu |
+| `admin` | 18 | 15 ruta + `2.4.1` + 2 setup |
+| `stylist` | 11 | 8 ruta + `2.4.1` + 2 setup |
+
+`chromium` `testIgnore` proširen na `a11y-stylist.spec.ts` — bez toga bi se stylist testovi
+dvostruko izvršili bez `storageState`.
+
+### Provjereno
+
+`typecheck:e2e` PASS · `tsc --noEmit` (src) PASS · `171/171` `test:*` ·
+`git check-ignore` potvrđuje da `.auth/stylist*.json` nisu trackabilni ·
+`mobile/` i `features/blog/` = 0 diff.
+
+**I dalje NIJE izvršeno** — bez backend-a i kredencijala u sandboxu.

@@ -1142,24 +1142,42 @@ pokrivenost od 178 fajlova.
 
 ## 3. Šta NIJE dokazano — i to je preostali posao
 
-### 3.1 `/admin/**` — pokrivenost **napisana** (2026-11-09), ali još **neizvršena**
+### 3.1 `/admin/**` i `/stylist/**` — pokrivenost **napisana** (2026-11-09), ali još **neizvršena**
 
 Najveća rupa je bila ta što je axe prošao **samo javne rute**. Sada postoji harness:
 
 - `frontend/e2e/auth.setup.ts` — projekt `setup`: `POST /auth/login` kroz vite proxy, snimi
-  `storageState` u `e2e/.auth/admin.json` (putanja je u `.gitignore` jer sadrži stvaran JWT).
-  Kredencijali **samo** iz `E2E_ADMIN_USER` / `E2E_ADMIN_PASS`.
-- `frontend/e2e/a11y-admin.spec.ts` — projekt `admin`: axe nad **14** admin ruta + `2.4.1`
-  skip-link, ukupno 15 testova.
+  `storageState` u `e2e/.auth/{admin,stylist}.json` (u `.gitignore` jer sadrži stvaran JWT).
+  Kredencijali **samo** iz `E2E_ADMIN_USER`/`E2E_ADMIN_PASS` i
+  `E2E_STYLIST_USER`/`E2E_STYLIST_PASS`.
+- `frontend/e2e/a11y-admin.spec.ts` — projekt `admin`: axe nad **15** admin ruta + `2.4.1`.
+- `frontend/e2e/a11y-stylist.spec.ts` — projekt `stylist`: axe nad **8** ruta + `2.4.1`.
 - `frontend/tsconfig.e2e.json` + `npm run typecheck:e2e` — jer glavni `tsconfig.json` ima
   `include:['src']`, pa `e2e/` **nije** bio pokriven nijednom provjerom tipova.
+
+**Zašto `/stylist/**` treba zaseban spec i zaseban `storageState`:** guard-ovi su različiti.
+`ProtectedRoute` (admin) bez sesije redirektuje na `/login`, a `StylistRoute`
+(`StylistRoute.tsx:24-27`) traži ulogu **STYLIST** i bez nje redirektuje na **`/`**.
+Dvije posljedice: admin token nije dovoljan, **i** admin asertija „URL ne sadrži `/login`"
+ovdje **ne bi uhvatila neuspjeh** — axe bi izmjerio naslovnu i javio lažni prolaz. Zato
+stylist asertira `url.pathname.startsWith('/stylist')`.
+
+`npx playwright test --list`: **38 testova u 4 fajla** — `chromium` 11 · `setup` 2 ·
+`admin` 18 · `stylist` 11.
 
 Pokretanje:
 
 ```bash
 cd backend && npm run start:dev          # ili docker compose up
-cd frontend && E2E_ADMIN_USER=... E2E_ADMIN_PASS=... npm run test:a11y-routes
+cd frontend && \
+  E2E_ADMIN_USER=... E2E_ADMIN_PASS=... \
+  E2E_STYLIST_USER=... E2E_STYLIST_PASS=... \
+  npm run test:a11y-routes
 ```
+
+Rute s parametrom (`workbook/:entryId`, `workbook/reschedule-preview/:reservationId`,
+`schedule/:reservationId`) namjerno nisu pokrivene — traže stvaran ID iz baze, pa bi bez
+seedovanog podatka testirale prazan/error ekran i davale lažnu sliku.
 
 **Status: NAPISSANO, NIJE IZVRŠENO.** Agent u sandboxu nema ni browser ni backend, pa ovo
 nije dokaz da admin stranice prolaze — samo da postoji alat koji to može izmjeriti.
