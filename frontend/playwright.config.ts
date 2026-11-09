@@ -10,8 +10,12 @@ import { ADMIN_STATE, STYLIST_STATE } from './e2e/auth-paths'
  *   Failed to download Chrome for Testing 158.0.8127.18 (playwright chromium v1254),
  *   caused by Error: Download failure, code=1
  * jer sandbox dozvoljava samo github.com / npm registry / pypi, a ne CDN s browserima.
- * Zato skripta `test:a11y-routes` NIJE dodata u CI kao blokirajući korak — ne bi bilo
- * pošteno tvrditi da nešto prolazi što nikad nije pokrenuto.
+ * Od 2026-11-09 postoji CI posao **`a11y-e2e`** (`.github/workflows/ci.yml`) koji ovo
+ * pokreće nad **jednokratnom** Postgres bazom (service kontejner) s testnim nalozima iz
+ * `npm run e2e:users` — dakle bez ikakvog dodira s produkcijskim podacima. Axe korak je
+ * tamo ZA SAD `continue-on-error`: još nema prvog izvršenog runa koji bi dokazao da
+ * prolazi, pa bi blokirajući gate bio nepošten. Nakon prvog zelenog runa ukloniti
+ * `continue-on-error` iz `ci.yml`.
  *
  * Da se pokrene lokalno / u CI s pristupom CDN-u:
  *   cd frontend && npx playwright install --with-deps chromium && npm run test:a11y-routes

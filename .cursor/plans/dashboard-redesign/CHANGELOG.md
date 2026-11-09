@@ -3272,3 +3272,52 @@ toga cijeli backend `tsc --noEmit` ovdje daje **1508** grešaka, uključujući u
 2. Rekao sam da `frontend/test-results/` i `frontend/playwright-report/` „nisu ignorisani".
    Jesu (`.gitignore:33-34`), ali s trailing slash-om, pa `git check-ignore` na
    **nepostojećem** direktoriju ne prepoznaje podudaranje.
+
+---
+
+## 2026-11-09 — CI posao `a11y-e2e`: axe nad izolovanom bazom
+
+Vlasnikova napomena da se testovi mogu vrtjeti na izolovanom sistemu GitHub Actions
+pokazala se kao pravo rješenje problema iz prethodnog zapisa. Provjera je potvrdila da CI
+**već ima** `postgres:16` service kontejner s jednokratnom bazom `beauty_salon_ci`
+(`.github/workflows/ci.yml:40-51`), pa tamo problem „nema testnih naloga, a produkcija se ne
+smije dirati" **ne postoji** — baza je jednokratna po definiciji.
+
+### Novi posao `a11y-e2e` (16 koraka)
+
+`postgres:16` service → backend `npm ci` → `db:generate` → `db:migrate:deploy` → `db:seed` →
+**`e2e:users`** → `build` → backend na `PORT=10001` → čekanje `GET /health` → frontend
+`npm ci` + `build` → `playwright install --with-deps chromium` → `test:a11y-routes` →
+upload `playwright-report` + `test-results` (7 dana) → anotacija ishoda u step summary.
+
+Detalji izvedeni iz izvora, ne pretpostavljeni:
+
+- `NODE_ENV=test` — `CORS_ALLOWED_ORIGINS` je obavezan tek izvan development/test
+  (`cors-runtime-config.ts:22-23`), pa CI ne treba CORS.
+- `JWT_SECRET` + `APP_SETTINGS_ENCRYPTION_KEY` su obavezni **uvijek**: `validateRuntimeSecrets`
+  je wired kao `ConfigModule.validate` (`config.module.ts:10`). Vrijednosti preuzete iz
+  postojećeg `backend` posla; provjereno da zadovoljavaju oba uslova (≥32 bajta, kanonski
+  base64 za tačno 32 bajta).
+- `PORT=10001` jer vite proxy cilja `http://localhost:10001` (`vite.config.ts:19`).
+- Health čekanje ide na `GET /health` (`app.controller.ts:27`).
+- `node dist/src/main.js` je tačno sadržaj `start:prod`.
+- `e2e:users` kočnica prolazi jer je host `127.0.0.1`.
+
+### Šta je verificirano ovdje (a šta mora u stvarnom runu)
+
+**Verificirano u sandboxu:**
+
+- YAML parsira (`js-yaml`, instaliran s `--no-save`): poslovi `repo-checks, backend,
+  frontend, a11y-e2e, mobile`; `a11y-e2e` = 16 koraka, 10 env varova, service `postgres`.
+- **Svih 170+ `npm run X` referenci u svim poslovima postoji** u odgovarajućem
+  `package.json` (uklj. 7 novih) — provjereno skriptom, ne ručno.
+- **`bash -n` nad svih 388 `run` blokova: 0 grešaka** (GitHub izrazi zamijenjeni literalom).
+
+**NIJE verificirano i ne može biti ovdje:** stvarno izvršenje posla. U sandboxu nema
+Dockera, browser CDN-a ni Prisma engine-a. Zato je axe korak **`continue-on-error`** — isti
+princip koji već stoji u `playwright.config.ts` („ne bi bilo pošteno tvrditi da nešto
+prolazi što nikad nije pokrenuto"). **Nakon prvog zelenog runa treba ukloniti
+`continue-on-error`**, inače test koji nikad ne može pasti s vremenom istrune.
+
+Ispravljena zastarjela napomena u `playwright.config.ts:13-14` koja je tvrdila da
+`test:a11y-routes` nije u CI.

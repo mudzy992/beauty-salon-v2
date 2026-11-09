@@ -1205,6 +1205,26 @@ PORT=10001 npm run start:dev          # terminal 1
 cd ../frontend && npm run build && npm run test:a11y-routes   # terminal 2
 ```
 
+### Riješeno u CI: posao `a11y-e2e`
+
+Gore opisani problem (nema testnih naloga, a produkcija se ne smije dirati) u CI **ne
+postoji**: GitHub Actions posao već ima `postgres:16` service kontejner (`beauty_salon_ci`),
+pa je baza jednokratna po definiciji. Novi posao `a11y-e2e` radi:
+
+`postgres:16` service → `npm ci` → `db:generate` → `db:migrate:deploy` → `db:seed` →
+**`e2e:users`** → `build` → backend na `PORT=10001` → čekanje `GET /health` → frontend
+`npm ci` + `build` → `playwright install --with-deps chromium` → `test:a11y-routes` →
+upload `playwright-report` + `test-results` kao artefakt.
+
+`NODE_ENV=test` je namjerno: `CORS_ALLOWED_ORIGINS` je obavezan tek izvan development/test
+(`src/config/cors-runtime-config.ts:22-23`), a `JWT_SECRET` i `APP_SETTINGS_ENCRYPTION_KEY`
+jesu obavezni uvijek (`validateRuntimeSecrets` je `ConfigModule.validate`,
+`src/config/config.module.ts:10`) — zato su preuzeti iz postojećeg `backend` posla.
+
+🟡 **Axe korak je `continue-on-error`.** Razlog je isti kao u `playwright.config.ts`: run
+nikad nije izvršen, pa blokirajući gate ne bi bio pošten. **Nakon prvog zelenog runa
+ukloniti `continue-on-error`** iz `ci.yml` — inače test koji nikad ne pade s vremenom istrune.
+
 ### Šta je verificirano, a šta nije
 
 **Verificirano stvarnim izvršavanjem skripte** (5 scenarija, pravi fajl):

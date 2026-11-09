@@ -685,6 +685,134 @@ jobs:
           --tag beauty-salon-frontend:ci
           .
 
+  # Rendered a11y (axe) nad IZLOVANOM bazom. Postoji jer admin/stylist axe testovi
+  # trebaju prijavljene naloge, a jedini stvarni nalozi su na produkciji - vidi
+  # docs/audit/HANDOFF.md, "Zasto se ovo ne smije pokretati nad produkcijskom bazom".
+  # Ovdje je baza jednokratni Postgres service kontejner, a naloge kreira
+  # `npm run e2e:users` (backend/prisma/scripts/create-e2e-users.ts).
+  #
+  # Axe korak je ZA SAD `continue-on-error`: nikad nije izvrsen, pa bi bilo neposteno
+  # tvrditi da prolazi (isti princip kao u frontend/playwright.config.ts). Nakon prvog
+  # zelenog runa ukloniti `continue-on-error` i korak "Annotate".
+  a11y-e2e:
+    name: Rendered a11y (axe) nad izolovanom CI bazom
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: beauty_salon_ci
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_only_not_a_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d beauty_salon_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_PROVIDER: postgres
+      # Jednokratni CI servis; nikad produkcijski ili dijeljeni podaci.
+      DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
+      # `validateRuntimeSecrets` (backend/src/config/runtime-secrets.ts) pada na startupu
+      # bez ova dva; vrijednosti su iste kao u `backend` poslu.
+      JWT_SECRET: ci_only_not_a_secret_value_replace_in_real_environments
+      APP_SETTINGS_ENCRYPTION_KEY: Y2ktb25seS10ZXN0LWVuY3J5cHRpb24ta2V5LTMyYnk=
+      # NODE_ENV=test: CORS_ALLOWED_ORIGINS je obavezan tek izvan development/test.
+      NODE_ENV: test
+      # vite proxy (frontend/vite.config.ts) cilja http://localhost:10001.
+      PORT: "10001"
+      # CI-only nalozi; kreira ih `npm run e2e:users` u jednokratnu bazu.
+      E2E_ADMIN_USER: ci_a11y_admin
+      E2E_ADMIN_PASS: ci-only-admin-pass-not-a-real-secret
+      E2E_STYLIST_USER: ci_a11y_stylist
+      E2E_STYLIST_PASS: ci-only-stylist-pass-not-a-real-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npm run db:generate
+      - name: Apply migrations to disposable CI PostgreSQL
+        working-directory: backend
+        run: npm run db:migrate:deploy
+      # `e2e:users` sam upsertuje uloge, ali seed ih jeftino uskladi s aplikacijom.
+      - name: Seed roles
+        working-directory: backend
+        run: npm run db:seed
+      # Skripta odbija raditi ako DATABASE_URL nije localhost - ovdje je 127.0.0.1.
+      - name: Create disposable a11y test accounts
+        working-directory: backend
+        run: npm run e2e:users
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+      - name: Start backend on port 10001
+        working-directory: backend
+        run: |
+          nohup node dist/src/main.js > "$RUNNER_TEMP/backend.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/backend.pid"
+      - name: Wait for backend /health
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:10001/health > /dev/null 2>&1; then
+              echo "backend spreman nakon ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend se nije podigao u 90s; log:"
+          cat "$RUNNER_TEMP/backend.log"
+          exit 1
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      # `run-a11y-routes.mjs` izlazi s 1 ako dist/ ne postoji (vite preview servira build).
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Install Chromium for Playwright
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run rendered a11y (axe) suite
+        id: axe
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run test:a11y-routes
+      - name: Upload Playwright report and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-a11y-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Annotate axe outcome
+        if: always()
+        run: |
+          {
+            echo '### Rendered a11y (axe) — izolovana CI baza'
+            echo ''
+            echo 'Ishod koraka: **${{ steps.axe.outcome }}**'
+            echo ''
+            echo 'Axe korak je trenutno `continue-on-error` jer nikad ranije nije izvrsen.'
+            echo 'Nakon prvog zelenog runa ukloniti `continue-on-error` iz `ci.yml`.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   mobile:
     name: Mobile TypeScript check
     runs-on: ubuntu-latest
