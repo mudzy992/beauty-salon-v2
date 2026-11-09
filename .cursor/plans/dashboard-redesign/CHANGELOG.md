@@ -3558,3 +3558,85 @@ nepostojećih, **390** `run` blokova → **0** `bash -n` grešaka.
 3.3.7 → **✅**, s obrazloženjem da je ovdje dokazano **odsustvo** prekršaja (za razliku od
 ostalih ✅, ne postoji implementacija koju bi trebalo verificirati u renderu — pa nema ništa
 što bi ostalo 🟡). Brojač ETAPA B: ✅ 27→28, ❌ 3→2.
+
+
+---
+
+## 2026-11-09 — 1.3.1: grupisanje polja u `workbook-new-entry-page` (odgođena stavka)
+
+Stavka je bila odgođena uz obrazloženje: „`FormSection`/`<fieldset>` (mijenja vizuelni
+izgled, treba nove i18n ključeve za `<legend>`)". **Obje zamjerke su zaobiđene, ne ignorisane.**
+
+### Problem (dokazan iz izvora)
+
+`workbook-new-entry-page.tsx:439-467` — kartica `<Card className="p-4 space-y-3">` sadrži
+**tri** polja: datum (`dateId`), naplaćeni iznos (`paidAmountId`) i napomenu (`notesId`).
+`Card` je običan `<div>` (`components/ui/card.tsx:5-18`), pa je vizuelna kutija bila **jedina**
+naznaka da polja pripadaju zajedno. Čitač ekrana je čitao tri zasebna polja bez veze među
+njima — informacija koja je postojala vizuelno nije bila programski odrediva → **1.3.1**.
+
+Isti obrazac, manjeg obima, na kartici `469` (loyalty + `discountPercentId`).
+
+### Zašto NIJE `FormSection`
+
+`features/shell/admin/ui/form-section.tsx` renderuje:
+
+```tsx
+<fieldset className={cn('rounded-lg border border-line bg-surface p-4', className)}>
+  <legend className="px-1 text-sm font-semibold text-content">{title}</legend>
+```
+
+To je **vidljiv okvir i vidljiv naslov**. Na stranici koja već ima `Card` kutije
+(`rounded-lg border border-slate-200 bg-white shadow-sm`) to bi bio dvostruki okvir — upravo
+vizuelna regresija zbog koje je stavka odgođena. **`fieldset` je jedna od tehnika za 1.3.1,
+ne sam zahtjev**; kriterij traži da odnos bude programski odrediv.
+
+### Rješenje — nula vidljivih promjena
+
+- `role="group"` + `aria-labelledby` na postojećem `Card`-u. `Card` prosljeđuje props kroz
+  `{...props}`, pa atributi stižu na DOM (provjereno testom, i to **samo nad `Card`** —
+  `{...props}` postoji u svih šest komponenti u `card.tsx`, pa provjera nad cijelim fajlom
+  ne dokazuje ništa; mutacija koja skine props samo s `Card` je to otkrila).
+- **Plaćanje:** naziv grupe u `<span className="sr-only">`, id iz `useId()`.
+- **Loyalty:** `aria-labelledby` pokazuje na **postojeći vidljivi naslov**
+  (`stylistWorkbook.newEntry.loyalty`) — nije dodan nijedan novi element.
+- Jedan novi i18n ključ: `stylistWorkbook.newEntry.paymentSection` (bs „Podaci o naplati",
+  en „Payment details").
+
+`sr-only` je potvrđen u **buildovanom** CSS-u (`dist/assets/index-cGvbcmeU.css`), ne samo u
+izvoru — bez toga naziv grupe bi bio vidljiv.
+
+### Test: `test:workbook-form-groups-a11y` (8 testova, 10/10 mutacija)
+
+Registrovan u `frontend/package.json` **i** u `.github/workflows/ci.yml` (posao `frontend`,
+indeks 121). Pokriva: `Card` prosljeđuje props; obje kartice su `group`; naziv je `sr-only` i
+ima prevod u oba jezika (i da se prevodi **razlikuju**); sva tri polja su stvarno **unutar**
+grupe za plaćanje; `discountPercent` je unutar loyalty grupe; id-ovi su iz `useId()` (bez
+sudara); `aria-labelledby` ne pokazuje ni na šta nepostojeće; te **da nije uveden
+`fieldset`/`legend`/`FormSection`** (guard protiv vidljive regresije).
+
+**Mutacijska provjera 10/10**, uključujući „`sr-only` zamijenjen vidljivom klasom" i „uveden
+`fieldset`".
+
+### Greška u testu koju je otkrila mutacija
+
+Prva verzija je tvrdila `card.includes('{...props}')`. **Promašeno** — `{...props}` postoji i
+u `CardHeader`/`CardContent`/`CardFooter`/`CardTitle`/`CardDescription`, pa je mutacija koja
+ga skine samo s `Card` prolazila. Sada se siječe blok od `const Card = React.forwardRef` do
+`Card.displayName = 'Card'`.
+
+### Ograničenje
+
+Source-contract: ne dokazuje da čitač ekrana stvarno najavi naziv grupe uz svako polje.
+
+### Provjere (sve pokrenute)
+
+`test:*` **176/176** (bilo 175) · `tsc --noEmit` **exit 0** · build **273.9 KiB/300** ·
+lint **0 errors / 7 warnings** · `check_i18n --strict` **PASS** · `check_ui_contrast --strict`
+**PASS** (80 parova) · `check_repo_hygiene` **PASS** (1700) · `check_doc_links` **PASS**
+(670/202) · `git diff --check` **čist** · CI: **372** `npm run` → **0** nepostojećih,
+**391** `run` blokova → **0** `bash -n` grešaka.
+
+### Matrica
+
+1.3.1 ostaje **✅** (bio je ✅ i prije); upisana je dopuna s dokazom. Brojači se ne mijenjaju.

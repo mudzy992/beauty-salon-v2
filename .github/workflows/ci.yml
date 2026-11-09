@@ -497,6 +497,9 @@ jobs:
       - name: Test redundant entry (WCAG 3.3.7)
         working-directory: frontend
         run: npm run test:redundant-entry-a11y
+      - name: Test workbook form grouping (WCAG 1.3.1)
+        working-directory: frontend
+        run: npm run test:workbook-form-groups-a11y
       - name: Test daily-log amount parity
         working-directory: frontend
         run: npm run test:daily-log-amount-parity

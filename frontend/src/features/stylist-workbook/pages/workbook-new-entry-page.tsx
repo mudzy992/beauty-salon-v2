@@ -42,6 +42,8 @@ export const WorkbookNewEntryForm = ({
   const paidAmountId = `${formId}-paid-amount`
   const notesId = `${formId}-notes`
   const discountPercentId = `${formId}-discount-percent`
+  const paymentGroupLabelId = `${formId}-payment-group-label`
+  const loyaltyLabelId = `${formId}-loyalty-label`
   const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const { warning, success, toastApiError } = useAppToast()
@@ -436,7 +438,8 @@ export const WorkbookNewEntryForm = ({
           ) : null}
         </Card>
 
-        <Card className="p-4 space-y-3">
+        <Card className="p-4 space-y-3" role="group" aria-labelledby={paymentGroupLabelId}>
+          <span id={paymentGroupLabelId} className="sr-only">{t('stylistWorkbook.newEntry.paymentSection')}</span>
           <div>
             <Label htmlFor={dateId}>{t('stylistWorkbook.newEntry.date')}</Label>
             <Input id={dateId} type="date" className="mt-2 max-w-[220px]" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -466,10 +469,10 @@ export const WorkbookNewEntryForm = ({
           </div>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-4" role="group" aria-labelledby={loyaltyLabelId}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.loyalty')}</p>
+              <p id={loyaltyLabelId} className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.loyalty')}</p>
               <p role="status" aria-live="polite" className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 {loadingLoyalty
                   ? t('common.loading')

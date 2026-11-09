@@ -1787,6 +1787,7 @@
       "loyalty": "Loyalty programme",
       "loyaltySummary": "Points: {{points}} · Max discount: {{percent}}%",
       "loyaltyUnavailable": "The loyalty programme is unavailable for the selected client or service.",
+      "paymentSection": "Payment details",
       "discountPercent": "Discount (%)",
       "maxDiscountAmount": "Maximum discount amount: {{amount}}",
       "creating": "Creating…",

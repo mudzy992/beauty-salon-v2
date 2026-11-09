@@ -133,6 +133,7 @@
     "test:daily-log-dialog-accessibility": "node --test src/features/daily-log/daily-log-dialog-accessibility.test.mjs",
     "test:daily-log-detail-i18n": "node --test src/features/daily-log/daily-log-detail-i18n.test.mjs",
     "test:daily-log-restore-delete-i18n": "node --test src/features/daily-log/daily-log-restore-delete-i18n.test.mjs",
+    "test:workbook-form-groups-a11y": "node --test src/features/stylist-workbook/workbook-form-groups-a11y.test.mjs",
     "test:redundant-entry-a11y": "node --test src/features/stylist-workbook/redundant-entry-a11y.test.mjs",
     "test:form-error-suggestion": "node --test src/features/forms/form-error-suggestion.test.mjs",
     "test:daily-log-form-i18n": "node --test src/features/daily-log/daily-log-form-i18n.test.mjs",

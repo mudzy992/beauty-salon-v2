@@ -243,6 +243,16 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > valjana kao **konzistentnost** (5.61:1, semantički token), ne kao ispravka prekršaja.
 > **Odgođeno na fazu 13:** `FormSection`/`<fieldset>` (mijenja vizuelni izgled, treba nove
 > i18n ključeve za `<legend>`) i D10 reflow — bez browsera se ne mogu verificirati.
+>
+> **Ažurirano 2026-11-09 — `FormSection`/`<fieldset>` RIJEŠENO, D10 i dalje otvoren.**
+> Obje zamjerke su zaobiđene, ne ignorisane: `FormSection` **nije** upotrijebljen jer
+> renderuje vidljiv okvir + `<legend>`, a stranica već ima `Card` kutije. Semantika grupe
+> (`role="group"` + `aria-labelledby`) je ono što 1.3.1 traži — `fieldset` je samo jedna od
+> tehnika. Naziv grupe za plaćanje je u `<span className="sr-only">` (`sr-only` je potvrđen
+> u buildovanom CSS-u, `dist/assets/index-*.css`), a loyalty grupa je vezana na **postojeći
+> vidljivi naslov**, pa nije dodan nijedan novi vidljivi element. Novi i18n ključ je jedan
+> (`stylistWorkbook.newEntry.paymentSection`, u oba locale-a).
+> `test:workbook-form-groups-a11y` (8 testova, 10/10 mutacija).
 
 > **Faza 10 — napomene.** A11y dio završen u 2 commita; **M2 (D11) urađen** u `56cee86`
 > (`/admin/settings?tab=site|operations|appearance|seo|email|notifications|releases`,

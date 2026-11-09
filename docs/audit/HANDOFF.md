@@ -1401,7 +1401,7 @@ cijelog journeya. Zoom 200/400%, text spacing, touch target na stvarnom uređaju
 - **D10:** `formatLocalizedAmount` zaobiđen na **15** mjesta (`toFixed(2) + ' KM'`) →
   miješani format i `"NaN KM"`. Bez odluke o formatu ne popravljati tiho.
 - `EmailSettings.tsx` (1377 ln) na < 120 ln — testovi ga čitaju po putanji.
-- `fieldset`/`FormSection` u `workbook-new-entry-page`.
+- ~~`fieldset`/`FormSection` u `workbook-new-entry-page`~~ — **RIJEŠENO 2026-11-09**, ali **ne** preko `FormSection`: ta komponenta renderuje `<fieldset>` s vidljivim okvirom i `<legend>`, što je unutar postojećih `Card` kutija bila vidljiva regresija (upravo zamjerka zbog koje je stavka odgođena). Umjesto toga `role="group"` + `aria-labelledby` na postojećem `Card`-u: za plaćanje naziv u `<span className="sr-only">`, a za loyalty `aria-labelledby` pokazuje na **postojeći vidljivi naslov** — nula novih vidljivih elemenata, jedan novi i18n ključ. `test:workbook-form-groups-a11y` (8, 10/10 mutacija).
 - Migracija tabela na `DataTable`.
 
 ## 4. Preporučeni redoslijed

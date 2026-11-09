@@ -193,7 +193,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 |---|---|---|
 | 1.1.1 | ✅ | `test:*-a11y` (ikone `aria-hidden`, grafikoni imaju tekstualni sažetak). **Axe nalaz (critical):** `/register` je imao `<img … src="/brand/media-fallback.jpg">` bez `alt` — `AvatarImage` ga nije postavljao kada ga pozivalac ne prosljedi (`pages/Register.tsx:231`). Sada default `alt=""` (dekorativno) u `components/ui/avatar.tsx`; `StylistLayout` i `public-layout` već prosljeđuju `shell.profileForUser`. `test:public-a11y-axe-findings` |
 | 1.2.1–1.2.5 | ➖ | 0 pogodaka za `<video>`/`<audio>` u `pages/`, `features/`, `components/`, `layouts/` |
-| 1.3.1 | ✅ | jedan `<h1>` po stranici, `caption` ×21, `th scope` 115/152, landmark-i; testovi po modulu |
+| 1.3.1 | ✅ | jedan `<h1>` po stranici, `caption` ×21, `th scope` 115/152, landmark-i; testovi po modulu. **Dopuna 2026-11-09:** `workbook-new-entry-page` — kartica s tri polja (datum/iznos/napomena) bila je vizuelno grupisana ali programski ne; sada `role="group"` + `aria-labelledby` (`test:workbook-form-groups-a11y`). Status ostaje ✅. |
 | 1.3.2–1.3.4 | 🟡 | DOM redoslijed i orijentacija samo u kodu |
 | 1.3.5 | ✅ | grep + `test:i18n-language` |
 | 1.4.1 | ✅ | semantički tokeni (`test:semantic-tokens`, `test:settings-semantic-tokens`) |

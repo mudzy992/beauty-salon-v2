@@ -1784,6 +1784,7 @@
       "loyalty": "Program lojalnosti",
       "loyaltySummary": "Bodovi: {{points}} · Maks. popust: {{percent}}%",
       "loyaltyUnavailable": "Program lojalnosti nije dostupan za odabranog klijenta ili servis.",
+      "paymentSection": "Podaci o naplati",
       "discountPercent": "Popust (%)",
       "maxDiscountAmount": "Maksimalni iznos popusta: {{amount}}",
       "creating": "Kreiram…",
