@@ -352,8 +352,8 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
       fajlova s `<table>` već ima `<caption>` + `scope="col"`, pa je a11y dobitak nula; cilj je
       **održavanje i konzistentnost**. Vlasnik je masovnu migraciju **odobrio**
       („možeš krenuti sa masovnom implementacijom DataTable") uz direktivu da je konzistentnost
-      na dashboardima obavezna. Migrirano **6/7** čistih kandidata: `Loyalty`, `expense-table`,
-      `income-entries-table`, `Notifications`, `Salon` (×2), `Services`. Preostaje `Users.tsx`.
+      na dashboardima obavezna. Migrirano **7/7** čistih kandidata: `Loyalty`, `expense-table`,
+      `income-entries-table`, `Notifications`, `Salon` (×2), `Services`, `Users`.
       **8 fajlova se ne može migrirati** (`colSpan`/`rowSpan`/`<tfoot>` — `DataTable` ih ne
       podržava): `blog-posts-table`, `daily-log/entry-table`, `Reservations`, `Reviews`,
       `Stylists`, `ClientAnalytics`, `Analytics`, `expense-invoice-preview`.
@@ -367,6 +367,19 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
       hvata `<thead>` (`<th` + `ead>`), pa lažno uvećava za broj tabela. Ova greška je dala pogrešne
       brojeve za `font-medium` (Loyalty 8/7 umjesto 7/7) prije nego je uhvaćena. Ispravan obrazac:
       `<th(?=[\s>])[^>]*>` ili `re.compile(r'<th(?=[\s>])[^>]*>')` u pythonu.
+
+### Ispravka: `font-medium` na `<th>` (2026-11-09)
+
+- [x] **Tvrdnja „migracija skida `font-medium` s `<th>`" bila je NETAČNA.** `src/index.css:16-18`
+      ima `table.app-table th { @apply font-medium text-slate-500; }`, specifičnost **(0,1,2)**,
+      što pobjeđuje svaku utility klasu **(0,1,0)** — bez obzira na redoslijed Tailwind slojeva.
+      `DataTable` uvijek renderuje `app-table`, pa je `font-medium` na `<th>` neizbježan.
+      Suvišni `cn()` default je uklonjen; test sada asertuje CSS pravilo.
+      **Pouka:** prisustvo klase u markupu nije dokaz da je potrebna — provjeriti i CSS slojeve
+      i specifičnost prije nego se proglasi regresija.
+- [x] **Regresija u `Loyalty` (`text-xs uppercase text-slate-500`) bila je STVARNA** — ta klasa
+      je stajala na `<thead><tr>` i nasljeđivala se, a **nema je nigdje u CSS-u** za `app-table`
+      (`grep -n "uppercase\|text-xs" src/index.css src/styles/globals.css` → 0 rezultata).
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

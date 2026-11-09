@@ -26,6 +26,7 @@ import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
 
+import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
@@ -755,16 +756,31 @@ export default function Users() {
     )
   }
 
-  const renderUserRow = (u: UserRow) => (
-    <tr key={u.id} className="border-b border-slate-100 dark:border-slate-800/80">
-      <td data-label={t('users.table.avatar')} className="p-3">
+  const userColumns: DataTableColumn<UserRow>[] = [
+    {
+      key: 'avatar',
+      headerKey: 'users.table.avatar',
+      className: 'w-[56px] p-3',
+      render: (u) => (
         <Avatar className="h-9 w-9">
           <AvatarImage src={u.avatar ? getUploadUrl(u.avatar) : undefined} alt={getUserDisplayName(u)} />
           <AvatarFallback>{initials(u.firstName, u.lastName, u.username)}</AvatarFallback>
         </Avatar>
-      </td>
-      <td data-label={t('users.username')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{u.username}</td>
-      <td data-label={t('users.email')} className="p-3">
+      ),
+    },
+    {
+      key: 'username',
+      headerKey: 'users.username',
+      className: 'p-3',
+      render: (u) => (
+        <span className="font-medium text-slate-900 dark:text-slate-50">{u.username}</span>
+      ),
+    },
+    {
+      key: 'email',
+      headerKey: 'users.email',
+      className: 'p-3',
+      render: (u) => (
         <div className="flex items-center gap-2">
           <span className="truncate">{u.email ?? '-'}</span>
           {u.email ? (
@@ -778,11 +794,31 @@ export default function Users() {
             </Badge>
           ) : null}
         </div>
-      </td>
-      <td data-label={t('users.table.fullName')} className="p-3">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</td>
-      <td data-label={t('users.phone')} className="p-3">{u.phone ?? '-'}</td>
-      <td data-label={t('users.roles')} className="p-3">{renderRoles(u)}</td>
-      <td data-label={t('common.status')} className="p-3">
+      ),
+    },
+    {
+      key: 'fullName',
+      headerKey: 'users.table.fullName',
+      className: 'p-3',
+      render: (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || '-',
+    },
+    {
+      key: 'phone',
+      headerKey: 'users.phone',
+      className: 'p-3',
+      render: (u) => u.phone ?? '-',
+    },
+    {
+      key: 'roles',
+      headerKey: 'users.roles',
+      className: 'p-3',
+      render: (u) => renderRoles(u),
+    },
+    {
+      key: 'status',
+      headerKey: 'common.status',
+      className: 'p-3',
+      render: (u) => (
         <div className="flex flex-col items-end gap-1">
           <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
             {u.isActive ? t('common.active') : t('common.inactive')}
@@ -793,8 +829,14 @@ export default function Users() {
             </Badge>
           ) : null}
         </div>
-      </td>
-      <td data-label={t('common.actions')} className="p-3 text-right">
+      ),
+    },
+    {
+      key: 'actions',
+      headerKey: 'common.actions',
+      align: 'right',
+      className: 'p-3',
+      render: (u) => (
         <div className="flex justify-end gap-1">
           {u.mustChangePassword ? (
             <Button
@@ -851,9 +893,9 @@ export default function Users() {
             </Button>
           ) : null}
         </div>
-      </td>
-    </tr>
-  )
+      ),
+    },
+  ]
 
   const renderUserCard = (u: UserRow) => (
     <Card key={u.id} className="p-4">
@@ -963,13 +1005,13 @@ export default function Users() {
             </div>
 
             <TabsContent value="admins" className="mt-4">
-              <UsersList loading={loading} items={admins} renderRow={renderUserRow} renderCard={renderUserCard} />
+              <UsersList loading={loading} items={admins} columns={userColumns} renderCard={renderUserCard} />
             </TabsContent>
             <TabsContent value="stylists" className="mt-4">
-              <UsersList loading={loading} items={stylists} renderRow={renderUserRow} renderCard={renderUserCard} />
+              <UsersList loading={loading} items={stylists} columns={userColumns} renderCard={renderUserCard} />
             </TabsContent>
             <TabsContent value="clients" className="mt-4">
-              <UsersList loading={loading} items={clients} renderRow={renderUserRow} renderCard={renderUserCard} />
+              <UsersList loading={loading} items={clients} columns={userColumns} renderCard={renderUserCard} />
             </TabsContent>
           </Tabs>
         </div>
@@ -1488,12 +1530,12 @@ export default function Users() {
 function UsersList({
   loading,
   items,
-  renderRow,
+  columns,
   renderCard,
 }: {
   loading: boolean
   items: UserRow[]
-  renderRow: (u: UserRow) => React.ReactNode
+  columns: DataTableColumn<UserRow>[]
   renderCard: (u: UserRow) => React.ReactNode
 }) {
   const { t } = useTranslation()
@@ -1514,22 +1556,12 @@ function UsersList({
       <div className="grid grid-cols-1 gap-3 lg:hidden">{items.map((u) => renderCard(u))}</div>
 
       <div className="hidden app-table-wrap lg:block">
-        <table className="app-table data-table w-full border-collapse">
-          <caption className="sr-only">{t('users.caption')}</caption>
-          <thead>
-            <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-              <th scope="col" className="p-3 font-medium w-[56px]">{t('users.table.avatar')}</th>
-              <th scope="col" className="p-3 font-medium">{t('users.username')}</th>
-              <th scope="col" className="p-3 font-medium">{t('users.email')}</th>
-              <th scope="col" className="p-3 font-medium">{t('users.table.fullName')}</th>
-              <th scope="col" className="p-3 font-medium">{t('users.phone')}</th>
-              <th scope="col" className="p-3 font-medium">{t('users.roles')}</th>
-              <th scope="col" className="p-3 font-medium">{t('common.status')}</th>
-              <th scope="col" className="p-3 font-medium text-right">{t('common.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>{items.map((u) => renderRow(u) as any)}</tbody>
-        </table>
+        <DataTable
+          caption={t('users.caption')}
+          columns={columns}
+          rows={items}
+          rowKey={(u) => u.id}
+        />
       </div>
     </>
   )

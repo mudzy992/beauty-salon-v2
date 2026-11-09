@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const source = readFileSync(new URL('../../pages/Users.tsx', import.meta.url), 'utf8')
-const css = readFileSync(new URL('../../index.css', import.meta.url), 'utf8')
+const dataTable = readFileSync(
+  new URL('../shell/admin/ui/data-table.tsx', import.meta.url),
+  'utf8',
+)
 
 // ---------------------------------------------------------------------------
 // Faza 7 — Korisnici
@@ -13,9 +16,12 @@ const css = readFileSync(new URL('../../index.css', import.meta.url), 'utf8')
 //   isto ime — "Uredi korisnika" x N.
 // 1.3.1: 8 <th> bez scope, 0 <caption>.
 // 1.4.10: tabela bez data-table klase i bez data-label.
+//
+// 2026-11-09 — `Users.tsx` je prešao na dijeljenu `DataTable` komponentu, pa markup
+// (`<caption>`, `scope="col"`, `data-label`, zajedničke klase) više ne živi u ovom
+// fajlu. Garancije se asertuju JEDNOM nad komponentom, a nad potrošačem samo
+// korištenje, caption prop i redoslijed kolona.
 // ---------------------------------------------------------------------------
-
-const headers = source.match(/<th\b[^>]*>/g) || []
 
 test('akcije po redu imaju jedinstvena pristupna imena (2.4.4 / 4.1.2)', () => {
   for (const key of ['analytics', 'edit', 'deactivate']) {
@@ -41,27 +47,58 @@ test('akcije po redu imaju jedinstvena pristupna imena (2.4.4 / 4.1.2)', () => {
   }
 })
 
-test('tabela korisnika ima scope i caption (1.3.1)', () => {
-  assert.equal(headers.length, 8, 'tacno 8 <th>')
-  assert.deepEqual(
-    headers.filter((h) => !/scope="col"/.test(h)),
-    [],
-    'nijedan <th> ne smije ostati bez scope',
+test('tabela korisnika ima scope i caption preko DataTable (1.3.1)', () => {
+  // Garancije u komponenti (jednom, za sve potrošače).
+  assert.match(dataTable, /<caption className="sr-only">\{caption\}<\/caption>/)
+  assert.match(dataTable, /scope="col"/)
+
+  // Potrošač: koristi komponentu i daje joj pristupačno ime.
+  assert.equal((source.match(/<DataTable\b/g) || []).length, 1, 'tacno jedan <DataTable>')
+  assert.match(source, /caption=\{t\('users\.caption'\)\}/)
+  assert.equal(
+    (source.match(/<table\b/g) || []).length,
+    0,
+    'Users.tsx ne smije vise imati rucno pisan <table>',
   )
-  assert.match(source, /<caption className="sr-only">\{t\('users\.caption'\)\}<\/caption>/)
-  assert.equal((source.match(/<caption/g) || []).length, 1)
+  assert.equal((source.match(/<th\b(?!ead)/g) || []).length, 0, 'nema rucnih <th>')
 })
 
-test('tabela korisnika opt-in u card mode (1.4.10)', () => {
-  assert.match(source, /<table className="app-table data-table w-full border-collapse">/)
-  const labels = source.match(/<td data-label=\{t\('([^']+)'\)\}/g) || []
-  assert.equal(labels.length, 8, 'tacno 8 <td data-label>')
-  assert.equal(
-    (source.match(/<td data-label="/g) || []).length,
-    0,
-    'data-label ne smije biti hardkodovan literal',
+test('tabela korisnika opt-in u card mode preko headerKey (1.4.10)', () => {
+  // `data-label` i `data-table` klasu generise komponenta; potrosac daje samo kljuceve.
+  assert.match(dataTable, /data-label=\{t\(column\.headerKey\)\}/)
+  assert.match(dataTable, /app-table data-table w-full/)
+
+  const keys = [...source.matchAll(/headerKey: '([^']+)'/g)].map((m) => m[1])
+  assert.deepEqual(
+    keys,
+    [
+      'users.table.avatar',
+      'users.username',
+      'users.email',
+      'users.table.fullName',
+      'users.phone',
+      'users.roles',
+      'common.status',
+      'common.actions',
+    ],
+    'redoslijed kolona mora ostati isti kao prije migracije',
   )
-  assert.match(css, /table\.data-table tbody td::before/)
+})
+
+test('Users.tsx ne donosi sopstveni stil tabele (konzistentnost dashboarda)', () => {
+  for (const prop of ['tableClassName', 'headRowClassName', 'rowClassName', 'unsortedIndicator']) {
+    assert.equal(
+      (source.match(new RegExp(`${prop}=`, 'g')) || []).length,
+      0,
+      `${prop} je lokalno odstupanje; zajednicke klase zive u DataTable`,
+    )
+  }
+  // Pozitivna kontrola: obrazac zaista hvata hardkodovanje.
+  assert.match(
+    '<DataTable tableClassName="border-collapse" />',
+    /tableClassName=/,
+    'kontrola: obrazac hvata tableClassName',
+  )
 })
 
 test('D4 iz plana NIJE prekršaj — Search ikona je dekorativna', () => {

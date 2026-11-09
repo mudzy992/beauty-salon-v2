@@ -10,6 +10,8 @@ const SRC = join(HERE, '..', '..', '..', '..')
 
 const read = (abs) => readFileSync(abs, 'utf8')
 const dataTable = read(join(HERE, 'data-table.tsx'))
+// ui -> admin -> shell -> features -> src
+const css = read(join(HERE, '..', '..', '..', '..', 'index.css'))
 
 /**
  * Konzistentnost dashboard tabela — zajedničke klase žive u `DataTable`, ne u
@@ -51,20 +53,34 @@ test('uzglavlje i redovi nose zajedničke klase kao default komponente', () => {
   assert.ok(!varijanta.includes(HEAD_ROW), 'kontrola: varijanta bez uppercase NE prolazi')
 })
 
-test('font-medium je default uzglavlja, ne po koloni', () => {
-  // IZMJERENO 2026-11-09 nad izvornim markupom svih 7 dashboard tabela:
-  // 36 <th>, svih 36 s `font-medium`. Bez ovog defaulta migracija tiho skida
-  // bold s kolona koje koriste `align` umjesto ručne klase (trajalo je 3 kolone
-  // u Services prije nego je uhvaćeno).
-  const th = dataTable.match(/<th\b[\s\S]*?className=\{cn\(([^)]*)\)\}/)
-  assert.ok(th, '<th> mora imati className kroz cn()')
-  assert.match(th[1], /'font-medium'/, '<th> mora imati font-medium kao prvi default')
+test('font-medium na <th> garantuje CSS, ne utility klasa (ispravka 2026-11-09)', () => {
+  // PRVO sam tvrdio da migracija skida `font-medium` s kolona koje koriste `align`
+  // i dodao ga kao `cn()` default. TO JE BILO POGREŠNO: `table.app-table th` ima
+  // specifičnost (0,1,2) i pobjeđuje svaku utility klasu (0,1,0), pa je `font-medium`
+  // na <th> ionako neizbježan. Default je bio suvišan i uklonjen je.
+  //
+  // Prava garancija je ovo CSS pravilo — i ona se asertuje ovdje.
+  assert.match(
+    css,
+    /table\.app-table th \{\s*@apply font-medium text-slate-500;\s*\}/,
+    'index.css mora zadržati font-medium + text-slate-500 na app-table th',
+  )
+  // DataTable uvijek renderuje `app-table`, pa pravilo uvijek važi.
+  assert.match(dataTable, /cn\('app-table data-table w-full'/)
 
-  // `<td>` NE smije naslijediti font-medium — originalne ćelije su ga imale samo
-  // tamo gdje je bio potreban (npr. naziv usluge).
+  // I obrnuto: `font-medium` NE smije biti dupliciran kao utility na <th>/<td>,
+  // jer bi to sakrilo činjenicu da ga CSS već daje.
+  const th = dataTable.match(/<th\b[\s\S]*?className=\{cn\(([^)]*)\)\}/)
   const td = dataTable.match(/<td\b[\s\S]*?className=\{cn\(([^)]*)\)\}/)
-  assert.ok(td, '<td> mora imati className kroz cn()')
+  assert.ok(th && td, '<th> i <td> moraju imati className kroz cn()')
+  assert.ok(!/'font-medium'/.test(th[1]), '<th> ne smije duplicirati font-medium')
   assert.ok(!/'font-medium'/.test(td[1]), '<td> ne smije imati font-medium kao default')
+
+  // Pozitivna kontrola: da se CSS pravilo obriše, asertacija iznad pada.
+  assert.ok(
+    !'table.app-table th { @apply text-slate-500; }'.match(/font-medium/),
+    'kontrola: pravilo bez font-medium NE prolazi',
+  )
 })
 
 test('headRowClassName je uklonjen — lokalne varijante uzglavlja se ne čuvaju', () => {

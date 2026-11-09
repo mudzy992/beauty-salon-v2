@@ -4037,3 +4037,87 @@ Sve mutacije vraćene; kontrolni prolaz 5/5.
 
 `Users.tsx` (1536 ln, 8 `<th>`) — posljednji čisti kandidat. Zatim 8 nemigriranih
 (`colSpan`/`<tfoot>`).
+
+---
+
+## 2026-11-09 — `Users` na `DataTable` + **ISPRAVKA**: tvrdnja o `font-medium` bila je netačna
+
+### 🔴 Ispravka prethodnog unosa (commit `c9d052b`)
+
+Prethodni unos je tvrdio: *„`Services` bi izgubio `font-medium` na 3 kolone (duration, price,
+actions)"* i na osnovu toga dodao `font-medium` kao `cn()` default na `<th>`.
+
+**Ta tvrdnja je NETAČNA.** `src/index.css:16-18` već sadrži:
+
+```css
+table.app-table th {
+  @apply font-medium text-slate-500;
+}
+```
+
+Specifičnost tog selektora je **(0,1,2)** (1 klasa + 2 elementa), dok je bilo koja utility
+klasa poput `.font-medium` **(0,1,0)** — dakle CSS pravilo **uvijek pobjeđuje**, bez obzira
+na redoslijed Tailwind slojeva. `DataTable` uvijek renderuje `app-table`, pa je `font-medium`
+na `<th>` neizbježan. `Services` ništa nije gubio.
+
+Mjerenje „36/36 `<th>` ima `font-medium`" bilo je **tačno**, ali je iz njega izveden **pogrešan
+zaključak**: prisustvo klase u markupu nije dokaz da je ona *potrebna* — bila je redundantna
+i u izvornom kodu.
+
+**Urađeno:** suvišni `font-medium` default **uklonjen** iz `data-table.tsx` (ostavljen komentar
+koji objašnjava zašto ga nema). Test sada asertuje **stvarnu** garanciju — CSS pravilo — plus
+da `DataTable` zaista renderuje `app-table`, plus da se `font-medium` ne duplicira kao utility.
+
+### ✅ Tvrdnja koja JESTE tačna (i ostaje)
+
+Regresija u `Loyalty.tsx` bila je **stvarna**: `text-xs uppercase text-slate-500` stajao je na
+`<thead><tr>`, nasljeđivao se na `<th>`, i **nema ga nigdje u CSS-u** za `app-table`
+(provjereno: `grep -n "uppercase\|text-xs" src/index.css src/styles/globals.css` → nema
+rezultata). Kad je migracija skinula klasu s `<tr>`, uzglavlje je stvarno izgubilo uppercase.
+Default iz `c9d052b` ostaje.
+
+### Urađeno (nastavak migracije)
+
+- **`pages/Users.tsx` migriran** (1537 → 1568 ln): `renderUserRow` (koji je vraćao cijeli `<tr>`
+  s 8 `<td>`) zamijenjen s `userColumns: DataTableColumn<UserRow>[]`; `UsersList` sada prima
+  `columns` umjesto `renderRow`; ručni `<table>` zamijenjen `<DataTable>`-om. `tsc` **exit 0**.
+- Kolona `username` je imala `font-medium text-slate-900 dark:text-slate-50` **na `<td>`**.
+  Kako `DataTable` dijeli `column.className` između `<th>` i `<td>`, te klase su prebačene na
+  `<span>` unutar `render` — inače bi `<th>` dobio `text-slate-900` i pregazio `text-slate-500`
+  iz defaulta.
+- `test:users-a11y` prepisan (5 → **6** testova): garancije se asertuju nad komponentom, nad
+  potrošačem korištenje + `caption` prop + **redoslijed 8 kolona** + zabrana stil-propova.
+
+### Stanje migracije: **7/7 čistih kandidata završeno**
+
+`Loyalty` · `expense-table` · `income-entries-table` · `Notifications` · `Salon` (×2) ·
+`Services` · `Users`. Preostaje **8 nemigriranih** (`colSpan`/`rowSpan`/`<tfoot>` — `DataTable`
+ih ne podržava): `blog-posts-table`, `daily-log/entry-table`, `Reservations`, `Reviews`,
+`Stylists`, `ClientAnalytics`, `Analytics`, `expense-invoice-preview`.
+
+### Mutacijska provjera (7/7 u ovom koraku)
+
+| # | mutacija | test pada? |
+|---|---|---|
+| M1 | zamijenjen redoslijed kolona u `Users` | ✅ (`users-a11y` #3) |
+| M2 | `tableClassName` dodat u `Users` | ✅ (`users-a11y` #4) |
+| M3 | `caption` prop uklonjen iz `Users` | ✅ (`users-a11y` #2) |
+| M4 | vraćen ručni `<table>` u `Users` | ✅ (`users-a11y` #2) |
+| M5' | `font-medium` obrisan iz CSS pravila | ✅ (`data-table-consistency` #2) |
+| M6' | `font-medium` dupliciran kao utility na `<th>` | ✅ (`data-table-consistency` #2) |
+| M7' | `app-table` klasa uklonjena iz `DataTable` | ✅ (`data-table-consistency` #2) |
+
+Sve mutacije vraćene; kontrolni prolazi 6/6 i 5/5.
+
+### Usput: reset okruženja
+
+Na početku koraka `git rev-parse HEAD` vratio je bazni `9df498a`, a sav rad je stajao kao
+nekommitan diff; `frontend/node_modules` je nestao. Oporavak bez gubitka:
+`git fetch origin <grana>` → `git reset --mixed FETCH_HEAD` (ne dira radno stablo) →
+`git status --short` = **0 izmjena** → `npm ci`.
+
+### Kapije
+
+`test:*` **178/178** · `tsc --noEmit` **exit 0** · `test:hooks-order` **2/2** · lint
+**0 errors / 7 warnings** · build **273.9 KiB / 300** · `check_i18n --strict` **PASS** ·
+`check_doc_links` **PASS** (670/202) · `git diff --check` **čist**.

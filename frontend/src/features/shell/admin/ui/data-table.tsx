@@ -112,10 +112,11 @@ export function DataTable<T>({
                   aria-sort={
                     !column.sortKey ? undefined : direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'
                   }
-                  /* IZMJERENO 2026-11-09: svih 36 <th> u svih 7 dashboard tabela imalo je
-                     `font-medium`, pa je to default uzglavlja. Ide ispred column.className
-                     da potrošač po potrebi može premostiti (twMerge). */
-                  className={cn('font-medium', alignClass[column.align ?? 'left'], column.className)}
+                  /* `font-medium` i `text-slate-500` na <th> NE trebaju ovdje: garantuje ih
+                     `src/index.css` → `table.app-table th { @apply font-medium text-slate-500; }`
+                     sa specifičnošću (0,1,2), koja pobjeđuje svaku utility klasu (0,1,0).
+                     Dodati ih ovdje bilo bi suvišno — asertovano u data-table-consistency. */
+                  className={cn(alignClass[column.align ?? 'left'], column.className)}
                 >
                   {column.sortKey && onSortChange ? (
                     <button
