@@ -72,7 +72,7 @@ export const StylistReservationDetailPage = () => {
   if (profileLoading || (isLoading && !reservation)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+        <div role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('stylistPortal.reservationDetail.loading')}
         </div>
       </div>

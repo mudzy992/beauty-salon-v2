@@ -352,7 +352,7 @@ export const WorkbookNewEntryForm = ({
                       onClick={() => handleSelectClient(c)}
                     >
                       <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
-                      <p className="text-xs text-slate-500">{c.username}</p>
+                      <p className="text-xs text-content-muted">{c.username}</p>
                     </button>
                   </li>
                 ))}
@@ -369,7 +369,7 @@ export const WorkbookNewEntryForm = ({
         <Card className="p-4">
           <Label htmlFor={serviceSearchId}>{t('stylistWorkbook.newEntry.service')}</Label>
           {!selectedClient ? (
-            <p className="mt-1 text-xs text-slate-500">{t('stylistWorkbook.newEntry.selectClientForServices')}</p>
+            <p className="mt-1 text-xs text-content-muted">{t('stylistWorkbook.newEntry.selectClientForServices')}</p>
           ) : !selectedClient.gender ? (
             <p role="alert" className="mt-1 text-xs text-bad-foreground">
               {t('stylistWorkbook.newEntry.clientGenderRequired')}
@@ -402,7 +402,7 @@ export const WorkbookNewEntryForm = ({
                     >
                       <span className="flex justify-between gap-2 text-sm">
                         <span>{svc.name}</span>
-                        <span className="text-slate-500">{formatKm(Number(svc.price), locale)}</span>
+                        <span className="text-content-muted">{formatKm(Number(svc.price), locale)}</span>
                       </span>
                     </button>
                   </li>
@@ -419,7 +419,7 @@ export const WorkbookNewEntryForm = ({
                 >
                   <div className="min-w-0">
                     <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
-                    <div className="text-xs text-slate-500">{formatKm(Number(s.price), locale)}</div>
+                    <div className="text-xs text-content-muted">{formatKm(Number(s.price), locale)}</div>
                   </div>
                   <Button
                     type="button"
@@ -649,7 +649,7 @@ export const WorkbookNewEntryDrawer = ({
             <DialogTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50">
               {t('stylistWorkbook.newEntry.title')}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-xs text-content-muted">
               {t('stylistWorkbook.newEntry.drawerDescription')}
             </DialogDescription>
           </div>

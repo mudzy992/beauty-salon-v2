@@ -127,7 +127,7 @@ export const WorkbookReschedulePreviewPage = () => {
     return (
       <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-20">
         <Loader2 className="h-6 w-6 animate-spin text-content-muted" aria-hidden="true" />
-        <span className="text-sm text-slate-500">{t('common.loading')}</span>
+        <span className="text-sm text-content-muted">{t('common.loading')}</span>
       </div>
     )
   }
@@ -306,7 +306,7 @@ export const WorkbookReschedulePreviewPage = () => {
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 {it.oldStartTime}–{it.oldEndTime} → {it.newStartTime}–{it.newEndTime}
               </p>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-2 text-xs text-content-muted">
                 {t('stylistWorkbook.reschedule.shift', {
                   minutes: formatLocalizedNumber(it.shiftMinutes, locale, { maximumFractionDigits: 0 }),
                 })}

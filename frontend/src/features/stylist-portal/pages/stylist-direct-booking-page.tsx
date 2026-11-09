@@ -230,7 +230,7 @@ export const StylistDirectBookingPage = () => {
             placeholder={t('stylistPortal.directBooking.searchClient')}
           />
           {loadingClients ? (
-            <p role="status" aria-live="polite" className="text-sm text-slate-500">
+            <p role="status" aria-live="polite" className="text-sm text-content-muted">
               {t('common.loading')}
             </p>
           ) : null}
@@ -243,7 +243,7 @@ export const StylistDirectBookingPage = () => {
             </div>
           ) : null}
           {!loadingClients && !clientSearchError && clientSearch.trim() && clients.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.noClients')}</p>
+            <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.noClients')}</p>
           ) : null}
           {clients.length > 0 ? (
             <div className="grid gap-2">
@@ -264,7 +264,7 @@ export const StylistDirectBookingPage = () => {
                     onClick={() => handleSelectClient(client)}
                   >
                     <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-content-muted">
                       {client.gender === 'MALE'
                         ? t('stylistPortal.directBooking.male')
                         : client.gender === 'FEMALE'
@@ -290,15 +290,15 @@ export const StylistDirectBookingPage = () => {
               </Button>
             </div>
           ) : !selectedClient ? (
-            <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
+            <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
           ) : !selectedClient.gender ? (
             <p className="text-sm text-amber-600">{t('stylistPortal.directBooking.genderMissing')}</p>
           ) : loadingServices ? (
-            <p role="status" aria-live="polite" className="text-sm text-slate-500">
+            <p role="status" aria-live="polite" className="text-sm text-content-muted">
               {t('common.loading')}
             </p>
           ) : filteredServices.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.noServices')}</p>
+            <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.noServices')}</p>
           ) : (
             <div className="grid gap-2">
               {filteredServices.map((service) => (
@@ -314,7 +314,7 @@ export const StylistDirectBookingPage = () => {
                   onClick={() => toggleServiceId(service.id)}
                 >
                   <div className="font-medium text-slate-900 dark:text-slate-50">{service.name}</div>
-                  <div className="text-xs text-slate-500">{formatLocalizedAmount(Number(service.price ?? 0), locale)}</div>
+                  <div className="text-xs text-content-muted">{formatLocalizedAmount(Number(service.price ?? 0), locale)}</div>
                 </button>
               ))}
             </div>

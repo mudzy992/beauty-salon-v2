@@ -101,7 +101,7 @@ export const StylistDebtsPage = () => {
           <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.description')}</p>
         </div>
         <div className="text-right">
-          <div className="text-xs text-slate-500">{t('stylistPortal.debts.total')}</div>
+          <div className="text-xs text-content-muted">{t('stylistPortal.debts.total')}</div>
           <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">{formatMoney(total, locale)}</div>
         </div>
       </div>
@@ -113,7 +113,7 @@ export const StylistDebtsPage = () => {
 
       <Card className="p-4">
         {query.isLoading ? (
-          <div role="status" aria-live="polite" className="text-sm text-slate-500">
+          <div role="status" aria-live="polite" className="text-sm text-content-muted">
             {t('common.loading')}
           </div>
         ) : query.isError ? (
@@ -124,7 +124,7 @@ export const StylistDebtsPage = () => {
             </Button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-sm text-slate-500">{rows.length === 0 ? t('stylistPortal.debts.noOpenDebts') : t('stylistPortal.debts.noSearchResults')}</div>
+          <div className="text-sm text-content-muted">{rows.length === 0 ? t('stylistPortal.debts.noOpenDebts') : t('stylistPortal.debts.noSearchResults')}</div>
         ) : (
           <div className="grid gap-2">
             {filtered.map((d) => {
@@ -145,7 +145,7 @@ export const StylistDebtsPage = () => {
                       {d.service?.name ? `${d.service.name} · ` : ''}
                       {ref}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">{formatDateOnly(d.createdAt, locale)}</div>
+                    <div className="text-xs text-content-muted mt-0.5">{formatDateOnly(d.createdAt, locale)}</div>
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-semibold tabular-nums text-slate-900 dark:text-slate-50">{formatMoney(d.amount, locale)}</div>
@@ -179,7 +179,7 @@ export const StylistDebtsPage = () => {
             </div>
           </div>
           {repaying ? (
-            <p role="status" aria-live="polite" className="text-sm text-slate-500">
+            <p role="status" aria-live="polite" className="text-sm text-content-muted">
               {t('common.loading')}
             </p>
           ) : null}

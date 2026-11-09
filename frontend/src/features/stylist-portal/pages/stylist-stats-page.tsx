@@ -44,7 +44,7 @@ export const StylistStatsPage = () => {
   if (profileLoading || (reservationsQuery.isLoading && !profileId)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+        <div role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('common.loading')}
         </div>
       </div>
@@ -80,7 +80,7 @@ export const StylistStatsPage = () => {
       </div>
 
       {statsFetching ? (
-        <p role="status" aria-live="polite" className="text-sm text-slate-500">
+        <p role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('common.loading')}
         </p>
       ) : null}

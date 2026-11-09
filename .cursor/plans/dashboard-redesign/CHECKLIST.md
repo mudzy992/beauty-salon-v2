@@ -29,7 +29,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
-| 11 | Stylist portal | `[~]` 3 commita (`d15bcd1` + 2) — D1/D2/D3/D4/D6/D7 opovrgnuti ili bespredmetni, D5 djelimično, D10 zadovoljen | u toku |
+| 11 | Stylist portal | `[~]` 4 commita — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33, 4.1.2. **DoD verificiran** (mobilna 0 diff, API netaknut) | u toku |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
 
@@ -118,6 +118,11 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > **D2 je bespredmetan** — u stylist portalu nema nijedne `<table>` ni stat kartica.
 > **Sweep imena kontrola (4.1.2):** 27 `<Input>`/`<Textarea>`, **1** bez imena
 > (`workbook-reschedule-preview-page:212` orphan `<Label>` + `<Input>` bez `id`) — ispravljeno.
+> **1.4.3 u tamnoj temi:** `text-slate-500` na **32 mjesta** bez `dark:` varijante = 3.75:1
+> na tamnoj površini (4.76:1 na svjetloj) — prekršaj vidljiv **samo** u tamnoj temi;
+> zamijenjeno s `text-content-muted`. Nakon toga 0 prekršaja među 122 paleta-klase.
+> **Odgođeno na fazu 13:** `FormSection`/`<fieldset>` (mijenja vizuelni izgled, treba nove
+> i18n ključeve za `<legend>`) i D10 reflow — bez browsera se ne mogu verificirati.
 
 > **Faza 10 — napomene.** A11y dio završen u 2 commita; **M2 (D11) urađen** u `56cee86`
 > (`/admin/settings?tab=site|operations|appearance|seo|email|notifications|releases`,

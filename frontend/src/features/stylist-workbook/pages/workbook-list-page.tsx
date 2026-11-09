@@ -50,7 +50,7 @@ export const WorkbookListPage = () => {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+        <div role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('common.loading')}
         </div>
       </div>
@@ -118,7 +118,7 @@ export const WorkbookListPage = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <div role="status" aria-live="polite" className="text-sm text-slate-500">
+          <div role="status" aria-live="polite" className="text-sm text-content-muted">
             {t('common.loading')}
           </div>
         </div>
@@ -182,7 +182,7 @@ export const WorkbookListPage = () => {
                               · {getServicesLabel(item, t('stylistWorkbook.serviceFallback'))}
                             </div>
                             {clientName ? (
-                              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400 truncate">
+                              <div className="mt-1 text-sm text-content-muted truncate">
                                 {clientName}
                               </div>
                             ) : null}

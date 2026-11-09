@@ -97,7 +97,7 @@ export const StylistSchedulePage = () => {
   if (profileLoading || (isLoading && !profileId)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">{t('common.loading')}</div>
+        <div className="text-sm text-content-muted">{t('common.loading')}</div>
       </div>
     )
   }
@@ -137,7 +137,7 @@ export const StylistSchedulePage = () => {
       </div>
 
       {isFetching ? (
-        <p role="status" aria-live="polite" className="text-sm text-slate-500">
+        <p role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('common.loading')}
         </p>
       ) : null}

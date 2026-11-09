@@ -2153,3 +2153,65 @@ Registrovan u `package.json` (170) i `ci.yml`.
 | `npm run build` | 274.1 KiB gzip |
 | `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
 | `check_repo_hygiene.py` / `check_doc_links.py` | 1677 / 669 |
+
+---
+
+## 2026-11-08 — Faza 11 (commit 4): 1.4.3 u tamnoj temi (`text-slate-500` ×32)
+
+Sweep koji je ranije otkrio `text-rose-600` proširen je na **sve** tekstualne paleta-klase u
+`features/stylist-portal` i `features/stylist-workbook` (122 instance), s izračunatim
+kontrastom na tamnoj površini (`slate-900`).
+
+### Nalaz
+
+**`text-slate-500` na 32 mjesta bez `dark:` varijante.** Na svjetloj površini **4.76:1**
+(PASS), na tamnoj **3.75:1** — **1.4.3 prekršaj koji je vidljiv samo u tamnoj temi**.
+Zamijenjeno s `text-content-muted` (`--text-muted`: 5.61:1 svjetlo / 6.56:1 tamno);
+2 mjesta koja su imala `dark:text-slate-400` time su postala suvišna i pojednostavljena.
+
+**Nakon zamjene: 0 prekršaja** u tamnoj temi među svih 122 paleta-klasa.
+
+Izmjereno za referencu (na `slate-900`): `slate-600` 2.36 · `slate-700` 1.72 · `rose-700` 2.84 ·
+`emerald-700` 3.26 · `green-700` 3.56 · `red-600` 3.70 · `rose-600` 3.80 — svi FAIL;
+`emerald-600` 4.74 · `amber-600` 5.60 — PASS.
+
+### DoD faze 11 — verificirano
+
+| Stavka | Dokaz |
+|---|---|
+| 12 rezervacijskih akcija radi identično | `stylist-portal.api.ts` **nije diran** ni u jednom od 4 commita (`git diff --name-only`) |
+| Mobilna aplikacija bez diff-a | `git diff --stat 9df498a..HEAD -- mobile/` = **0** |
+| 26 postojećih testova zeleno | 165/165 `test:*` |
+| Iznosi u dnevnoj knjizi identični | nijedan fajl s izračunima nije diran (samo `className`/`role`/`aria`) |
+
+### Odgođeno na fazu 13 (uz obrazloženje)
+
+- **`FormSection` (`<fieldset>` + `<legend>`)** na forme u stylist portalu: samo
+  `stylist-direct-booking-page` ima `fieldset`; `workbook-new-entry-page` ima 6 kontrola u
+  5 `<Card>` sekcija bez programskog grupisanja (1.3.1). Zamjena `<Card>` → `<fieldset>`
+  mijenja **vizuelni** izgled i traži nove i18n ključeve za `<legend>`, a bez browsera se ne
+  može verificirati — zato se ne radi „na slijepo".
+- **D10 reflow** ispod 640 px (1.4.10) — vizuelno.
+
+### Test
+
+Novi **`test:stylist-dark-contrast-a11y`** (3 testa) radi **isti sweep** koji je nalaz otkrio:
+ugrađena Tailwind paleta, izračun kontrasta na tamnoj površini, i provjera da
+`--text-muted` (čitan iz `globals.css`) prolazi 4.5:1 u obje teme.
+
+**7/7 mutacija s očekivanim ishodom**, uključujući **negativnu kontrolu**: zamjena
+`content-muted` → `emerald-600` (4.74:1, prolazi) **ispravno ne pada**. To je dokaz da čuvar
+nije ni preslab ni prestrog.
+
+> Usput ispravljeno: prvi prag `muted >= 40` bio je **napamet odabran** i padao je na
+> bezopasnoj zamjeni. Suština čuvara je `slate500 === 0`; prag je sada `>= 30` s komentarom.
+
+Postojeći ugovor `workbook-new-entry-drawer-accessibility.test.mjs:9` asertovao je doslovno
+`className="text-xs text-slate-500"` — **ažuriran uz obrazloženje**, ne obrisan.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **165/165** |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
+| `check_repo_hygiene.py` / `check_doc_links.py` | 1678 / 669 |

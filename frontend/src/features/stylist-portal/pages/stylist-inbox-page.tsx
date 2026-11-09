@@ -53,7 +53,7 @@ export const StylistInboxPage = () => {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+        <div role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('common.loading')}
         </div>
       </div>
@@ -170,7 +170,7 @@ export const StylistInboxPage = () => {
       </div>
 
       {isFetching ? (
-        <p role="status" aria-live="polite" className="text-sm text-slate-500">
+        <p role="status" aria-live="polite" className="text-sm text-content-muted">
           {t('common.loading')}
         </p>
       ) : null}
@@ -250,14 +250,14 @@ export const StylistInboxPage = () => {
               ) : null}
 
               {acting ? (
-                <p role="status" aria-live="polite" className="mt-2 text-xs text-slate-500">
+                <p role="status" aria-live="polite" className="mt-2 text-xs text-content-muted">
                   {t('common.loading')}
                 </p>
               ) : null}
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {lockedByOther ? (
-                  <p className="text-sm text-slate-500">{t('stylistPortal.inbox.lockedByOther')}</p>
+                  <p className="text-sm text-content-muted">{t('stylistPortal.inbox.lockedByOther')}</p>
                 ) : null}
                 {canLock ? (
                   <Button
