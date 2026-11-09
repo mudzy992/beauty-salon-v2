@@ -270,14 +270,15 @@ export default function Reservations() {
       const final = base - amt
       return (
         <div className="text-right">
-          <p className="font-medium text-content">{base.toFixed(2)} KM</p>
+          <p className="font-medium text-content">{formatLocalizedAmount(base, i18n.language)}</p>
           <p className="text-xs text-ok-foreground">
-            -{pct}% ({amt.toFixed(2)} KM) → <span className="font-semibold">{final.toFixed(2)} KM</span>
+            -{pct}% ({formatLocalizedAmount(amt, i18n.language)}) →{' '}
+            <span className="font-semibold">{formatLocalizedAmount(final, i18n.language)}</span>
           </p>
         </div>
       )
     }
-    return <span className="font-medium text-content">{base.toFixed(2)} KM</span>
+    return <span className="font-medium text-content">{formatLocalizedAmount(base, i18n.language)}</span>
   }
 
   return (

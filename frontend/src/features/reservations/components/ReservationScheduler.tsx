@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Filter, Plus, Search } from 'lucide-react'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS, bs } from 'date-fns/locale'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 import {
   Calendar as BigCalendar,
   dateFnsLocalizer,
@@ -191,7 +192,7 @@ const stepIndex = (current: number, count: number, key: string): number | null =
 }
 
 export const ReservationScheduler = (props: Props) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const toast = useAppToast()
 
   const locales = useMemo(() => ({ 'en-US': enUS, 'bs-BA': bs }), [])
@@ -738,7 +739,8 @@ export const ReservationScheduler = (props: Props) => {
                           >
                             <p className="text-sm font-medium text-content">{it.service?.name ?? '-'}</p>
                             <p className="text-xs text-content-muted">
-                              {Number(it.service?.durationMinutes ?? 0)} min | {Number(it.service?.price ?? 0).toFixed(2)} KM
+                              {Number(it.service?.durationMinutes ?? 0)} min |{' '}
+                              {formatLocalizedAmount(Number(it.service?.price ?? 0), i18n.language)}
                             </p>
                           </div>
                         ))}
@@ -746,7 +748,10 @@ export const ReservationScheduler = (props: Props) => {
                         <p className="font-medium text-content">{t('reservations.calendar.details.total')}</p>
                         <p className="text-content-strong">
                           {reservationTotals(activeReservation).totalMinutes} min |{' '}
-                          {reservationTotals(activeReservation).totalPrice.toFixed(2)} KM
+                          {formatLocalizedAmount(
+                            reservationTotals(activeReservation).totalPrice,
+                            i18n.language,
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1156,7 +1161,9 @@ export const ReservationScheduler = (props: Props) => {
                               {isServiceSelected(svc.id) ? <Check className="h-4 w-4 text-ok-foreground" /> : null}
                               {svc.name}
                             </span>
-                            <span className="text-content-muted">{Number(svc.price ?? 0).toFixed(2)} KM</span>
+                            <span className="text-content-muted">
+                              {formatLocalizedAmount(Number(svc.price ?? 0), i18n.language)}
+                            </span>
                           </div>
                         </li>
                       ))}
@@ -1173,7 +1180,9 @@ export const ReservationScheduler = (props: Props) => {
                       >
                         <div className="min-w-0">
                           <div className="font-semibold text-content">{s.name}</div>
-                          <div className="text-xs text-content-muted">{Number(s.price ?? 0).toFixed(2)} KM</div>
+                          <div className="text-xs text-content-muted">
+                            {formatLocalizedAmount(Number(s.price ?? 0), i18n.language)}
+                          </div>
                         </div>
                         <Button type="button" variant="outline" size="sm" onClick={() => toggleServiceId(s.id)}>
                           {t('reservations.calendar.create.removeService')}

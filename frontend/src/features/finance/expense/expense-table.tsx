@@ -64,7 +64,11 @@ export function ExpenseTable({
       className: 'align-top',
       render: (expense) => {
         const notes = notesPreviewFor(expense)
-        const detailLabels = detailLabelsFor(expense, t('finance.expenseList.fieldFallback'))
+        const detailLabels = detailLabelsFor(
+          expense,
+          t('finance.expenseList.fieldFallback'),
+          i18n.language,
+        )
         return (
           <>
             <div className="font-medium text-slate-900 dark:text-slate-50">{expense.title}</div>

@@ -4212,3 +4212,83 @@ vraćene (`git checkout -- <fajl>`); kontrole 7/7 i `PASS`.
 `check_ci_index` **PASS** · `check_repo_hygiene` **PASS** · `check_doc_links` **PASS**
 (670/202) · `check_i18n --strict` **PASS** · `check_ui_contrast --strict` **PASS** (80 parova) ·
 `git diff --check` **čist**.
+
+---
+
+## 2026-11-09 — Iznosi kroz `formatLocalizedAmount` (stvarni defekt za bs) + guard
+
+### 🔴 Stvarni defekt, izmjeren
+
+`formatLocalizedAmount(v, lang)` mapira `bs → bs-BA` i `en → en-GB`. Hardkodovano
+`.toFixed(2) + ' KM'` daje **pogrešan** rezultat za **bs**, koji je defaultni jezik:
+
+| unos | `.toFixed(2)+' KM'` | bs (tačno) | en (tačno) |
+|---|---|---|---|
+| `49.9` | `49.90 KM` | **`49,90 KM`** | `49.90 KM` |
+| `1234.5` | `1234.50 KM` | **`1.234,50 KM`** | `1,234.50 KM` |
+| `12345.678` | `12345.68 KM` | **`12.345,68 KM`** | `12,345.68 KM` |
+
+Dakle: pogrešan decimalni separator **i** nimalo grupisanja hiljada, za svaki iznos.
+Izmjereno pokretanjem stvarnog modula (`node --input-type=module` nad `locale-utils.mjs`),
+ne prepričano.
+
+### Popravljeno — 8 korisnički vidljivih mjesta
+
+| fajl | mjesta |
+|---|---|
+| `pages/Reservations.tsx` | 3 (osnovna cijena, popust, konačna cijena) |
+| `features/reservations/components/ReservationScheduler.tsx` | 4 (cijena usluge, ukupno, 2× picker) — dodat import `formatLocalizedAmount` i `i18n` iz `useTranslation()` |
+| `features/finance/expense/expense-table.helpers.ts` | 1 (`detailLabelsFor` dobio parametar `language`; pozivno mjesto u `expense-table.tsx` prosljeđuje `i18n.language`) |
+
+### Namjerno NIJE dirano (izmjereno, s razlogom)
+
+- **6× CSV export** (`expense-book-detail.tsx` 2, `income-book-detail.tsx` 4) — CSV mora biti
+  mašinski čitljiv; lokalizovani decimalni zarez bi pokvario uvoz.
+- **2× input** (`daily-log/pricing-panel.tsx` placeholder, `use-daily-log-form.ts` vrijednost) —
+  vrijednost inputa mora biti parsabilan broj.
+- **1× veličina fajla** (`app-release-create-form.tsx`, MB) — nije novac.
+- **`workbook-new-entry-page.tsx` `formatKm`** (9 poziva) — ispravno lokalizovan, ali
+  **spajanje s `formatLocalizedAmount` bi promijenilo ponašanje**: `formatKm` na nevažećem
+  unosu daje `0,00 KM` (jer radi `Number(v || 0)`), a `formatLocalizedAmount` daje `—`.
+  Nula vidljive dobiti uz stvarnu promjenu → nije spojeno.
+- **`pages/public/PublicServiceDetail.tsx`** — `Intl.NumberFormat(getIntlLocale(...))` + ` KM`,
+  ispravno ali duplicirano; u `src/pages/public/` (ne dira se).
+- **`features/loyalty/loyalty-program-settings.tsx:79`** — `'Bodovi po KM'` je **opis audit-log
+  zapisa**, ne iznos. Uhvaćen kao lažni pozitivni prve verzije guarda (obrazac `/ KM/`),
+  pa je obrazac sužen na `/\}\s*KM/` (interpolacija pa KM).
+
+### Novi guard: `test:amount-format-consistency` (4 testa)
+
+1. svaki `.toFixed(` je u allowlistu s razlogom + allowlist ne smije zastarjeti;
+2. nijedan fajl ne sastavlja `} KM` izvan allowlista + allowlist ne smije zastarjeti;
+3. popravljena mjesta zaista koriste `formatLocalizedAmount` (konkretne fraze);
+4. **pozitivna kontrola nad stvarnim modulom**: `formatLocalizedAmount(49.9,'bs') === '49,90 KM'`,
+   `(1234.5,'bs') === '1.234,50 KM'`, `(1234.5,'en') === '1,234.50 KM'`, i `!== '49.90 KM'`.
+
+Registrovan u `frontend/package.json` (178 → **179** `test:*`) i u `ci.yml`. Novi
+`check_ci_index` ga je **sam potvrdio**: `358/361 → 359/362`.
+
+### Mutacijska provjera (5/5)
+
+| # | mutacija | pada? |
+|---|---|---|
+| M1 | vraćen `.toFixed(2)} KM` u `Reservations.tsx` | ✅ (testovi 1, 2 i 3) |
+| M2 | novi fajl s ručnim `} KM` | ✅ (1, 2, 3) |
+| M3 | `.toFixed` uveden u fajl izvan allowlista | ✅ (1) |
+| M4 | zastario allowlist unos | ✅ `allowlist zastario: ... više nema .toFixed(` |
+| M5 | allowlist ključ s pogrešnom putanjom (bez `features/`) | ✅ (2) |
+
+### 🔴 Ponovljena zamka: `git checkout -- <fajl>` opet je obrisao nekommitan rad
+
+Pri vraćanju mutacije M1 pokrenuo sam `git checkout -- frontend/src/pages/Reservations.tsx`.
+Fajl je sadržavao **moju popravku koja još nije kommitana**, pa je `checkout` vratio stanje s
+HEAD-a i popravka je nestala. Otkrio ju je upravo novi guard (`pages/Reservations.tsx: 4×
+.toFixed(`), pa je popravka odmah vraćena. **Pravilo: za vraćanje mutacije koristiti `cp`
+backup, nikad `git checkout --`, osim za fajlove koji su sigurno kommitani.**
+
+### Kapije
+
+`test:*` **179/179** · `tsc --noEmit` **exit 0** · `hooks-order` **2/2** · lint **0 errors /
+7 warnings** · build **273.9 KiB / 300** · `check_ci_index` **PASS (359/362)** ·
+`check_i18n --strict` **PASS** · `check_doc_links` **PASS** (670/202) ·
+`check_ui_contrast --strict` **PASS** (80 parova) · `git diff --check` **čist**.
