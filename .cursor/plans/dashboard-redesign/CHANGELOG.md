@@ -3459,3 +3459,102 @@ Nisam ih tiho „popravio". Izmjereno sada:
 Tri tabele se ne slažu, i to je bilo tako i prije ove izmjene. Za 3.3.3 sam pomjerio
 brojač ETAPA B onoliko koliko je tačno (🟡 11→12, ❌ 4→3 i iz liste izbačen `3.3.3`), a
 usklađivanje sve tri tabele je **zaseban posao** koji traži odluku koja je od njih mjerodavna.
+
+
+---
+
+## 2026-11-09 — WCAG 3.3.7 Redundant Entry: sistematska provjera (nema prekršaja)
+
+Vlasnik je odabrao 3.3.7 kao sljedeću stavku. Matrica je tvrdila „redundant entry nije
+sistematski provjeren" i navodila kandidate: `workbook-new-entry`, `category-wizard-dialog`,
+forme.
+
+### Rezultat: prekršaja nema, a oba navedena kandidata su opovrgnuta
+
+**Kandidati iz matrice nisu višekoračni tokovi.** `category-wizard-dialog.tsx` (223 ln) je
+**jedan dijalog** — ime fajla zavodi, ali u njemu nema brojača koraka. U
+`workbook-new-entry-page.tsx` (662 ln) `useState(0)` postoji, ali je to `partialDiff` i
+`desiredLoyaltyPercent`, ne koraci. Da sam radio po matrici, „popravljao" bih nepostojeći
+problem u dvije jednostranačne forme.
+
+**Reschedule tok radi ispravno.** `workbook-detail-page.tsx:451-503` prikazuje dijalog o
+**kašnjenju** s tri dugmeta („ne sada" / „bez pauza" / „uključi pauze") i navigira na
+`/stylist/workbook/reschedule-preview/{id}?includeBreaks=0|1`. Preview stranica čita taj
+parametar (`searchParams.get('includeBreaks')`, ln 37) i **pred-popunjava** svoj toggle
+(`useState(initialIncludeBreaks)`, ln 55). Isto vrijedi za `mode` i `manualShiftMinutes`.
+Pred-popunjavanje je upravo ono što 3.3.7 traži — korisnik može potvrditi ili promijeniti,
+ali ne unosi ništa ispočetka.
+
+**Javna rezervacija ne traži kontakt koji već ima.** `PublicReserve.tsx:547`:
+
+```ts
+if (!user?.email || !user?.phone || !user?.isEmailVerified) {
+  navigate('/profil', { replace: true })
+  return
+}
+```
+
+Ako bilo šta od toga nedostaje, korisnik ide na `/profil` — forma **uopće nema** polja za
+email/telefon (provjereno: nema `type="email"`, `type="tel"`, `name="phone"`,
+`name="email"`). Traži samo usluge, datum, termin i bilješke. Uz to pred-popunjava uslugu iz
+`?serviceId=`.
+
+**Onboarding pita tri različite stvari**, svaku vezanu za svoju zastavicu
+(`mustChangePassword` → `/force-change-password`, `genderOnboardingCompleted` →
+`/onboarding/gender`, `isEmailVerified` → `/onboarding/email`). Nema preklapanja.
+
+### Greška koju je otkrila mutacijska provjera
+
+Prva verzija testa tvrdila je da `PublicReserve` **nema** brojača koraka. **To nije tačno** —
+`PublicReserve.tsx:509` ima `const [step, setStep] = useState(1)` i koristi ga u
+`role="progressbar"` (`aria-valuenow`, `aria-valuetext` „korak X od 4"). Moja prva provjera
+je gledala `activeStep|currentStep|StepIndicator|onNext` i **propustila `setStep`**.
+
+Ispravna tvrdnja je preciznija: brojač koraka **postoji**, ali **ne uslovljava sadržaj** —
+nigdje u fajlu nema `step ===`, a sekcije se otkrivaju po **odabiru**
+(`selectedServices.length > 0 ?`, `selectedDate ?`, `selectedSlot ?`). To je progresivno
+otkrivanje, ne prolazak kroz iste korake dvaput, pa 3.3.7 i dalje nije prekršen.
+
+### Usputni nalaz (NIJE 3.3.7, nije popravljen)
+
+`PublicReserve.tsx:804-826`: `role="progressbar"` s `aria-valuemin={1} aria-valuemax={4}`
+`aria-valuenow={step}` najavljuje „korak X od 4", dok je forma u stvarnosti **jedna
+skrolajuća stranica** s progresivnim otkrivanjem. Za čitača ekrana to je stanje koje se ne
+poklapa sa stvarnim sadržajem — kandidat za **4.1.2 Name, Role, Value**, ne za 3.3.7.
+**Nije dirano**: nalazi se u `src/pages/public/`, a javni sajt se ne mijenja bez posebnog
+odobrenja. Zabilježeno ovdje i u `HANDOFF.md`-u.
+
+### Test: `test:redundant-entry-a11y` (9 testova, 13/13 mutacija)
+
+Registrovan u `frontend/package.json` **i** u `.github/workflows/ci.yml` (posao `frontend`,
+indeks 120 — ne `a11y-e2e`, koji ima samo 1 `test:*` korak).
+
+Pokriva: odsustvo brojača koraka kod dva kandidata; `step` postoji ali ne gate-uje sadržaj;
+**jedinstvenost `id`-ova** po formi (dupli `id` bi značio duplo pitanje); URL prenos
+`includeBreaks`/`mode`/`manualShiftMinutes` s obje strane; kontakt guard u `PublicReserve`;
+pred-popunjavanje usluge; tri različite onboarding rute, svaka uslovljena svojom zastavicom.
+
+**Mutacijska provjera 13/13.** Dvije mutacije su **prvo promašene**, i to je bilo korisno:
+(1) prozor od 200 znakova hvatao je `navigate('/profil')` iz *sljedećeg* guard-a (gender), pa
+je uklanjanje onog iz kontakt guard-a prolazilo — sada se asertira da je navigacija **prije**
+sljedećeg `if (`; (2) `includes('isEmailVerified')` je prolazio i kad se `emailOk` stavi na
+`true`, jer se ime pojavljuje i u deklaraciji tipa — sada se asertira da zastavica stoji
+**prije** rute i da između nema `return null`.
+
+### Ograničenje (upisano i u sam test)
+
+Ovo je provjera **izvora**. Ne može dokazati da korisnik u stvarnom toku ne vidi isto polje
+dvaput kroz putanju koju grep ne vidi (npr. navigacija naprijed-nazad, keš, back dugme).
+
+### Provjere (sve pokrenute)
+
+`test:*` **175/175** (bilo 174) · `tsc --noEmit` **exit 0** · lint **0 errors / 7 warnings** ·
+`check_i18n --strict` **PASS** · `check_repo_hygiene` **PASS** (1699) · `check_doc_links`
+**PASS** (670/202) · `git diff --check` **čist** · CI: **371** `npm run` referenci → **0**
+nepostojećih, **390** `run` blokova → **0** `bash -n` grešaka.
+
+### Matrica
+
+3.3.7 → **✅**, s obrazloženjem da je ovdje dokazano **odsustvo** prekršaja (za razliku od
+ostalih ✅, ne postoji implementacija koju bi trebalo verificirati u renderu — pa nema ništa
+što bi ostalo 🟡). Brojač ETAPA B: ✅ 27→28, ❌ 3→2.

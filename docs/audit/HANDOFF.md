@@ -1353,14 +1353,38 @@ Log je bio pun `ECONNREFUSED 127.0.0.1:10001`, pa su stranice renderovane u **pr
 fallback stanju**. Nalazi važe za to stanje; stanje **s podacima** (stvarne cijene, galerija
 s medijima, duge liste) nije testirano.
 
-### 3.3 Četiri kriterija su ❌
+### 3.3 Dva kriterija su ❌ (bilo četiri; 3.3.3 i 3.3.7 zatvoreni 2026-11-09)
 
 | SC | Zašto | Šta treba |
 |---|---|---|
 | 3.1.2 | dinamički API sadržaj bez `lang` (jezik nije poznat) | backend mora vraćati jezik, ili `lang` po elementu |
 | 3.2.6 | nema help elementa u shellu — **nije dodato** jer bi bio novi feature | odluka vlasnika |
-| 3.3.3 | nema sažetka grešaka s linkovima na polja | forma-error summary komponenta |
-| 3.3.7 | redundant entry nije sistematski provjeren | audit formulara (email/lozinka potvrda) |
+
+**Zatvoreno 2026-11-09:**
+
+- **3.3.3 → 🟡.** Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je
+  tehnika G84/G85. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao
+  serverski 400, a backend preko `ValidationPipe` + `@IsUUID`/`@IsArray` vraća konkretne poruke
+  po polju. Sada: `field-error.tsx` + `server-error-messages.ts`, `test:form-error-suggestion`
+  (15, 22/22 mutacija). Ostaje 🟡 jer nema render/AT provjere (ručna stavka **M13**).
+- **3.3.7 → ✅.** Sistematska provjera **nije našla prekršaj**. Kandidati iz matrice su
+  opovrgnuti: `category-wizard-dialog.tsx` (223 ln) i `workbook-new-entry-page.tsx` (662 ln)
+  su jednostranačne forme — `useState(0)` u potonjem je `partialDiff`/`desiredLoyaltyPercent`.
+  Reschedule tok pred-popunjava preko URL-a (`?includeBreaks=`), javna rezervacija ne pita
+  kontakt koji već ima (`PublicReserve.tsx:547`), onboarding pita tri različite stvari.
+  `test:redundant-entry-a11y` (9, 13/13 mutacija).
+
+### 3.3b Novi nalaz, NIJE popravljen: progressbar nad jednostranačnom formom (4.1.2)
+
+`PublicReserve.tsx:804-826` ima `role="progressbar"` s `aria-valuemin={1} aria-valuemax={4}`
+i `aria-valuetext` „korak X od 4", dok je forma u stvarnosti **jedna skrolajuća stranica** s
+progresivnim otkrivanjem (`selectedServices.length > 0 ?`, `selectedDate ?`, `selectedSlot ?`).
+`step` **nigdje** ne uslovljava sadržaj — u cijelom fajlu nema `step ===`. Čitaču ekrana se
+dakle najavljuje stanje koje se ne poklapa sa stvarnim sadržajem.
+
+**Nije dirano** jer je u `src/pages/public/`, a javni sajt se ne mijenja bez posebnog
+odobrenja. Nalaz je **kandidat**, ne dokazan prekršaj: nije provjereno u renderu ni čitačem
+ekrana. Nađen usput tokom provjere 3.3.7.
 
 ### 3.4 Jedanaest kriterija je 🟡 (u kodu, nije verifikovano u renderu)
 

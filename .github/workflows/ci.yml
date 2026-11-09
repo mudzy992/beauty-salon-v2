@@ -494,6 +494,9 @@ jobs:
       - name: Test form error suggestion (WCAG 3.3.3)
         working-directory: frontend
         run: npm run test:form-error-suggestion
+      - name: Test redundant entry (WCAG 3.3.7)
+        working-directory: frontend
+        run: npm run test:redundant-entry-a11y
       - name: Test daily-log amount parity
         working-directory: frontend
         run: npm run test:daily-log-amount-parity

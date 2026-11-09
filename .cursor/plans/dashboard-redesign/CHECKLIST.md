@@ -317,6 +317,20 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 - [ ] **Nije rađeno:** usklađivanje tri međusobno nekonzistentne tabele/brojača u
       `dashboard-a11y/MATRIX.md` (vidi CHANGELOG od 2026-11-09). Zaseban posao.
 
+### Napomene uz WCAG 3.3.7 (2026-11-09)
+
+- [x] **Sistematska provjera izvršena — prekršaja nema.** Kandidati iz matrice opovrgnuti:
+      `category-wizard-dialog.tsx` i `workbook-new-entry-page.tsx` su jednostranačne forme.
+- [x] Reschedule tok pred-popunjava preko URL-a (`?includeBreaks=`), javna rezervacija ne pita
+      kontakt koji već ima (`PublicReserve.tsx:547`), onboarding pita tri različite stvari.
+- [x] Test `test:redundant-entry-a11y` (9) registrovan u `frontend/package.json` **i** `ci.yml`.
+- [x] Mutacijska provjera **13/13** (dvije mutacije su prvo promašene i otkrile rupe u testu).
+- [ ] **Otvoreno, nije 3.3.7:** `PublicReserve.tsx:804-826` — `role="progressbar"` najavljuje
+      „korak X od 4" nad formom koja je jedna skrolajuća stranica. Kandidat za **4.1.2**.
+      Nije dirano jer je u `src/pages/public/` (javni sajt se ne mijenja bez odobrenja).
+- [ ] **Ograničenje:** provjera je iz izvora; ne pokriva putanje koje grep ne vidi
+      (navigacija naprijed-nazad, keš, back dugme).
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)
