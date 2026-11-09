@@ -270,6 +270,31 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > ispravljena: `dashboardTitleKey` je gledao samo `pathname`, pa bi svi tabovi dijelili
 > generički naslov dokumenta (regresija **2.4.2**, ispravljeno u `9e4bdbc`).
 
+> **`jsx-a11y` s `warn` na `error` — odgođena stavka ZATVORENA (2026-11-09).**
+> Precizno stanje prije izmjene (izmjereno, ne pretpostavljeno): `plugin:jsx-a11y/recommended`
+> drži **31 od 34** pravila na `error`, a `.eslintrc.cjs` je **13** lokalno snizio na `warn`.
+> Dakle 21 pravilo je već bilo blokirajuće i davalo 0 nalaza — „prebacivanje na error" znači
+> uklanjanje tih 13 sniženja, a ne uključivanje plugina. Rezultat: **0 errors / 7 warnings**
+> (svih 7 je `react-hooks/exhaustive-deps`, namjerno warn).
+> Dva lažno pozitivna obrasca riješena su **bez** gašenja ijednog pravila:
+> `label-has-associated-control` je dobila `depth: 4` (default 2 ne doseže tekst u dva nivoa
+> `<span>`), a 4 combobox/`stopPropagation` nalaza idu preko scoped disable-a s dokazom — jer
+> schema plugina v6.10.2 za `click-events-have-key-events` **nema nijednu opciju**, pa se
+> `role="option"` ne može allowlist-ati. Čuva ih guard `test:eslint-a11y-severity`
+> (7 testova, **7/7** mutacija pada).
+>
+> **🔴 Tri greške uhvaćene u vlastitom radu tokom ove izmjene:**
+> (1) `//` komentar ubačen u **JSX children** nije komentar nego **vidljivi tekst** —
+> `Services.tsx` bi iscrtavao 4 linije obrazloženja. Dokazano esbuild transformacijom: `//`
+> linija ostaje string u izlazu, `{/* … */}` se uklanja. Popravljeno, pa AST provjerom kroz
+> **10.228** `JsxText` čvorova u cijelom `src/` potvrđeno da nijedan više ne sadrži `//`.
+> (2) Prva verzija guard testa **vakuumski je prolazila**: `calculateConfigForFile` vraća nivoe
+> kao string `'error'`, pa je `nivo !== OFF` bilo istinito za svaki string i `continue` tiho
+> preskakao asertaciju. Normalizator sada **baca** na nepoznatom nivou.
+> (3) Upravo je to bacanje otkrilo treću grešku — u listu pravila upisao sam nepostojeće
+> `img-redundant-roles` (spojeno od `img-redundant-alt` i `no-redundant-roles`). Test sada
+> provjerava i da svako ime postoji u pluginu.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)

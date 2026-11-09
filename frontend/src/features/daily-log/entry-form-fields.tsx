@@ -194,6 +194,10 @@ export const DailyLogEntryFormFields = ({
             className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
           >
             {filteredClients.map((c, idx) => (
+              // ARIA combobox: tastatura je kompletno na inputu iznad (role="combobox",
+              // aria-activedescendant, onKeyDown), a stavka liste nije samostalno fokusabilna,
+              // pa click-events-have-key-events ovdje nije prekršaj 2.1.1.
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events
               <li
                 key={c.id}
                 id={`dailylog-client-opt-${c.id}`}
@@ -269,6 +273,10 @@ export const DailyLogEntryFormFields = ({
             className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
           >
             {filteredServices.map((svc, idx) => (
+              // ARIA combobox: tastatura je kompletno na inputu iznad (role="combobox",
+              // aria-activedescendant, onKeyDown), a stavka liste nije samostalno fokusabilna,
+              // pa click-events-have-key-events ovdje nije prekršaj 2.1.1.
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events
               <li
                 key={svc.id}
                 id={`dailylog-service-opt-${svc.id}`}

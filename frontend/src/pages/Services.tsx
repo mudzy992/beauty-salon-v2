@@ -512,6 +512,10 @@ export default function Services() {
                       </span>
                     ) : null}
                   </div>
+                  {/* Omotač samo zaustavlja propagaciju klika, ne vrši akciju; pravi
+                      interaktivni elementi su dugmad unutar njega i ona su fokusabilna,
+                      pa ni 2.1.1 ni 4.1.2 nisu prekršeni. */}
+                  {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
                   <div
                     className="mr-2 flex shrink-0 items-center gap-1"
                     onClick={(e) => e.stopPropagation()}

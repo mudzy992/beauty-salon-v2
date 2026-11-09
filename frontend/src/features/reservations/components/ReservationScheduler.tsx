@@ -1134,6 +1134,10 @@ export const ReservationScheduler = (props: Props) => {
                       className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
                     >
                       {filteredServices.map((svc, idx) => (
+                        // ARIA combobox: tastatura je kompletno na inputu iznad (role="combobox",
+                        // aria-activedescendant, onKeyDown), a stavka liste nije samostalno fokusabilna,
+                        // pa click-events-have-key-events ovdje nije prekršaj 2.1.1.
+                        // eslint-disable-next-line jsx-a11y/click-events-have-key-events
                         <li
                           key={svc.id}
                           id={`res-create-service-opt-${svc.id}`}

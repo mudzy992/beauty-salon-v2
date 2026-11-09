@@ -6,9 +6,25 @@
  * ni testovi (koji čitaju izvor) to ne mogu uhvatiti — `react-hooks/rules-of-hooks` može.
  *
  * Nivoi:
- *  - `react-hooks/rules-of-hooks` → **error** (ruši aplikaciju; jedini blokirajući)
+ *  - `react-hooks/rules-of-hooks` → **error** (ruši aplikaciju)
  *  - `react-hooks/exhaustive-deps` → warn (korisno, ali mijenjanje bi diralo cache ponašanje)
- *  - `jsx-a11y` → warn (uvezan sada, ali se ne blokira; puna primjena je faza 13)
+ *  - `jsx-a11y` → **error** (od 2026-11-09)
+ *
+ * ── Zašto `jsx-a11y` tek sada ide na error ──────────────────────────────────────────
+ * Precizno stanje prije ove izmjene: `plugin:jsx-a11y/recommended` postavlja **31 od 34**
+ * pravila na `error`, a ovaj fajl je **13** od njih lokalno spustio na `warn`. Dakle 21
+ * pravilo je već bilo blokirajuće i davalo 0 nalaza; snižena su bila samo ona koja su
+ * tada davala nalaze.
+ *
+ * Trijaža svih tih nalaza (2026-11-09) pokazala je obrnut obrazac: **svih 9** `jsx-a11y`
+ * upozorenja bilo je lažno pozitivno, a stvarni 2.1.1 (`<Card onClick>` u `Gallery.tsx`)
+ * lint NIJE vidio. Tek kad su lažno pozitivni uklonjeni (opcijom pravila ili scoped
+ * disable-om s dokazom), error postaje smislen — jer sprječava povratak istih obrazaca.
+ *
+ * 🔴 Ograničenje koje ostaje, i zato testovi i dalje postoje: `jsx-a11y` vidi samo JSX.
+ * Custom komponenta koja renderuje interaktivni DOM (`<Card>` = običan `<div>`,
+ * `components/ui/card.tsx:7`) prolazi neoznačeno. Zato `test:admin-gallery-keyboard` i
+ * ostali source-contract testovi nisu zamjena za lint — niti je lint zamjena za njih.
  */
 module.exports = {
   root: true,
@@ -22,7 +38,13 @@ module.exports = {
   rules: {
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
-    // jsx-a11y: warn umjesto error dok se ne odradi faza 13 (rendered provjere)
+
+    // ---------------------------------------------------------------------------
+    // Ova pravila su bila lokalno spuštena na `warn`; sada su eksplicitno `error`.
+    // Vrijednost je i u `recommended` ista — navodimo ih da namjera bude vidljiva i da
+    // `test:eslint-a11y-severity` može asertirati nivo po imenu pravila.
+    // Stanje 2026-11-09 (`npm run lint`): 0 nalaza za svako od njih.
+    // ---------------------------------------------------------------------------
     ...Object.fromEntries(
       [
         'alt-text',
@@ -34,32 +56,36 @@ module.exports = {
         'no-redundant-roles',
         'role-has-required-aria-props',
         'role-supports-aria-props',
-      ].map((r) => [`jsx-a11y/${r}`, 'warn']),
+        // Bilo `warn` zbog stvarnog gapa: `ReservationScheduler.tsx:1086` je imao
+        // `<ul>/<li onClick>` bez `onKeyDown`, `role="listbox"`, `role="option"`,
+        // `aria-selected` i `tabIndex` — dakle stvarni 2.1.1 + 4.1.2. Taj dropdown JE
+        // popravljen combobox obrascem: `role="listbox"` (`:1131`), `role="option"` +
+        // `aria-selected` (`:1140`–`:1141`), `onKeyDown` na inputu (`:1107`).
+        // Pravilo sada daje 0 nalaza → `error`.
+        'no-noninteractive-element-interactions',
+      ].map((r) => [`jsx-a11y/${r}`, 'error']),
     ),
-    //
-    // Tri pravila spuštena na warn jer su na trenutnom kodu **lažno pozitivna**
-    // (provjereno iz izvora, 2026-11-09):
-    //  - `label-has-associated-control` (2 mjesta): `Gallery.tsx:426` i
-    //    `PublicReserve.tsx:1032` — `<label>` **omata** `<input type="checkbox">` i sadrži
-    //    vidljivi tekst u `<span>`, što je validna implicitna asocijacija (1.3.1/4.1.2
-    //    zadovoljeni). ESLint ne prepoznaje tekst ugniježden u `<span>`.
-    //  - `click-events-have-key-events` / `no-static-element-interactions` (2 mjesta):
-    //    `Gallery.tsx:322` i `Services.tsx:515` — `onClick={(e) => e.stopPropagation()}` na
-    //    omotaču ne vrši akciju, samo sprječava da klik na dugme aktivira cijeli red.
-    //    Interaktivni elementi (dugmad) su fokusabilni, pa 2.1.1 nije prekršen.
-    // Ako se ovi obrasci promijene, pravila treba vratiti na error.
-    'jsx-a11y/label-has-associated-control': 'warn',
-    'jsx-a11y/click-events-have-key-events': 'warn',
-    'jsx-a11y/no-static-element-interactions': 'warn',
-    //
-    // 🔴 `no-noninteractive-element-interactions` je warn zbog **jednog stvarnog gapa**,
-    // ne zbog lažno pozitivnih: `ReservationScheduler.tsx:1086` ima `<ul>/<li>` dropdown
-    // s `onClick`, a u cijelom fajlu nema `onKeyDown`, `role="listbox"`, `role="option"`,
-    // `aria-selected` ni `tabIndex` — dakle **2.1.1 + 4.1.2** (opcije se ne mogu odabrati
-    // tastaturom i nisu dostupne čitaču ekrana). Ispravka je combobox obrazac iz faze 3
-    // (`features/daily-log`), prevelik za ovaj commit → **faza 13**.
-    // Vratiti na `error` kad se taj dropdown popravi.
-    'jsx-a11y/no-noninteractive-element-interactions': 'warn',
+
+    // `depth: 4` (default je **2**). Oba nalaza su ista validna implicitna asocijacija:
+    // `<label>` omata `<input type="checkbox">` i nosi vidljivi tekst u **dva** nivoa
+    // `<span>` (`Gallery.tsx:438`, `PublicReserve.tsx:1032`). 1.3.1/4.1.2 su zadovoljeni;
+    // pravilo pada samo jer default dubina ne doseže tekst.
+    // Dokazano eksperimentom na istoj datoteci: default `depth` → 1 nalaz, `depth: 4` → 0.
+    'jsx-a11y/label-has-associated-control': ['error', { depth: 4 }],
+
+    // ---------------------------------------------------------------------------
+    // Ova dva pravila nemaju opciju kojom bi se allowlist-ao `role="option"`:
+    // schema plugina v6.10.2 za `click-events-have-key-events` je
+    // `{"type":"object","properties":{}}` (nema NIJEDNE opcije), a
+    // `no-static-element-interactions` ima samo `handlers`.
+    // Zato 4 preostala nalaza idu preko scoped `eslint-disable-next-line` s dokazom na
+    // samom mjestu, umjesto da cijelo pravilo ostane na `warn`:
+    //   • 3× `<li role="option">` u ARIA combobox-u — tastatura je kompletno na inputu
+    //     (`entry-form-fields.tsx`, `ReservationScheduler.tsx`)
+    //   • 1× `<div onClick={e.stopPropagation()}>` — ne vrši akciju (`Services.tsx`)
+    // ---------------------------------------------------------------------------
+    'jsx-a11y/click-events-have-key-events': 'error',
+    'jsx-a11y/no-static-element-interactions': 'error',
   },
   overrides: [
     {

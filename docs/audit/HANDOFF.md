@@ -1102,6 +1102,49 @@ prethodni odjeljak; ne popravljati tiho bez odluke o formatu.
 
 # KONAČAN IZVJEŠTAJ — a11y dashboard redizajn, faze 0–13 (ETAPA B), 2026-11-09
 
+## 2026-11-09 — `jsx-a11y` prebačen na `error` (odgođena stavka zatvorena)
+
+**Precizno stanje prije izmjene** (izmjereno iz instaliranog plugina, ne pretpostavljeno):
+`plugin:jsx-a11y/recommended` v6.10.2 drži **31 od 34** pravila na `error` i 3 na `off`
+(`anchor-ambiguous-text`, `control-has-associated-label`, `label-has-for` — upstream odluka).
+`.eslintrc.cjs` je **13** od njih lokalno snizio na `warn`. Dakle 21 pravilo je već bilo
+blokirajuće i davalo 0 nalaza; „prebacivanje na error" znači uklanjanje tih 13 sniženja.
+
+**Rezultat:** `npm run lint` = **0 errors / 7 warnings**, svih 7 `react-hooks/exhaustive-deps`
+(namjerno warn — mijenjanje bi diralo cache ponašanje).
+
+**Kako su lažno pozitivni riješeni bez gašenja pravila:**
+
+| Obrazac | Rješenje | Zašto ne opcija pravila |
+|---|---|---|
+| `<label>` omata `<input>` + tekst u 2 nivoa `<span>` (2 mjesta) | `depth: 4` (default **2**) | `depth` **je** opcija; default samo ne doseže tekst |
+| `<li role="option">` u ARIA combobox-u (3 mjesta) | scoped `eslint-disable-next-line` + dokaz | schema `click-events-have-key-events` = `{"type":"object","properties":{}}` — **nema nijedne opcije** |
+| `<div onClick={e.stopPropagation()}>` (1 mjesto) | scoped disable za oba pravila + dokaz | `no-static-element-interactions` ima samo `handlers` |
+
+**Guard:** `test:eslint-a11y-severity` (7 testova) čita **rezolvanu** konfiguraciju preko
+ESLint API-ja (`calculateConfigForFile`), pa pada i ako `override` tiho poništi `rules`.
+Mutacije **7/7** pada. Novi disable ne prolazi tiho — popis dozvoljenih je u samom testu.
+
+**🔴 Tri greške uhvaćene u vlastitom radu (sve tri su mogle ući u commit):**
+
+1. **`//` u JSX children je vidljivi tekst, ne komentar.** Ubacio sam obrazloženje kao `//`
+   ispred `<div>` u `Services.tsx`; tu je JSX children kontekst, pa bi se 4 linije
+   **iscrtavale** na stranici, a ESLint direktiva nije ni važila (errori su ostali).
+   Dokazano esbuild transformacijom: `//` linija ostaje string u izlazu, `{/* … */}` se
+   uklanja. Popravljeno u `{/* … */}`, pa AST provjerom kroz **10.228** `JsxText` čvorova
+   u cijelom `src/` potvrđeno da nijedan ne sadrži `//`.
+2. **Guard test je vakuumski prolazio.** `calculateConfigForFile` vraća nivoe kao **string**
+   `'error'`, ne broj `2`, pa je `nivo !== OFF` bilo istinito za svaki string i `continue`
+   tiho preskakao asertaciju — dvije od šest asertacija nisu provjeravale ništa. Normalizator
+   sada **baca** na nepoznatom nivou umjesto da proguta vrijednost.
+3. **Nepostojeće ime pravila.** U listu sam upisao `img-redundant-roles`, što je spoj
+   `img-redundant-alt` i `no-redundant-roles` i **ne postoji** u pluginu. Otkrilo ga je
+   upravo bacanje iz (2). Test sada asertira i da svako ime postoji u registry-ju plugina.
+
+**Lekcija:** config koji „izgleda zeleno" ne znači da provjera radi. Guard test mora imati
+pozitivnu kontrolu (mutaciju), a čitanje tuđeg API-ja ne smije pretpostavljati tip povratne
+vrijednosti.
+
 ## 1. Stanje na kraju
 
 | Provjera | Rezultat |
@@ -1231,7 +1274,6 @@ cijelog journeya. Zoom 200/400%, text spacing, touch target na stvarnom uređaju
 - `EmailSettings.tsx` (1377 ln) na < 120 ln — testovi ga čitaju po putanji.
 - `fieldset`/`FormSection` u `workbook-new-entry-page`.
 - Migracija tabela na `DataTable`.
-- `jsx-a11y` pravila s `warn` na `error`.
 
 ## 4. Preporučeni redoslijed
 

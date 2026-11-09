@@ -3125,3 +3125,84 @@ nije prekršaj.
 **172/172** `test:*` · lint 0 errors / 14 warnings · `check_ui_contrast --strict` PASS ·
 `check_i18n --strict` PASS · `check_doc_links` 670/202 · `git diff --check` čisto ·
 `mobile/` i `features/blog/` = **0 diff**.
+
+---
+
+## 2026-11-09 — `jsx-a11y` prebačen s `warn` na `error` (odgođena stavka zatvorena)
+
+### Precizno stanje prije izmjene (izmjereno, ne pretpostavljeno)
+
+Iz instaliranog `eslint-plugin-jsx-a11y` v6.10.2: `plugin:jsx-a11y/recommended` drži
+**31 od 34** pravila na `error` i **3** na `off` (`anchor-ambiguous-text`,
+`control-has-associated-label`, `label-has-for` — upstream odluka, ne naša).
+`.eslintrc.cjs` je **13** od tih 31 lokalno snizio na `warn`.
+
+Dakle **21 pravilo je već bilo blokirajuće** i davalo 0 nalaza. „Prebacivanje na error"
+nije uključivanje plugina — to je uklanjanje 13 sniženja. To je korekcija moje ranije
+formulacije iz prethodnog zapisa, gdje sam napisao da cijeli `jsx-a11y` stoji na `warn`.
+
+Rezultat: `npm run lint` = **0 errors / 7 warnings**, svih 7 `react-hooks/exhaustive-deps`
+(namjerno warn — mijenjanje bi diralo cache ponašanje).
+
+### Kako su lažno pozitivni riješeni bez gašenja ijednog pravila
+
+| Obrazac | Rješenje | Zašto ne opcija pravila |
+|---|---|---|
+| `<label>` omata `<input>` + tekst u 2 nivoa `<span>` (`Gallery.tsx:438`, `PublicReserve.tsx:1032`) | `depth: 4` (default **2**) | `depth` **jeste** opcija; default samo ne doseže tekst |
+| `<li role="option">` u ARIA combobox-u (`entry-form-fields.tsx:197,272`, `ReservationScheduler.tsx:1137`) | scoped `eslint-disable-next-line` + dokaz | schema `click-events-have-key-events` je `{"type":"object","properties":{}}` — **nema nijedne opcije**, pa se `role="option"` ne može allowlist-ati |
+| `<div onClick={e.stopPropagation()}>` (`Services.tsx:515`) | scoped disable za oba pravila + dokaz | `no-static-element-interactions` ima samo `handlers` |
+
+`no-noninteractive-element-interactions` je vraćen na `error` jer je razlog za sniženje
+nestao: `ReservationScheduler.tsx:1086` dropdown **jeste** popravljen combobox obrascem u
+C1 (`role="listbox"` `:1131`, `role="option"` + `aria-selected` `:1140`–`:1141`, `onKeyDown`
+na inputu `:1107`). Komentar u `.eslintrc.cjs` koji je tvrdio suprotno bio je **zastario**,
+kao i onaj o `Gallery.tsx:322` (to mjesto je popravljeno prethodnim commitom).
+
+### Novi guard: `test:eslint-a11y-severity` (7 testova)
+
+Ne čita `.eslintrc.cjs` kao tekst nego **rezolvanu** konfiguraciju preko ESLint API-ja
+(`calculateConfigForFile`), pa pada i ako neki `override` tiho poništi `rules`.
+Provjerava: nijedno `jsx-a11y` pravilo na `warn` · 13 prethodno sniženih na `error` ·
+`depth >= 4` · `off` samo za dokumentovane izuzetke po direktoriju · svaki disable na popisu
+s obrazloženjem i tačnim pravilima · disable samo za dva dokazano lažno pozitivna obrasca.
+
+Registriran u `package.json` (`test:*` sada **173**) i `ci.yml`. **Mutacije 7/7 pada.**
+
+### 🔴 Tri greške uhvaćene u vlastitom radu — sve tri su mogle ući u commit
+
+**1. `//` u JSX children je vidljivi tekst, ne komentar.**
+Obrazloženje sam ubacio kao `//` ispred `<div>` u `Services.tsx:515`. To je JSX children
+kontekst, pa bi se 4 linije **iscrtavale** na stranici, a ESLint direktiva nije ni važila
+(errori su ostali na istom mjestu — što je i bio dokaz). Zamijenjeno s `{/* … */}`.
+Dokazano esbuild transformacijom: `//` linija ostaje string u izlazu, `{/* … */}` se uklanja.
+Zatim AST provjerom kroz **10.228** `JsxText` čvorova u cijelom `src/` potvrđeno da nijedan
+ne sadrži `//` — dakle nema drugog curenja.
+
+**2. Guard test je vakuumski prolazio.**
+`calculateConfigForFile` vraća nivoe kao **string** `'error'`, ne broj `2`. Zato je
+`nivo !== OFF` bilo istinito za svaki string i `continue` **tiho preskakao asertaciju** —
+dvije od šest asertacija nisu provjeravale ništa, i test bi prošao i da vratim sva pravila
+na `warn`. Normalizator sada **baca** na nepoznatom nivou umjesto da proguta vrijednost.
+
+**3. Nepostojeće ime pravila.**
+U listu sam upisao `img-redundant-roles`, što je spoj `img-redundant-alt` i
+`no-redundant-roles` i **ne postoji** u pluginu (`img-redundant-alt: true |
+img-redundant-roles: false`). Otkrilo ga je upravo bacanje iz (2) — bez njega bi pravilo
+tiho bilo „neprovjereno". Test sada asertira i da svako ime postoji u registry-ju plugina.
+
+**Lekcija:** zelen lint izlaz ne znači da provjera radi. Guard test bez mutacijske kontrole
+može biti prazan, a čitanje tuđeg API-ja ne smije pretpostavljati tip povratne vrijednosti.
+
+### Šta ovo NE dokazuje
+
+`jsx-a11y` vidi samo JSX. Custom komponenta koja renderuje interaktivni DOM (`<Card>` =
+običan `<div>`, `components/ui/card.tsx:7`) i dalje prolazi neoznačeno — tako je stvarni
+2.1.1 u `Gallery.tsx` prošao lint dok su sva upozorenja bila lažno pozitivna. Lint nije
+zamjena za source-contract testove, niti su oni zamjena za lint.
+
+### Provjereno
+
+`173/173` `test:*` · `tsc --noEmit` PASS · `typecheck:e2e` PASS · `npm run build` PASS
+273.8 KiB (budžet 300) · lint **0 errors / 7 warnings** · `check_ui_contrast --strict` PASS
+(80/80) · `check_i18n --strict` PASS · `check_doc_links` 670/202 · `git diff --check` čist ·
+`mobile/`, `features/blog/`, `features/shell/public/` = **0 diff**.

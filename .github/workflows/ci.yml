@@ -605,13 +605,20 @@ jobs:
       - name: Test admin gallery keyboard access
         working-directory: frontend
         run: npm run test:admin-gallery-keyboard
+      # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
+      # ESLint API-ja, pa pada i ako override tiho ponisti config).
+      - name: Test ESLint jsx-a11y severity guard
+        working-directory: frontend
+        run: npm run test:eslint-a11y-severity
       # e2e/ NIJE u tsconfig.json (include:['src']), pa ga obican `tsc --noEmit` ne vidi.
       - name: Typecheck e2e (Playwright specovi)
         working-directory: frontend
         run: npm run typecheck:e2e
-      # ESLint (react-hooks/rules-of-hooks = error). Uveden poslije React #310 regresije:
-      # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide.
-      - name: Lint frontend (rules-of-hooks)
+      # ESLint. `react-hooks/rules-of-hooks` = error (uvezeno poslije React #310 regresije:
+      # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide).
+      # Od 2026-11-09 i SAV `jsx-a11y` je na error (bilo 13 pravila na warn).
+      # Preostalih 7 upozorenja su `react-hooks/exhaustive-deps` - namjerno warn.
+      - name: Lint frontend (rules-of-hooks + jsx-a11y)
         working-directory: frontend
         run: npm run lint
       # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
