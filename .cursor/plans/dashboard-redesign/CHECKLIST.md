@@ -295,6 +295,28 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > `img-redundant-roles` (spojeno od `img-redundant-alt` i `no-redundant-roles`). Test sada
 > provjerava i da svako ime postoji u pluginu.
 
+### Napomene uz WCAG 3.3.3 (2026-11-09)
+
+- [x] Normativni kriterij pročitan **prije** implementacije: 3.3.3 traži da se *poznat
+      prijedlog ispravke* dostavi **u tekstu**. Razlog ❌ u matrici („nema sažetka grešaka")
+      **nije normativni kriterij** — sažetak je tehnika G84/G85.
+- [x] Prekršaj dokazan iz izvora: `use-daily-log-form.ts` `catch` je odbacivao serverski 400
+      (`ValidationPipe` + `@IsUUID`/`@IsArray` → konkretne poruke po polju).
+- [x] Implementacija: `field-error.tsx`, `server-error-messages.ts`, `field-ids.ts` +
+      4 postojeća fajla. **Nove boje nisu uvodene** (samo etablirane `rose` klase).
+- [x] Test `test:form-error-suggestion` (15) registrovan u `frontend/package.json` **i**
+      `.github/workflows/ci.yml` (posao `frontend`, ne `a11y-e2e`).
+- [x] Mutacijska provjera **22/22**.
+- [x] Kapije: 174/174 testova, `tsc` exit 0, `typecheck:e2e` exit 0, build 273.9 KiB,
+      lint 0 errors, `check_i18n --strict`, `check_ui_contrast --strict` (80 parova),
+      `check_repo_hygiene`, `check_doc_links`, `git diff --check` — sve PASS.
+- [ ] **M13 (ručno)** — bez ovoga 3.3.3 ostaje 🟡. Automatizovani alati ne mogu procijeniti
+      da li tekst zaista predlaže ispravku.
+- [ ] **Nije rađeno:** ostale forme s toast-only greškama. `Register.tsx` (ln 60, 93) ima isti
+      obrazac, ali je Q2 stavio Login/Register/ResetPassword/Profile **van** redizajna.
+- [ ] **Nije rađeno:** usklađivanje tri međusobno nekonzistentne tabele/brojača u
+      `dashboard-a11y/MATRIX.md` (vidi CHANGELOG od 2026-11-09). Zaseban posao.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)
@@ -314,6 +336,7 @@ i **neće** tvrditi da je obavljena.
 | M10 | Target size mjerenje (≥24px, cilj 44px) | DevTools inspect | `[ ]` |
 | M11 | Uporedni prikaz podataka prije/poslije (iznosi, zbirovi, statusi) | 2 browser prozora | `[ ]` |
 | M12 | axe-core smoke po rutama | `@axe-core/playwright` | `[~]` Q4 odobren |
+| M13 | **3.3.3 u dnevnoj knjizi:** otvoriti formu, poslati praznu, pa potvrditi da čitač ekrana najavi sažetak, da fokus ode na sažetak i da link vodi na polje. Zatim namjerno poslati loš UUID i potvrditi da se prikaže **serverska** poruka, ne generička | NVDA / VoiceOver | `[ ]` |
 
 ## Kapije po fazi (B1 radni ciklus)
 

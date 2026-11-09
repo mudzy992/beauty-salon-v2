@@ -491,6 +491,9 @@ jobs:
       - name: Test daily-log form a11y
         working-directory: frontend
         run: npm run test:daily-log-form-a11y
+      - name: Test form error suggestion (WCAG 3.3.3)
+        working-directory: frontend
+        run: npm run test:form-error-suggestion
       - name: Test daily-log amount parity
         working-directory: frontend
         run: npm run test:daily-log-amount-parity

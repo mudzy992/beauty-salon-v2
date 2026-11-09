@@ -9,6 +9,7 @@ import {
 import { Drawer, DrawerContent } from '../../components/ui/drawer'
 import { useIsMobile } from '../../hooks/use-is-mobile'
 import { DailyLogEntryFormFields } from './entry-form-fields'
+import { FormErrorSummary, type FieldErrorEntry } from '../forms/field-error'
 import type {
   ClientDebtOption,
   ClientOption,
@@ -53,6 +54,8 @@ type Props = {
   onSave: () => void
   cancelLabel: string
   saveLabel: string
+  fieldErrors: Record<string, string>
+  fieldErrorList: readonly FieldErrorEntry[]
 }
 
 export const DailyLogEntryFormDialog = (props: Props) => {
@@ -91,6 +94,8 @@ export const DailyLogEntryFormDialog = (props: Props) => {
     onSave,
     cancelLabel,
     saveLabel,
+    fieldErrors,
+    fieldErrorList,
   } = props
   const isMobile = useIsMobile()
   const [serviceSearch, setServiceSearch] = useState('')
@@ -226,8 +231,14 @@ export const DailyLogEntryFormDialog = (props: Props) => {
   }
 
   const fields = (
-    <DailyLogEntryFormFields
-      editId={editId}
+    <>
+      {/* 3.3.1/3.3.3: trajni sažetak s linkovima na polja, umjesto prolaznog toasta. */}
+      <FormErrorSummary
+        title={t('dailyLog.form.errorSummaryTitle')}
+        errors={fieldErrorList}
+      />
+      <DailyLogEntryFormFields
+        editId={editId}
       form={form}
       setForm={setForm}
       stylists={stylists}
@@ -267,9 +278,11 @@ export const DailyLogEntryFormDialog = (props: Props) => {
       saving={saving}
       onSave={onSave}
       onCancel={() => onOpenChange(false)}
-      cancelLabel={cancelLabel}
-      saveLabel={saveLabel}
-    />
+        cancelLabel={cancelLabel}
+        saveLabel={saveLabel}
+        fieldErrors={fieldErrors}
+      />
+    </>
   )
 
   if (isMobile) {

@@ -93,7 +93,7 @@
 | 3.2.6 | Consistent Help **NOVO 2.2** | „Pomoć“ na istom relativnom mjestu u headeru oba shell-a | shell | 0 | ❌ — **nema** help/kontakt elementa u shellu | grep (potvrđeno); `test:shell-landmarks` |
 | 3.3.1 | Error identification | `aria-invalid` + `role="alert"` + tekstualna greška; `ErrorState` sa retry | ui, modul | 0–13 | 🟡 djelimično — `ErrorState` postoji samo u finance | grep |
 | 3.3.2 | Labels or instructions | Vidljive labele + `aria-describedby` za zahtjeve/hint | ui, modul | 0–13 | 🟡 | ručno (M6) |
-| 3.3.3 | Error suggestion | Poruka kaže šta treba promijeniti; sažetak grešaka sa linkovima na polja | ui, modul | 0–13 | ❌ planirano | `test:*-a11y` |
+| 3.3.3 | Error suggestion | **Normativno:** poznat prijedlog ispravke mora se korisniku dati **u tekstu**. Uz polje `aria-invalid` + `aria-describedby` → tekst; plus trajni sažetak (`role="alert"`, fokusabilan, linkovi na polja). Serverske 400 poruke se više ne odbacuju. | ui, modul | 0–13 | 🟡 u kodu — daily-log forma; nije provjereno u renderu ni čitačem ekrana | `test:form-error-suggestion` (15, 22/22 mutacija) |
 | 3.3.4 | Error prevention (legal/financial/data) | **Svih 14 `window.confirm` → `ConfirmDialog`** („Odustani“ prvi fokusiran); deletion-impact preview; loyalty adjust/redeem; campaign send | ui, modul | 4, 5, 7, 9, 10 | ❌ — `window.confirm` nema fokus trap ni povrat fokusa | grep (potvrđeno); `test:confirm-dialog-focus` |
 | 3.3.7 | Redundant Entry **NOVO 2.2** | Ne tražiti ponovno iste podatke u istom toku (`workbook-new-entry`, `category-wizard-dialog`, forme) | modul | 3, 4, 11 | ❌ — **nije sistematski provjereno**; kandidati identifikovani | `test:stylist-workbook-redundant-entry` |
 | 3.3.8 | Accessible Authentication (Minimum) **NOVO 2.2** | `OtpInput`: paste cijelog koda **već radi**; dodati `autocomplete="one-time-code"`; bez blokiranja paste-a; bez kognitivnih testova | ui | 12 | 🟡 djelimično — paste radi (kod pročitan), `Profile.tsx:762` ima `one-time-code`, ali `OtpInput` sam nema `autocomplete` | kod + `test:otp-accessible-authentication` |
@@ -235,7 +235,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 3.2.6 | ❌ | nema help elementa u shellu — **nije dodato** (bio bi novi feature) |
 | 3.3.1 | ✅ | `role="alert"` ×63; `test:stylist-status-messages-a11y`, `test:onboarding-a11y` |
 | 3.3.2 | ✅ | `aria-describedby` + vidljiv zahtjev (faza 12); `test:onboarding-a11y` (7/7 mutacija) |
-| 3.3.3 | ❌ | nema sažetka grešaka s linkovima na polja |
+| 3.3.3 | 🟡 | **Normativni kriterij:** ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se korisniku daje u tekstu. Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je tehnika (G84/G85), ne zahtjev. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao serverski 400 (`ValidationPipe` + `@IsUUID`/`@IsArray` daju konkretne poruke = poznat prijedlog) i vraćao generički toast. Sada `serverValidationMessages` te poruke čita, `FieldError` ih prikazuje uz polje, `FormErrorSummary` ih najavljuje i linkuje. Ostaje 🟡 jer nema render/AT provjere. |
 | 3.3.4 | ✅ | `window.confirm` ×14 **zadržan namjerno** — native potvrda zadovoljava kriterij |
 | 3.3.7 | ❌ | redundant entry nije sistematski provjeren |
 | 3.3.8 | ✅ | `autocomplete={i === 0 ? 'one-time-code' : 'off'}`, paste bez blokiranja, 0 captcha; `test:onboarding-a11y` |
@@ -255,8 +255,8 @@ Ukupno 51 — nepromijenjeno.
 |---|---:|
 | ✅ verifikovano (source-contract) | **27** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **11** |
-| ❌ nije zadovoljeno (`3.1.2`, `3.2.6`, `3.3.3`, `3.3.7`) | **4** |
+| 🟡 u kodu, nije verifikovano u renderu | **12** |
+| ❌ nije zadovoljeno (`3.1.2`, `3.2.6`, `3.3.7`) | **3** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
 | **ukupno** | **51** |

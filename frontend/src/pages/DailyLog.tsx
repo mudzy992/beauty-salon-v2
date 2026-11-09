@@ -113,10 +113,16 @@ export default function DailyLog() {
       />
       <DailyLogEntryFormDialog
         open={form.open}
-        onOpenChange={form.setOpen}
+        onOpenChange={(next) => {
+          form.setOpen(next)
+          // Zatvaranje čisti greške, da sljedeće otvaranje ne počne sa starim sažetkom.
+          if (!next) form.clearFieldErrors()
+        }}
         editId={form.editId}
         form={form.form}
         setForm={form.setForm}
+        fieldErrors={form.fieldErrors}
+        fieldErrorList={form.fieldErrorList}
         stylists={data.stylists}
         services={data.services}
         clients={data.clients}

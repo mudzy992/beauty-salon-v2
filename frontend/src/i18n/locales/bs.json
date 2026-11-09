@@ -2047,6 +2047,7 @@
       "pointsAndMaxDiscount": "Bodovi: {{points}} · Maksimalni popust: {{percent}}%",
       "loyaltyUnavailable": "Program lojalnosti nije dostupan.",
       "saving": "Čuvam…",
+      "errorSummaryTitle": "Ispravite sljedeće greške:",
       "validation": {
         "stylistAndServiceRequired": "Odaberite stilistu i servis.",
         "paidAmountInvalid": "Unesite ispravan iznos naplaćenog računa.",

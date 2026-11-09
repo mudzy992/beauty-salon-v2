@@ -1,3 +1,5 @@
+import { FieldError, fieldErrorProps } from '../forms/field-error'
+import { DAILY_LOG_FIELD } from './field-ids'
 import { useTranslation } from 'react-i18next'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -24,6 +26,7 @@ type Props = {
   shortfall: number
   createDebt: boolean
   onCreateDebtChange: (v: boolean) => void
+  paidError?: string
 }
 
 const formatDate = (value: string | Date | null | undefined, language: string) => {
@@ -53,6 +56,7 @@ export const DailyLogPricingPanel = ({
   shortfall,
   createDebt,
   onCreateDebtChange,
+  paidError,
 }: Props) => {
   const { t, i18n } = useTranslation()
 
@@ -138,7 +142,9 @@ export const DailyLogPricingPanel = ({
         value={paidAmount}
         onChange={(e) => onPaidAmountChange(e.target.value)}
         placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
+        {...fieldErrorProps(DAILY_LOG_FIELD.paid, paidError)}
       />
+      <FieldError fieldId={DAILY_LOG_FIELD.paid} message={paidError} />
       {tipPreview > 0 ? (
         <p className="mt-1 text-xs text-ok-foreground">
           {t('dailyLog.form.tip', { amount: formatLocalizedAmount(tipPreview, i18n.language) })}

@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
+import { DAILY_LOG_FIELD } from './field-ids'
+import type { FieldErrorEntry } from '../forms/field-error'
+import { serverValidationMessages } from '../forms/server-error-messages'
 import type {
   ClientDebtOption,
   DailyLogEntry,
@@ -27,9 +30,13 @@ type Args = {
 
 export const useDailyLogForm = ({ loadData, toast }: Args) => {
   const { t } = useTranslation()
-  const { success, error, warning } = toast
+  const { success } = toast
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  // 3.3.1/3.3.3: greske po polju (za aria-invalid/aria-describedby) i poruke bez polja
+  // (serverska validacija, koja nije vezana za nas ID).
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [formMessages, setFormMessages] = useState<string[]>([])
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<DailyLogFormState>(emptyDailyLogForm)
   const [paidAmount, setPaidAmount] = useState('')
@@ -195,19 +202,33 @@ export const useDailyLogForm = ({ loadData, toast }: Args) => {
 
   const handleSave = async () => {
     if (!form.stylistProfileId || form.serviceIds.length === 0) {
-      warning(t('dailyLog.form.validation.stylistAndServiceRequired'))
+      const message = t('dailyLog.form.validation.stylistAndServiceRequired')
+      setFieldErrors({
+        [DAILY_LOG_FIELD.stylist]: message,
+        [DAILY_LOG_FIELD.services]: message,
+      })
+      setFormMessages([])
       return
     }
     if (!Number.isFinite(paidRaw) || paidRaw < 0) {
-      warning(t('dailyLog.form.validation.paidAmountInvalid'))
+      setFieldErrors({
+        [DAILY_LOG_FIELD.paid]: t('dailyLog.form.validation.paidAmountInvalid'),
+      })
+      setFormMessages([])
       return
     }
     if (settleDebtsEnabled && settledDebtIds.length > 0 && paidRaw < charge.debtsSum) {
-      warning(t('dailyLog.form.validation.debtsAmountInsufficient'))
+      setFieldErrors({
+        [DAILY_LOG_FIELD.paid]: t('dailyLog.form.validation.debtsAmountInsufficient'),
+      })
+      setFormMessages([])
       return
     }
     if (shortfall > 0 && createDebt && !form.clientId) {
-      warning(t('dailyLog.form.validation.clientRequiredForDebt'))
+      setFieldErrors({
+        [DAILY_LOG_FIELD.client]: t('dailyLog.form.validation.clientRequiredForDebt'),
+      })
+      setFormMessages([])
       return
     }
     const tipAuto = tipPreview
@@ -248,11 +269,28 @@ export const useDailyLogForm = ({ loadData, toast }: Args) => {
       success(t('dailyLog.form.feedback.saved'))
       loadData()
       setOpen(false)
-    } catch {
-      error(t('dailyLog.form.feedback.saveFailed'))
+    } catch (err) {
+      // Backend (ValidationPipe + DTO dekoratori) vraca poruke po polju; ranije su
+      // zavrsavale u generickom toastu, sto je krsilo 3.3.3 jer su prijedlozi poznati.
+      const messages = serverValidationMessages(err)
+      setFieldErrors({})
+      setFormMessages(
+        messages.length > 0 ? messages : [t('dailyLog.form.feedback.saveFailed')],
+      )
     } finally {
       setSaving(false)
     }
+  }
+
+  /** Spojen popis za sažetak: prvo greške vezane uz polja, pa poruke bez polja. */
+  const fieldErrorList: FieldErrorEntry[] = [
+    ...Object.entries(fieldErrors).map(([fieldId, message]) => ({ fieldId, message })),
+    ...formMessages.map((message) => ({ message })),
+  ]
+
+  const clearFieldErrors = () => {
+    setFieldErrors({})
+    setFormMessages([])
   }
 
   return {
@@ -286,5 +324,8 @@ export const useDailyLogForm = ({ loadData, toast }: Args) => {
     handleSave,
     toggleService,
     setUnitPrice,
+    fieldErrors,
+    fieldErrorList,
+    clearFieldErrors,
   }
 }

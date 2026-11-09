@@ -1,3 +1,5 @@
+import { FieldError, fieldErrorProps } from '../forms/field-error'
+import { DAILY_LOG_FIELD } from './field-ids'
 import { useState } from 'react'
 import { Check, Loader2, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -60,6 +62,7 @@ type Props = {
   onCancel: () => void
   cancelLabel: string
   saveLabel: string
+  fieldErrors: Record<string, string>
 }
 
 export const DailyLogEntryFormFields = ({
@@ -105,6 +108,7 @@ export const DailyLogEntryFormFields = ({
   onCancel,
   cancelLabel,
   saveLabel,
+  fieldErrors,
 }: Props) => {
   const { t, i18n } = useTranslation()
   // Tastaturska navigacija kroz listbox (2.1.1): samo UI stanje, ne dira poslovno stanje.
@@ -124,6 +128,7 @@ export const DailyLogEntryFormFields = ({
       <Label htmlFor="dailylog-stylist">{t('dailyLog.form.stylist')}</Label>
       <select
         id="dailylog-stylist"
+        {...fieldErrorProps(DAILY_LOG_FIELD.stylist, fieldErrors[DAILY_LOG_FIELD.stylist])}
         required
         value={form.stylistProfileId}
         onChange={(e) => setForm({ ...form, stylistProfileId: e.target.value })}
@@ -136,6 +141,7 @@ export const DailyLogEntryFormFields = ({
           </option>
         ))}
       </select>
+      <FieldError fieldId={DAILY_LOG_FIELD.stylist} message={fieldErrors[DAILY_LOG_FIELD.stylist]} />
     </div>
     <div>
       <Label htmlFor="dailylog-client">{t('dailyLog.form.client')}</Label>
@@ -143,6 +149,7 @@ export const DailyLogEntryFormFields = ({
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
           id="dailylog-client"
+          {...fieldErrorProps(DAILY_LOG_FIELD.client, fieldErrors[DAILY_LOG_FIELD.client])}
           className="pl-9"
           role="combobox"
           aria-expanded={showClientDropdown && filteredClients.length > 0}
@@ -186,6 +193,7 @@ export const DailyLogEntryFormFields = ({
           }}
           placeholder={t('dailyLog.form.searchClient')}
         />
+        <FieldError fieldId={DAILY_LOG_FIELD.client} message={fieldErrors[DAILY_LOG_FIELD.client]} />
         {showClientDropdown && filteredClients.length > 0 ? (
           <ul
             id="dailylog-client-listbox"
@@ -224,6 +232,7 @@ export const DailyLogEntryFormFields = ({
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
           id="dailylog-services"
+          {...fieldErrorProps(DAILY_LOG_FIELD.services, fieldErrors[DAILY_LOG_FIELD.services])}
           className="pl-9"
           role="combobox"
           aria-expanded={showServiceDropdown && filteredServices.length > 0}
@@ -264,6 +273,7 @@ export const DailyLogEntryFormFields = ({
           }}
           placeholder={t('dailyLog.form.searchService')}
         />
+        <FieldError fieldId={DAILY_LOG_FIELD.services} message={fieldErrors[DAILY_LOG_FIELD.services]} />
         {showServiceDropdown && filteredServices.length > 0 ? (
           <ul
             id="dailylog-service-listbox"
@@ -357,6 +367,7 @@ export const DailyLogEntryFormFields = ({
       chargeAmount={chargeAmount}
       debtsSum={debtsSum}
       paidAmount={paidAmount}
+      paidError={fieldErrors[DAILY_LOG_FIELD.paid]}
       onPaidAmountChange={setPaidAmount}
       tipPreview={tipPreview}
       shortfall={shortfall}

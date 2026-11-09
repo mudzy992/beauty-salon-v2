@@ -3309,9 +3309,12 @@ Detalji izvedeni iz izvora, ne pretpostavljeni:
 
 - YAML parsira (`js-yaml`, instaliran s `--no-save`): poslovi `repo-checks, backend,
   frontend, a11y-e2e, mobile`; `a11y-e2e` = 16 koraka, 10 env varova, service `postgres`.
-- **Svih 170+ `npm run X` referenci u svim poslovima postoji** u odgovarajućem
+- **Svih 370 `npm run X` referenci u svim poslovima postoji** u odgovarajućem
   `package.json` (uklj. 7 novih) — provjereno skriptom, ne ručno.
-- **`bash -n` nad svih 388 `run` blokova: 0 grešaka** (GitHub izrazi zamijenjeni literalom).
+  *(Korekcija 2026-11-09: prvobitno napisano „170+"; prvo mjerenje je za posao `mobile`
+  gledalo `frontend/package.json`, a `mobile/` ima vlastiti. Zaključak „0 nepostojećih"
+  je stajao, broj nije.)*
+- **`bash -n` nad svih 389 `run` blokova: 0 grešaka** (GitHub izrazi zamijenjeni literalom).
 
 **NIJE verificirano i ne može biti ovdje:** stvarno izvršenje posla. U sandboxu nema
 Dockera, browser CDN-a ni Prisma engine-a. Zato je axe korak **`continue-on-error`** — isti
@@ -3321,3 +3324,138 @@ prolazi što nikad nije pokrenuto"). **Nakon prvog zelenog runa treba ukloniti
 
 Ispravljena zastarjela napomena u `playwright.config.ts:13-14` koja je tvrdila da
 `test:a11y-routes` nije u CI.
+
+
+---
+
+## 2026-11-09 — WCAG 3.3.3 Error Suggestion (daily-log forma)
+
+Korisnik je odobrio: „Možeš da kreneš na 3.3.3."
+
+### Prvo: koji je stvarni normativni kriterij
+
+WCAG 2.1/2.2 SC 3.3.3 (AA) glasi: **„If an input error is automatically detected and
+suggestions for correction are known, then the suggestions are provided to the user, unless
+it would jeopardize the security or purpose of the content."**
+
+Matrica je kao razlog ❌ imala „nema sažetka grešaka s linkovima na polja". **To nije
+normativni kriterij.** Sažetak s linkovima je *tehnika* (G84/G85), ne zahtjev — kriterij
+traži samo da se **poznat prijedlog ispravke dostavi u tekstu**. Da sam radio po matricinom
+razlogu, napravio bih sažetak i proglasio pobjedu, a pravi prekršaj ostavio na mjestu.
+
+### Stvarni prekršaj (dokazan iz izvora, ne pretpostavljen)
+
+`use-daily-log-form.ts`, `catch` grana:
+
+```ts
+} catch {
+  error(t('dailyLog.form.feedback.saveFailed'))
+}
+```
+
+Backend **vraća** konkretne prijedloge:
+
+- `backend/src/main.ts:75-78` — globalni `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })`
+- `create-daily-log-entry.dto.ts` — `@IsUUID()` (ln 20), `@IsOptional @IsUUID` (23-24, 28-29),
+  `@IsOptional @IsArray @IsUUID({ each: true })` (33-35, 39-40)
+- → 400 nosi `message: string[]` s porukom **po polju**
+
+Dakle prijedlozi **jesu poznati**, a klijent ih je bacao i vraćao generički „nije uspjelo".
+To je prekršaj 3.3.3. Četiri klijentska guard-a (ln 197-212) su imala konkretne poruke, ali
+su išle **samo kroz `toast`** — prolazan kanal, bez veze s poljem.
+
+### Šta je urađeno
+
+**Novi moduli:**
+
+- `frontend/src/features/forms/field-error.tsx` — `fieldErrorId(id)` → `${id}-error`;
+  `fieldErrorProps(id, msg)` → `{ 'aria-invalid': true, 'aria-describedby': ... }` ili `{}`;
+  `<FieldError>` (tekst uz polje, `role="alert"`); `<FormErrorSummary>` (`role="alert"`,
+  `tabIndex={-1}`, pomjera fokus, linkovi na polja).
+- `frontend/src/features/forms/server-error-messages.ts` — `serverValidationMessages(err)`
+  čita `err.response.data.message` (string **ili** string[]), trimuje, baca prazno.
+- `frontend/src/features/daily-log/field-ids.ts` — `DAILY_LOG_FIELD`
+  (`stylist` / `client` / `services` / `paid`).
+
+**Izmijenjeno:** `use-daily-log-form.ts` (state `fieldErrors`/`formMessages`, `fieldErrorList`,
+`clearFieldErrors`, guard-ovi preko `setFieldErrors`, `catch` preko `serverValidationMessages`),
+`entry-form-dialog.tsx` (sažetak unutar varijable `fields`, pa ga dijele **i mobilni Drawer i
+desktop Dialog**), `entry-form-fields.tsx` (3 polja), `pricing-panel.tsx` (`paidError`),
+`pages/DailyLog.tsx` (propovi + čišćenje grešaka pri zatvaranju).
+
+**i18n:** `dailyLog.form.errorSummaryTitle` u **oba** locale-a (`check_i18n --strict` prolazi).
+
+### Nove boje nisu uvodene — namjerno
+
+`field-error.tsx` koristi samo klase koje već postoje u repozitoriju: `text-rose-700` (11
+pojava), `bg-rose-50` (17), `border-rose-200` (14). Nijedna nova boja → `check_ui_contrast
+--strict` ne dobija novi par koji bi trebao provjeru. Uzorak je kopiran iz
+`setting-editor-form.tsx:32,232` — jedinog mjesta koje je ovo već radilo ispravno.
+
+### Test: `test:form-error-suggestion` (15 testova, 22/22 mutacije)
+
+Registrovan u `frontend/package.json` **i** u `.github/workflows/ci.yml` (posao `frontend`,
+uz ostalih 173 `test:*` koraka).
+
+- **`serverValidationMessages` se testira funkcionalno, ne regexom** — esbuild transformiše
+  TS u memoriji i modul se stvarno importuje i izvrši (9 ulaznih slučajeva, uklj. `undefined`,
+  `null`, `42`, `{ response: { data: { message: 7 } } }`).
+- Ostatak je source-contract, kao i u ostatku repozitorija (Node ne može importovati `.tsx`,
+  a `tsx`/`ts-node` **nisu** frontend dependencije — provjereno).
+- **Mutacijska provjera 22/22**: svaka od 22 namjerne kvarove test hvata (izbacen
+  `role="alert"`, `tabIndex`, `aria-invalid`, `aria-describedby`, `id`, fokus, link, čišćenje
+  grešaka, povratak na toast u `catch`-u i u guard-u, `trim`, mrtva string grana, …).
+
+### Greške napravljene usput — i kako su nađene
+
+1. **Pokrenuo sam `prettier --write` nad `entry-form-dialog.tsx`.** `frontend/` **nema**
+   prettier konfiguraciju (`lint` = `eslint . --ext ts,tsx`), pa je cijeli fajl preformatovan
+   na duple navodnike. To je slomilo **dva** postojeća ugovora: `daily-log-form-i18n` (regex
+   `editId \? t\('dailyLog\.editEntry'\)…`) i `daily-log-dialog-accessibility`. Vraćeno
+   `git checkout --` i izmjene ponovo primijenjene na originalno formatiranje. **Pouka:
+   nikad `prettier --write` u `frontend/`.**
+2. **Dva source-anchor edita su pala** (`pricing-panel.tsx`, `DailyLog.tsx`) jer sam uvlačenje
+   pogodio „odokativno" — stvarno je 6/8 razmaka, ne 8/10. `repr()` nad linijama je jedini
+   pouzdan izvor.
+3. **Test je prvo lažno prolazio za `FieldError`**: `slice(indexOf('export function FormErrorSummary'))`
+   zahvatao je i susjednu funkciju, pa je `role="alert"` bio „nađen" i kad ga `FieldError`
+   izgubi — mutacija je to otkrila. Dodan helper `tijelo(ime)` koji siječe do sljedeće funkcije.
+4. **`write_file` mi je udvostručio backslash-eve** u regexovima (4 umjesto 2), pa je test
+   tražio doslovni backslash. Prešao sam na `String.includes` gdje god je to jasnije.
+5. **Zamalo sam korak ubacio u pogrešan CI posao** — izvještaj „a11y-e2e ima 16 koraka" me
+   naveo da mislim da `test:*` živi tamo. `a11y-e2e` ima **1** `test:*` korak; svih 173 živi
+   u poslu **`frontend`** (sada 180 koraka). Korak je na ispravnom mjestu (indeks 119).
+
+### Šta NIJE verificirano
+
+- **Nema render provjere ni provjere čitačem ekrana.** Ne znam da li NVDA/VoiceOver stvarno
+  najavi sažetak prije čitanja polja. Zato je matricin status **🟡**, ne ✅ — i zato u
+  `CHECKLIST.md` pod „Ručna provjera" ide nova stavka.
+- Automatski alati (axe) **ne mogu** procijeniti 3.3.3: ne znaju da li tekst predlaže ispravku.
+- Obim je **samo daily-log forma**. `Register.tsx` ima isti toast-only obrazac (ln 60, 93),
+  ali je Q2 izričito stavio Login/Register/ResetPassword/Profile **van** redizajna.
+- **Nije pokrenuto nad stvarnim backendom** — po uputi vlasnika testovi idu na izolovanu
+  GitHub Actions infrastrukturu.
+
+### Provjere (sve pokrenute, ne pretpostavljene)
+
+`test:*` **174/174** (bilo 173) · `tsc --noEmit` **exit 0** · `typecheck:e2e` **exit 0** ·
+build **273.9 KiB gzip** (budžet 300; bilo 273.8) · lint **0 errors / 7 warnings** ·
+`check_i18n --strict` **PASS** (0/0) · `check_ui_contrast --strict` **PASS** (80 parova) ·
+`check_repo_hygiene` **PASS** (1695) · `check_doc_links` **PASS** (670/202) ·
+`git diff --check` **čist** · CI: **370** `npm run` referenci → **0** nepostojećih,
+**389** `run` blokova → **0** `bash -n` grešaka.
+
+### Zabilješka: brojači u `MATRIX.md` su međusobno nekonzistentni — i to NIJE novo
+
+Nisam ih tiho „popravio". Izmjereno sada:
+
+| Tabela | Redova | ✅ | 🟡 | ❌ | ➖ |
+|---|---:|---:|---:|---:|---:|
+| glavna (ln 31-110) | 58 | 2 | 21 | 27 | 8 |
+| „Statusi po kriteriju" (ln 190+) | 38 | 24 | 6 | 4 | 3 (+1 ➖/⚠️) |
+| brojač „Rezime (ETAPA B)" | — | 27 | 12 | 3 | 7 (+1, +1 ✅/❌) |
+
+Tri tabele se ne slažu, i to je bilo tako i prije ove izmjene. Za 3.3.3 sam pomjerio
+brojač ETAPA B onoliko koliko je tačno (🟡 11→12, ❌ 4→3 i iz liste izbačen `3.3.3`), a
+usklađivanje sve tri tabele je **zaseban posao** koji traži odluku koja je od njih mjerodavna.

@@ -2050,6 +2050,7 @@
       "pointsAndMaxDiscount": "Points: {{points}} · Maximum discount: {{percent}}%",
       "loyaltyUnavailable": "Loyalty program is unavailable.",
       "saving": "Saving…",
+      "errorSummaryTitle": "Fix the following errors:",
       "validation": {
         "stylistAndServiceRequired": "Choose a stylist and service.",
         "paidAmountInvalid": "Enter a valid amount paid.",
