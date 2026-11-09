@@ -590,6 +590,9 @@ jobs:
       - name: Test hooks are not called after early returns
         working-directory: frontend
         run: npm run test:hooks-order
+      - name: Test onboarding accessibility
+        working-directory: frontend
+        run: npm run test:onboarding-a11y
       # ESLint (react-hooks/rules-of-hooks = error). Uveden poslije React #310 regresije:
       # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide.
       - name: Lint frontend (rules-of-hooks)

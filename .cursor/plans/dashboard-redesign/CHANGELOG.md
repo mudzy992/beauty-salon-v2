@@ -2408,3 +2408,54 @@ paleta-klasa) i rezerva za slučaj da se tamna tema uvede. Pragovi i sweep su ne
 
 > **Pouka:** prije tvrdnje „prekršaj u tamnoj temi" provjeriti **da li tamna tema postoji**.
 > `grep dark: <broj>` nije dokaz da se tema koristi — treba naći ko postavlja `.dark` klasu.
+
+---
+
+## 2026-11-09 — Faza 12: Onboarding / ForceChangePassword (audit + 3.3.1)
+
+### Plan vs. izvor
+
+| Stavka plana | Presuda | Dokaz |
+|---|---|---|
+| **D1** `ForceChangePassword` nema `<h1>` | **opovrgnuto** | `components/OnboardingShell.tsx:140` **bezuvjetno** renderuje `<h1>{title}</h1>`; sve tri stranice (`ForceChangePassword`, `OnboardingEmail`, `OnboardingGender`) koriste `<OnboardingShell>` |
+| **D2** dodati `autocomplete="one-time-code"` | **opovrgnuto** | `otp-input.tsx:60` već ima `autoComplete={i === 0 ? 'one-time-code' : 'off'}` (samo prvo polje — preporučeno) |
+| **D3** nema blokiranja paste-a | **zadovoljeno** | `handlePaste` čita `clipboardData`; nijedan `onPaste` ne poziva `preventDefault` → 3.3.8 |
+| **D4** bez kognitivnih testova | **zadovoljeno** | 0 pogodaka za `captcha`/`reCAPTCHA`/`hCaptcha` u svih 5 fajlova |
+| **D7** `role="alert"` za greške | **opovrgnuto** | greške idu preko `toast.warning` → **sonner**, a `sonner/dist/index.mjs:1145` već postavlja `"aria-live": "polite"` |
+| **D5/D6** zahtjevi za lozinku | **djelomično stvarno** | vidi dolje |
+| **D9** tokeni umjesto `slate-*` | **nije prekršaj** | `text-slate-500/600/700/900` u onboarding lancu prolaze na svjetloj (4.76–17.85:1), a tamna tema se ne može aktivirati (vidi prethodni unos) |
+
+### Stvarni nalaz — 3.3.1 / 3.3.2
+
+Zahtjev „najmanje 6 znakova" postojao je **samo** kao `minLength={6}` (programski) i kao
+toast **nakon** neuspjeha (`onboarding.passwordTooShort`). Korisnik zahtjev nije mogao
+vidjeti prije unosa.
+
+**Ispravka:** novi ključ `onboarding.passwordRequirements` (BS/EN) + vidljiv
+`<p id="newPasswordRequirements">` + `aria-describedby` na polju. `passwordTip`
+(„Odaberite jaku lozinku…") je već bio prikazan preko `OnboardingShell`, ali **ne navodi
+broj znakova**.
+
+### 🔴 Važno: moja ranija greška s `<h1>` se ponovila — i ovog puta je uhvaćena
+
+U fazi 11 sam tvrdio da `stylist-reservation-detail-page.tsx` nema `<h1>` jer grep nad
+`pages/` nije našao ništa (bio je u komponenti). **Isti obrazac** se pojavio i ovdje: plan
+tvrdi da `ForceChangePassword` nema `<h1>`, a grep nad stranicom to „potvrđuje" — ali naslov
+daje `OnboardingShell`. Razlika je što sam ovaj put **provjerio komponentu prije tvrdnje**.
+
+### Test
+
+**`test:onboarding-a11y`** (4 testa): 3.3.1/3.3.2 ugovor, te tri **auditska** testa koji
+zakucavaju opovrgnute stavke (D1 — shell ima bezuvjetni `<h1>`; D2/D3 — `one-time-code` i
+paste koji nije blokiran; D7 — sonner ima `aria-live`). **7/7 mutacija pada**, uključujući
+„`onPaste={(e) => e.preventDefault()}`" (3.3.8) i „`<h1>` → `<h2>` u shellu".
+
+Registrovan u `package.json` (173) i `ci.yml`.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **167/167** |
+| `npm run lint` | 0 errors, 17 warnings |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` | PASS (`numstat` 1/0 + 1/0) |
+| `check_ui_contrast.py --strict` / hygiene / doc_links | 80/80 / 1681 / 669 |

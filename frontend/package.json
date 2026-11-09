@@ -168,6 +168,7 @@
     "test:stylist-form-controls-a11y": "node --test src/features/stylist-portal/stylist-form-controls-a11y.test.mjs",
     "test:stylist-dark-contrast-a11y": "node --test src/features/stylist-portal/stylist-dark-contrast-a11y.test.mjs",
     "test:hooks-order": "node --test src/app/hooks-order.test.mjs",
+    "test:onboarding-a11y": "node --test src/features/auth/onboarding-a11y.test.mjs",
     "test:route-guards-i18n": "node --test src/components/route-guards-i18n.test.mjs",
     "test:navigation-drawer-accessibility": "node --test src/features/shell/navigation-drawer-accessibility.test.mjs",
     "test:shell-a11y": "node --test src/features/shell/shell-a11y.test.mjs",

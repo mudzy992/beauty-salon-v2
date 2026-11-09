@@ -30,7 +30,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
 | 11 | Stylist portal | `[~]` 4 commita — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33, 4.1.2. **DoD verificiran** (mobilna 0 diff, API netaknut) | u toku |
-| 12 | Onboarding / ForceChangePassword | `[ ]` | |
+| 12 | Onboarding / ForceChangePassword | `[x]` 1 commit — D1/D2/D7 opovrgnuti, D3/D4 zadovoljeni, D9 nije prekršaj; stvarno: **3.3.1/3.3.2** (zahtjev za lozinku) | prošla |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
 
 > **`019e58a`** (`fix(dashboard): D9 error stanja + test:daily-log-amount-parity`) nije
@@ -113,6 +113,15 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > Prošlo je jer svi testovi čitaju **izvor**, `tsc` ne provjerava pravila hookova, a ESLint
 > (`react-hooks/rules-of-hooks`) **nije konfigurisan**. Novi čuvar `test:hooks-order`
 > pokriva **cijeli `src/`** (54 komponente, 0 prekršaja nakon ispravke, 3/3 mutacije padaju).
+
+> **Faza 12 — napomene.** Plan je i ovdje bio većinom netačan: **D1** (`<h1>` „nedostaje")
+> opovrgnut jer `OnboardingShell:140` bezuvjetno renderuje `<h1>{title}</h1>` — **isti
+> obrazac** kao moja pogrešna tvrdnja iz faze 11, ovaj put uhvaćen jer je komponenta
+> provjerena prije tvrdnje. **D2** (`one-time-code`) i **D7** (`role="alert"`) opovrgnuti
+> (sonner već ima `aria-live="polite"`); **D3/D4** zadovoljeni (paste radi, nema captche);
+> **D9** nije prekršaj (svi `slate-*` prolaze na svjetloj, a tamna tema se ne aktivira).
+> Stvarno: **3.3.1/3.3.2** — zahtjev „6 znakova" bio je samo `minLength` + toast nakon
+> greške; dodat `aria-describedby` + vidljiv `<p>`.
 
 > **Faza 11 — napomene (u toku).** Plan je ovdje bio **najmanje tačan** do sada: od 10
 > stavki **5 je opovrgnuto** (D1 već urađen u fazi 0; D3 dijalozi već imaju `DialogTitle` +

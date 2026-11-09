@@ -107,8 +107,13 @@ export default function ForceChangePassword() {
               autoComplete="new-password"
               required
               minLength={6}
+              aria-describedby="newPasswordRequirements"
               disabled={loading}
             />
+            {/* 3.3.2: zahtjev mora biti vidljiv PRIJE unosa, ne tek u toast-u nakon greške */}
+            <p id="newPasswordRequirements" className="text-sm text-content-muted">
+              {t('onboarding.passwordRequirements')}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">

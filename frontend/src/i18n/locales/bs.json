@@ -141,6 +141,7 @@
     }
   },
   "onboarding": {
+    "passwordRequirements": "Najmanje 6 znakova.",
     "title": "Promjena inicijalne lozinke",
     "subtitle": "Za nastavak rada potrebno je da promijenite inicijalnu lozinku.",
     "passwordTip": "Odaberite jaku lozinku i nemojte je dijeliti s drugima.",

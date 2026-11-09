@@ -144,6 +144,7 @@
     }
   },
   "onboarding": {
+    "passwordRequirements": "At least 6 characters.",
     "title": "Change your initial password",
     "subtitle": "You must change your initial password before continuing.",
     "passwordTip": "Choose a strong password and do not share it with anyone.",
