@@ -223,9 +223,6 @@ export default function Loyalty() {
                 columns={columns}
                 rows={accounts}
                 rowKey={(a) => a.id}
-                tableClassName="border-collapse"
-                headRowClassName="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800"
-                rowClassName={() => 'border-b border-slate-100 dark:border-slate-800/80'}
               />
             </div>
           )}

@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 import { formatInstantDateLocale } from '../../../../../shared/business-date.mjs'
 
 import { Badge } from '../../../components/ui/badge'
+import {
+  DataTable,
+  type DataTableColumn,
+} from '../../../features/shell/admin/ui/data-table'
 import { Button } from '../../../components/ui/button'
 import { EmptyState } from '../components/data-state'
 import { ExpenseAttachmentsList } from './expense-attachments'
@@ -28,12 +32,6 @@ type ExpenseTableProps = {
   onDelete: (expense: Expense) => void
 }
 
-const COLUMNS: { field: ExpenseSortField; labelKey: string; numeric?: boolean }[] = [
-  { field: 'createdAt', labelKey: 'finance.expenseList.columns.date' },
-  { field: 'title', labelKey: 'finance.expenseList.columns.title' },
-  { field: 'totalAmount', labelKey: 'finance.expenseList.columns.amount', numeric: true },
-]
-
 export function ExpenseTable({
   expenses,
   sortField,
@@ -46,6 +44,132 @@ export function ExpenseTable({
   const { t, i18n } = useTranslation()
   const [preview, setPreview] = useState<Expense | null>(null)
 
+  const columns: DataTableColumn<Expense>[] = [
+    {
+      key: 'createdAt',
+      headerKey: 'finance.expenseList.columns.date',
+      sortKey: 'createdAt',
+      className: 'whitespace-nowrap align-top',
+      render: (expense) =>
+        formatInstantDateLocale(expense.createdAt, getIntlLocale(i18n.language), {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }),
+    },
+    {
+      key: 'title',
+      headerKey: 'finance.expenseList.columns.title',
+      sortKey: 'title',
+      className: 'align-top',
+      render: (expense) => {
+        const notes = notesPreviewFor(expense)
+        const detailLabels = detailLabelsFor(expense, t('finance.expenseList.fieldFallback'))
+        return (
+          <>
+            <div className="font-medium text-slate-900 dark:text-slate-50">{expense.title}</div>
+            {notes ? <div className="mt-0.5 text-xs text-slate-500">{notes}</div> : null}
+            {detailLabels.length > 0 ? (
+              <ul className="mt-1 space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                {detailLabels.slice(0, PREVIEW_LIMIT).map((label) => (
+                  <li key={label} className="truncate" title={label}>
+                    {label}
+                  </li>
+                ))}
+                {detailLabels.length > PREVIEW_LIMIT ? (
+                  <li>
+                    <button
+                      type="button"
+                      className="text-brand-gold-text hover:underline"
+                      onClick={() => setPreview(expense)}
+                    >
+                      {t('finance.expenseList.moreItems', {
+                        count: detailLabels.length - PREVIEW_LIMIT,
+                      })}
+                    </button>
+                  </li>
+                ) : null}
+              </ul>
+            ) : null}
+          </>
+        )
+      },
+    },
+    {
+      key: 'totalAmount',
+      headerKey: 'finance.expenseList.columns.amount',
+      sortKey: 'totalAmount',
+      align: 'right',
+      className: 'tabular-nums align-top',
+      render: (expense) => formatLocalizedAmount(expense.totalAmount, i18n.language),
+    },
+    {
+      key: 'category',
+      headerKey: 'finance.expenseList.columns.category',
+      className: 'align-top',
+      render: (expense) => (
+        <div className="flex flex-wrap items-center gap-1">
+          <span>{expense.category?.name ?? '—'}</span>
+          {expense.category?.isFixed ? (
+            <Badge variant="secondary">{t('finance.expenseForm.fixed')}</Badge>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'attachments',
+      headerKey: 'finance.expenseList.columns.attachments',
+      className: 'min-w-[160px] align-top',
+      render: (expense) => (
+        <ExpenseAttachmentsList attachments={expense.attachments ?? []} compact />
+      ),
+    },
+    {
+      key: 'actions',
+      headerKey: 'finance.expenseList.columns.actions',
+      align: 'right',
+      className: 'align-top',
+      render: (expense) => {
+        const canPreview = hasInvoiceDetail(expense)
+        return (
+          <div className="flex justify-end gap-1">
+            {canPreview ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t('finance.expenseList.previewInvoice', { title: expense.title })}
+                onClick={() => setPreview(expense)}
+              >
+                <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            ) : null}
+            {!isLocked ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('finance.expenseList.editExpense', { title: expense.title })}
+                  onClick={() => onEdit(expense)}
+                >
+                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('finance.expenseList.deleteExpense', { title: expense.title })}
+                  onClick={() => onDelete(expense)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
+                </Button>
+              </>
+            ) : null}
+          </div>
+        )
+      },
+    },
+  ]
+
+
   if (expenses.length === 0) {
     return (
       <EmptyState
@@ -55,157 +179,18 @@ export function ExpenseTable({
     )
   }
 
-  const SortIcon = sortDirection === 'asc' ? ArrowUp : ArrowDown
-
   return (
     <>
-      <div className="app-table-wrap">
-        <table className="app-table data-table w-full">
-          <caption className="sr-only">{t('finance.expenseList.caption')}</caption>
-          <thead>
-            <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-              {COLUMNS.map((column) => (
-                <th
-                  key={column.field}
-                  scope="col"
-                  aria-sort={
-                    sortField === column.field
-                      ? sortDirection === 'asc'
-                        ? 'ascending'
-                        : 'descending'
-                      : undefined
-                  }
-                  className={`py-2 pr-3 font-medium ${column.numeric ? 'text-right' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
-                    onClick={() => onSort(column.field)}
-                    aria-label={t('finance.expenseList.sortBy', { label: t(column.labelKey) })}
-                  >
-                    {t(column.labelKey)}
-                    {sortField === column.field ? (
-                      <SortIcon className="h-3 w-3" aria-hidden="true" />
-                    ) : null}
-                  </button>
-                </th>
-              ))}
-              <th scope="col" className="py-2 pr-3 font-medium">
-                {t('finance.expenseList.columns.category')}
-              </th>
-              <th scope="col" className="py-2 pr-3 font-medium">
-                {t('finance.expenseList.columns.attachments')}
-              </th>
-              <th scope="col" className="py-2 text-right font-medium">
-                {t('finance.expenseList.columns.actions')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {expenses.map((expense) => {
-              const isFixed = Boolean(expense.category?.isFixed)
-              const notes = notesPreviewFor(expense)
-              const detailLabels = detailLabelsFor(expense, t('finance.expenseList.fieldFallback'))
-              const canPreview = hasInvoiceDetail(expense)
-              return (
-                <tr
-                  key={expense.id}
-                  className="border-b border-slate-100 last:border-0 dark:border-slate-900"
-                >
-                  <td data-label={t('finance.expenseList.columns.date')} className="whitespace-nowrap py-2 pr-3 align-top">
-                    {formatInstantDateLocale(
-                      expense.createdAt,
-                      getIntlLocale(i18n.language),
-                      { year: 'numeric', month: '2-digit', day: '2-digit' },
-                    )}
-                  </td>
-                  <td data-label={t('finance.expenseList.columns.title')} className="py-2 pr-3 align-top">
-                    <div className="font-medium text-slate-900 dark:text-slate-50">
-                      {expense.title}
-                    </div>
-                    {notes ? (
-                      <div className="mt-0.5 text-xs text-slate-500">{notes}</div>
-                    ) : null}
-                    {detailLabels.length > 0 ? (
-                      <ul className="mt-1 space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
-                        {detailLabels.slice(0, PREVIEW_LIMIT).map((label) => (
-                          <li key={label} className="truncate" title={label}>
-                            {label}
-                          </li>
-                        ))}
-                        {detailLabels.length > PREVIEW_LIMIT ? (
-                          <li>
-                            <button
-                              type="button"
-                              className="text-brand-gold-text hover:underline"
-                              onClick={() => setPreview(expense)}
-                            >
-                              {t('finance.expenseList.moreItems', {
-                                count: detailLabels.length - PREVIEW_LIMIT,
-                              })}
-                            </button>
-                          </li>
-                        ) : null}
-                      </ul>
-                    ) : null}
-                  </td>
-                  <td data-label={t('finance.expenseList.columns.amount')} className="py-2 pr-3 text-right tabular-nums align-top">
-                    {formatLocalizedAmount(expense.totalAmount, i18n.language)}
-                  </td>
-                  <td data-label={t('finance.expenseList.columns.category')} className="py-2 pr-3 align-top">
-                    <div className="flex flex-wrap items-center gap-1">
-                      <span>{expense.category?.name ?? '—'}</span>
-                      {isFixed ? (
-                        <Badge variant="secondary">{t('finance.expenseForm.fixed')}</Badge>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td data-label={t('finance.expenseList.columns.attachments')} className="min-w-[160px] py-2 pr-3 align-top">
-                    <ExpenseAttachmentsList
-                      attachments={expense.attachments ?? []}
-                      compact
-                    />
-                  </td>
-                  <td data-label={t('finance.expenseList.columns.actions')} className="py-2 text-right align-top">
-                    <div className="flex justify-end gap-1">
-                      {canPreview ? (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t('finance.expenseList.previewInvoice', { title: expense.title })}
-                          onClick={() => setPreview(expense)}
-                        >
-                          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Button>
-                      ) : null}
-                      {!isLocked ? (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={t('finance.expenseList.editExpense', { title: expense.title })}
-                            onClick={() => onEdit(expense)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={t('finance.expenseList.deleteExpense', { title: expense.title })}
-                            onClick={() => onDelete(expense)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
-                          </Button>
-                        </>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+        <DataTable
+          caption={t('finance.expenseList.caption')}
+          columns={columns}
+          rows={expenses}
+          rowKey={(expense) => expense.id}
+          sort={{ key: sortField, direction: sortDirection }}
+          onSortChange={(key) => onSort(key as ExpenseSortField)}
+          unsortedIndicator={false}
+          rowClassName={() => 'last:border-0 dark:border-slate-900'}
+        />
 
       <ExpenseInvoicePreview
         expense={preview}

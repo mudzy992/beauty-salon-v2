@@ -98,7 +98,15 @@ export function DataTable<T>({
       <table className={cn('app-table data-table w-full', tableClassName)}>
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className={headRowClassName}>
+          {/* Default je dominantni obrazac svih dashboard tabela (8/8 ima border, 3/8 i
+              uppercase) — vlasnik je 2026-11-09 potvrdio da je konzistentnost na
+              dashboardima obavezna, pa se lokalne varijante ne čuvaju propom. */}
+          <tr
+            className={cn(
+              'border-b border-slate-200 text-left dark:border-slate-800',
+              headRowClassName,
+            )}
+          >
             {columns.map((column) => {
               // `sort` je opciono. Prijašnje `sort?.key === column.sortKey` dalo bi
               // `undefined === undefined` → true za kolonu bez `sortKey`, pa bi
@@ -135,7 +143,10 @@ export function DataTable<T>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)} className={rowClassName?.(row)}>
+            <tr
+              key={rowKey(row)}
+              className={cn('border-b border-slate-100 dark:border-slate-800/80', rowClassName?.(row))}
+            >
               {columns.map((column) => (
                 <td
                   key={column.key}

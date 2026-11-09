@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   formatLocalizedAmount,
@@ -6,6 +6,7 @@ import {
 } from '../../../i18n/locale-utils.mjs'
 import { formatDateOnlyLocale } from '../../../../../shared/business-date.mjs'
 
+import { DataTable, type DataTableColumn } from '../../../features/shell/admin/ui/data-table'
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { EmptyState } from '../components/data-state'
@@ -28,25 +29,6 @@ type IncomeEntriesTableProps = {
   onEdit: (entry: IncomeBookManualEntry) => void
   onDelete: (entry: IncomeBookManualEntry) => void
 }
-
-const COLUMNS: {
-  field: IncomeSortField
-  labelKey: string
-  numeric?: boolean
-}[] = [
-  { field: 'date', labelKey: 'finance.incomeList.columns.date' },
-  { field: 'serviceName', labelKey: 'finance.incomeList.columns.service' },
-  {
-    field: 'amount',
-    labelKey: 'finance.incomeList.columns.revenue',
-    numeric: true,
-  },
-  {
-    field: 'tipAmount',
-    labelKey: 'finance.incomeList.columns.tips',
-    numeric: true,
-  },
-]
 
 const DATE_OPTIONS = {
   year: 'numeric',
@@ -93,140 +75,113 @@ export function IncomeEntriesTable({
     )
   }
 
-  const SortIcon = sortDirection === 'asc' ? ArrowUp : ArrowDown
+
+  const columns: DataTableColumn<IncomeEntryRow>[] = [
+    {
+      key: 'date',
+      headerKey: 'finance.incomeList.columns.date',
+      sortKey: 'date',
+      className: 'whitespace-nowrap',
+      render: (row) => formatIncomeDate(row.date, i18n.language),
+    },
+    {
+      key: 'serviceName',
+      headerKey: 'finance.incomeList.columns.service',
+      sortKey: 'serviceName',
+      className: 'align-top',
+      render: (row) => {
+        const serviceNames = serviceNamesForRow(row)
+        return (
+          // `title` je prije stajao na <td>; DataTable ne prima atribute po celiji, pa je
+          // ocuvan omotacem - tooltip za skrateni tekst nije smio biti izgubljen.
+          <span title={row.serviceName} className="block">
+            {serviceNames.length === 0 ? (
+              '—'
+            ) : (
+              <ul className="space-y-0.5">
+                {serviceNames.map((name, index) => (
+                  <li key={`${name}-${index}`} className="truncate">
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'amount',
+      headerKey: 'finance.incomeList.columns.revenue',
+      sortKey: 'amount',
+      align: 'right',
+      className: 'tabular-nums',
+      render: (row) => formatLocalizedAmount(row.amount, i18n.language),
+    },
+    {
+      key: 'tipAmount',
+      headerKey: 'finance.incomeList.columns.tips',
+      sortKey: 'tipAmount',
+      align: 'right',
+      className: 'tabular-nums text-slate-500',
+      render: (row) =>
+        row.tipAmount > 0 ? formatLocalizedAmount(row.tipAmount, i18n.language) : '—',
+    },
+    { key: 'stylist', headerKey: 'finance.incomeList.columns.stylist', render: (row) => row.stylistName },
+    { key: 'client', headerKey: 'finance.incomeList.columns.client', render: (row) => row.clientName },
+    {
+      key: 'kind',
+      headerKey: 'finance.incomeList.columns.kind',
+      render: (row) => (
+        <Badge variant={row.kind === 'MANUAL' ? 'secondary' : 'outline'}>
+          {t(row.kind === 'MANUAL' ? 'finance.filters.manual' : 'finance.filters.fromDailyLog')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      headerKey: 'finance.incomeList.columns.actions',
+      align: 'right',
+      render: (row) =>
+        row.manualEntry && !isLocked ? (
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t('finance.incomeList.editManualEntry')}
+              onClick={() => onEdit(row.manualEntry as IncomeBookManualEntry)}
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t('finance.incomeList.deleteManualEntry')}
+              onClick={() => onDelete(row.manualEntry as IncomeBookManualEntry)}
+            >
+              <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
+            </Button>
+          </div>
+        ) : (
+          <span className="text-xs text-content-muted">
+            —
+            <span className="sr-only">{t('finance.incomeList.noActions')}</span>
+          </span>
+        ),
+    },
+  ]
+
 
   return (
-    <div className="app-table-wrap">
-      <table className="app-table data-table w-full">
-        <caption className="sr-only">{t('finance.incomeList.caption')}</caption>
-        <thead>
-          <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-            {COLUMNS.map((column) => (
-              <th
-                key={column.field}
-                scope="col"
-                aria-sort={
-                  sortField === column.field
-                    ? sortDirection === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : undefined
-                }
-                className={`py-2 pr-3 font-medium ${column.numeric ? 'text-right' : ''}`}
-              >
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
-                  onClick={() => onSort(column.field)}
-                  aria-label={t('finance.incomeList.sortBy', {
-                    label: t(column.labelKey),
-                  })}
-                >
-                  {t(column.labelKey)}
-                  {sortField === column.field ? (
-                    <SortIcon className="h-3 w-3" aria-hidden="true" />
-                  ) : null}
-                </button>
-              </th>
-            ))}
-            <th scope="col" className="py-2 pr-3 font-medium">
-              {t('finance.incomeList.columns.stylist')}
-            </th>
-            <th scope="col" className="py-2 pr-3 font-medium">
-              {t('finance.incomeList.columns.client')}
-            </th>
-            <th scope="col" className="py-2 pr-3 font-medium">
-              {t('finance.incomeList.columns.kind')}
-            </th>
-            <th scope="col" className="py-2 text-right font-medium">
-              {t('finance.incomeList.columns.actions')}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const serviceNames = serviceNamesForRow(row)
-            return (
-              <tr
-                key={`${row.kind}-${row.id}`}
-                className="border-b border-slate-100 last:border-0 dark:border-slate-900"
-              >
-                <td data-label={t('finance.incomeList.columns.date')} className="py-2 pr-3 whitespace-nowrap">
-                  {formatIncomeDate(row.date, i18n.language)}
-                </td>
-                <td data-label={t('finance.incomeList.columns.service')} className="py-2 pr-3 align-top" title={row.serviceName}>
-                  {serviceNames.length === 0 ? (
-                    '—'
-                  ) : (
-                    <ul className="space-y-0.5">
-                      {serviceNames.map((name, index) => (
-                        <li key={`${name}-${index}`} className="truncate">
-                          {name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </td>
-                <td data-label={t('finance.incomeList.columns.revenue')} className="py-2 pr-3 text-right tabular-nums">
-                  {formatLocalizedAmount(row.amount, i18n.language)}
-                </td>
-                <td data-label={t('finance.incomeList.columns.tips')} className="py-2 pr-3 text-right tabular-nums text-slate-500">
-                  {row.tipAmount > 0
-                    ? formatLocalizedAmount(row.tipAmount, i18n.language)
-                    : '—'}
-                </td>
-                <td data-label={t('finance.incomeList.columns.stylist')} className="py-2 pr-3">{row.stylistName}</td>
-                <td data-label={t('finance.incomeList.columns.client')} className="py-2 pr-3">{row.clientName}</td>
-                <td data-label={t('finance.incomeList.columns.kind')} className="py-2 pr-3">
-                  <Badge
-                    variant={row.kind === 'MANUAL' ? 'secondary' : 'outline'}
-                  >
-                    {t(
-                      row.kind === 'MANUAL'
-                        ? 'finance.filters.manual'
-                        : 'finance.filters.fromDailyLog',
-                    )}
-                  </Badge>
-                </td>
-                <td data-label={t('finance.incomeList.columns.actions')} className="py-2 text-right">
-                  {row.manualEntry && !isLocked ? (
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('finance.incomeList.editManualEntry')}
-                        onClick={() =>
-                          onEdit(row.manualEntry as IncomeBookManualEntry)
-                        }
-                      >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={t('finance.incomeList.deleteManualEntry')}
-                        onClick={() =>
-                          onDelete(row.manualEntry as IncomeBookManualEntry)
-                        }
-                      >
-                        <Trash2
-                          className="h-3.5 w-3.5 text-rose-500"
-                          aria-hidden="true"
-                        />
-                      </Button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-content-muted">
-                      —
-                      <span className="sr-only">{t('finance.incomeList.noActions')}</span>
-                    </span>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+      <DataTable
+        caption={t('finance.incomeList.caption')}
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => `${row.kind}-${row.id}`}
+        sort={{ key: sortField, direction: sortDirection }}
+        onSortChange={(key) => onSort(key as IncomeSortField)}
+        unsortedIndicator={false}
+        rowClassName={() => 'last:border-0 dark:border-slate-900'}
+      />
   )
 }

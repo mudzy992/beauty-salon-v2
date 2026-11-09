@@ -3809,3 +3809,74 @@ podrškom za `colSpan`/`<tfoot>`: `blog-posts-table`, `entry-table`, `Reservatio
 **Otvoreni rizik po preostalih 6:** svaki ima vlastite klase po ćeliji i po redu, i svaki će
 tražiti sličnu prilagodbu testova. `finance-table-a11y.test.mjs` ima `TABLES` spisak s
 **tačnim brojevima** (`sourceTh`, `scope`, `td`, `captionKey`) koji će pasti na 0.
+
+
+---
+
+## 2026-11-09 — `DataTable` migracija (nastavak): defaulti umjesto shim-ova + finance tabele
+
+Vlasnik je dao smjernicu: **„konzistentnost na dashboardima uvijek se mora ispoštovati.
+Jedini izuzetak su javne klijentske stranice."** To je promijenilo pristup — u pilotu sam
+čuvao *svaki* lokalni stil propom; sada se lokalne razlike koje su **nekonzistentnost**
+uklanjaju, a propovi ostaju samo za funkcionalne potrebe.
+
+### Izmjereno šta je funkcionalno, a šta nekonzistentnost
+
+| Obrazac | Pojava | Odluka |
+|---|---|---|
+| `border-b border-slate-200 text-left dark:border-slate-800` (zaglavlje) | 8/8 | **default** |
+| `text-xs uppercase text-slate-500` (zaglavlje) | 3/8 | nije default — Salon/Services/Users ga dobiju propom |
+| `border-b border-slate-100 dark:border-slate-800/80` (red) | 3/8 | **default** |
+| `last:border-0` (red) | 1/8 | `rowClassName` (funkcionalno) |
+| `opacity-60` za neradne dane (Salon) | 1 | `rowClassName` (**funkcionalno**) |
+| strelica samo na sortiranoj koloni | finance | `unsortedIndicator={false}` |
+
+`DataTable` sada ima border na zaglavlju i redovima **po defaultu** — što je i popravka za
+dva postojeća potrošača (`outbox-events-table`, `recent-reservations`), koji su do sada
+imali zaglavlje bez bordera. Provjereno: `templates-a11y` + `render-smoke` + `shell-a11y`
+**58/58** i dalje prolaze.
+
+`Loyalty` je očišćen: `tableClassName`, `headRowClassName` i `rowClassName` su **uklonjeni**
+jer su njegove klase postale defaulti. Test je preokrenut u **guard za konzistentnost** —
+sada asertuje da potrošač NE prolazi stil-propove bez funkcionalnog razloga.
+
+### Migrirano: `expense-table` (6 kolona) i `income-entries-table` (8 kolona)
+
+Oba su imala sortiranje, pa koriste `sort` + `onSortChange` + `sortKey` po koloni.
+U `income-entries-table` je `title={row.serviceName}` stajao na `<td>` — `DataTable` ne prima
+atribute po ćeliji, pa je tooltip očuvan **omotačem** unutar `render`, bez novog propa.
+
+### Testovi koji su pali (5) i kako su riješeni
+
+| Test | Uzrok | Rješenje |
+|---|---|---|
+| `finance-table-a11y` (3) | `TABLES` spec s tačnim brojevima `<th>`/`<td>`/`scope` | uvedena `DATA_TABLE_CONSUMERS` lista koja provjerava **korištenje** komponente + redoslijed kolona; `TABLES` ostaje za ručno pisane tabele |
+| `table-sort-accessibility` (2) | asertovao doslovan `aria-sort`/`onClick`/`aria-hidden` | podijeljen po odgovornosti: `DataTable` **jednom** dokazuje garancije, potrošač dokazuje da prosljeđuje `sort`/`onSortChange` i `sortKey` po koloni |
+| `expense-list-i18n` (1) | `field: 'createdAt'` → `sortKey: 'createdAt'`; `onClick={() => onSort(column.field)}` → `onSortChange` | identifikatori sortiranja su **nepromijenjeni** (backend ih prima), promijenio se samo naziv propa |
+| `income-list-i18n` (2) | isto + `t(column.labelKey)` → `headerKey` + `{row.stylistName}` → `row.stylistName` | obrasci primaju oba oblika; **provjereno** da i dalje hvataju hardkodiranje (`'Ana'` → False) |
+
+### Greške napravljene usput
+
+1. **Zamjena je počinjala na `<div className="app-table-wrap">` ali nije uključivala
+   zatvarajući `</div>`** → neuravnotežen JSX (`TS1005: ')' expected`). U `expense-table` je
+   slučajno prošlo jer sam tamo uključio `</div>`.
+2. **Obrisao sam liniju PRIJE ubacivanja bloka**, pa se indeks pomjerio i `columns` je
+   završio usred JSX-a. Pravilo: zamjene odozdo prema gore, ili traženje sidra **nakon**
+   svake izmjene.
+3. **Referencirao sam `/tmp/kolone_income.txt` koji nisam napravio** → skripta pala prije
+   `write_text`. Provjereno da je fajl ostao netaknut.
+4. **Pokrenuo sam `npm run -s test:templates-a11y` i `test:render-smoke` koji NE POSTOJE** —
+   `npm run -s` tiho padne na nepostojećoj skripti, pa sam prvo pogrešno zaključio da su
+   testovi pali. Stvarna imena su `test:admin-templates-a11y` i `test:admin-render-smoke`.
+5. Tip reda je `IncomeEntryRow`, ne `IncomeRow` — `tsc` je uhvatio.
+
+### Provjere
+
+`test:*` **177/177** · `tsc --noEmit` **exit 0** · build **273.9 KiB/300** · lint
+**0 errors / 7 warnings** · `check_i18n --strict` **PASS** · `check_doc_links` **PASS**
+(670/202) · `git diff --check` **čist**.
+
+### Preostalo
+
+`Notifications`, `Salon` (2 tabele), `Services`, `Users`. Salon je jedini s funkcionalnim
+`rowClassName` (`opacity-60`) i s `text-xs uppercase` zaglavljem.

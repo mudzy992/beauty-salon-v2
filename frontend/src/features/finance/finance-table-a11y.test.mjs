@@ -17,23 +17,46 @@ import test from 'node:test'
  * važio. `data-label` je obavezan jer `td::before { content: attr(data-label) }`
  * bez njega gubi vezu ćelije s nazivom kolone (WCAG 1.3.1).
  */
-const TABLES = [
+/**
+ * 2026-11-09 — `expense-table.tsx` je prešao na dijeljenu `DataTable` komponentu.
+ *
+ * Time se mijenja ŠTA se ovdje može mjeriti: `<th>`, `<td>`, `scope` i `data-label` više
+ * nisu u tom fajlu, nego u `data-table.tsx`, gdje ih zaključava `templates-a11y.test.mjs`.
+ * Zato ti fajlovi idu u zasebnu listu koja provjerava **korištenje** komponente, a ne
+ * doslovne brojeve markup-a. Brojevi u `TABLES` ispod važe samo za ručno napisane tabele.
+ */
+const DATA_TABLE_CONSUMERS = [
   {
     file: 'expense/expense-table.tsx',
-    // 3 `<th` dolaze iz COLUMNS.map() + 3 statična = 6 renderovanih kolona
-    sourceTh: 4,
-    scope: 4,
-    td: 6,
     captionKey: 'finance.expenseList.caption',
+    columns: 6,
+    headerKeys: [
+      'finance.expenseList.columns.date',
+      'finance.expenseList.columns.title',
+      'finance.expenseList.columns.amount',
+      'finance.expenseList.columns.category',
+      'finance.expenseList.columns.attachments',
+      'finance.expenseList.columns.actions',
+    ],
   },
   {
     file: 'income/income-entries-table.tsx',
-    // 4 `<th` iz COLUMNS.map() + 4 statična = 8 renderovanih kolona
-    sourceTh: 5,
-    scope: 5,
-    td: 8,
     captionKey: 'finance.incomeList.caption',
+    columns: 8,
+    headerKeys: [
+      'finance.incomeList.columns.date',
+      'finance.incomeList.columns.service',
+      'finance.incomeList.columns.revenue',
+      'finance.incomeList.columns.tips',
+      'finance.incomeList.columns.stylist',
+      'finance.incomeList.columns.client',
+      'finance.incomeList.columns.kind',
+      'finance.incomeList.columns.actions',
+    ],
   },
+]
+
+const TABLES = [
   {
     file: 'expense/expense-invoice-preview.tsx',
     sourceTh: 2,
@@ -91,13 +114,40 @@ for (const spec of TABLES) {
 }
 
 test('nema finance tabele bez captiona', () => {
-  // Ako neko doda novu tabelu, mora je dodati i u TABLES iznad.
+  // Ako neko doda novu tabelu, mora je dodati i u TABLES ili DATA_TABLE_CONSUMERS iznad.
   for (const spec of TABLES) {
     const source = read(spec.file)
     assert.ok(
       source.includes('<table'),
       `${spec.file} više ne sadrži <table> — ažuriraj TABLES`,
     )
+  }
+})
+
+test('finance tabele na DataTable-u koriste komponentu s lokalizovanim caption-om', () => {
+  const dataTable = read('../shell/admin/ui/data-table.tsx')
+  // Garancije žive u komponenti — jedna provjera za sve potrošače.
+  assert.match(dataTable, /<caption className="sr-only">\{caption\}<\/caption>/)
+  assert.match(dataTable, /scope="col"/)
+  assert.match(dataTable, /data-label=\{t\(column\.headerKey\)\}/)
+
+  for (const spec of DATA_TABLE_CONSUMERS) {
+    const source = read(spec.file)
+    assert.match(source, /<DataTable/, `${spec.file} ne koristi DataTable`)
+    assert.ok(
+      source.includes(`caption={t('${spec.captionKey}')}`),
+      `${spec.file} nema caption s ključem ${spec.captionKey}`,
+    )
+    // Redoslijed kolona je bitan: data-label u card-mode-u je t(column.headerKey).
+    const headerKeys = [...source.matchAll(/headerKey: '([^']+)'/g)].map((m) => m[1])
+    assert.deepEqual(headerKeys, spec.headerKeys, `${spec.file}: redoslijed kolona`)
+    assert.equal(headerKeys.length, spec.columns, `${spec.file}: broj kolona`)
+    // Konzistentnost na dashboardima je obavezna: bez lokalnih stil-varijanti.
+    for (const prop of ['tableClassName', 'headRowClassName']) {
+      assert.ok(!source.includes(prop), `${spec.file} ne smije prolaziti ${prop}`)
+    }
+    // Ručno napisana tabela se ne smije vratiti uz dijeljenu komponentu.
+    assert.equal((source.match(/<table\b/g) || []).length, 0, `${spec.file}: zaostala <table>`)
   }
 })
 

@@ -38,8 +38,13 @@ test('loyalty tabela koristi DataTable s lokalizovanim caption-om', () => {
   assert.match(source, /<DataTable/)
   assert.match(source, /caption=\{t\('loyaltyAdmin\.caption'\)\}/)
   assert.match(source, /rowKey=\{\(a\) => a\.id\}/)
-  // `tableClassName` čuva `border-collapse` koji je tabla imala i prije migracije.
-  assert.match(source, /tableClassName="border-collapse"/)
+  // Konzistentnost na dashboardima je obavezna (odluka vlasnika, 2026-11-09): potrošač NE
+  // smije prolaziti stil-propove da bi sačuvao lokalnu varijantu. `rowClassName` je dozvoljen
+  // samo za funkcionalne potrebe (npr. `opacity-60` za neradne dane u Salonu).
+  for (const prop of ['tableClassName', 'headRowClassName', 'unsortedIndicator']) {
+    assert.ok(!source.includes(prop), `Loyalty ne smije prolaziti ${prop} — to bi bila lokalna varijanta`)
+  }
+  assert.ok(!source.includes('rowClassName'), 'Loyalty nema funkcionalnu potrebu za klasama po redu')
   // Ručno napisana tabela se ne smije vratiti uz dijeljenu komponentu.
   assert.equal((source.match(/<table\b/g) || []).length, 0, 'ne smije ostati ručno napisana <table>')
 })

@@ -73,7 +73,8 @@ test('income list translation references exist with matching BS/EN keys', () => 
       )
   }
   assert.match(filters, /t\(kind\.labelKey\)/)
-  assert.match(table, /t\(column\.labelKey\)/)
+  // 2026-11-09: `DataTable` čita naziv kolone iz `headerKey`, ne `labelKey`.
+  assert.match(table, /headerKey: 'finance\.incomeList\.columns\.date'/)
 })
 
 test('income list copy, date, and amount formatting follow the active locale', async () => {
@@ -138,11 +139,14 @@ test('income filters, sorting identifiers, callbacks, and data remain unchanged'
   assert.match(filters, /onChange\(EMPTY_INCOME_FILTERS\)/)
   assert.match(filters, /aria-pressed=\{filters\.kind === kind\.value\}/)
 
-  assert.match(table, /field: 'date'/)
-  assert.match(table, /field: 'serviceName'/)
-  assert.match(table, /field: 'amount'/)
-  assert.match(table, /field: 'tipAmount'/)
-  assert.match(table, /onClick=\{\(\) => onSort\(column\.field\)\}/)
+  // Identifikatori sortiranja: `field` (stari COLUMNS) → `sortKey` (DataTable prop).
+  assert.match(table, /sortKey: 'date'/)
+  assert.match(table, /sortKey: 'serviceName'/)
+  assert.match(table, /sortKey: 'amount'/)
+  assert.match(table, /sortKey: 'tipAmount'/)
+  // Klik na zaglavlje sada živi u `DataTable`; potrošač mora proslijediti callback,
+  // inače bi zaglavlja bila mrtva iako komponenta ima ispravan markup.
+  assert.match(table, /onSortChange=\{\(key\) => onSort\(key as \w+\)\}/)
   assert.match(
     table,
     /onClick=\{\(\) =>\s*onEdit\(row\.manualEntry as IncomeBookManualEntry\)\s*\}/,
@@ -152,8 +156,10 @@ test('income filters, sorting identifiers, callbacks, and data remain unchanged'
     /onClick=\{\(\) =>\s*onDelete\(row\.manualEntry as IncomeBookManualEntry\)\s*\}/,
   )
   assert.match(table, /row\.manualEntry && !isLocked/)
-  assert.match(table, /\{row\.stylistName\}/)
-  assert.match(table, /\{row\.clientName\}/)
+  // 2026-11-09: `DataTable` prima `render: (row) => ...`, pa se izrazi više ne pojavljuju
+  // kao JSX `{...}`. Namjera je ista — vrijednost mora dolaziti iz reda, ne biti hardkodirana.
+  assert.match(table, /(\{|=> )row\.stylistName\}?/)
+  assert.match(table, /(\{|=> )row\.clientName\}?/)
   assert.match(
     table,
     /formatDateOnlyLocale\(\s*value\.slice\(0, 10\),\s*getIntlLocale\(language\),\s*DATE_OPTIONS,\s*\)/,

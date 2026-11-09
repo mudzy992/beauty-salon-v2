@@ -81,10 +81,15 @@ test('expense filter values, sort identifiers, and callbacks remain unchanged', 
   assert.match(filters, /update\(\{ maxAmount: event\.target\.value \}\)/)
   assert.match(filters, /update\(\{ onlyWithAttachments: event\.target\.checked \}\)/)
   assert.match(filters, /onChange\(EMPTY_EXPENSE_FILTERS\)/)
-  assert.match(table, /field: 'createdAt'/)
-  assert.match(table, /field: 'title'/)
-  assert.match(table, /field: 'totalAmount'/)
-  assert.match(table, /onClick=\{\(\) => onSort\(column\.field\)\}/)
+  // 2026-11-09: tabela je prešla na `DataTable`, pa se identifikatori sortiranja više ne
+  // zovu `field` (stari lokalni COLUMNS) nego `sortKey` (prop dijeljene komponente).
+  // Namjera asertacije je ista: identifikatori koje backend prima se ne smiju promijeniti.
+  assert.match(table, /sortKey: 'createdAt'/)
+  assert.match(table, /sortKey: 'title'/)
+  assert.match(table, /sortKey: 'totalAmount'/)
+  // Klik na zaglavlje sada živi u `DataTable`; potrošač mora proslijediti callback,
+  // inače bi zaglavlja bila mrtva iako komponenta ima ispravan markup.
+  assert.match(table, /onSortChange=\{\(key\) => onSort\(key as \w+\)\}/)
   assert.match(table, /onClick=\{\(\) => onEdit\(expense\)\}/)
   assert.match(table, /onClick=\{\(\) => onDelete\(expense\)\}/)
   assert.match(table, /\{expense\.title\}/)
