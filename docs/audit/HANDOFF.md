@@ -1179,10 +1179,17 @@ Rute s parametrom (`workbook/:entryId`, `workbook/reschedule-preview/:reservatio
 `schedule/:reservationId`) namjerno nisu pokrivene — traže stvaran ID iz baze, pa bi bez
 seedovanog podatka testirale prazan/error ekran i davale lažnu sliku.
 
-**Status: NAPISSANO, NIJE IZVRŠENO.** Agent u sandboxu nema ni browser ni backend, pa ovo
-nije dokaz da admin stranice prolaze — samo da postoji alat koji to može izmjeriti.
-Bez backend-a ili kredencijala testovi se **glasno preskaču** (razlog se ispiše i upiše u
-`.auth/admin-status.json`), umjesto da daju lažno crveno.
+**Status: djelimično izvršeno.** Razdvojeno jer su dvije različite stvari:
+
+- ✅ **Setup i skip putanja su STVARNO IZVRŠENI u sandboxu** (2026-11-09):
+  `npx playwright test --project=admin` → **16 skipped, 2 passed**, exit 0;
+  `--project=stylist` → **9 skipped, 2 passed**. Setup je zapisao
+  `.auth/admin-status.json` = `{"ok":false,"reason":"nedostaju E2E_ADMIN_USER /
+  E2E_ADMIN_PASS u okruženju"}` i `.auth/admin.json` = prazan `{cookies:[],origins:[]}`.
+  `git status --porcelain e2e/.auth/` je prazan → token ne može u Git.
+- ❌ **Sam axe nad admin/stylist stranicama NIJE izvršen** — za to treba browser binarni
+  fajl, podignut backend i kredencijali, što sandbox nema. Dakle ovo **nije** dokaz da
+  admin stranice prolaze; samo da mehanizam prijave, preskakanja i izolacije tokena radi.
 
 Dvije namjerne odlike koje sprječavaju lažni prolaz:
 1. Ako sesija nije prihvaćena, `ProtectedRoute` redirektuje na `/login` — a axe bi tada

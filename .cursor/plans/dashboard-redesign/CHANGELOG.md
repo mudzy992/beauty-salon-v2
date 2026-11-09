@@ -3038,4 +3038,20 @@ dvostruko izvršili bez `storageState`.
 `git check-ignore` potvrđuje da `.auth/stylist*.json` nisu trackabilni ·
 `mobile/` i `features/blog/` = 0 diff.
 
-**I dalje NIJE izvršeno** — bez backend-a i kredencijala u sandboxu.
+### Izvršeno u sandboxu (korekcija ranije tvrdnje „nije izvršeno")
+
+Ranije sam za cijeli harness napisao „nije izvršeno". To je bilo **neprecizno**: setup i
+skip putanja su se stvarno pokrenuli. Izmjereno 2026-11-09:
+
+| Komanda | Rezultat |
+|---|---|
+| `npx playwright test --project=admin` | **16 skipped, 2 passed**, exit 0 |
+| `npx playwright test --project=stylist` | **9 skipped, 2 passed**, exit 0 |
+
+Setup je zapisao `.auth/admin-status.json` =
+`{"ok":false,"reason":"nedostaju E2E_ADMIN_USER / E2E_ADMIN_PASS u okruženju"}` i
+`.auth/admin.json` = `{"cookies":[],"origins":[]}`; `git status --porcelain e2e/.auth/`
+je prazan.
+
+**Sam axe nad admin/stylist DOM-om i dalje NIJE izvršen** (treba browser + backend +
+kredencijali). Zato admin/stylist WCAG statusi ostaju 🟡.
