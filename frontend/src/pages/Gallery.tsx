@@ -412,16 +412,16 @@ export default function Gallery() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>{t('gallery.admin.name')}</Label>
-              <Input className="mt-1" value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} />
+              <Label htmlFor="gallery-category-name">{t('gallery.admin.name')}</Label>
+              <Input id="gallery-category-name" className="mt-1" value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} />
             </div>
             <div>
-              <Label>{t('gallery.admin.description')}</Label>
-              <Textarea className="mt-1" value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
+              <Label htmlFor="gallery-category-description">{t('gallery.admin.description')}</Label>
+              <Textarea id="gallery-category-description" className="mt-1" value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
             </div>
             <div>
-              <Label>{t('gallery.admin.sortOrder')}</Label>
-              <Input className="mt-1" type="number" min={0} value={catForm.sortOrder} onChange={(e) => setCatForm({ ...catForm, sortOrder: Number(e.target.value) || 0 })} />
+              <Label htmlFor="gallery-category-sort-order">{t('gallery.admin.sortOrder')}</Label>
+              <Input id="gallery-category-sort-order" className="mt-1" type="number" min={0} value={catForm.sortOrder} onChange={(e) => setCatForm({ ...catForm, sortOrder: Number(e.target.value) || 0 })} />
             </div>
             <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
               <input
@@ -571,16 +571,16 @@ export default function Gallery() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>{t('gallery.admin.title')}</Label>
-              <Input className="mt-1" value={imgForm.title} onChange={(e) => setImgForm({ ...imgForm, title: e.target.value })} />
+              <Label htmlFor="gallery-image-title">{t('gallery.admin.title')}</Label>
+              <Input id="gallery-image-title" className="mt-1" value={imgForm.title} onChange={(e) => setImgForm({ ...imgForm, title: e.target.value })} />
             </div>
             <div>
-              <Label>{t('gallery.admin.description')}</Label>
-              <Textarea className="mt-1" value={imgForm.description} onChange={(e) => setImgForm({ ...imgForm, description: e.target.value })} />
+              <Label htmlFor="gallery-image-description">{t('gallery.admin.description')}</Label>
+              <Textarea id="gallery-image-description" className="mt-1" value={imgForm.description} onChange={(e) => setImgForm({ ...imgForm, description: e.target.value })} />
             </div>
             <div>
-              <Label>{t('gallery.admin.sortOrder')}</Label>
-              <Input className="mt-1" type="number" min={0} value={imgForm.sortOrder} onChange={(e) => setImgForm({ ...imgForm, sortOrder: Number(e.target.value) || 0 })} />
+              <Label htmlFor="gallery-image-sort-order">{t('gallery.admin.sortOrder')}</Label>
+              <Input id="gallery-image-sort-order" className="mt-1" type="number" min={0} value={imgForm.sortOrder} onChange={(e) => setImgForm({ ...imgForm, sortOrder: Number(e.target.value) || 0 })} />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">

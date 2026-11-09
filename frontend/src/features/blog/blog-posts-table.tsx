@@ -18,15 +18,16 @@ export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete
 
   return (
     <div className="app-table-wrap">
-      <table className="app-table w-full border-collapse">
-        <thead>
+      <table className="app-table data-table w-full border-collapse">
+                  <caption className="sr-only">{t('blog.admin.tableCaption')}</caption>
+          <thead>
           <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-            <th className="p-3 font-medium">{t('blog.title')}</th>
-            <th className="p-3 font-medium">{t('blog.admin.slug')}</th>
-            <th className="p-3 font-medium">{t('blog.admin.status')}</th>
-            <th className="p-3 font-medium">{t('blog.admin.publishDate')}</th>
-            <th className="p-3 font-medium">{t('blog.admin.created')}</th>
-            <th className="p-3 text-right font-medium">{t('blog.admin.actions')}</th>
+            <th scope="col" className="p-3 font-medium">{t('blog.title')}</th>
+            <th scope="col" className="p-3 font-medium">{t('blog.admin.slug')}</th>
+            <th scope="col" className="p-3 font-medium">{t('blog.admin.status')}</th>
+            <th scope="col" className="p-3 font-medium">{t('blog.admin.publishDate')}</th>
+            <th scope="col" className="p-3 font-medium">{t('blog.admin.created')}</th>
+            <th scope="col" className="p-3 text-right font-medium">{t('blog.admin.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -37,20 +38,20 @@ export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete
           ) : (
             posts.map((p) => (
               <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{p.title}</td>
-                <td className="p-3 text-slate-500">{p.slug}</td>
-                <td className="p-3">
+                <td data-label={t('blog.title')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{p.title}</td>
+                <td data-label={t('blog.admin.slug')} className="p-3 text-slate-500">{p.slug}</td>
+                <td data-label={t('blog.admin.status')} className="p-3">
                   <Badge variant={p.isPublished ? 'success' : 'secondary'}>
                     {p.isPublished ? t('blog.published') : t('blog.draft')}
                   </Badge>
                 </td>
-                <td className="p-3">
+                <td data-label={t('blog.admin.publishDate')} className="p-3">
                   {p.publishedAt ? new Intl.DateTimeFormat(i18n.language).format(new Date(p.publishedAt)) : '-'}
                 </td>
-                <td className="p-3">
+                <td data-label={t('blog.admin.created')} className="p-3">
                   {new Intl.DateTimeFormat(i18n.language).format(new Date(p.createdAt))}
                 </td>
-                <td className="p-3 text-right">
+                <td data-label={t('blog.admin.actions')} className="p-3 text-right">
                   <div className="flex justify-end gap-1">
                     <div className="relative">
                       <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('blog.admin.comments')} onClick={() => onComments(p.id, p.title)}>

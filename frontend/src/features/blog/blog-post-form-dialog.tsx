@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
@@ -118,7 +118,7 @@ export function BlogPostFormDialog({
               <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('blog.published')}</p>
               <p className="text-xs text-slate-500">{t('blog.admin.publishedHint')}</p>
             </div>
-            <Switch checked={form.isPublished} onCheckedChange={(isPublished) => onChange({ isPublished })} />
+            <Switch aria-label={t('blog.published')} checked={form.isPublished} onCheckedChange={(isPublished) => onChange({ isPublished })} />
           </div>
           <BlogPostSeoFields form={form} onChange={onChange} />
         </div>
@@ -150,9 +150,13 @@ function ImageUpload({
 }) {
   const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const labelId = useId()
+  const hintId = useId()
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
+    <div role="group" aria-labelledby={labelId} className="space-y-2">
+      <p id={labelId} className="text-sm font-medium leading-none text-slate-700 dark:text-slate-200">
+        {label}
+      </p>
       <MediaImage src={value ? getUploadUrl(value) : ''} alt={label} className="h-[120px] w-full rounded-md object-cover" />
       <input
         type="file"
@@ -167,14 +171,25 @@ function ImageUpload({
           e.target.value = ''
         }}
       />
-      <Button type="button" size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        aria-describedby={hint ? hintId : undefined}
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+      >
         {uploading
           ? t('blog.admin.imageUploading')
           : value
             ? t('blog.admin.changeImage')
             : t('blog.admin.uploadImage')}
       </Button>
-      {hint ? <p className="text-xs text-slate-500">{hint}</p> : null}
+      {hint ? (
+        <p id={hintId} className="text-xs text-slate-500">
+          {hint}
+        </p>
+      ) : null}
     </div>
   )
 }

@@ -27,7 +27,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 6 | Analitika (+ M1 ako odobren) | `[x]` 1 commit · **M1 nije odobren, preskočen** | prošla |
 | 7 | Korisnici | `[x]` 1 commit | prošla |
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
-| 9 | Sadržaj (Blog, Galerija, Recenzije) | `[ ]` | |
+| 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
 | 10 | Postavke (+ M2 ako odobren) | `[ ]` | |
 | 11 | Stylist portal | `[ ]` | |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
@@ -88,6 +88,21 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > (Salon 2, Stylists 2) — 14 renderovanih kontrola (7 redova × 2) koje bi u card-mode imale
 > generičko ime. Novi test `test:salon-services-stylists-a11y` (7 testova) uključuje
 > **dva regresona čuvara za opovrgnute D1/D6**; **7/7 mutacija palo**.
+
+> **Faza 9 — napomene.** Pet planiranih stavki **opovrgnuto** iz izvora: **D1** (`Gallery.tsx`
+> uopšte **nema tabelu** — grid je, pa `DataTable` neprimjenjiv; blog tabela je u zasebnom
+> fajlu), **D2** (5× `window.confirm` je pristupačan i jeste korak potvrde iz 3.3.4),
+> **D4** (u modulu **nema nijednog `onDrop`** — oba uploada su već native `<input type="file">`,
+> pa 2.5.7 nije prekršaj), **D5** (sve 3 slike već imaju `alt`), **D7** (status badge već nosi
+> tekst). **D8/kontrast opovrgnut**: svih 5 kandidata su `<Star>`/`<Check>`/`<MessageSquareText>`
+> s `aria-hidden="true"`. **D3 djelimično ispravan** — SEO sekcija jeste vizuelno izdvojena
+> (okvir + naslov), pa je migrirana na `FormSection` (`fieldset`/`legend`); `fieldset` za
+> ostatak forme nije potreban jer tamo nema vizuelnih sekcija. Stvarni prekršaji: **4.1.2**
+> (2 `<Switch>` bez imena), **1.3.1** (6 `<Label>` bez `htmlFor` u Gallery + orphan `<Label>`
+> u `ImageUpload`), **1.3.1/1.4.10** (2 tabele / 15 `<th>` / 0 `scope`). Nalaz koji plan nije
+> naveo: **1.1.1 `Stars`** — 5 `aria-hidden` ikona, a u **tabeli** nije bilo brojčanog
+> ekvivalenta (detaljni panel ga je imao), pa su ćelije ocjena za čitač ekrana bile prazne.
+> Novi test `test:admin-content-a11y` (10 testova); **14/14 mutacija palo**.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

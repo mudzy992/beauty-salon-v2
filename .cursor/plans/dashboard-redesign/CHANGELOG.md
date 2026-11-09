@@ -1702,3 +1702,113 @@ Registrovan u `frontend/package.json` (162 skripti) **i** `.github/workflows/ci.
 
 **Odgođeno na fazu 13:** razbijanje `Services.tsx` (1533 ln) i migracija 5 tabela na
 `DataTable` (rizik za paritet podataka).
+
+---
+
+## 2026-11-08 — FAZA 9: Sadržaj — Blog / Galerija / Recenzije
+
+Modul **1623 linije** u 10 admin fajlova. Do ove faze postojala su 3 i18n testa
+(`admin-blog-i18n`, `admin-gallery-i18n`, `admin-reviews-i18n`) koji asertuju markup,
+ali **nijedan a11y test**. Novi test je kolociran u `features/content/`.
+
+### Recon: pet planiranih stavki opovrgnuto, jedna djelimično tačna
+
+| Stavka | Tvrdnja plana | Šta izvor stvarno kaže |
+|---|---|---|
+| **D1** | `DataTable` za sva tri ekrana | `Gallery.tsx` **nema tabelu** (`grep '<table'` = 0) — grid je. Blog tabela je u `features/blog/blog-posts-table.tsx`, ne u `pages/Blog.tsx`. |
+| **D2** | `window.confirm` → 3.3.4 | 5× (`Blog.tsx:97,135`, `Gallery.tsx:161,197`, `Reviews.tsx:77`) — linije su **tačne**, ali nativni dijalog je pristupačan i **jeste** korak potvrde. |
+| **D4** | Upload → native input, bez obaveznog drag&drop-a | **0 `onDrop` u cijelom modulu.** `Gallery.tsx:472` i `blog-post-form-dialog.tsx:158` su već native `<input type="file">`; Gallery ima i `<Label htmlFor="gallery-manual-file">`. 2.5.7 zadovoljen. |
+| **D5** | `alt` obavezan i provjeren | Sve **3** slike već imaju `alt` (`Gallery.tsx:382` dinamički, `:536` `alt=""` dekorativno, `blog-post-form-dialog.tsx:160`). |
+| **D7** | Status badge (tekst + ikona) | `getApprovalBadge` već vraća `<Badge variant="…">{t('reviews.…')}</Badge>` — tekst postoji, nije samo boja. |
+| **D8** | Tokeni / kontrast | 5 kandidata (`emerald-600` ×2, `teal-600`, `yellow-400`, `slate-300`) — **svih 5 na `aria-hidden="true"` ikonama** uz tekstualni ekvivalent. Nisu 1.4.3. |
+| **D3** | `fieldset`/`legend`, `aria-describedby` | **Djelimično tačno.** SEO sekcija jeste vizuelno izdvojena (okvir + `<p>SEO</p>`) → migrirana na `FormSection`. Ostatak blog forme **nema** vizuelnih sekcija, pa `fieldset` tamo nije potreban. |
+
+### Stvarni prekršaji
+
+**4.1.2 — 2 `<Switch>` bez ijednog pristupačnog imena.** Tekst je bio u `<p className="text-sm font-medium">` sibling-u, bez programske veze:
+
+| Fajl | Linija | Polje |
+|---|---|---|
+| `blog-post-form-dialog.tsx` | 121 | `isPublished` |
+| `blog-post-seo-fields.tsx` | 55 | `noIndex` |
+
+**1.3.1 — 7 kontrola bez imena izneasociranih labela.** Šest u `Gallery.tsx` (2 dijaloga × 3 polja, `<Label>` sibling bez `htmlFor`) + jedan **orphan `<Label>{label}</Label>`** u `ImageUpload` koji nije labelovao nijednu kontrolu.
+
+**1.3.1/1.4.10 — 2 tabele bez semantike:** 15 `<th>`, **0 `scope`**, **0 `<caption>`**, **0 `data-label`**, **0 `data-table`**.
+
+| Fajl | `<th>` | `<td>` |
+|---|---|---|
+| `Reviews.tsx` | 9 | 10 (9 + 1 `colSpan`) |
+| `blog-posts-table.tsx` | 6 | 7 (6 + 1 `colSpan`) |
+
+### Nalaz koji plan NIJE naveo: 1.1.1 `Stars` bez tekstualne alternative
+
+`Stars` (ln 26) renderuje 5 `<Star aria-hidden="true">`. U **detaljnom panelu** (ln 239-248)
+uz njih stoji `<span>{formatLocalizedNumber(...)}/5</span>` — ali u **tabeli** (ln 164, 166)
+**nije stajalo ništa**. Pošto su ikone `aria-hidden`, ćelije „Ocjena usluge" i „Ocjena frizera"
+su za čitač ekrana bile **potpuno prazne**. Dodano `role="img"` + `aria-label` na omotač
+(kanonski obrazac za ocjene zvjezdicama), s interpolacijom `{{value}}`/`{{max}}`.
+
+### Implementirano
+
+- **4.1.2:** 2 `<Switch>` → `aria-label`. **Reuse postojećih ključeva** (`blog.published`,
+  `blog.admin.noIndex`) jer `<p>` pored njih već koristi te iste ključeve — nula novih.
+- **1.3.1:** 6 `<Label>` u Gallery → `htmlFor`/`id` parovi (`gallery-category-{name,description,sort-order}`,
+  `gallery-image-{title,description,sort-order}`). Ključevi `gallery.admin.description` i
+  `.sortOrder` pojavljuju se 2×, pa su parovi razdvojeni po formi u `onChange` (`catForm` vs `imgForm`).
+- **1.3.1:** orphan `<Label>` u `ImageUpload` → `<p id>` + `role="group"` + `aria-labelledby`;
+  hint povezan s dugmetom preko `aria-describedby` (prije je lebdio). `useId` za stabilne id-ove.
+- **1.1.1:** `Stars` → `role="img"` + `aria-label={t('reviews.aria.ratingValue', { value, max })}`.
+- **1.3.1:** SEO sekcija → `FormSection` (`<fieldset>` + `<legend>` + opis), −162 B.
+- **1.3.1/1.4.10:** `scope="col"` na **15/15 `<th>`**, `<caption>` **2/2**, `data-table` **2/2**,
+  `data-label={t(...)}` na **15 `<td>`** (2 su `colSpan` empty-state). 0 hardkodovanih literala.
+- **i18n:** **3 nova leaf ključa** (`blog.admin.tableCaption`, `reviews.tableCaption`,
+  `reviews.aria.ratingValue`) — numstat **5/5** po fajlu (3 ključa + 2 linije za novi
+  `reviews.aria` blok). `find_block` s granicama namespace-a, bez re-serializacije.
+
+### Novi test: `test:admin-content-a11y` (10 testova)
+
+Registrovan u `frontend/package.json` (163 skripti) **i** `.github/workflows/ci.yml`
+(korak „Test admin content page accessibility", ln 563-565).
+
+**Mutacijska provjera — 14/14 palo:** Switch ×2, `htmlFor`, `role="img"`, `aria-label` zvjezdica,
+`scope`, `caption`, `data-table`, `data-label`, `<FormSection>`, te 3 regresona čuvara
+(uklonjen tekst badgea → D7, dodan `onDrop` → D4, uklonjen `alt` → D5, ×2 fajla).
+
+### Tri greške uhvaćene vlastitom provjerom
+
+1. **`s[j:nl].strip().endswith('>')` gdje je `nl = s.index('>', j)`** — `index` vraća poziciju
+   **prije** `>`, pa je guard provjeravao `'<Label'` i pucao s **pogrešnom porukom**
+   („Label već ima htmlFor"). `Gallery.tsx` nije upisan.
+2. **Prag `total >= 20` napisan napamet** — stvarno ih je **14**. Asertija je pala i natjerala
+   brojanje; zamijenjeno tačnom brojkom.
+3. **🔴 D5 čuvar je bio PRAZAN:** asertija `/alt=/` **prolazi i na `data-alt=`**, pa mutacija
+   „ukloni alt" nije padala. Ispravljeno na `/(^|\s)alt=/` + `assert.equal(total, 3)` — tek
+   tada su obje mutacije pale. Ovo je ista klasa greške kao „green nije dokaz": čuvar koji
+   ne može pasti nije čuvar.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| 157 `test:*` skripti | **157/157 PASS** |
+| `test:admin-content-a11y` | **10/10 PASS**, mutacijski verificirano 14/14 |
+| `admin-blog-i18n` / `admin-gallery-i18n` / `admin-reviews-i18n` | **PASS** — ugovori očuvani |
+| 10 `public-blog-*` / `public-gallery-*` testova | **PASS** |
+| `npm run build` | **PASS**, **274.1 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2653/2653 leaf ključeva |
+| `check_ui_contrast.py --strict` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1665 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `git diff --check` | čist |
+| locale fajlovi | **5/0** po fajlu — bez reformata |
+| Javni sajt | **bez diff-a** — `Gallery`/`Reviews` importuje samo `admin.routes.tsx`; blog fajlove samo `pages/Blog.tsx`. Javne rute koriste zasebne `PublicBlogList`/`PublicGallery`/`PublicSatisfiedClients` |
+| `MATRIX.md` | **netaknut** |
+| `MediaImage`, `BeforeAfterSlider`, sanitizacija | **netaknuti** (dijeljeni s javnim) |
+
+**Nije render-verificirano:** vizualni card-mode ispod 640 px (2 tabele), ponašanje
+`window.confirm` dijalogova (namjerno netaknuti), najava `role="status"` pri moderaciji.
+
+**Odgođeno na fazu 13:** razbijanje `Gallery.tsx` (600 ln) po panelima i migracija 2 tabele
+na `DataTable` (rizik za paritet podataka); `fieldset` za cijelu blog formu ako se uvedu
+vizuelne sekcije.

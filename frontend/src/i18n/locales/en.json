@@ -2514,6 +2514,10 @@
     }
   },
   "reviews": {
+    "tableCaption": "Reviews table: client, service, stylist, service rating, stylist rating, comment, status, date, and actions.",
+    "aria": {
+      "ratingValue": "Rating {{value}} out of {{max}}"
+    },
     "approve": "Approve",
     "delete": "Delete",
     "serviceRating": "Service rating",
@@ -2662,6 +2666,7 @@
     "published": "Published",
     "draft": "Draft",
     "admin": {
+      "tableCaption": "Blog posts table: title, slug, status, publish date, created date, and actions.",
       "slug": "Slug (URL)",
       "status": "Status",
       "publishDate": "Publish date",

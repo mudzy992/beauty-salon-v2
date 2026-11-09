@@ -24,8 +24,16 @@ interface Review {
 }
 
 function Stars({ count }: { count: number }) {
+  const { t, i18n } = useTranslation()
   return (
-    <div className="flex items-center gap-0.5">
+    <div
+      role="img"
+      aria-label={t('reviews.aria.ratingValue', {
+        value: formatLocalizedNumber(count, i18n.language),
+        max: formatLocalizedNumber(5, i18n.language),
+      })}
+      className="flex items-center gap-0.5"
+    >
       {Array.from({ length: 5 }, (_, i) => (
         <Star
           key={i}
@@ -129,18 +137,19 @@ export default function Reviews() {
           </div>
         ) : (
           <div className="app-table-wrap">
-            <table className="app-table w-full border-collapse">
-              <thead>
+            <table className="app-table data-table w-full border-collapse">
+                                <caption className="sr-only">{t('reviews.tableCaption')}</caption>
+                  <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="p-3 font-medium">{t('reviews.client')}</th>
-                  <th className="p-3 font-medium">{t('reviews.service')}</th>
-                  <th className="p-3 font-medium">{t('reviews.stylist')}</th>
-                  <th className="p-3 font-medium">{t('reviews.serviceRating')}</th>
-                  <th className="p-3 font-medium">{t('reviews.stylistRating')}</th>
-                  <th className="p-3 font-medium">{t('reviews.comment')}</th>
-                  <th className="p-3 font-medium">{t('common.status')}</th>
-                  <th className="p-3 font-medium">{t('common.date')}</th>
-                  <th className="p-3 text-right font-medium">{t('common.actions')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('reviews.client')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('reviews.service')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('reviews.stylist')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('reviews.serviceRating')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('reviews.stylistRating')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('reviews.comment')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('common.status')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('common.date')}</th>
+                  <th scope="col" className="p-3 text-right font-medium">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,19 +166,19 @@ export default function Reviews() {
                       className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
                       onClick={() => openDetail(r)}
                     >
-                      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{getUserName(r.user)}</td>
-                      <td className="p-3">{r.service?.name ?? '-'}</td>
-                      <td className="p-3">{getUserName(r.stylist?.user)}</td>
-                      <td className="p-3">
+                      <td data-label={t('reviews.client')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{getUserName(r.user)}</td>
+                      <td data-label={t('reviews.service')} className="p-3">{r.service?.name ?? '-'}</td>
+                      <td data-label={t('reviews.stylist')} className="p-3">{getUserName(r.stylist?.user)}</td>
+                      <td data-label={t('reviews.serviceRating')} className="p-3">
                         <Stars count={r.serviceRating} />
                       </td>
-                      <td className="p-3">{r.stylistRating ? <Stars count={r.stylistRating} /> : '-'}</td>
-                      <td className="max-w-[220px] truncate p-3">{r.comment ?? '-'}</td>
-                      <td className="p-3">{getApprovalBadge(r.isApproved)}</td>
-                      <td className="p-3">{Number.isFinite(new Date(r.createdAt).getTime())
+                      <td data-label={t('reviews.stylistRating')} className="p-3">{r.stylistRating ? <Stars count={r.stylistRating} /> : '-'}</td>
+                      <td data-label={t('reviews.comment')} className="max-w-[220px] truncate p-3">{r.comment ?? '-'}</td>
+                      <td data-label={t('common.status')} className="p-3">{getApprovalBadge(r.isApproved)}</td>
+                      <td data-label={t('common.date')} className="p-3">{Number.isFinite(new Date(r.createdAt).getTime())
                         ? new Intl.DateTimeFormat(getIntlLocale(i18n.language), { dateStyle: 'medium' }).format(new Date(r.createdAt))
                         : '—'}</td>
-                      <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td data-label={t('common.actions')} className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           {r.isApproved !== true ? (
                             <Button

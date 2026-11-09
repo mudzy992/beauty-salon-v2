@@ -2511,6 +2511,10 @@
     }
   },
   "reviews": {
+    "tableCaption": "Tabela recenzija: klijent, usluga, frizer, ocjena usluge, ocjena frizera, komentar, status, datum i akcije.",
+    "aria": {
+      "ratingValue": "Ocjena {{value}} od {{max}}"
+    },
     "approve": "Odobri",
     "delete": "Obriši",
     "serviceRating": "Ocjena servisa",
@@ -2659,6 +2663,7 @@
     "published": "Objavljeno",
     "draft": "Nacrt",
     "admin": {
+      "tableCaption": "Tabela blog objava: naslov, slug, status, datum objave, datum kreiranja i akcije.",
       "slug": "Slug (URL)",
       "status": "Status",
       "publishDate": "Datum objavljivanja",

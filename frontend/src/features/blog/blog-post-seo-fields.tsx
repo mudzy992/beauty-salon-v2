@@ -4,6 +4,7 @@ import { Label } from '../../components/ui/label'
 import { Input } from '../../components/ui/input'
 import { Textarea } from '../../components/ui/textarea'
 import { Switch } from '../../components/ui/switch'
+import { FormSection } from '../shell/admin/ui/form-section'
 import type { BlogPostFormValues } from './types'
 
 type Props = {
@@ -15,13 +16,7 @@ export function BlogPostSeoFields({ form, onChange }: Props) {
   const { t } = useTranslation()
 
   return (
-    <div className="space-y-4 rounded-md border border-slate-200 p-3 dark:border-slate-800">
-      <div>
-        <p className="text-sm font-medium text-slate-900 dark:text-slate-50">SEO</p>
-        <p className="text-xs text-slate-500">
-          {t('blog.admin.seoHint')}
-        </p>
-      </div>
+    <FormSection title="SEO" description={t('blog.admin.seoHint')}>
       <div className="space-y-2">
         <Label htmlFor="blog-seo-title">
           {t('blog.admin.seoTitle', { count: form.seoTitle.length, max: 70 })}
@@ -52,8 +47,8 @@ export function BlogPostSeoFields({ form, onChange }: Props) {
           <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('blog.admin.noIndex')}</p>
           <p className="text-xs text-slate-500">{t('blog.admin.noIndexHint')}</p>
         </div>
-        <Switch checked={form.noIndex} onCheckedChange={(noIndex) => onChange({ noIndex })} />
+        <Switch aria-label={t('blog.admin.noIndex')} checked={form.noIndex} onCheckedChange={(noIndex) => onChange({ noIndex })} />
       </div>
-    </div>
+    </FormSection>
   )
 }
