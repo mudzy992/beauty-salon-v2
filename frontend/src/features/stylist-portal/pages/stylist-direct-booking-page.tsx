@@ -292,7 +292,7 @@ export const StylistDirectBookingPage = () => {
           ) : !selectedClient ? (
             <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
           ) : !selectedClient.gender ? (
-            <p className="text-sm text-amber-600">{t('stylistPortal.directBooking.genderMissing')}</p>
+            <p className="text-sm text-warn-foreground">{t('stylistPortal.directBooking.genderMissing')}</p>
           ) : loadingServices ? (
             <p role="status" aria-live="polite" className="text-sm text-content-muted">
               {t('common.loading')}

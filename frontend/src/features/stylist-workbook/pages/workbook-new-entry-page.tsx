@@ -360,7 +360,7 @@ export const WorkbookNewEntryForm = ({
             ) : null}
           </div>
           {selectedClient ? (
-            <p className="mt-2 text-xs text-emerald-600">
+            <p className="mt-2 text-xs text-ok-foreground">
               {t('stylistWorkbook.newEntry.selectedClient', { client: [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') || selectedClient.username })}
             </p>
           ) : null}

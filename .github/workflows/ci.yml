@@ -596,6 +596,9 @@ jobs:
       - name: Test reservation scheduler combobox
         working-directory: frontend
         run: npm run test:reservation-scheduler-combobox
+      - name: Test text contrast allowlist
+        working-directory: frontend
+        run: npm run test:text-contrast-allowlist
       # ESLint (react-hooks/rules-of-hooks = error). Uveden poslije React #310 regresije:
       # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide.
       - name: Lint frontend (rules-of-hooks)

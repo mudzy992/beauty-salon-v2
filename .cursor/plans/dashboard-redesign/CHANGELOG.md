@@ -2517,3 +2517,77 @@ prolaženje na praznom skupu).
 | `npm run build` | 274.1 KiB gzip (calendar chunk 95.5 KiB) |
 | `npx tsc --noEmit` | čist |
 | `check_i18n` / `check_ui_contrast` / hygiene / doc_links | PASS / 80 / 1682 / 669 |
+
+---
+
+## 2026-11-09 — Faza 13 (commit 2): D3 sweep sirovih boja — 4 stvarna prekršaja, ne 1965
+
+### Zašto nije „sweep sirovih boja"
+
+Plan (§D3) traži „grep `text-slate-*`/hex → allowlist". Ali **sirova paleta-klasa nije
+prekršaj ako kontrast prolazi**, a zabrana klasa bi bila čist churn: u admin/stylist kodu
+ima **883 svjetle** upotrebe paleta-klasa. Zato test **mjeri kontrast** i traži obrazloženje
+samo za one ispod 4.5:1.
+
+### Trijaža (svaki nalaz provjeren iz izvora)
+
+| Grupa | Broj | Presuda |
+|---|---|---|
+| Ikone (`aria-hidden="true"`, `1.4.11` prag **3:1**) | 18 | PASS — `rose-500` 3.67, `emerald-600` 3.77, `teal-600` 3.74, `amber-600` 3.19, `slate-400` 2.56 (dekorativne) |
+| Zvjezdice ocjena (`fill-*`, imaju tekstualnu alternativu) | 4 | PASS |
+| Tekst na **nebijeloj** pozadini | 4 | PASS — `badge` `slate-50` na `bg-slate-900` (≈17:1); `Login`/`Register`/`PublicHome` `slate-200` na `bg-gradient-to-t from-black/80` |
+| **Tekst na bijeloj ispod 4.5:1** | **4** | **PREKRŠAJ — ispravljeno** |
+
+### Ispravljeno (1.4.3)
+
+| Mjesto | Bilo | Sada |
+|---|---|---|
+| `stylist-direct-booking-page.tsx:295` | `text-amber-600` **3.19:1** | `text-warn-foreground` **8.35:1** |
+| `workbook-new-entry-page.tsx:363` | `text-emerald-600` **3.77:1** | `text-ok-foreground` **7.14:1** |
+| `Users.tsx:1186` | `text-emerald-600` **3.77:1** | `text-ok-foreground` **7.14:1** |
+| `Users.tsx:1373` | `text-emerald-600` **3.77:1** | `text-ok-foreground` **7.14:1** |
+
+Svi `<p>`-ovi stoje na `bg-white` (`card.tsx:10`). U `Users.tsx` trostanje dostupnosti
+korisničkog imena ostaje mješovito **namjerno**: `slate-500` (4.76:1), `rose-600` (4.70:1)
+i `blue-600` (5.17:1) **prolaze**, pa ih ne diram — popravljam prekršaje, ne prolazan kod
+(inače bi to bilo 22 izmjene bez a11y vrijednosti).
+
+### 🔴 Posljedica moje ranije pogrešne premise
+
+`amber-600` 3.19:1 i `emerald-600` 3.77:1 na **bijeloj** su prekršaji, ali test iz faze 11
+(`stylist-dark-contrast-a11y`) ih **nije** uhvatio jer je računao kontrast na **tamnoj**
+površini (`amber-600` 5.60:1, `emerald-600` 4.74:1 — oba PASS). Tamna tema se ne može
+aktivirati, pa je taj test mjerio površinu koja se ne prikazuje. Novi test mjeri **bijelu**.
+
+### Dvije greške u mom sweepu (uhvaćene prije commita)
+
+1. `(?<!dark:)text-` isključuje samo `dark:` **neposredno** ispred `text-`, pa su
+   `dark:[&>svg]:text-slate-50` i `dark:hover:text-slate-500` prošli kao svjetle upotrebe
+   (3 lažno pozitivna). Rješenje: parsiranje po **tokenima klase** i provjera da li se
+   `dark` nalazi **bilo gdje** u prefiksu tokena.
+2. `EXCLUDE` regex je tražio trailing separator (`features/blog/`), a testirana je putanja
+   direktorija **bez** njega → `features/blog` se nije preskočio (2 lažno pozitivna).
+   Rješenje: fragmenti putanje nad normalizovanim stringom.
+
+### Test
+
+**`test:text-contrast-allowlist`** (3 testa): sweep 178 fajlova (bez `features/blog` i
+`features/shell/public`), allowlist od 27 obrazloženih nalaza, i asertije za 4 ispravke.
+Donje granice `scanned >= 800` i `skippedDark >= 100` sprječavaju tiho prolazenje.
+
+**6/6 smislenih mutacija pada**: `dark:` detekcija isključena (**negativna kontrola**),
+obrisan unos allowliste, vraćen `emerald-600`, novi niskokontrastni nalaz (`amber-500`
+2.15:1), zastarjeli unos allowliste, prekratak razlog.
+
+**Tri mutacije koje test namjerno NE ruši** (nisu rupe): olabavljene donje granice i
+dodata neiskorištena paleta — to slabi čuvar, ne krši invariant. Isprva sam jednu mutaciju
+(`pink-600`) proglasio rupom, a ona je **4.60:1 → prolazi**, dakle loše izabrana mutacija.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **169/169** |
+| `npm run build` | 274.1 KiB gzip |
+| `npx tsc --noEmit` | čist |
+| `check_i18n --strict` / `check_ui_contrast --strict` | PASS / 80 |
+| hygiene / `diff --check` | 1683 / čist |
+| diff | hirurški: 1/1 · 1/1 · 2/2 linija |

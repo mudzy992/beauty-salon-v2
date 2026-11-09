@@ -31,7 +31,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
 | 11 | Stylist portal | `[~]` 4 commita — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33, 4.1.2. **DoD verificiran** (mobilna 0 diff, API netaknut) | u toku |
 | 12 | Onboarding / ForceChangePassword | `[x]` 1 commit — D1/D2/D7 opovrgnuti, D3/D4 zadovoljeni, D9 nije prekršaj; stvarno: **3.3.1/3.3.2** (zahtjev za lozinku) | prošla |
-| 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
+| 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` u toku — 2/3: **2.1.1+4.1.2** ReservationScheduler (12/12 mut.) · **1.4.3 ×4** D3 sweep (6/6 mut.) | prošla |
 
 > **`019e58a`** (`fix(dashboard): D9 error stanja + test:daily-log-amount-parity`) nije
 > uračunat ni u jednu fazu iznad jer je preduslov koji je dotakao **dvije** faze: D9 u
@@ -113,6 +113,21 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > Prošlo je jer svi testovi čitaju **izvor**, `tsc` ne provjerava pravila hookova, a ESLint
 > (`react-hooks/rules-of-hooks`) **nije konfigurisan**. Novi čuvar `test:hooks-order`
 > pokriva **cijeli `src/`** (54 komponente, 0 prekršaja nakon ispravke, 3/3 mutacije padaju).
+
+> **Faza 13 — napomene (u toku).** Jedini **tvrd** prekršaj nađen u fazi 13: izbor usluge u
+> `ReservationScheduler` bio je dostupan samo mišem (`<li onClick>` bez `tabIndex`/`onKeyDown`/
+> `role`) → tastaturni korisnik je mogao kucati ali **ne i izabrati**; alternativni put ne
+> postoji (`:1116` uklanja već izabranu uslugu). Ispravljeno po `daily-log` obrascu.
+> **`window.confirm` ×14 NIJE prekršaj** (svih 14 koristi `t(...)`, a to je potvrda = 3.3.4),
+> pa `test:no-window-confirm` iz plana §7 **nije** uveden — bio bi čist churn.
+
+> **Faza 13, D3 — napomene.** Plan je tražio „grep sirovih boja → allowlist", ali sirova
+> klasa **nije** prekršaj ako kontrast prolazi (883 svjetle upotrebe), pa je to zamijenjeno
+> **mjerenjem kontrasta**: od 883 samo **4** su stvarni prekršaji (`amber-600` 3.19:1 ×1,
+> `emerald-600` 3.77:1 ×3 na `bg-white`), a 27 je obrazloženo (ikone s pragom 3:1,
+> zvjezdice, tekst na tamnoj pozadini). Novi test `test:text-contrast-allowlist` mjeri
+> **bijelu** površinu — test iz faze 11 mjerio je tamnu, koja se ne prikazuje, pa ova
+> četiri prekršaja **nije** mogao uhvatiti.
 
 > **Faza 12 — napomene.** Plan je i ovdje bio većinom netačan: **D1** (`<h1>` „nedostaje")
 > opovrgnut jer `OnboardingShell:140` bezuvjetno renderuje `<h1>{title}</h1>` — **isti

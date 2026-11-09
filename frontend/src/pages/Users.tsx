@@ -1183,7 +1183,7 @@ export default function Users() {
                 <p className="text-xs text-blue-600">{t('users.usernameAvailability.current')}</p>
               ) : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() !== initialUsername.trim() ? (
-                <p className="text-xs text-emerald-600">{t('users.usernameAvailability.available')}</p>
+                <p className="text-xs text-ok-foreground">{t('users.usernameAvailability.available')}</p>
               ) : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === false ? (
                 <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p>
@@ -1370,7 +1370,7 @@ export default function Users() {
                 }}
               />
               {usernameStatus.loading ? <p className="text-xs text-slate-500">{t('users.usernameAvailability.checking')}</p> : null}
-              {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-emerald-600">{t('users.usernameAvailability.available')}</p> : null}
+              {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-ok-foreground">{t('users.usernameAvailability.available')}</p> : null}
               {!usernameStatus.loading && usernameStatus.available === false ? <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p> : null}
             </div>
 
