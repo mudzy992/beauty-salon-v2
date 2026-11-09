@@ -177,8 +177,21 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > i nije je mogao nezavisno ponoviti u sandboxu.)*
 >
 > **A11Y-01 ostaje otvoren** zbog onoga što axe **nije** vidio: backend nije bio podignut
-> (stranice u praznom stanju, `ECONNREFUSED 127.0.0.1:10001`), a **`/admin/**` — najveći dio
-> redizajna — uopšte nije pokriven**. To je sada glavna preostala rupa.
+> (stranice u praznom stanju, `ECONNREFUSED 127.0.0.1:10001`), a `/admin/**` — najveći dio
+> redizajna — nije bio pokriven.
+>
+> **`/admin/**` harness je napisan 2026-11-09, ali NIJE izvršen.** Dodati `e2e/auth.setup.ts`
+> (login → `storageState`) i `e2e/a11y-admin.spec.ts` (axe nad 14 ruta + `2.4.1`), ukupno
+> **27 testova** po `npx playwright test --list` (chromium 11 + setup 1 + admin 16).
+> Bez backend-a/kredencijala se glasno
+> preskaču. Agent nema ni browser ni backend, pa admin statusi ostaju 🟡 do prvog runa.
+>
+> **🔴 Usput nađene dvije stvarne greške:** (1) `chromium` projekt nije imao `testIgnore`, pa
+> je pokretao admin testove **bez** `storageState` — izmjereno 26 testova umjesto 11;
+> (2) `frontend/tsconfig.json` ima `include:['src']`, pa `e2e/` **nije bio pokriven nijednom
+> provjerom tipova** (`tsc --listFiles | grep -c e2e/` = **0**) — moji raniji „tsc exit: 0"
+> za e2e fajlove nisu provjerili ništa. Dodato `tsconfig.e2e.json` + `typecheck:e2e` + CI
+> korak, s negativnom kontrolom (mutacija daje 2 greške, exit 2).
 
 > **Faza 13, D3 — napomene.** Plan je tražio „grep sirovih boja → allowlist", ali sirova
 > klasa **nije** prekršaj ako kontrast prolazi (883 svjetle upotrebe), pa je to zamijenjeno

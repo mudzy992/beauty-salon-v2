@@ -2915,3 +2915,71 @@ stoji kao lažna garancija.
 · `check_i18n.py --strict` PASS · `check_ui_contrast.py --strict` 80/80
 · `check_repo_hygiene.py` PASS (1686 putanja) · `git diff --check` čisto
 · `mobile/` = **0 diff**.
+
+---
+
+## 2026-11-09 — `/admin/**` axe harness (napisano, **nije izvršeno**)
+
+### Zašto
+
+Prvi axe run prošao je **samo javne rute**. Admin/stylist dashboard je najveći dio
+redizajna i nije imao nijedan rendered dokaz.
+
+### Šta je dodato
+
+| Fajl | Uloga |
+|---|---|
+| `frontend/e2e/auth-paths.ts` | zajedničke putanje (`.auth/admin.json`, `admin-status.json`) |
+| `frontend/e2e/auth.setup.ts` | projekt `setup`: login + snimanje `storageState` |
+| `frontend/e2e/a11y-admin.spec.ts` | projekt `admin`: axe nad **14** admin ruta + `2.4.1` |
+| `frontend/tsconfig.e2e.json` | provjera tipova za `e2e/` (vidi ispod) |
+
+`npx playwright test --list`: **27 testova u 3 fajla** → po projektima `chromium` **11**,
+`setup` **1**, `admin` **16** (15 admin + setup kao dependency).
+*(Ispravljeno: prva verzija ove bilješke tvrdila je 42, što je bio rezultat PRIJE
+`testIgnore` fixa — tada je `chromium` duplo brojao admin testove.)*
+
+### 🔴 Nađena greška u mojoj prvoj verziji konfiguracije
+
+`chromium` projekt **nije imao `testIgnore`**, pa je globovao sve spec fajlove i pokretao
+admin testove **bez** `storageState`. Izmjereno: `npx playwright test --list --project=chromium`
+davao je **26 testova** (11 javnih + 15 admin) umjesto 11. Svi admin testovi bi tada pali na
+redirekciji na `/login`. Dodato `testIgnore: [/a11y-admin\.spec\.ts/, /auth\.setup\.ts/]`
+→ `chromium` sada **11**.
+
+### 🔴 `e2e/` uopšte nije bio pokriven provjerom tipova
+
+`frontend/tsconfig.json` ima `include: ['src']`. Mjerenje: `npx tsc --noEmit --listFiles |
+grep -c "e2e/"` → **0**. Dakle moji raniji „tsc exit: 0" za e2e fajlove **nisu provjerili
+ništa**. Dodato `tsconfig.e2e.json` + skripta `typecheck:e2e` + CI korak.
+
+**Dokaz da provjera nije prazna** (negativna kontrola): mutacija
+`const ADMIN_ROUTES: number = [...]` → `tsc -p tsconfig.e2e.json` daje **2 greške**
+(TS2322, TS2488), exit **2**; restaurirano → exit **0**.
+
+### Dvije namjerne zaštite od lažnog prolaza
+
+1. **Redirekcija na `/login` nije prolaz.** Bez važeće sesije `ProtectedRoute` preusmjeri na
+   `/login`, a axe bi izmjerio **pogrešnu stranicu** i javio zeleno. Svaki admin test zato
+   prvo asertira da URL ne sadrži `/login`.
+2. **Glasno preskakanje, ne tiho.** Bez backend-a ili kredencijala setup upiše
+   `ok:false` + razlog u `.auth/admin-status.json`, spec se preskoči s tim razlogom, a poruka
+   se ispiše u konzolu uz tačnu komandu za pokretanje.
+
+### Sigurnost
+
+- Kredencijali **samo** iz `E2E_ADMIN_USER` / `E2E_ADMIN_PASS` — nigdje hardkodovani.
+- `e2e/.auth/` je u `.gitignore` (sadrži stvaran JWT). Provjereno:
+  `git check-ignore -v frontend/e2e/.auth/admin.json` → `.gitignore:36`.
+
+### Šta ovo NIJE
+
+**Nije izvršeno.** U sandboxu nema ni browser binarnog fajla ni backend-a, pa ovo nije dokaz
+da admin stranice prolaze axe — samo da postoji alat koji to može izmjeriti. Dok se ne pokrene
+na mašini s backend-om, admin a11y statusi ostaju 🟡.
+
+### Provjereno
+
+`tsc --noEmit` (src) PASS · `npm run typecheck:e2e` PASS (uz negativnu kontrolu) ·
+`npm run build` PASS 273.8 KiB · **171/171** `test:*` · `check_doc_links` 670/202 ·
+`mobile/` i `features/blog/` = 0 diff.

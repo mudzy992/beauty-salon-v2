@@ -602,6 +602,10 @@ jobs:
       - name: Test public a11y axe findings
         working-directory: frontend
         run: npm run test:public-a11y-axe-findings
+      # e2e/ NIJE u tsconfig.json (include:['src']), pa ga obican `tsc --noEmit` ne vidi.
+      - name: Typecheck e2e (Playwright specovi)
+        working-directory: frontend
+        run: npm run typecheck:e2e
       # ESLint (react-hooks/rules-of-hooks = error). Uveden poslije React #310 regresije:
       # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide.
       - name: Lint frontend (rules-of-hooks)

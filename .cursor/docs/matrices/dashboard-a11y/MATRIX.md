@@ -160,8 +160,12 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 >
 > ✅ ispod su source-contract dokazi. **Re-run nakon ispravki je izvršen 2026-11-09:
 > svih 11 testova prolazi** (vlasnikova potvrda; prije ispravki bilo je 3/11). Četiri nalaza
-> su time dokazana rendered provjerom. I dalje **nije** pokriveno: `/admin/**` (treba
-> podignut backend + `storageState`) i stanje stranica *s podacima*.
+> su time dokazana rendered provjerom.
+>
+> **`/admin/**` harness postoji od 2026-11-09 ali NIJE izvršen** (`e2e/auth.setup.ts` +
+> `e2e/a11y-admin.spec.ts`, 15 admin testova nad 14 ruta + `2.4.1`). Zato admin-related
+> statusi **ostaju 🟡** — alat postoji, mjerenja nema. Isto važi za stanje stranica
+> *s podacima* (javni run je bio bez backend-a).
 
 ## Mjerenja (izvor, 2026-11-09 — ponovo izmjereno nakon axe ispravki)
 

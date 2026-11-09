@@ -1142,11 +1142,37 @@ pokrivenost od 178 fajlova.
 
 ## 3. Šta NIJE dokazano — i to je preostali posao
 
-### 3.1 Najveća rupa: `/admin/**` uopšte nije pokriven
+### 3.1 `/admin/**` — pokrivenost **napisana** (2026-11-09), ali još **neizvršena**
 
-axe je prošao **samo javne rute**. Admin/stylist dashboard — najveći dio redizajna — nije
-testiran u renderu jer zahtijeva podignut backend + `storageState` s tokenom (mjesto je
-označeno u `frontend/e2e/a11y-routes.spec.ts`).
+Najveća rupa je bila ta što je axe prošao **samo javne rute**. Sada postoji harness:
+
+- `frontend/e2e/auth.setup.ts` — projekt `setup`: `POST /auth/login` kroz vite proxy, snimi
+  `storageState` u `e2e/.auth/admin.json` (putanja je u `.gitignore` jer sadrži stvaran JWT).
+  Kredencijali **samo** iz `E2E_ADMIN_USER` / `E2E_ADMIN_PASS`.
+- `frontend/e2e/a11y-admin.spec.ts` — projekt `admin`: axe nad **14** admin ruta + `2.4.1`
+  skip-link, ukupno 15 testova.
+- `frontend/tsconfig.e2e.json` + `npm run typecheck:e2e` — jer glavni `tsconfig.json` ima
+  `include:['src']`, pa `e2e/` **nije** bio pokriven nijednom provjerom tipova.
+
+Pokretanje:
+
+```bash
+cd backend && npm run start:dev          # ili docker compose up
+cd frontend && E2E_ADMIN_USER=... E2E_ADMIN_PASS=... npm run test:a11y-routes
+```
+
+**Status: NAPISSANO, NIJE IZVRŠENO.** Agent u sandboxu nema ni browser ni backend, pa ovo
+nije dokaz da admin stranice prolaze — samo da postoji alat koji to može izmjeriti.
+Bez backend-a ili kredencijala testovi se **glasno preskaču** (razlog se ispiše i upiše u
+`.auth/admin-status.json`), umjesto da daju lažno crveno.
+
+Dvije namjerne odlike koje sprječavaju lažni prolaz:
+1. Ako sesija nije prihvaćena, `ProtectedRoute` redirektuje na `/login` — a axe bi tada
+   mjerio **pogrešnu stranicu** i javio prolaz. Zato svaki admin test asertira da URL nije
+   `/login` prije nego pokrene axe.
+2. `chromium` projekt ima `testIgnore` za admin spec. Bez njega bi se admin testovi izvršili
+   **dvaput** — jednom bez `storageState` (gdje bi svi pali). Izmjereno: bez `testIgnore`
+   `--project=chromium` nabroji 26 testova (11 javnih + 15 admin).
 
 ### 3.2 Backend nije bio podignut ni u javnom runu
 

@@ -32,3 +32,5 @@ id_ecdsa
 /playwright-report/
 /frontend/test-results/
 /frontend/playwright-report/
+# Prijava za e2e: sadrži STVARAN JWT token, nikad ne smije u Git.
+/frontend/e2e/.auth/

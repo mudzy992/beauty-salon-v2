@@ -1,0 +1,9 @@
+{
+  "//": "Zasebna provjera tipova za e2e/: glavni tsconfig.json ima include:['src'], pa Playwright testove ne bi ni pogledao. Bez ovoga bi 'tsc --noEmit' za e2e fajlove bio prazan.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["e2e", "playwright.config.ts"]
+}
