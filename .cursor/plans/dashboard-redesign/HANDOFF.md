@@ -1,14 +1,19 @@
 # HANDOFF — Dashboard redesign
 
-**Stanje:** **FAZA 1 (Dashboard pilot) ZAVRŠENA** — 2 commita, sve verifikovano. **Čeka review prije faze 2.**
-**Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a`
+**Stanje:** **FAZE 0–10 ZAVRŠENE** + **M1 i M2 (arhitektura) ZAVRŠENI**. Sljedeće: **faza 11
+(Stylist portal)**.
+**Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a` · **HEAD:** `9e4bdbc`
+**Zadnji green run:** 161/161 `test:*` · build 274.1 KiB · i18n/contrast/hygiene/doc_links PASS.
 
-> ⚠️ **D9 (error stanje + retry) NIJE implementiran.** Plan je tvrdio da dashboard danas
-> prikazuje prazan ekran — **netačno**. Svih 8 `api.get()` u `use-dashboard-data.ts` ima
-> `.catch()` fallback, pa `Promise.all` nikad ne odbija i dashboard **tiho prikazuje nule
-> koje izgledaju stvarno**. Ispravka mijenja vidljivo ponašanje i dira fajl zakucan
-> `dashboard-count-contract.test.mjs`. **Čeka odluku vlasnika** — detalji u
-> [`CHANGELOG.md`](CHANGELOG.md), sekcija faze 1.
+> ⚠️ **D9 je riješen** u `019e58a` (`fix(dashboard): D9 error stanja +
+> test:daily-log-amount-parity`) — dodirnuo je **dvije** faze (Dashboard i dnevnu knjigu).
+>
+> ⚠️ **Nema rendered dokaza.** U okruženju nema preglednika, axe-a ni čitača ekrana, pa su
+> sve WCAG tvrdnje 🟡 „zadovoljeno u kodu". `@axe-core/playwright` (Q4 odobren) i
+> `eslint-plugin-jsx-a11y` ostaju **neuvezani** do faze 13.
+>
+> ⚠️ **Odgođeno na fazu 13:** razbijanje velikih fajlova (uklj. DoD „`EmailSettings.tsx`
+> < 120 ln"), migracija tabela na `DataTable`, `fieldset` za cijelu blog formu.
 
 ---
 
@@ -41,7 +46,9 @@ Kompletan plan u `.cursor/plans/dashboard-redesign/`:
 **Q1–Q7** u [`00_overview.md` §7](00_overview.md). Najvažnija:
 
 - **Q1 dark tema** — bez odgovora ne znam da li da planiram `ThemeProvider` (novi feature) ili samo token-e koji rade u obje teme.
-- **Q3 objedinjavanja M1/M2** — bez odobrenja se **ne implementiraju**; faze 6 i 10 imaju plan i za varijantu bez spajanja.
+- ~~**Q3 objedinjavanja M1/M2**~~ ✅ **oba odobrena i oba urađena** — M2 u `56cee86`
+  (`/admin/settings?tab=…`, 7 tabova), M1 u `9e4bdbc` (`/admin/analytics?tab=…`, 3 taba).
+  Stare rute su `TabRedirect` koji čuva query parametre.
 - **Q4 axe/Playwright** — bez toga **ne postoji rendered a11y dokaz** i sve WCAG stavke ostaju 🟡.
 
 **Najveći rizik (R1):** u ovom okruženju nema preglednika, axe-a ni čitača ekrana.
@@ -52,31 +59,36 @@ Sve što napišem o WCAG-u biće označeno 🟡 „zadovoljeno u kodu, nije veri
 1. ~~Vlasnik odgovara na Q1–Q7 i daje „plan odobren“.~~ ✅ 2026-11-08
 2. ~~**Faza 0 — Temelj**~~ ✅ 4 commita (`f14c786` → `71520ce`)
 3. ~~**Faza 1 — Dashboard (pilot)**~~ ✅ 2 commita (`3aa3014`, `7056e17`)
-4. **ODLUKA ZA D9** — implementirati error stanje + retry (mijenja vidljivo ponašanje i
-   dira `use-dashboard-data.ts`) ili ostaviti kako jeste. Bez odgovora se ne dira.
-5. **Faza 2 — Rezervacije (lista + kalendar)** → plan u
-   [`05_phase-2-reservations.md`](05_phase-2-reservations.md). Najveći modul dosad:
-   9 fajlova / 2440 ln / 8 testova, uključujući `ReservationScheduler.tsx` (1196 ln) s
-   `react-big-calendar` i nedostatkom tastaturske alternative (2.5.7).
-6. Dalje modul po modul, samo kad prethodni ispuni DoD.
+4. ~~**ODLUKA ZA D9**~~ ✅ `019e58a`
+5. ~~**Faze 2–10**~~ ✅ (rezervacije, dnevna knjiga, finansije, lojalnost, analitika,
+   korisnici, salon/usluge/frizeri, sadržaj, postavke)
+6. ~~**M1 / M2**~~ ✅ `9e4bdbc` / `56cee86`
+7. **Faza 11 — Stylist portal** → plan u
+   [`14_phase-11-stylist-portal.md`](14_phase-11-stylist-portal.md). Počni **auditom iz izvora**, ne
+   planom: plan je dosad bio **netačan u 8 navrata** (vidi §6).
+8. **Faza 12 — Onboarding / ForceChangePassword** (nedostaje `<h1>` na obje stranice).
+9. **Faza 13 — Zaključak:** globalni sweep, odgođeno razbijanje fajlova, axe/Playwright,
+   `eslint-plugin-jsx-a11y`, završna dokumentacija.
 
 ## 5. Test status
 
-Zadnji puni green run: **nakon faze 1** (`7056e17`).
+Zadnji puni green run: **nakon M1** (`9e4bdbc`).
 
 | Šta | Rezultat | Kada |
 |---|---|---|
-| `frontend` build (`tsc -b` + vite + bundle budget) | **PASS** — 272.2 KiB gzip (budžet 300) | faza 1 |
-| `test:*` skripte | **147/147 PASS** (baseline 142; +5 u fazama 0–1) | faza 1 |
-| `check_i18n.py --strict` | **PASS** (2615/2615; baseline 2575) | faza 1 |
-| `check_ui_contrast.py --strict` | **PASS** (80/80; baseline 44) | faza 1 |
-| `check_repo_hygiene.py` | **PASS** (1648 pathova) | faza 1 |
-| `check_doc_links.py` | **PASS** (669/202) | faza 1 |
+| `frontend` build (`tsc -b` + vite + bundle budget) | **PASS** — **274.1 KiB** gzip (budžet 300; baseline 269.0) | M1 |
+| `test:*` skripte | **161/161 PASS** (baseline 142) | M1 |
+| `check_i18n.py --strict` | **PASS** — BS/EN leaf ključevi se poklapaju (baseline 2575) | M1 |
+| `check_ui_contrast.py --strict` | **PASS** (80/80) | M1 |
+| `check_repo_hygiene.py` | **PASS** (1672 pathova) | M1 |
+| `check_doc_links.py` | **PASS** (670/202) | M1 |
 | Backend testovi / migracije | **nije pokretano** — out of scope | — |
 | Rendered / axe / screen-reader | **nije pokretano** — nema alata u okruženju | — |
 
-Novi testovi iz faze 1: `test:dashboard-stat-parity` (6/6), `test:dashboard-states` (7/7),
-`test:dashboard-a11y` (9/9) — sva tri u `package.json` **i** `.github/workflows/ci.yml`.
+Svaki novi test je registrovan u **oba** mjesta (`frontend/package.json` **i**
+`.github/workflows/ci.yml`) i **mutacijski verificiran** (namjerno pokvaren izvor → test
+mora pasti). Ukupno 161 `test:*` skripti; `test:reservation-list-api-contract` je dobio CI
+korak tek u M1 (dug iz faze 3).
 
 ## 6. Bilješke za sljedećeg agenta
 
@@ -92,3 +104,30 @@ Novi testovi iz faze 1: `test:dashboard-stat-parity` (6/6), `test:dashboard-stat
 - `route-code-splitting.test.mjs` zahtijeva `lazy()` za rute i `<Suspense fallback={<RouteLoadingFallback />}>` — ne dirati.
 - `check-bundle-budget.mjs` eksplicitno provjerava da `recharts`/`rbc-*`/`react-big-calendar` **nisu** u inicijalnom entry-ju.
 - Nijedan `window.confirm` **nije** zamijenjen u ETAPI A — to rade moduli (faze 4, 7, 9, 10).
+  Kasnije: `window.confirm` **nije prekršaj** (pristupačan je) i **namjerno je netaknut**.
+
+### Dodato poslije faze 10 (M1/M2)
+
+- **🔴 Plan NIJE lista defekata.** Do sada je **8 mojih audit tvrdnji** izvor opovrgao
+  (f4 5/10 · f5 D2+D3 · f6 D6 · f7 D4/D5/D3/D2 · f8 D1/D2/D6/D9/1.4.11 · f9 D1/D4/D5/D7/D8 ·
+  f10 D4/D5/D6/D10). **Izvedi defekt iz izvora i asertuj ga prije nego što ga tvrdiš.**
+- **🔴 `00_overview.md` §7 sadrži odgovore Q1–Q7** (usvojeni 2026-11-08). Nikad ne tvrdi
+  „nije odobreno" bez čitanja §7 — upravo je tako M1 pogrešno preskočen.
+- **Obrazac za tabove** (`finance-page.tsx` je referenca): `X_TABS as const` + `isXTab`
+  type-guard + `xTabHref` gdje **zadani tab nema `?tab=`**. Za redirect koristiti
+  `features/shell/admin/tab-redirect.tsx` — čuva postojeći query.
+- **TS zamka:** `isXTab(sp.get('tab')) ? sp.get('tab')! : 'default'` proširuje tip na `string`
+  → `PANELS[tab]` postaje implicitno `any` → **TS7053**. Ispravno:
+  `const requested = sp.get('tab'); const tab: XTab = isXTab(requested) ? requested : 'default'`.
+- **`dashboardTitleKey(pathname, search)`** — naslov dokumenta (2.4.2) mora pratiti `?tab=`.
+  `shell-a11y.test.mjs` traži ≥30 ključeva u `dashboard-titles.ts` i postojanje u BS/EN;
+  **redoslijed je bitan** (specifičnije prije opštijeg, jer se koristi `.find()`).
+- **`NavLink` / `isAdminNavItemActive` gledaju samo `pathname`** — na hub-ruti bi sve stavke
+  bile aktivne, pa `aria-current` treba postaviti **eksplicitno**.
+- **🔴 Nikad `git checkout -- .`** dok postoji nekcommitan rad — mutacijska skripta je tako
+  obrisala cijeli M1. Restaurirati **samo** mutirani fajl iz sačuvane kopije u memoriji.
+- **🔴 Čuvar koji ne može pasti nije čuvar.** Nakon pisanja asertije **namjerno pokvari
+  izvor** i potvrdi pad; broji (`grep -oE … | wc -l`), ne `grep -c` (broji linije i vraća
+  exit 1 na 0).
+- **Ne dijeli/premještaj fajlove koje testovi čitaju po putanji** — 13 testova čita
+  `pages/*.tsx` direktno; hub-ovi su zato **novi** fajlovi, a moduli ostaju netaknuti.

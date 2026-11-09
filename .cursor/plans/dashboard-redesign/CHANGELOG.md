@@ -1935,3 +1935,71 @@ sam se na sažetak sesije („M1 nije rađen, Q3 neodgovoren") umjesto da proči
 
 Oba su **arhitektonske** izmjene (deep linkovi, navigacija, `<Navigate replace>`), za razliku
 od prezentacijskih a11y popravki koje su dosad rađene — zato nisu ubačene usput.
+
+---
+
+## 2026-11-08 — M2 (`56cee86`) i M1 (`9e4bdbc`): Postavke i Analitika u hub-ove s tabovima
+
+Arhitektonske izmjene odobrene u `00_overview.md` §7 (**Q3**: „M1 i M2 ODOBRENI";
+**Q7**: „`client-analytics` / `stylist-analytics` postaju tabovi unutar `/admin/analytics`,
+stare rute redirectuju"). Rađene zajedno jer dijele obrazac.
+
+### M2 — `/admin/settings?tab=…` (`56cee86`)
+
+| Šta | Zašto |
+|---|---|
+| `pages/SettingsHub.tsx` (novi fajl) | 7 modula na jednoj ruti; `lazy` + `Suspense` jer `EmailSettings.tsx` ima 1377 linija |
+| `features/settings/settings-tab-nav.tsx` (novi) | `SETTINGS_TABS` + `aria-current` eksplicitno — `NavLink` gleda samo `pathname`, pa bi svih 7 tabova bilo „aktivno" |
+| `features/shell/admin/tab-redirect.tsx` (novi) | `TabRedirect` čuva postojeći query (`new URLSearchParams(searchParams)`) i dodaje `?tab=` |
+| 6 starih ruta → `TabRedirect` | `settings/operations`, `settings/appearance`, `settings/seo`, `email-settings`, `notifications`, `app-releases` |
+| `settings-shell.tsx` 62 → 33 ln | Nav izdvojen; `settings-semantic-tokens.test.mjs` ažuriran da prati nav u novi fajl |
+| `admin-nav.ts` `tab` / `tabDefault` / `adminNavItemHref` / `searchTab` | Sidebar stavke sada znaju za `?tab=`; `key={adminNavItemHref(item)}` jer `item.path` daje 4 duplikata |
+
+**Dokaz:** `test:settings-hub-redirect` 7/7, **5/5 mutacija pada** · code-splitting očuvan
+(`SettingsHub` 6.31 KiB, `EmailSettings` 39.50 KiB zaseban chunk) · 160/160 `test:*` ·
+build 274.1 KiB.
+
+### M1 — `/admin/analytics?tab=…` (`9e4bdbc`)
+
+| Šta | Zašto |
+|---|---|
+| `pages/AnalyticsHub.tsx` (novi fajl) | 3 panela; `lazy` + `Suspense` (`ClientAnalytics.tsx` 764 ln) |
+| `features/analytics/analytics-tab-nav.tsx` (novi) | `ANALYTICS_TABS`, `min-h-target` (2.5.5), `focus-visible:ring-focus-ring` (2.4.7) |
+| `client-analytics` / `stylist-analytics` → `TabRedirect` | Čuva `userId` / `stylistId` / `fromDate` / `toDate` |
+| 6 deep linkova prebačeno | `entry-table.tsx` (2), `recent-reservations.tsx`, `Users.tsx`, `Stylists.tsx`, `Reservations.tsx` |
+| **`dashboardTitleKey(pathname, search)`** | **Regresija 2.4.2 koju sam sam uveo i uhvatio**: funkcija je gledala samo `pathname`, pa bi svih 10 tabova dijelilo generički naslov dokumenta — čitač ekrana ne bi znao gdje je. `SeoRouteDefaults.tsx` sada šalje `search`; test **izvršava** funkciju (esbuild) i provjerava 13 kombinacija |
+| `admin-layout.tsx` `currentLabel` | Naslov tekućeg taba analitike umjesto mrtvih `startsWith('/admin/client-analytics')` grana |
+| `check-bundle-budget.mjs` | `entry.dynamicImports` navodi samo **direktne** importe, pa bi hub-ovi dali lažno crvenu; dodata tranzitivna dosežnost **plus stvarni guard** da teška ruta nije u inicijalnom statičkom bundleu |
+
+**Dokaz:** `test:analytics-hub-redirect` 7/7, **11/11 mutacija pada** · `analytics` ruta
+114.6 KiB (budžet 140) · inicijalni bundle **274.1 KiB** (budžet 300) · `Analytics` 386.65 KiB,
+`ClientAnalytics` 23.13 KiB, `StylistAnalytics` 6.31 KiB — svi `isDynamicEntry`.
+
+### Zajedničke odluke
+
+- **Moduli ostaju u `pages/`** — 13 testova ih čita po putanji; hub-ovi su **novi** fajlovi.
+  Novi test asertuje da nijedan modul nije ispražnjen (`size > 500`).
+- **Zadani tab nema `?tab=`** — isto pravilo kao referentni `finance-page.tsx`.
+- **`MATRIX.md` netaknut** — izmjene su navigacijske, ne poslovna logika.
+- `test:reservation-list-api-contract` je dobio CI korak — **dug iz faze 3** (skripta je
+  postojala u `package.json` ali nikad u `ci.yml`).
+
+### Provedene provjere
+
+| Provjera | M2 | M1 |
+|---|---|---|
+| `test:*` skripte | 160/160 | **161/161** |
+| `npm run build` (uklj. bundle budget) | 274.1 KiB | 274.1 KiB |
+| `check_i18n.py --strict` | PASS | PASS (+6 ključeva/jezik, `numstat` 6/0 + 6/0) |
+| `check_ui_contrast.py --strict` | 80/80 | 80/80 |
+| `check_repo_hygiene.py` | 1668 | 1672 |
+| `check_doc_links.py` | 670/202 | 670/202 |
+| `git diff --check` | čist | čist |
+
+### 🔴 Greška u procesu (zabilježiti)
+
+Mutacijska skripta je na kraju pozivala **`git checkout -- .`**, što je vratilo **sve
+nekcommitane** izmjene (i18n ključeve, `dashboard-titles.ts`, deep linkove, `ci.yml`), a ne
+samo mutirani fajl. Otkriveno jer je sljedeći anchor vratio `0`. Sve izmjene su ponovljene i
+potvrđene buildom. **Pravilo: restaurirati samo mutirani fajl iz sačuvane kopije; nikad
+`git checkout -- .` dok postoji nekcommitan rad.**

@@ -24,11 +24,11 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 3 | Dnevna knjiga | `[x]` 3 commita (`fdaa029`, `5bf5518`, `7eb3d61`) | prošla |
 | 4 | Finansije | `[x]` 4 commita (`d801dbb`, `2ba25dd`, `f1f7658`, `55c577d`) | prošla |
 | 5 | Lojalnost | `[x]` 1 commit | prošla |
-| 6 | Analitika (+ M1 ako odobren) | `[x]` 1 commit · **M1 nije odobren, preskočen** | prošla |
+| 6 | Analitika (+ M1 ako odobren) | `[x]` 2 commita (`e81bdd2` a11y, `9e4bdbc` **M1**) | prošla |
 | 7 | Korisnici | `[x]` 1 commit | prošla |
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
-| 10 | Postavke (+ M2 ako odobren) | `[~]` 2 commita (`ba59834`, `44b0eed`) — **a11y gotov, M2 NIJE** | djelimično |
+| 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
 | 11 | Stylist portal | `[ ]` | |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
@@ -59,8 +59,10 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > toga `data-table` klasa + `data-label`. Novi test `test:loyalty-a11y` (5 testova,
 > mutacijski verificirano).
 
-> **Faza 6 — napomene.** **M1 (objedinjavanje tri ekrana u tabove) NIJE rađen** — Q3 nije
-> odobren, pa tri rute ostaju odvojene. Planirana stavka **D6** (Filteri → FilterBar)
+> **Faza 6 — napomene.** **M1 je prvobitno preskočen pogrešno** (zapisano „Q3 nije odobren"),
+> a naknadno **urađen** u `9e4bdbc` — vidi ispravku u napomenama faze 10.
+> `/admin/analytics?tab=overview|clients|stylists`; stare rute redirectuju i čuvaju
+> `userId` / `stylistId` / `fromDate` / `toDate`. Planirana stavka **D6** (Filteri → FilterBar)
 > **opovrgnuta**: date inputi već imaju `<Label htmlFor>`. `text-amber-400` (1.67:1) i
 > `text-slate-200` (1.23:1) **nisu prekršaji** — oba su na `<Star aria-hidden="true">` uz
 > brojčani ekvivalent. Stvarni nalaz koji plan nije naveo: **1.4.11 progress bar**
@@ -104,8 +106,9 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > ekvivalenta (detaljni panel ga je imao), pa su ćelije ocjena za čitač ekrana bile prazne.
 > Novi test `test:admin-content-a11y` (10 testova); **14/14 mutacija palo**.
 
-> **Faza 10 — napomene (djelimično).** A11y dio završen u 2 commita. **M2 (D11) NIJE rađen**
-> iako je **odobren** — vidi ispravku ispod. Pet planiranih stavki **opovrgnuto**: **D4**
+> **Faza 10 — napomene.** A11y dio završen u 2 commita; **M2 (D11) urađen** u `56cee86`
+> (`/admin/settings?tab=site|operations|appearance|seo|email|notifications|releases`,
+> 6 starih ruta → `TabRedirect`) — vidi ispravku ispod. Pet planiranih stavki **opovrgnuto**: **D4**
 > (pretraga postavki već ima `role="status" aria-live="polite"` na ln 75/85/102 i
 > `aria-controls`), **D5** (`window.confirm` nije prekršaj), **D6** (vizuelni email editor
 > **već ima** moveUp/moveDown dugmad s `aria-label` pored `draggable` blokova → 2.5.7
@@ -121,6 +124,13 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > postupi po svojoj preporuci", a **Q3 glasi „M1 i M2 ODOBRENI"**, dok **Q7** izričito nalaže
 > da `client-analytics`/`stylist-analytics` „postaju tabovi unutar `/admin/analytics`, stare
 > rute redirectuju". Dakle **M1 (faza 6) i M2 (faza 10) su oba odobrena i oba neurađena**.
+>
+> **RIJEŠENO 2026-11-08** — M2 u `56cee86`, M1 u `9e4bdbc`. Oba čuvaju stare URL-ove preko
+> `<Navigate replace>` i postojeće query parametre (`userId`, `stylistId`, `fromDate`,
+> `toDate`, `tab`). Moduli **ostaju** u `pages/` jer ih 13 testova čita po putanji; hub-ovi
+> su **novi** fajlovi (`SettingsHub.tsx`, `AnalyticsHub.tsx`). Nuspojava uhvaćena i
+> ispravljena: `dashboardTitleKey` je gledao samo `pathname`, pa bi svi tabovi dijelili
+> generički naslov dokumenta (regresija **2.4.2**, ispravljeno u `9e4bdbc`).
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
