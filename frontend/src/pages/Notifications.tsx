@@ -265,10 +265,10 @@ export default function Notifications() {
                         size="icon"
                         variant="ghost"
                         className="shrink-0 text-emerald-600 hover:text-emerald-700"
-                        aria-label={t('notifications.markAsRead')}
+                        aria-label={t('notifications.markAsReadNamed', { title: n.title })}
                         onClick={() => void markAsRead(n.id)}
                       >
-                        <Check className="h-4 w-4" />
+                        <Check className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     ) : null}
                   </div>
@@ -327,12 +327,13 @@ export default function Notifications() {
           ) : (
             <Card className="overflow-hidden">
               <div className="app-table-wrap">
-                <table className="app-table w-full border-collapse">
-                  <thead>
+                <table className="app-table data-table w-full border-collapse">
+                                        <caption className="sr-only">{t('notifications.preferencesTableCaption')}</caption>
+                      <thead>
                     <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-                      <th className="p-3 font-medium">{t('notifications.notificationType')}</th>
-                      <th className="p-3 font-medium">{t('notifications.push')}</th>
-                      <th className="p-3 font-medium">{t('notifications.email')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('notifications.notificationType')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('notifications.push')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('notifications.email')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -342,10 +343,10 @@ export default function Notifications() {
                       const emailEnabled = pref?.emailEnabled ?? true
                       return (
                         <tr key={type} className="border-b border-slate-100 dark:border-slate-800/80">
-                          <td className="p-3 font-medium text-slate-800 dark:text-slate-100">
+                          <td data-label={t('notifications.notificationType')} className="p-3 font-medium text-slate-800 dark:text-slate-100">
                             {getNotificationTypeLabel(type)}
                           </td>
-                          <td className="p-3">
+                          <td data-label={t('notifications.push')} className="p-3">
                             <Switch
                               checked={pushEnabled}
                               onCheckedChange={(checked) => void savePreference(type, checked, emailEnabled)}
@@ -353,7 +354,7 @@ export default function Notifications() {
                               aria-label={t('notifications.pushPreferenceLabel', { type: getNotificationTypeLabel(type) })}
                             />
                           </td>
-                          <td className="p-3">
+                          <td data-label={t('notifications.email')} className="p-3">
                             <Switch
                               checked={emailEnabled}
                               onCheckedChange={(checked) => void savePreference(type, pushEnabled, checked)}

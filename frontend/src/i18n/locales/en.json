@@ -2604,6 +2604,8 @@
     }
   },
   "notifications": {
+    "markAsReadNamed": "Mark as read: {{title}}",
+    "preferencesTableCaption": "Notification preferences by type: type, push, and email.",
     "markAsRead": "Mark as read",
     "unreadOnly": "Unread only",
     "preferences": "Preferences",

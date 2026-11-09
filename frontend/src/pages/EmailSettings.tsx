@@ -800,8 +800,8 @@ export default function EmailSettings() {
           <Card className="p-6">
             <div className="space-y-4">
               <div>
-                <Label>{t('emailSettings.smtp.provider')}</Label>
-                <select
+                <Label htmlFor="email-smtp-provider">{t('emailSettings.smtp.provider')}</Label>
+                <select id="email-smtp-provider"
                   className={`${selectClass} mt-1`}
                   value={provider}
                   onChange={(event) => handleProviderChange(event.target.value as ProviderType)}
@@ -816,48 +816,48 @@ export default function EmailSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('emailSettings.smtp.host')}</Label>
-                  <Input className="mt-1" value={host} onChange={(event) => setHost(event.target.value)} />
+                  <Label htmlFor="email-smtp-host">{t('emailSettings.smtp.host')}</Label>
+                  <Input id="email-smtp-host" className="mt-1" value={host} onChange={(event) => setHost(event.target.value)} />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.port')}</Label>
-                  <Input className="mt-1" value={port} onChange={(event) => setPort(event.target.value)} />
+                  <Label htmlFor="email-smtp-port">{t('emailSettings.smtp.port')}</Label>
+                  <Input id="email-smtp-port" className="mt-1" value={port} onChange={(event) => setPort(event.target.value)} />
                 </div>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">{t('emailSettings.smtp.secure')}</Label>
-                  <Switch checked={secure} onCheckedChange={setSecure} />
+                  <Label htmlFor="email-smtp-secure" className="mb-0">{t('emailSettings.smtp.secure')}</Label>
+                  <Switch id="email-smtp-secure" checked={secure} onCheckedChange={setSecure} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">{t('emailSettings.smtp.rejectUnauthorized')}</Label>
-                  <Switch checked={rejectUnauthorized} onCheckedChange={setRejectUnauthorized} />
+                  <Label htmlFor="email-smtp-reject-unauthorized" className="mb-0">{t('emailSettings.smtp.rejectUnauthorized')}</Label>
+                  <Switch id="email-smtp-reject-unauthorized" checked={rejectUnauthorized} onCheckedChange={setRejectUnauthorized} />
                 </div>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">{t('emailSettings.smtp.requireTls')}</Label>
-                  <Switch checked={requireTls} onCheckedChange={setRequireTls} />
+                  <Label htmlFor="email-smtp-require-tls" className="mb-0">{t('emailSettings.smtp.requireTls')}</Label>
+                  <Switch id="email-smtp-require-tls" checked={requireTls} onCheckedChange={setRequireTls} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">{t('emailSettings.smtp.ignoreTls')}</Label>
-                  <Switch checked={ignoreTls} onCheckedChange={setIgnoreTls} />
+                  <Label htmlFor="email-smtp-ignore-tls" className="mb-0">{t('emailSettings.smtp.ignoreTls')}</Label>
+                  <Switch id="email-smtp-ignore-tls" checked={ignoreTls} onCheckedChange={setIgnoreTls} />
                 </div>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <Label className="mb-0">{t('emailSettings.smtp.connectionPool')}</Label>
-                <Switch checked={pool} onCheckedChange={setPool} />
+                <Label htmlFor="email-smtp-pool" className="mb-0">{t('emailSettings.smtp.connectionPool')}</Label>
+                <Switch id="email-smtp-pool" checked={pool} onCheckedChange={setPool} />
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('emailSettings.smtp.username')}</Label>
-                  <Input className="mt-1" value={username} onChange={(event) => setUsername(event.target.value)} />
+                  <Label htmlFor="email-smtp-username">{t('emailSettings.smtp.username')}</Label>
+                  <Input id="email-smtp-username" className="mt-1" value={username} onChange={(event) => setUsername(event.target.value)} />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.password')}</Label>
-                  <Input
+                  <Label htmlFor="email-smtp-password">{t('emailSettings.smtp.password')}</Label>
+                  <Input id="email-smtp-password"
                     className="mt-1"
                     type="password"
                     value={password}
@@ -892,33 +892,33 @@ export default function EmailSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('emailSettings.smtp.connectionTimeout')}</Label>
-                  <Input
+                  <Label htmlFor="email-smtp-connection-timeout-ms">{t('emailSettings.smtp.connectionTimeout')}</Label>
+                  <Input id="email-smtp-connection-timeout-ms"
                     className="mt-1"
                     value={connectionTimeoutMs}
                     onChange={(event) => setConnectionTimeoutMs(event.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.greetingTimeout')}</Label>
-                  <Input
+                  <Label htmlFor="email-smtp-greeting-timeout-ms">{t('emailSettings.smtp.greetingTimeout')}</Label>
+                  <Input id="email-smtp-greeting-timeout-ms"
                     className="mt-1"
                     value={greetingTimeoutMs}
                     onChange={(event) => setGreetingTimeoutMs(event.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.socketTimeout')}</Label>
-                  <Input
+                  <Label htmlFor="email-smtp-socket-timeout-ms">{t('emailSettings.smtp.socketTimeout')}</Label>
+                  <Input id="email-smtp-socket-timeout-ms"
                     className="mt-1"
                     value={socketTimeoutMs}
                     onChange={(event) => setSocketTimeoutMs(event.target.value)}
                   />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.maxConnectionsAndMessages')}</Label>
+                  <Label htmlFor="email-smtp-max-connections">{t('emailSettings.smtp.maxConnectionsAndMessages')}</Label>
                   <div className="mt-1 flex gap-2">
-                    <Input
+                    <Input id="email-smtp-max-connections"
                       value={maxConnections}
                       onChange={(event) => setMaxConnections(event.target.value)}
                       placeholder="5"
@@ -942,16 +942,16 @@ export default function EmailSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('emailSettings.smtp.fromEmail')}</Label>
-                  <Input className="mt-1" value={fromEmail} onChange={(event) => setFromEmail(event.target.value)} />
+                  <Label htmlFor="email-smtp-from-email">{t('emailSettings.smtp.fromEmail')}</Label>
+                  <Input id="email-smtp-from-email" className="mt-1" value={fromEmail} onChange={(event) => setFromEmail(event.target.value)} />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.fromName')}</Label>
-                  <Input className="mt-1" value={fromName} onChange={(event) => setFromName(event.target.value)} />
+                  <Label htmlFor="email-smtp-from-name">{t('emailSettings.smtp.fromName')}</Label>
+                  <Input id="email-smtp-from-name" className="mt-1" value={fromName} onChange={(event) => setFromName(event.target.value)} />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.replyTo')}</Label>
-                  <Input
+                  <Label htmlFor="email-smtp-reply-to">{t('emailSettings.smtp.replyTo')}</Label>
+                  <Input id="email-smtp-reply-to"
                     className="mt-1"
                     value={replyTo}
                     onChange={(event) => setReplyTo(event.target.value)}
@@ -959,12 +959,12 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>{t('emailSettings.smtp.signature')}</Label>
-                  <Input className="mt-1" value={signature} onChange={(event) => setSignature(event.target.value)} />
+                  <Label htmlFor="email-smtp-signature">{t('emailSettings.smtp.signature')}</Label>
+                  <Input id="email-smtp-signature" className="mt-1" value={signature} onChange={(event) => setSignature(event.target.value)} />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>{t('emailSettings.smtp.publicAppUrl')}</Label>
-                  <Input
+                  <Label htmlFor="email-smtp-public-app-url">{t('emailSettings.smtp.publicAppUrl')}</Label>
+                  <Input id="email-smtp-public-app-url"
                     className="mt-1"
                     value={publicAppUrl}
                     onChange={(event) => setPublicAppUrl(event.target.value)}
@@ -987,9 +987,9 @@ export default function EmailSettings() {
               <Separator />
 
               <div>
-                <Label>{t('emailSettings.smtp.testEmail')}</Label>
+                <Label htmlFor="email-smtp-test-email-to">{t('emailSettings.smtp.testEmail')}</Label>
                 <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input
+                  <Input id="email-smtp-test-email-to"
                     value={testEmailTo}
                     onChange={(event) => setTestEmailTo(event.target.value)}
                     placeholder="email@domena.com"
@@ -1016,8 +1016,8 @@ export default function EmailSettings() {
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <Label>{t('emailSettings.templates.selectorLabel')}</Label>
-                  <select
+                  <Label htmlFor="email-templates-existing-template-type">{t('emailSettings.templates.selectorLabel')}</Label>
+                  <select id="email-templates-existing-template-type"
                     className={`${selectClass} mt-1`}
                     value={existingTemplateType}
                     onChange={(event) => setExistingTemplateType(event.target.value as ExistingTemplateType)}
@@ -1112,8 +1112,8 @@ export default function EmailSettings() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <Label>{t('emailSettings.campaigns.templateName')}</Label>
-                      <Input
+                      <Label htmlFor="email-campaign-selected-campaign-name">{t('emailSettings.campaigns.templateName')}</Label>
+                      <Input id="email-campaign-selected-campaign-name"
                         className="mt-1"
                         value={selectedCampaign.name}
                         onChange={(event) =>
@@ -1122,8 +1122,8 @@ export default function EmailSettings() {
                       />
                     </div>
                     <div>
-                      <Label>{t('emailSettings.campaigns.subjectOverride')}</Label>
-                      <Input
+                      <Label htmlFor="email-campaign-campaign-subject">{t('emailSettings.campaigns.subjectOverride')}</Label>
+                      <Input id="email-campaign-campaign-subject"
                         className="mt-1"
                         value={campaignSubject}
                         onChange={(event) => setCampaignSubject(event.target.value)}
@@ -1131,8 +1131,8 @@ export default function EmailSettings() {
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label>{t('emailSettings.campaigns.internalName')}</Label>
-                      <Input
+                      <Label htmlFor="email-campaign-campaign-name">{t('emailSettings.campaigns.internalName')}</Label>
+                      <Input id="email-campaign-campaign-name"
                         className="mt-1"
                         value={campaignName}
                         onChange={(event) => setCampaignName(event.target.value)}
@@ -1154,8 +1154,8 @@ export default function EmailSettings() {
                     />
                   ) : (
                     <div>
-                      <Label>{t('emailSettings.campaigns.htmlLabel')}</Label>
-                      <Textarea
+                      <Label htmlFor="email-campaign-selected-campaign-html">{t('emailSettings.campaigns.htmlLabel')}</Label>
+                      <Textarea id="email-campaign-selected-campaign-html"
                         className="mt-1 min-h-[320px]"
                         value={selectedCampaign.html}
                         onChange={(event) =>
@@ -1166,8 +1166,12 @@ export default function EmailSettings() {
                   )}
 
                   <div>
-                    <Label>{t('emailSettings.campaigns.htmlPreviewSource')}</Label>
-                    <pre className="mt-1 max-h-[280px] overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
+                    <p id="email-campaign-html-preview-source" className="text-sm font-medium leading-none text-slate-700 dark:text-slate-200">
+                      {t('emailSettings.campaigns.htmlPreviewSource')}
+                    </p>
+                    <pre
+                      aria-labelledby="email-campaign-html-preview-source"
+                      className="mt-1 max-h-[280px] overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
                       {(campaignMode === 'builder'
                         ? renderCampaignHtml(selectedCampaign.blocks ?? [])
                         : selectedCampaign.html
@@ -1196,8 +1200,8 @@ export default function EmailSettings() {
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="mb-0">{t('emailSettings.campaigns.onlyActiveUsers')}</Label>
-                        <Switch
+                        <Label htmlFor="email-campaign-only-active-audience" className="mb-0">{t('emailSettings.campaigns.onlyActiveUsers')}</Label>
+                        <Switch id="email-campaign-only-active-audience"
                           checked={onlyActiveAudience}
                           onCheckedChange={(checked) => {
                             setOnlyActiveAudience(checked)
@@ -1206,8 +1210,8 @@ export default function EmailSettings() {
                         />
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="mb-0">{t('emailSettings.campaigns.createInAppNotification')}</Label>
-                        <Switch
+                        <Label htmlFor="email-campaign-create-in-app-notification" className="mb-0">{t('emailSettings.campaigns.createInAppNotification')}</Label>
+                        <Switch id="email-campaign-create-in-app-notification"
                           checked={createInAppNotification}
                           onCheckedChange={setCreateInAppNotification}
                         />

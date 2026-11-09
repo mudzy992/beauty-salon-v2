@@ -2601,6 +2601,8 @@
     }
   },
   "notifications": {
+    "markAsReadNamed": "Označi kao pročitano: {{title}}",
+    "preferencesTableCaption": "Tabela postavki obavijesti po tipu: tip, push i e-mail.",
     "markAsRead": "Označi kao pročitano",
     "unreadOnly": "Samo nepročitane",
     "preferences": "Preference",
