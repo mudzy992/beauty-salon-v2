@@ -124,7 +124,7 @@ export const WorkbookReschedulePreviewPage = () => {
   if (loading) {
     return (
       <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" aria-hidden="true" />
+        <Loader2 className="h-6 w-6 animate-spin text-content-muted" aria-hidden="true" />
         <span className="text-sm text-slate-500">{t('common.loading')}</span>
       </div>
     )

@@ -2003,3 +2003,60 @@ nekcommitane** izmjene (i18n ključeve, `dashboard-titles.ts`, deep linkove, `ci
 samo mutirani fajl. Otkriveno jer je sljedeći anchor vratio `0`. Sve izmjene su ponovljene i
 potvrđene buildom. **Pravilo: restaurirati samo mutirani fajl iz sačuvane kopije; nikad
 `git checkout -- .` dok postoji nekcommitan rad.**
+
+---
+
+## 2026-11-08 — Faza 11 (commit 1): audit stylist portala + 4.1.3
+
+Audit **iz izvora** (plan je do sada bio netačan u 8 navrata), pa tek onda izmjene.
+
+### Plan vs. izvor
+
+| Stavka plana | Presuda | Dokaz |
+|---|---|---|
+| **D1** shell (skip link, `aria-current`, jedan `navItems` izvor, focus-on-navigate) | **već urađeno u fazi 0** | `layouts/StylistLayout.tsx` ima `skip-link`, `aria-current`, tačno 1 `<nav`, `aria-label={t('shell.mainNavigation')}`, `id="main"`, `tabIndex={-1}` |
+| **D4** 3.3.7 redundant entry | **opovrgnuto** | klijent i usluga se traže **jednom** (`workbook-new-entry-page.tsx:328` i `:369`) |
+| **D5** 4 loadera → 1.4.3 / 1.4.11 | **3 od 4 opovrgnuta; 1 stvaran, ali kao 4.1.3** | `workbook-detail-page:137` i `workbook-reschedule-preview-page:127` već imaju `role="status" aria-live="polite"` + vidljiv tekst; `workbook-new-entry-page:478` uz spinner ima `t('common.loading')`. **Stvarni prekršaj** je `workbook-new-entry-page:290`: samo spinner, bez statusa i bez teksta — učitavanje za AT **nije postojalo** |
+| **D6** search ikone `text-slate-400` → 1.4.11 | **opovrgnuto** | obje (`:330`, `:376`) su `aria-hidden="true"` uz `<Label htmlFor>` + placeholder — dekorativne |
+
+**Sistematski sweep** (ne samo 4 linije iz plana): **11 `<Loader2>`** u stylist
+portalu/workbook-u. 7 su submit spinneri unutar `<Button disabled=…>` koji **mijenjaju
+naziv dugmeta** (`finishing` / `creating` / `sending` / `uploadInProgress`) → nisu prekršaj.
+4 su samostalna; **jedan** (`new-entry:290`) nije imao indikator.
+
+**Izmjereni kontrasti:** `slate-400` na `surface` = **2.56:1** (FAIL i za 4.5 i za 3.0), ali
+svi slučajevi su `aria-hidden` dekorativne ikone → 1.4.3/1.4.11 se **ne primjenjuju**.
+`slate-500`/`slate-600` tekstovi: 4.76:1 / 7.58:1 na svjetloj, a `dark:slate-400` = 6.96:1 →
+**nisu prekršaji**, pa tekstualne klase nisu dirane (ostavljeno za sweep u fazi 13).
+
+### 🔴 Moja greška u ovom auditu
+
+Tvrdio sam da `stylist-reservation-detail-page.tsx` **nema `<h1>`** jer `grep '<h1|PageHeader'`
+nad `pages/` nije našao ništa. **Netačno** — `<h1>` je u `features/stylist-portal/components/reservation-detail-summary.tsx:36`,
+koju stranica renderuje. **Svih 10 stylist ekrana ima tačno jedan `<h1>`.** Pouka: grepati
+**cijeli feature folder**, ne samo `pages/`, i provjeriti komponente koje stranica uvozi.
+
+### Izmjene
+
+- `workbook-new-entry-page.tsx:288` — loader dobija `role="status" aria-live="polite"` +
+  vidljiv `{t('common.loading')}` (**4.1.3**)
+- `workbook-new-entry-page.tsx:472` — loyalty `<p>` dobija `role="status" aria-live="polite"`
+  (sadržaj se mijenja `loading → summary/unavailable`)
+- 5 dekorativnih ikona `text-slate-400` → `text-content-muted` (konzistentnost, ne prekršaj;
+  `--text-muted` ima dark varijantu 6.56:1)
+
+### Dokaz
+
+Novi test **`test:workbook-loading-status-a11y`** (4 testa) — broji svih 11 loadera, za
+samostalne traži `role="status"` (tekst **nije** dovoljan jer se ne najavljuje), a za submit
+spinnere asertuje **tačne** nazive koji mijenjaju ime dugmeta. **10/10 mutacija pada.**
+Registrovan u `package.json` (168) i `ci.yml`.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **162/162** |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` | PASS |
+| `check_ui_contrast.py --strict` | 80/80 |
+| `check_repo_hygiene.py` | 1675 |
+| `check_doc_links.py` | 669/202 |

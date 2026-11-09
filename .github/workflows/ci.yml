@@ -575,6 +575,9 @@ jobs:
       - name: Test analytics hub tab routing and redirects
         working-directory: frontend
         run: npm run test:analytics-hub-redirect
+      - name: Test stylist workbook loading status accessibility
+        working-directory: frontend
+        run: npm run test:workbook-loading-status-a11y
       # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
       - name: Test reservation list API contract
         working-directory: frontend

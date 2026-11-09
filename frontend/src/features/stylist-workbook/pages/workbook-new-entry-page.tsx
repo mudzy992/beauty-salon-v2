@@ -286,8 +286,9 @@ export const WorkbookNewEntryForm = ({
 
   if (profileLoading || (loading && !profileId)) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-slate-400" aria-hidden="true" />
+      <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-content-muted" aria-hidden="true" />
+        <span className="text-sm text-content-muted">{t('common.loading')}</span>
       </div>
     )
   }
@@ -327,7 +328,7 @@ export const WorkbookNewEntryForm = ({
         <Card className="p-4">
           <Label htmlFor={clientSearchId}>{t('stylistWorkbook.newEntry.client')}</Label>
           <div ref={clientDropdownRef} className="relative mt-2">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" aria-hidden="true" />
             <Input
               id={clientSearchId}
               value={clientSearch}
@@ -373,7 +374,7 @@ export const WorkbookNewEntryForm = ({
             <p className="mt-1 text-xs text-rose-600">{t('stylistWorkbook.newEntry.clientGenderRequired')}</p>
           ) : null}
           <div ref={serviceDropdownRef} className="relative mt-2">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" aria-hidden="true" />
             <Input
               id={serviceSearchId}
               value={serviceSearch}
@@ -467,7 +468,7 @@ export const WorkbookNewEntryForm = ({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.loyalty')}</p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <p role="status" aria-live="polite" className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 {loadingLoyalty
                   ? t('common.loading')
                   : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
@@ -475,7 +476,7 @@ export const WorkbookNewEntryForm = ({
                     : t('stylistWorkbook.newEntry.loyaltyUnavailable')}
               </p>
             </div>
-            {loadingLoyalty ? <Loader2 className="h-5 w-5 animate-spin text-slate-400" aria-hidden="true" /> : null}
+            {loadingLoyalty ? <Loader2 className="h-5 w-5 animate-spin text-content-muted" aria-hidden="true" /> : null}
           </div>
 
           {loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
