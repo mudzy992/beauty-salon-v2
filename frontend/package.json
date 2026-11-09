@@ -172,6 +172,7 @@
     "test:reservation-scheduler-combobox": "node --test src/features/reservations/reservation-scheduler-combobox-a11y.test.mjs",
     "test:text-contrast-allowlist": "node --test src/app/text-contrast-allowlist-a11y.test.mjs",
     "test:public-a11y-axe-findings": "node --test src/app/public-a11y-axe-findings.test.mjs",
+    "test:admin-gallery-keyboard": "node --test src/features/gallery/admin-gallery-keyboard.test.mjs",
     "test:a11y-routes": "node scripts/run-a11y-routes.mjs",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json",
     "test:route-guards-i18n": "node --test src/components/route-guards-i18n.test.mjs",

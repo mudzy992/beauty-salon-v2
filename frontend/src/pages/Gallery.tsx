@@ -304,22 +304,34 @@ export default function Gallery() {
                 <Card
                   key={c.id}
                   className={[
-                    'cursor-pointer p-4 transition-shadow hover:shadow-md',
+                    'p-4 transition-shadow hover:shadow-md',
                     selectedCatId === c.id ? 'border-brand-gold-ring bg-brand-champagne/10' : '',
                   ].join(' ')}
-                  onClick={() => void loadImages(c.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900 dark:text-slate-50">{c.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">
+                    {/* 2.1.1: izbor kategorije MORA biti pravo <button>. `Card` renderuje običan
+                        <div> (`components/ui/card.tsx:7`), pa `onClick` na njemu tastaturnom
+                        korisniku nije bio dostupan — a ovo je JEDINI put do `loadImages`, koji
+                        postavlja `selectedCatId`. Bez toga se galerija ne može ni otvoriti
+                        tastaturom. Fokus pokriva globalno pravilo `globals.css:208`.
+                        <span> umjesto <p>: <p> nije dozvoljen sadržaj unutar <button>. */}
+                    <button
+                      type="button"
+                      onClick={() => void loadImages(c.id)}
+                      aria-pressed={selectedCatId === c.id}
+                      className="min-w-0 flex-1 cursor-pointer rounded text-left"
+                    >
+                      <span className="block truncate font-semibold text-slate-900 dark:text-slate-50">
+                        {c.name}
+                      </span>
+                      <span className="mt-1 block text-xs text-slate-500">
                         {c.autoPublishConsentedPairs
                           ? t('gallery.admin.autoCategorySummary', { count: c._count?.images ?? 0 })
                           : t('gallery.admin.imageCount', { count: c._count?.images ?? 0 })}{' '}
                         | {t('gallery.admin.sortOrderValue', { value: c.sortOrder })}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
+                      </span>
+                    </button>
+                    <div className="flex shrink-0 gap-1">
                       <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('gallery.admin.edit')} onClick={() => openCatForm(c)}>
                         <Pencil className="h-4 w-4 text-blue-600" />
                       </Button>

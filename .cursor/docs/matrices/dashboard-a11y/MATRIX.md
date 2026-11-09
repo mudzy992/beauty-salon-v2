@@ -205,7 +205,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 1.4.13 | ➖ | tooltip komponenta **obrisana** (faza 13, D2) → nema tooltipova |
 | 1.4.6 (AAA) | ✅/❌ | glavni tekst 20.01:1 ✅; `--text-muted` 5.61:1 ispod 7:1 (Q5: admin override) |
 | 1.4.8 / 1.4.9 (AAA) | ➖ | odbijeno (Q5) |
-| 2.1.1 | 🟡 | combobox u `ReservationScheduler` popravljen (`test:reservation-scheduler-combobox`, 12/12 mutacija); tastatura u renderu **nije** provjerena |
+| 2.1.1 | 🟡 | combobox u `ReservationScheduler` popravljen (`test:reservation-scheduler-combobox`, 12/12 mutacija). **Novi nalaz 2026-11-09:** `<Card onClick>` u `Gallery.tsx` — `Card` renderuje običan `<div>`, a `loadImages` je jedini put do `selectedCatId`, pa tastaturni korisnik nije mogao otvoriti nijednu kategoriju. Popravljeno pravim `<button>` + `aria-pressed` (`test:admin-gallery-keyboard`, 5/5 mutacija). **Napomena:** `jsx-a11y` ovo NIJE javio jer ne zna šta custom komponenta renderuje. Tastatura u renderu i dalje **nije** provjerena |
 | 2.1.2 | ✅ | Radix fokus trap; `window.confirm` ×14 je native i **nema** trap (vidi niže) |
 | 2.1.4 | ➖ | nema single-key shortcuta |
 | 2.2.1 | ➖/⚠️ | UI nema auto-logout; backend timeout nije provjeren |

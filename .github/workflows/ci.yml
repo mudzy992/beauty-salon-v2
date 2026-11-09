@@ -602,6 +602,9 @@ jobs:
       - name: Test public a11y axe findings
         working-directory: frontend
         run: npm run test:public-a11y-axe-findings
+      - name: Test admin gallery keyboard access
+        working-directory: frontend
+        run: npm run test:admin-gallery-keyboard
       # e2e/ NIJE u tsconfig.json (include:['src']), pa ga obican `tsc --noEmit` ne vidi.
       - name: Typecheck e2e (Playwright specovi)
         working-directory: frontend

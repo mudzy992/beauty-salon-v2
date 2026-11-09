@@ -3055,3 +3055,73 @@ je prazan.
 
 **Sam axe nad admin/stylist DOM-om i dalje NIJE izvršen** (treba browser + backend +
 kredencijali). Zato admin/stylist WCAG statusi ostaju 🟡.
+
+---
+
+## 2026-11-09 — 2.1.1 u admin galeriji + trijaža `jsx-a11y` upozorenja
+
+### 🔴 Lint je označio pogrešna mjesta, a stvarni prekršaj propustio
+
+Trijžirao sam svih 16 lint upozorenja. Rezultat je obrnut od očekivanog:
+
+**Svih 9 `jsx-a11y` upozorenja je lažno pozitivno:**
+
+| Mjesto | Zašto NIJE prekršaj |
+|---|---|
+| `entry-form-fields.tsx:197,272` | `<li role="option" onClick>` unutar combobox-a; tastatura ide preko inputa koji ima `role="combobox"` (`:147`,`:224`), `aria-activedescendant` (`:152`,`:229`) i `onKeyDown` (`:165`,`:241`) |
+| `ReservationScheduler.tsx:1137` | isti ARIA combobox uzorak (`:1089`,`:1094`,`:1107`) |
+| `Services.tsx:515` | `<div onClick={e.stopPropagation()}>` — samo zaustavlja propagaciju; roditelj je Radix `AccordionTrigger`, koji je pravo `<button>` |
+| `Gallery.tsx:438`, `PublicReserve.tsx:1032` | `label-has-associated-control` pada zbog **heuristike dubine**: `<label>` obavija `<input>` i tekst u **dva** nivoa `<span>`. Dokazano eksperimentom — ista datoteka, default `depth` → 1 upozorenje, `depth: 4` → **0**. Labela je validna (implicitna asocijacija) |
+
+**A stvarni prekršaj lint NIJE vidio:** `<Card onClick>` u `Gallery.tsx`.
+`Card` renderuje običan `<div>` (`components/ui/card.tsx:7`) bez `role`/`tabIndex`/
+`onKeyDown`. `jsx-a11y` ne može znati šta custom komponenta renderuje — zato ga nije bilo
+među upozorenjima.
+
+### Zašto je to tvrd 2.1.1, a ne nelagodnost
+
+`loadImages` je **jedini** poziv koji postavlja `selectedCatId` (`Gallery.tsx:98`), a
+`selectedCatId` počinje kao `null` (`:58`) i bez njega desni panel ostaje prazan (`:338`).
+Dakle tastaturni korisnik **nije mogao otvoriti galeriju nijedne kategorije**.
+
+### Popravka
+
+`onClick` je skinut s `Card`-a; tekst kategorije je sada pravo `<button type="button">` s
+`aria-pressed={selectedCatId === c.id}` (stanje se vidjelo samo borderom/bojom).
+
+**Zašto `<button>`, a ne `role="button"` na `Card`-u:** kartica sadrži dva `<Button>`
+(edit/delete). `role="button"` na roditelju bi napravio **ugniježđene interaktivne kontrole**
+(4.1.2). Zato je dugme oko teksta, a ne oko cijele kartice.
+
+Fokus ne treba dodavati — pokriva ga globalno pravilo `globals.css:208`
+(`:where(a, button, input, …):focus-visible`). `<p>` je zamijenjen `<span>`: `<p>` nije
+dozvoljen sadržaj unutar `<button>`.
+
+Rezultat: lint **16 → 14** upozorenja (nestala dva s tog `stopPropagation` div-a), 0 errors.
+
+### Novi test + mutacije
+
+`test:admin-gallery-keyboard` (5 testova), registrovan u `package.json` i `ci.yml`.
+Mutacije **5/5** pada: vraćen `onClick` na `Card` · uklonjen `aria-pressed` · uklonjen
+`type="button"` · uklonjen `onClick` s dugmeta · uklonjeno skidanje komentara iz testa.
+
+**🔴 Dva buga u mom prvom testu** (oba uhvaćena jer je test pao, ne jer je prošao):
+1. `indexOf('>')` za kraj otvarajućeg taga puca na `=>` iz `onClick={() => …}` i odsiječe
+   tag — ista zamka koju sam već ranije zabilježio za `<li\b[^>]*>`.
+2. Moj **komentar** u izvoru sadrži doslovno `<button>` i `<p>`, pa je `indexOf('<button')`
+   pogodio komentar (pozicija 455) ispred pravog elementa (935). Test sada prvo skida
+   `{/* … */}` — i to skidanje je pokriveno mutacijom.
+
+### Šta ovo znači za odgođenu stavku „`jsx-a11y` na error"
+
+Ostaje **odgođeno**, ali sada s razlogom: pravila se ne mogu prebaciti na `error` dok daju
+lažno pozitivne na combobox i na ugniježđene `<span>`-ove. Prvo treba ili konfigurisati
+opcije pravila (`depth`, `controlComponents`) ili riješiti preostalih 7 — a nijedan od njih
+nije prekršaj.
+
+### Provjereno
+
+`tsc --noEmit` PASS · `typecheck:e2e` PASS · `npm run build` PASS 273.8 KiB ·
+**172/172** `test:*` · lint 0 errors / 14 warnings · `check_ui_contrast --strict` PASS ·
+`check_i18n --strict` PASS · `check_doc_links` 670/202 · `git diff --check` čisto ·
+`mobile/` i `features/blog/` = **0 diff**.
