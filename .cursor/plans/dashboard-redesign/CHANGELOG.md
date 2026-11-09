@@ -6,7 +6,7 @@ Format: datum · šta · zašto · dokaz.
 
 ## 2026-11-08 — ETAPA A (plan)
 
-### Urаđeno
+### Urađeno
 
 - Pročitani svi dokumenti iz `PROMPT_dashboard_redesign.md` §0: `SOURCE_OF_TRUTH.md`, `.cursorrules`,
   `.cursor/rules/{plan-first,code-hygiene-and-matrices,testing-strategy,full-stack-workflow}.mdc`,
@@ -868,7 +868,7 @@ dosežnog domena, i zaključavanje konvencije u oba izvora.
 vrijedi bez izuzetaka.
 
 **Mutacijska provjera:** očekivani ukupni iznos namjerno pomaknut za +1 → **tačno test 2 pada**
-(`not ok 2`), ostalih 7 ostaje zeleno. Test stvarno izvršava aritmetiku, ne prolazi празno.
+(`not ok 2`), ostalih 7 ostaje zeleno. Test stvarno izvršava aritmetiku, ne prolazi prazno.
 Dodatno, test 7 tvrdi da se frontend i backend **razilaze** za `NaN` tip (backend 0, frontend
 100) — to ne može proći ako je isti modul učitan dvaput.
 
