@@ -590,6 +590,11 @@ jobs:
       - name: Test hooks are not called after early returns
         working-directory: frontend
         run: npm run test:hooks-order
+      # ESLint (react-hooks/rules-of-hooks = error). Uveden poslije React #310 regresije:
+      # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide.
+      - name: Lint frontend (rules-of-hooks)
+        working-directory: frontend
+        run: npm run lint
       # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
       - name: Test reservation list API contract
         working-directory: frontend

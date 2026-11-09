@@ -2290,3 +2290,73 @@ fazi 0); uvezivanje je odgođeno na fazu 13.
 
 > ⚠️ **Nije verificirano u browseru** — ispravka je dokazana statički (redoslijed hookova) i
 > buildom. Vlasnik treba potvrditi da se `/admin/analytics` sada učitava bez greške u konzoli.
+
+---
+
+## 2026-11-09 — ESLint uvezan: `react-hooks/rules-of-hooks` = error
+
+Neposredan povod je React #310 regresija iz prethodnog unosa: klasu greške „hook pozvan
+nakon early return-a" **nije mogao** uhvatiti nijedan postojeći alat (`tsc` ne provjerava
+pravila hookova, a svi testovi čitaju izvor).
+
+### Stanje prije
+
+- `eslint@8.57.1` i `eslint-plugin-jsx-a11y@6.10.2` **jesu** bili u `devDependencies`
+- `npm run lint` = `eslint . --ext ts,tsx` **postojao**, ali **bez konfiguracijskog fajla** →
+  padao je s „Oops! Something went wrong!". Dakle lint **nikad nije ni radio**.
+
+### Šta je dodato
+
+| Paket | Verzija | Zašto |
+|---|---|---|
+| `eslint-plugin-react-hooks` | `^5.2.0` | `rules-of-hooks`; v5 podržava ESLint 8 **i** 9 (v7 traži 9) |
+| `@typescript-eslint/parser` | `^7.18.0` | peer dep `eslint ^8.56.0` — odgovara na 8.57.1 |
+| `@typescript-eslint/eslint-plugin` | `^7.18.0` | TS pravila |
+
+Novi **`frontend/.eslintrc.cjs`** (ESLint 8 = eslintrc, ne flat config).
+
+**Nivoi:**
+- `react-hooks/rules-of-hooks` → **error** (jedino blokirajuće pravilo; ruši aplikaciju)
+- `react-hooks/exhaustive-deps` → warn (7 mjesta; mijenjanje bi diralo cache ponašanje)
+- `jsx-a11y/*` → warn (uvezano sada, puna primjena je faza 13)
+
+### Dokaz da pravilo radi
+
+Na **namjerno pokvarenom** `Analytics.tsx` (isti raspored kao u `87eeabc`):
+
+```
+163:24  error  React Hook "useMemo" is called conditionally. React Hooks must be
+               called in the exact same order in every component render. Did you
+               accidentally call a React Hook after an early return?
+               react-hooks/rules-of-hooks
+```
+
+exit code **1**. Nakon restauracije: exit **0**.
+
+### Rezultat linta na postojećem kodu: **0 errors, 17 warnings**
+
+Svih 12 prvobitnih „grešaka" je provjereno iz izvora — **nijedna nije stvarni prekršaj**,
+osim jednog gapa:
+
+| Nalaz | Presuda |
+|---|---|
+| `Gallery.tsx:426`, `PublicReserve.tsx:1032` — `label-has-associated-control` | **lažno pozitivan** — `<label>` omata `<input type="checkbox">` i sadrži vidljivi tekst u `<span>` (validna implicitna asocijacija). ESLint ne prepoznaje tekst ugniježden u `<span>` |
+| `Gallery.tsx:322`, `Services.tsx:515` — `click-events-have-key-events`, `no-static-element-interactions` | **lažno pozitivan** — `onClick={(e) => e.stopPropagation()}` na omotaču ne vrši akciju, samo sprječava da klik na dugme aktivira cijeli red; dugmad su fokusabilna, 2.1.1 nije prekršen |
+| `alert.tsx:36`, `card.tsx:35` — `heading-has-content` | **lažno pozitivan** — shadcn primitivi (`<h5 {...props} />`) dobijaju sadržaj od pozivaoca; isključeno za `src/components/ui/**` |
+| 🔴 **`ReservationScheduler.tsx:1086`** — `no-noninteractive-element-interactions` | **STVARNO** — `<ul>/<li>` dropdown s `onClick`, a u cijelom fajlu nema `onKeyDown`, `role="listbox"`, `role="option"`, `aria-selected` ni `tabIndex` → **2.1.1 + 4.1.2**. Ispravka je combobox obrazac iz faze 3, prevelika za ovaj commit → **faza 13**; pravilo je zato warn, s komentarom da se vrati na error |
+
+Svako spuštanje na warn ima komentar **zašto** i **kad ga vratiti na error** — da warn ne
+postane trajno skrivanje problema.
+
+### CI
+
+Novi korak **„Lint frontend (rules-of-hooks)"** u `frontend` jobu (172 koraka). Lint sada
+**radi** prvi put u ovom repou.
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run lint` | **0 errors**, 17 warnings |
+| `test:*` | **166/166** |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
+| `check_repo_hygiene.py` / `check_doc_links.py` | 1680 / 669 |
