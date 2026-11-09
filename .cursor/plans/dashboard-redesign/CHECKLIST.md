@@ -121,6 +121,14 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > **`window.confirm` ×14 NIJE prekršaj** (svih 14 koristi `t(...)`, a to je potvrda = 3.3.4),
 > pa `test:no-window-confirm` iz plana §7 **nije** uveden — bio bi čist churn.
 
+> **🔴 Popravka nakon povratne informacije vlasnika.** `npm run test:a11y-routes` pao je s
+> `Timed out waiting 180000ms from config.webServer`. Uzrok **izmjeren**: `vite preview` se
+> bez `--host` veže na IPv6 `::1`, a Playwright `localhost` razriješi na IPv4 `127.0.0.1`
+> (curl: `127.0.0.1` → **000**, `localhost` → 200). Ispravljeno na `--host 127.0.0.1` +
+> `url: 'http://127.0.0.1:10000'`; poslije toga „Timed out waiting" = **0** i run traje ~8 s
+> umjesto 180. Drugi uzrok istog simptoma (nedostaje `dist/`) sada staje odmah s jasnom
+> porukom umjesto da čeka 180 s.
+
 > **Faza 13 — ZATVORENA, ali bez rendered dokaza.** Q4 (`@axe-core/playwright` +
 > `@playwright/test`) je **instaliran** i `npx playwright test --list` nabroji 11 testova uz
 > čiste tipove, ali browser binarni fajl se **ne može preuzeti** u sandboxu, pa

@@ -2732,3 +2732,67 @@ Plan traži „ima li tastaturnu alternativu; ako nema, zabilježiti". Iz izvora
    i tastaturno dostupan, a kao potvrda **doprinosi** 3.3.4. Blokirajući test = čist churn.
 2. Razbijanje `EmailSettings.tsx` (1377 ln) — testovi ga čitaju po putanji; dijeljenje bi ih
    slomilo uz nula a11y vrijednosti.
+
+---
+
+## 2026-11-09 — 🔴 POPRAVKA: `test:a11y-routes` pao s „Timed out waiting 180000ms from config.webServer"
+
+Vlasnik je pokrenuo `npx playwright install --with-deps chromium && npm run test:a11y-routes`
+na svojoj mašini; browser se instalirao, ali test pade:
+
+```
+[WebServer] npm notice run vite preview --port 10000 --config vite.config.ts
+Error: Timed out waiting 180000ms from config.webServer.
+```
+
+### Uzrok (izmjereno, ne nagađano)
+
+`vite preview` se bez `--host` veže na **IPv6 `::1`**, a Playwright/Node `localhost` često
+razriješe na **IPv4 127.0.0.1** → konekcija odbijena → Playwright poll-uje punih 180 s.
+Server je **radio**, samo nije bio dostižan na adresi koju Playwright provjerava.
+
+| Komanda | `curl 127.0.0.1:10000` | `curl localhost:10000` | `curl [::1]:10000` |
+|---|---|---|---|
+| `vite preview` (bez `--host`) | **000** ❌ | 200 | 200 |
+| `vite preview --host 127.0.0.1` | **200** ✅ | 200 | 000 |
+
+### Ispravka
+
+`playwright.config.ts`:
+```diff
+- command: 'npm run preview',
+- url: 'http://localhost:10000',
++ command: 'npm run preview -- --host 127.0.0.1',
++ url: 'http://127.0.0.1:10000',
+```
+`use.baseURL` isto prebačen na `http://127.0.0.1:10000` (bez dvosmislenosti).
+
+### Dokaz da je riješeno
+
+`npx playwright test` u sandboxu (browser i dalje nedostupan, pa testovi padaju na launchu —
+što je očekivano i **nije** ova greška):
+
+| Prije | Poslije |
+|---|---|
+| `Error: Timed out waiting 180000ms from config.webServer` | **0 pojavljivanja** „Timed out waiting" |
+| čekanje 180 s | run završi za **~8 s** |
+| — | jedina greška: `browserType.launch: Executable doesn't exist` (sandbox nema browser) |
+
+Playwright **ne bi došao do pokretanja 11 testova** da webServer URL nije odgovorio.
+Dodatno direktno: `npm run preview -- --host 127.0.0.1` → vite ispiše
+`Local: http://127.0.0.1:10000/`, a `curl` na tu adresu vraća **200**.
+
+### Drugi mogući uzrok istog simptoma — sada daje jasnu poruku
+
+`vite preview` servira **izgrađen** output; bez `dist/` server ne odgovara i Playwright
+također čeka 180 s. `scripts/run-a11y-routes.mjs` sada to provjeri **odmah** i staje s:
+
+```
+✖ dist/ ne postoji — `vite preview` nema šta servirati.
+  Pokrenite prvo build, pa onda test:
+    cd frontend && npm run build && npm run test:a11y-routes
+```
+
+Provjereno: omotač traži `frontend/dist/index.html` (rezolucija putanje tačna, `existsSync` =
+true na izgrađenom projektu). Redoslijed provjera je namjeran — bez browsera se preskače
+prije provjere `dist/`, jer je tada `dist/` nebitan.

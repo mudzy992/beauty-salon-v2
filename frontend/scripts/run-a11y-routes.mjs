@@ -13,6 +13,8 @@
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 
 // ⚠️ `executablePath()` vraća OČEKIVANU putanju i kad browser nije instaliran — ne baca.
@@ -38,6 +40,19 @@ if (!exe) {
   console.log('   Vidi .cursor/docs/matrices/dashboard-a11y/MATRIX.md (R1).')
   console.log('')
   process.exit(0)
+}
+
+// `vite preview` servira IZGRAĐEN output: bez `dist/` server ne odgovara na URL, pa
+// Playwright čeka punih 180s i javi zbunjujući "Timed out waiting ... config.webServer".
+// Zato provjera odmah, s tačnom komandom.
+const dist = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'index.html')
+if (!existsSync(dist)) {
+  console.error('')
+  console.error('✖ dist/ ne postoji — `vite preview` nema šta servirati.')
+  console.error('  Pokrenite prvo build, pa onda test:')
+  console.error('    cd frontend && npm run build && npm run test:a11y-routes')
+  console.error('')
+  process.exit(1)
 }
 
 const r = spawnSync('npx', ['playwright', 'test'], { stdio: 'inherit' })

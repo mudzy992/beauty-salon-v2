@@ -23,13 +23,19 @@ export default defineConfig({
   fullyParallel: true,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:10000',
+    // 127.0.0.1, ne 'localhost': vidi webServer napomenu ispod (IPv4/IPv6 nesklad).
+    baseURL: 'http://127.0.0.1:10000',
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run preview',
-    url: 'http://localhost:10000',
+    // ⚠️ MORA biti --host 127.0.0.1. Bez toga `vite preview` se veže samo na IPv6 `::1`,
+    // a Playwright (i Node) `localhost` često razriješe na IPv4 127.0.0.1 → konekcija odbijena
+    // → "Error: Timed out waiting 180000ms from config.webServer" iako server radi.
+    // Izmjereno: bez --host  curl 127.0.0.1 = 000 / localhost = 200;
+    //            s  --host  curl 127.0.0.1 = 200 / localhost = 200.
+    command: 'npm run preview -- --host 127.0.0.1',
+    url: 'http://127.0.0.1:10000',
     reuseExistingServer: true,
     timeout: 180_000,
   },
