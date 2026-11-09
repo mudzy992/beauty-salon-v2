@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
@@ -50,6 +50,8 @@ export const WorkbookReschedulePreviewPage = () => {
     return String(n || 5)
   }, [searchParams])
 
+  const formId = useId()
+  const manualShiftId = `${formId}-manual-shift`
   const [includeBreaks, setIncludeBreaks] = useState(initialIncludeBreaks)
   const [mode, setMode] = useState<RescheduleMode>(initialMode)
   const [manualShiftMinutes, setManualShiftMinutes] = useState(initialManualShiftMinutes)
@@ -208,8 +210,9 @@ export const WorkbookReschedulePreviewPage = () => {
 
           {mode === 'manual_minutes' ? (
             <div>
-              <Label>{t('stylistWorkbook.reschedule.manualShift')}</Label>
+              <Label htmlFor={manualShiftId}>{t('stylistWorkbook.reschedule.manualShift')}</Label>
               <Input
+                id={manualShiftId}
                 className="mt-2 max-w-[220px]"
                 inputMode="numeric"
                 value={manualShiftMinutes}

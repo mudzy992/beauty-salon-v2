@@ -581,6 +581,9 @@ jobs:
       - name: Test stylist portal status messages accessibility
         working-directory: frontend
         run: npm run test:stylist-status-messages-a11y
+      - name: Test stylist portal form control names
+        working-directory: frontend
+        run: npm run test:stylist-form-controls-a11y
       # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
       - name: Test reservation list API contract
         working-directory: frontend

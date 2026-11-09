@@ -29,7 +29,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
-| 11 | Stylist portal | `[~]` 2 commita (`d15bcd1`, + statusne poruke) — D1/D3/D4/D6/D7 opovrgnuti, D5 djelimično, D10 već zadovoljen | u toku |
+| 11 | Stylist portal | `[~]` 3 commita (`d15bcd1` + 2) — D1/D2/D3/D4/D6/D7 opovrgnuti ili bespredmetni, D5 djelimično, D10 zadovoljen | u toku |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
 
@@ -115,6 +115,9 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > status i dva errora bez `role="alert"`, te **1.4.3** `text-rose-600` (3.80:1 u tamnoj temi).
 > Sweep od 12 `type="file"` inputa (5 s `display:none`) **nije** dao 2.1.1 prekršaj — za
 > svih 5 postoji fokusabilno dugme koje ih aktivira.
+> **D2 je bespredmetan** — u stylist portalu nema nijedne `<table>` ni stat kartica.
+> **Sweep imena kontrola (4.1.2):** 27 `<Input>`/`<Textarea>`, **1** bez imena
+> (`workbook-reschedule-preview-page:212` orphan `<Label>` + `<Input>` bez `id`) — ispravljeno.
 
 > **Faza 10 — napomene.** A11y dio završen u 2 commita; **M2 (D11) urađen** u `56cee86`
 > (`/admin/settings?tab=site|operations|appearance|seo|email|notifications|releases`,

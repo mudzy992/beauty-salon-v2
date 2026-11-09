@@ -2107,3 +2107,49 @@ za obje teme (svjetlo ≥ 4.5, tamno ≥ 4.5) i potvrđuje da `rose-600` na tamn
 | `npm run build` | 274.1 KiB gzip |
 | `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
 | `check_repo_hygiene.py` / `check_doc_links.py` | 1676 / 669 |
+
+---
+
+## 2026-11-08 — Faza 11 (commit 3): sweep imena kontrola (4.1.2 / 1.3.1)
+
+Umjesto preostalih stavki plana (**D2** migracija na `DataTable`/`StatGrid` je
+**bespredmetna** — u stylist portalu nema nijedne `<table>` ni stat kartica; **D10** reflow
+je vizuelan i ne može se verificirati bez browsera), urađen je **sistematski sweep** svih
+`<Input>` / `<Textarea>` u `features/stylist-portal` i `features/stylist-workbook`.
+
+### Rezultat sweepa
+
+**27 kontrola, 1 bez imena.** `workbook-reschedule-preview-page.tsx:212`: orphan `<Label>`
+(bez `htmlFor`) uz `<Input>` bez `id`-a i bez `aria-label` — **4.1.2 / 1.3.1**: label nije
+imenovao ništa, pa čitač ekrana za polje „ručno pomjeranje" nije imao ime.
+
+Ispravka: `useId()` → `manualShiftId`, `<Label htmlFor={manualShiftId}>` + `<Input id={manualShiftId}>`
+(isti obrazac kao `workbook-new-entry-page.tsx:38-42`).
+
+### 🔴 Greška u mojoj heuristici (zabilježiti)
+
+Prva verzija sweepa je tražila samo `id={izraz}` i **nije** prepoznavala `id="literal"`,
+pa je prijavila **21 lažno pozitivnih od 27 kontrola** — npr. `<Textarea id="cancelReason">`
+uz `<Label htmlFor="cancelReason">` u `cancel-reservation-dialog.tsx:47`. Da nisam otvorio
+izvor prije tvrdnje, „popravio" bih 20 ispravnih kontrola. **Pravila:**
+
+1. Regex za JSX atribute mora pokrivati **oba** oblika vrijednosti (`{izraz}` i `"literal"`).
+2. Sweep mora **brojati** ukupno provjerenih stavki — inače tiho „prođe" na praznom skupu.
+   Zato test asertuje `rows.length >= 27`.
+
+### Dokaz
+
+Novi test **`test:stylist-form-controls-a11y`** (3 testa): sweep svih kontrola, sweep orphan
+`<Label>`-a, i provjera `manualShift` uparivanja. **6/6 mutacija pada** — uključujući
+„ukloni `htmlFor` s `reorderStart`" (orphan label). Napomena: mutacija „ukloni `aria-label`
+s `reorderStart`" **ispravno ne pada**, jer ta kontrola ima **oba** imena; to je mutacija
+koja ne mijenja svojstvo koje čuvar čuva, pa je zamijenjena onom koja mijenja.
+
+Registrovan u `package.json` (170) i `ci.yml`.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **164/164** |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
+| `check_repo_hygiene.py` / `check_doc_links.py` | 1677 / 669 |
