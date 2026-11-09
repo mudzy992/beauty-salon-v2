@@ -13,6 +13,7 @@ import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { BlogPostSeoFields } from './blog-post-seo-fields'
+import { BLOG_POST_LANGUAGES } from './blog-language'
 import type { BlogPostFormValues } from './types'
 
 type Props = {
@@ -108,6 +109,24 @@ export function BlogPostFormDialog({
             onPick={(file) => void uploadImage(file, 'ogImage')}
             hint={t('blog.admin.ogImageHint')}
           />
+          {/* WCAG 3.1.2 Language of Parts — jezik članka se čuva da bi ga javna
+              stranica mogla izdati kao `lang` na naslovu i sadržaju. */}
+          <div className="space-y-2">
+            <Label htmlFor="blog-language">{t('blog.admin.language')}</Label>
+            <p className="text-xs text-slate-500">{t('blog.admin.languageHelp')}</p>
+            <select
+              id="blog-language"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
+              value={form.language}
+              onChange={(e) => onChange({ language: e.target.value as BlogPostFormValues['language'] })}
+            >
+              {BLOG_POST_LANGUAGES.map((code) => (
+                <option key={code} value={code}>
+                  {t(`shell.languageNames.${code}`)}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="blog-content">{t('blog.content')}</Label>
             <p className="text-xs text-slate-500">{t('blog.admin.contentHelp')}</p>

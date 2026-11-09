@@ -883,6 +883,9 @@ model BlogPost {
   slug           String    @unique
   excerpt        String?   @db.Text
   content        String    @db.Text
+  // WCAG 3.1.2 Language of Parts: jezik članka mora biti programski odredljiv da bi
+  // se na javnoj stranici mogao izdati `lang`. Default je jezik sajta (bs).
+  language       String    @default("bs") @db.VarChar(8)
   heroImage      String?   @map("hero_image")
   ogImage        String?   @map("og_image")
   seoTitle       String?   @map("seo_title") @db.VarChar(70)

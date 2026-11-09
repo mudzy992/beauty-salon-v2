@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
 import { optionalSeoFields, slugSource } from './utils/blog-post-data';
+import { DEFAULT_BLOG_POST_LANGUAGE } from '../common/constants/blog-post-languages';
 import { emptyToNull } from '../common/utils/empty-to-null';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { sanitizeBlogContent } from './utils/sanitize-blog-content';
@@ -21,6 +22,7 @@ const PUBLIC_BLOG_LIST_SELECT = {
   title: true,
   slug: true,
   excerpt: true,
+  language: true,
   heroImage: true,
   isPublished: true,
   publishedAt: true,
@@ -33,6 +35,7 @@ const PUBLIC_BLOG_DETAIL_SELECT = {
   slug: true,
   excerpt: true,
   content: true,
+  language: true,
   heroImage: true,
   ogImage: true,
   seoTitle: true,
@@ -56,6 +59,7 @@ export class BlogService {
       title: dto.title,
       slug,
       content: sanitizeBlogContent(dto.content),
+      language: dto.language ?? DEFAULT_BLOG_POST_LANGUAGE,
       ...optionalSeoFields(dto),
       noIndex: dto.noIndex ?? false,
       isPublished,
@@ -181,6 +185,7 @@ export class BlogService {
         content: sanitizeBlogContent(dto.content),
       }),
       ...(dto.excerpt !== undefined && { excerpt: emptyToNull(dto.excerpt) }),
+      ...(dto.language !== undefined && { language: dto.language }),
       ...(dto.heroImage !== undefined && {
         heroImage: emptyToNull(dto.heroImage),
       }),

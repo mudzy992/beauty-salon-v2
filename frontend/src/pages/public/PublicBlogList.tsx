@@ -10,6 +10,7 @@ import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
+import { blogPostLang } from '../../features/blog/blog-language'
 import {
   parsePublicBlogListPage,
   type PublicBlogListPost,
@@ -146,11 +147,17 @@ export default function PublicBlogList() {
                               : ''}
                           </div>
                         </div>
-                        <h2 className={`text-lg font-semibold text-slate-900 leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}>
+                        {/* WCAG 3.1.2: naslov i sažetak nose jezik članka, ne jezik stranice. */}
+                        <h2
+                          lang={blogPostLang(p)}
+                          className={`text-lg font-semibold text-slate-900 leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}
+                        >
                           {p.title}
                         </h2>
                         {p.excerpt ? (
-                          <p className="text-sm text-slate-600 mb-4 line-clamp-3">{p.excerpt}</p>
+                          <p lang={blogPostLang(p)} className="text-sm text-slate-600 mb-4 line-clamp-3">
+                            {p.excerpt}
+                          </p>
                         ) : null}
                         <div className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
                           {t('public.blogList.readMore')} <ArrowRight className="h-4 w-4" aria-hidden />

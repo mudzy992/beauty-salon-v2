@@ -2696,6 +2696,8 @@
       "publicUrl": "Javni URL: /blog/{{slug}}",
       "excerpt": "Kratki opis",
       "excerptPlaceholder": "Prikazuje se u listi blogova i kao rezervni SEO opis",
+      "language": "Jezik članka",
+      "languageHelp": "Postavi jezik na kojem je članak napisan. Čitač ekrana tada koristi ispravnu fonetiku za naslov i tekst članka, nezavisno od jezika sučelja.",
       "heroImage": "Naslovna slika",
       "ogImage": "OG slika (dijeljenje)",
       "ogImageHint": "Ako je prazna, koristi se naslovna slika.",

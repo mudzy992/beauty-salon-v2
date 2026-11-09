@@ -1,3 +1,4 @@
+import { DEFAULT_BLOG_POST_LANGUAGE } from './blog-language'
 import type { BlogPost, BlogPostFormValues } from './types'
 
 export const emptyBlogPostForm = (): BlogPostFormValues => ({
@@ -5,6 +6,7 @@ export const emptyBlogPostForm = (): BlogPostFormValues => ({
   slug: '',
   excerpt: '',
   content: '',
+  language: DEFAULT_BLOG_POST_LANGUAGE,
   heroImage: '',
   ogImage: '',
   seoTitle: '',
@@ -18,6 +20,8 @@ export const formFromPost = (post: BlogPost): BlogPostFormValues => ({
   slug: post.slug ?? '',
   excerpt: post.excerpt ?? '',
   content: post.content ?? '',
+  // Stari zapisi (prije migracije) nemaju polje — default je jezik sajta.
+  language: post.language || DEFAULT_BLOG_POST_LANGUAGE,
   heroImage: post.heroImage ?? '',
   ogImage: post.ogImage ?? '',
   seoTitle: post.seoTitle ?? '',
@@ -29,6 +33,8 @@ export const formFromPost = (post: BlogPost): BlogPostFormValues => ({
 export const toBlogPostPayload = (form: BlogPostFormValues) => ({
   title: form.title.trim(),
   content: form.content,
+  // WCAG 3.1.2 — jezik članka, da ga javna stranica može izdati kao `lang`.
+  language: form.language,
   isPublished: form.isPublished,
   noIndex: form.noIndex,
   slug: form.slug.trim() || undefined,

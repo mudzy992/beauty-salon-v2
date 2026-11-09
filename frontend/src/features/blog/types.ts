@@ -12,6 +12,8 @@ export interface BlogPost {
   slug: string
   excerpt: string | null
   content: string
+  /** WCAG 3.1.2 — jezik članka; izdaje se kao `lang` na naslovu i sadržaju. */
+  language: string
   heroImage: string | null
   ogImage: string | null
   seoTitle: string | null
@@ -30,6 +32,7 @@ export type BlogPostFormValues = {
   slug: string
   excerpt: string
   content: string
+  language: string
   heroImage: string
   ogImage: string
   seoTitle: string

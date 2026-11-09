@@ -85,7 +85,7 @@
 | SC | Kriterij | Kako se rješava | Vlasnik | Faza | Status (ETAPA A) | Verifikacija |
 |---|---|---|---|---|---|---|
 | 3.1.1 | Language of page | `seo/useDocumentLang.ts` + `i18n.on('languageChanged')` → `document.documentElement.lang` | repo | — | ✅ **postojeće** (kod pročitan; test `test:i18n-language`) | kod + test |
-| 3.1.2 | Language of parts | Sadržaj na drugom jeziku (npr. EN blog post) dobija `lang` atribut gdje je jezik poznat | modul | 13 | ❌ planirano; dinamički API sadržaj ostaje bez `lang` (nije poznat) | grep |
+| 3.1.2 | Language of parts | Sadržaj na drugom jeziku (npr. EN blog post) dobija `lang` atribut gdje je jezik poznat | blog, backend | 13 | ✅ — **2026-11-09**: `blog_posts.language` (default `bs`) + migracija + DTO `@IsIn(['bs','en'])`; javne stranice izdaju `lang={blogPostLang(post)}` na `<h1>`, sadržaju, naslovu i sažetku kartice | `test:blog-language-a11y` (6, 6/6 mutacija) |
 | 3.2.1 | On focus | Nema akcije na fokus | ui | 0 | 🟡 | ručno |
 | 3.2.2 | On input | Nema automatskog submit-a na promjenu; filteri se primjenjuju eksplicitno | modul | 0–11 | 🟡 | ručno |
 | 3.2.3 | Consistent navigation | Isti shell na svim admin ekranima; isti na svim stylist ekranima; `aria-current` | shell | 0 | ❌ — stylist shell ima dva `<nav>` sa dupliranim markupom | grep (potvrđeno) |
@@ -93,7 +93,7 @@
 | 3.2.6 | Consistent Help **NOVO 2.2** | „Pomoć“ na istom relativnom mjestu u headeru oba shell-a | shell | 13 | ✅ — **ispravka 2026-11-09**: oba shell-a VEĆ imaju `/kontakt` + `HelpCircle` u dijeljenom `<header>`, prije korisničkog menija. Prethodni ❌ („nema help elementa") bio je pogrešan. | `test:shell-a11y` (4/4 mutacije) |
 | 3.3.1 | Error identification | `aria-invalid` + `role="alert"` + tekstualna greška; `ErrorState` sa retry | ui, modul | 0–13 | 🟡 djelimično — `ErrorState` postoji samo u finance | grep |
 | 3.3.2 | Labels or instructions | Vidljive labele + `aria-describedby` za zahtjeve/hint | ui, modul | 0–13 | 🟡 | ručno (M6) |
-| 3.3.3 | Error suggestion | **Normativno:** poznat prijedlog ispravke mora se korisniku dati **u tekstu**. Uz polje `aria-invalid` + `aria-describedby` → tekst; plus trajni sažetak (`role="alert"`, fokusabilan, linkovi na polja). Serverske 400 poruke se više ne odbacuju. | ui, modul | 0–13 | 🟡 u kodu — daily-log forma; nije provjereno u renderu ni čitačem ekrana | `test:form-error-suggestion` (15, 22/22 mutacija) |
+| 3.3.3 | Error suggestion | **Normativno:** poznat prijedlog ispravke mora se korisniku dati **u tekstu**. Uz polje `aria-invalid` + `aria-describedby` → tekst; plus trajni sažetak (`role="alert"`, fokusabilan, linkovi na polja). Serverske 400 poruke se više ne odbacuju. | ui, modul | 0–13 | 🟡 u kodu — daily-log forma; nije provjereno u renderu ni čitačem ekrana (ručna stavka **M13**) | `test:form-error-suggestion` (15, 22/22 mutacija) |
 | 3.3.4 | Error prevention (legal/financial/data) | **Svih 14 `window.confirm` → `ConfirmDialog`** („Odustani“ prvi fokusiran); deletion-impact preview; loyalty adjust/redeem; campaign send | ui, modul | 4, 5, 7, 9, 10 | ❌ — `window.confirm` nema fokus trap ni povrat fokusa | grep (potvrđeno); `test:confirm-dialog-focus` |
 | 3.3.7 | Redundant Entry **NOVO 2.2** | Ne tražiti ponovno iste podatke u istom toku (`workbook-new-entry`, `category-wizard-dialog`, forme) | modul | 3, 4, 11 | ✅ — **sistematski provjereno 2026-11-09: prekršaja nema**. Oba kandidata su jednostranačne forme (ime `category-wizard-dialog.tsx` zavodi — u njemu nema koraka); reschedule tok izbor prenosi URL-om i pred-popunjava kontrolu; javna rezervacija ne pita kontakt koji već ima. | `test:redundant-entry-a11y` (9 testova, 13/13 mutacija) |
 | 3.3.8 | Accessible Authentication (Minimum) **NOVO 2.2** | `OtpInput`: paste cijelog koda **već radi**; dodati `autocomplete="one-time-code"`; bez blokiranja paste-a; bez kognitivnih testova | ui | 12 | 🟡 djelimično — paste radi (kod pročitan), `Profile.tsx:762` ima `one-time-code`, ali `OtpInput` sam nema `autocomplete` | kod + `test:otp-accessible-authentication` |
@@ -228,14 +228,14 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.5.7 | 🟡 | kalendar: `onEventDrop`/`onEventResize` (`:673`/`:682`) ostaju, ali postoji **agenda** prikaz (`:409`, `:565`) i `type="time"` polja u detaljima (`:807`/`:817`, `:1197`/`:1206`) kao put bez povlačenja. **Nije provjereno** da li je `onSelectEvent` dostupan tastaturom. `before-after-spotlight`: **0** drag/pointer handlera → ➖ |
 | 2.5.8 24px | 🟡 | `h-8 w-8` (32px) / `h-7 w-7` (28px) prolaze minimum; nije izmjereno u renderu |
 | 3.1.1 | ✅ | `test:i18n-language` |
-| 3.1.2 | ❌ | dinamički API sadržaj bez `lang` (jezik nije poznat) |
+| 3.1.2 | ✅ | jezik članka se sada **čuva** (`blog_posts.language VARCHAR(8) NOT NULL DEFAULT 'bs'`), pa više nije „nepoznat". Javne stranice ga izdaju kao `lang` na `<h1>`, kontejneru sadržaja (`dangerouslySetInnerHTML`), naslovu i sažetku kartice. Admin forma ima selektor (`blog.admin.language`). `blogPostLang()` normalizuje `en-GB → en` i pada na `bs`. |
 | 3.2.1 / 3.2.2 | 🟡 | nema akcije na fokus/input u kodu |
 | 3.2.3 | ✅ | jedinstven shell; `test:shell-a11y` (1 `<nav`, `aria-current`) |
 | 3.2.4 | ✅ | `StatusBadge`/`Button`/semantički tokeni kroz module |
 | 3.2.6 | ✅ | oba shell-a imaju `/kontakt` + `HelpCircle` u dijeljenom `<header>` (`admin-layout.tsx:82-170`, `StylistLayout.tsx:81-163`), prije korisničkog menija; ime iz `shell.help` (bs „Pomoć" / en „Help"). **Ispravka:** raniji ❌ je tvrdio da help element ne postoji — izmjereno 2026-11-09 da postoji. |
 | 3.3.1 | ✅ | `role="alert"` ×63; `test:stylist-status-messages-a11y`, `test:onboarding-a11y` |
 | 3.3.2 | ✅ | `aria-describedby` + vidljiv zahtjev (faza 12); `test:onboarding-a11y` (7/7 mutacija) |
-| 3.3.3 | 🟡 | **Normativni kriterij:** ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se korisniku daje u tekstu. Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je tehnika (G84/G85), ne zahtjev. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao serverski 400 (`ValidationPipe` + `@IsUUID`/`@IsArray` daju konkretne poruke = poznat prijedlog) i vraćao generički toast. Sada `serverValidationMessages` te poruke čita, `FieldError` ih prikazuje uz polje, `FormErrorSummary` ih najavljuje i linkuje. Ostaje 🟡 jer nema render/AT provjere. |
+| 3.3.3 | 🟡 | **Normativni kriterij:** ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se korisniku daje u tekstu. Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je tehnika (G84/G85), ne zahtjev. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao serverski 400 (`ValidationPipe` + `@IsUUID`/`@IsArray` daju konkretne poruke = poznat prijedlog) i vraćao generički toast. Sada `serverValidationMessages` te poruke čita, `FieldError` ih prikazuje uz polje, `FormErrorSummary` ih najavljuje i linkuje. Ostaje 🟡 jer nema render/AT provjere — ručna stavka **M13** (`CHECKLIST.md`). |
 | 3.3.4 | ✅ | `window.confirm` ×14 **zadržan namjerno** — native potvrda zadovoljava kriterij |
 | 3.3.7 | ✅ | **Sistematski provjereno — prekršaja nema**, pa nema ni šta da se popravi. Kandidati iz matrice opovrgnuti iz izvora: `category-wizard-dialog.tsx` (223 ln) i `workbook-new-entry-page.tsx` (662 ln) **nemaju** brojač koraka — `useState(0)` u potonjem je `partialDiff`/`desiredLoyaltyPercent`, što je zamka za grep. Reschedule tok: dijalog pita „uključi pauze?" i prenosi rezultat **URL-om** (`?includeBreaks=0/1`), a preview **pred-popunjava** svoj toggle (`useState(initialIncludeBreaks)`) — upravo ono što kriterij traži. `PublicReserve` kontakt **ne pita uopće**: ako `email`/`phone`/verifikacija nedostaju, preusmjerava na `/profil` (ln 547), a forma traži samo usluge, datum, termin i bilješke. Onboarding pita tri različite stvari, svaku vezanu za svoju zastavicu. Razlika u odnosu na ostale ✅: ovdje je dokazano **odsustvo** prekršaja, pa ne postoji implementacija koju bi trebalo verificirati u renderu. |
 | 3.3.8 | ✅ | `autocomplete={i === 0 ? 'one-time-code' : 'off'}`, paste bez blokiranja, 0 captcha; `test:onboarding-a11y` |
@@ -253,10 +253,10 @@ Ukupno 51 — nepromijenjeno.
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (source-contract) | **29** |
+| ✅ verifikovano (source-contract) | **30** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
 | 🟡 u kodu, nije verifikovano u renderu | **12** |
-| ❌ nije zadovoljeno (`3.1.2`) | **1** |
+| ❌ nije zadovoljeno | **0** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
 | **ukupno** | **51** |

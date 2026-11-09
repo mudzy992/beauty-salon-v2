@@ -63,6 +63,8 @@ describe('BlogService', () => {
         title: true,
         slug: true,
         excerpt: true,
+        // WCAG 3.1.2 — jezik članka se vraća i u listi, za `lang` na kartici.
+        language: true,
         heroImage: true,
         isPublished: true,
         publishedAt: true,
@@ -126,6 +128,8 @@ describe('BlogService', () => {
         slug: true,
         excerpt: true,
         content: true,
+        // WCAG 3.1.2 — jezik članka za `lang` na naslovu i sadržaju.
+        language: true,
         heroImage: true,
         ogImage: true,
         seoTitle: true,
@@ -213,5 +217,46 @@ describe('BlogService', () => {
       seoDescription: 'SEO opis',
       noIndex: true,
     });
+  });
+
+  // WCAG 3.1.2 — jezik članka se mora sačuvati da bi ga javna stranica izdala kao `lang`.
+  it('create postavlja jezik sajta kada DTO ne navede jezik', async () => {
+    mockPrisma.blogPost.findUnique.mockResolvedValue(null);
+    mockPrisma.blogPost.create.mockResolvedValue({ id: 'p1' });
+    await service.create({ title: 'Naslov', content: '<p>Tekst</p>' }, 'author-1');
+    const createCall = mockPrisma.blogPost.create.mock.calls[0]?.[0];
+    expect(createCall?.data).toMatchObject({ language: 'bs' });
+  });
+
+  it('create čuva navedeni jezik članka', async () => {
+    mockPrisma.blogPost.findUnique.mockResolvedValue(null);
+    mockPrisma.blogPost.create.mockResolvedValue({ id: 'p1' });
+    await service.create(
+      { title: 'Title', content: '<p>Text</p>', language: 'en' },
+      'author-1',
+    );
+    const createCall = mockPrisma.blogPost.create.mock.calls[0]?.[0];
+    expect(createCall?.data).toMatchObject({ language: 'en' });
+  });
+
+  it('update mijenja jezik samo kada je naveden', async () => {
+    mockPrisma.blogPost.findUnique.mockResolvedValue({
+      id: 'p1',
+      authorId: 'author-1',
+      language: 'bs',
+    });
+    mockPrisma.blogPost.update.mockResolvedValue({ id: 'p1' });
+    const user = {
+      sub: 'author-1',
+      username: 'author',
+      email: 'author@example.com',
+      roles: ['CLIENT'],
+    };
+
+    await service.update('p1', { title: 'Novi naslov' }, user);
+    expect(mockPrisma.blogPost.update.mock.calls[0]?.[0].data).not.toHaveProperty('language');
+
+    await service.update('p1', { language: 'en' }, user);
+    expect(mockPrisma.blogPost.update.mock.calls[1]?.[0].data).toMatchObject({ language: 'en' });
   });
 });

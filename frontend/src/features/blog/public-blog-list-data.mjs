@@ -19,7 +19,9 @@ const isBlogPost = (value) =>
   isDateString(value.createdAt) &&
   (value.publishedAt === null || isDateString(value.publishedAt)) &&
   isOptionalString(value.excerpt) &&
-  isOptionalString(value.heroImage)
+  isOptionalString(value.heroImage) &&
+  // WCAG 3.1.2 — jezik članka; opciono zbog starijeg keša (vidi public-blog-post-data).
+  isOptionalString(value.language)
 
 /**
  * Validates the public blog list response while preserving the legacy array form.

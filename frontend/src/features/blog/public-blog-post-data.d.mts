@@ -3,6 +3,8 @@ export type PublicBlogPost = {
   title: string
   slug: string
   content: string
+  /** WCAG 3.1.2 — jezik članka. Opciono: stariji keširani odgovori ga nemaju. */
+  language?: string | null
   excerpt?: string | null
   seoTitle?: string | null
   seoDescription?: string | null

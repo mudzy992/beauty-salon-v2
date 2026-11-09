@@ -11,6 +11,10 @@ test('public blog list exposes initial and incremental loading states', () => {
 })
 
 test('each public blog card title is a level-two heading and calendar icon is decorative', () => {
-  assert.match(source, /<h2 className=\{`text-lg font-semibold[\s\S]*?\{p\.title\}\s*<\/h2>/)
+  // `lang` (WCAG 3.1.2) stoji ispred `className`, pa obrazac mora dopustiti atribut.
+  assert.match(
+    source,
+    /<h2\s+lang=\{blogPostLang\(p\)\}\s+className=\{`text-lg font-semibold[\s\S]*?\{p\.title\}\s*<\/h2>/,
+  )
   assert.match(source, /<Calendar className="h-4 w-4" aria-hidden="true" \/>/)
 })

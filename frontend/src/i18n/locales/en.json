@@ -2699,6 +2699,8 @@
       "publicUrl": "Public URL: /blog/{{slug}}",
       "excerpt": "Short description",
       "excerptPlaceholder": "Shown in the blog list and as a fallback for the SEO description",
+      "language": "Article language",
+      "languageHelp": "Set the language the article is written in. Screen readers then use the correct pronunciation for the article title and body, independently of the interface language.",
       "heroImage": "Hero image",
       "ogImage": "OG image (sharing)",
       "ogImageHint": "If empty, the hero image will be used.",

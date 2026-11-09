@@ -27,6 +27,9 @@ export function parsePublicBlogPost(payload, requestedSlug) {
     !isOptionalString(payload.seoDescription) ||
     !isOptionalString(payload.heroImage) ||
     !isOptionalString(payload.ogImage) ||
+    // WCAG 3.1.2 — jezik članka. Ostaje opciono: stariji keširani odgovori ga nemaju,
+    // a `blogPostLang()` na frontendu vraća 'bs' kad vrijednost nedostaje.
+    !isOptionalString(payload.language) ||
     (payload.noIndex !== undefined && typeof payload.noIndex !== 'boolean') ||
     (payload.publishedAt !== null && !isDateString(payload.publishedAt)) ||
     !isOptionalDate(payload.updatedAt)

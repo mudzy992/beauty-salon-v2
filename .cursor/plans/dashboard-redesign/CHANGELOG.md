@@ -4292,3 +4292,106 @@ backup, nikad `git checkout --`, osim za fajlove koji su sigurno kommitani.**
 7 warnings** · build **273.9 KiB / 300** · `check_ci_index` **PASS (359/362)** ·
 `check_i18n --strict` **PASS** · `check_doc_links` **PASS** (670/202) ·
 `check_ui_contrast --strict` **PASS** (80 parova) · `git diff --check` **čist**.
+
+---
+
+## 2026-11-09 — `3.1.2 Language of Parts` riješen: jezik članka bloga se čuva i izdaje kao `lang`
+
+Vlasnik odobrio stavku. Dosad je matrica držala `3.1.2` kao ❌ uz razlog „jezik nije poznat" —
+i to je bila **tačna** dijagnoza: `blog_posts` uopšte nije imao polje za jezik. Rješenje je zato
+moralo početi u šemi.
+
+### Backend
+
+| fajl | izmjena |
+|---|---|
+| `prisma/schema.prisma` | `BlogPost.language String @default("bs") @db.VarChar(8)` |
+| `prisma/migrations/20261109220000_blog_post_language/migration.sql` | `ALTER TABLE "blog_posts" ADD COLUMN "language" VARCHAR(8) NOT NULL DEFAULT 'bs'` — postojeći redovi dobijaju jezik sajta |
+| `src/common/constants/blog-post-languages.ts` | **novo**: `BLOG_POST_LANGUAGES = ['bs','en']`, `DEFAULT_BLOG_POST_LANGUAGE = 'bs'` |
+| `dto/create-blog-post.dto.ts`, `dto/update-blog-post.dto.ts` | `@IsOptional() @IsIn(BLOG_POST_LANGUAGES) language?: string` — bez `@IsIn` bi prošla bilo koja vrijednost |
+| `blog.service.ts` | `create`: `language: dto.language ?? DEFAULT_BLOG_POST_LANGUAGE`; `update`: `...(dto.language !== undefined && { language: dto.language })`; `language: true` u **obje** select liste (javna lista + javni detalji) |
+
+### Frontend
+
+| fajl | izmjena |
+|---|---|
+| `features/blog/blog-language.ts` | **novo**: `blogPostLang(post)` normalizuje `en-GB → en` i pada na `bs` |
+| `pages/public/PublicBlogPost.tsx` | `lang={blogPostLang(post)}` na `<h1>` **i** na kontejneru s `dangerouslySetInnerHTML` |
+| `pages/public/PublicBlogList.tsx` | `lang={blogPostLang(p)}` na `<h2>` naslovu i `<p>` sažetku kartice |
+| `features/blog/blog-post-form-dialog.tsx` | selektor jezika (`blog.admin.language`), opcije iz `BLOG_POST_LANGUAGES` |
+| `features/blog/blog-post-form.ts`, `types.ts` | `language` u form vrijednostima, payloadu i tipovima |
+| `public-blog-post-data.mjs/.d.mts`, `public-blog-list-data.mjs/.d.mts` | `language` validiran (`isOptionalString`) i tipiziran (`string \| null`) — opciono zbog starijeg keša |
+| `i18n/locales/{bs,en}.json` | `blog.admin.language` + `blog.admin.languageHelp` |
+
+Zašto `lang` ide na članak, a ne samo na `<html>`: `document.documentElement.lang` opisuje jezik
+**sučelja** (postavlja ga `useDocumentLang` u `App.tsx:10`), a 3.1.2 traži jezik **odlomka**.
+
+### 🔴 Test je uhvatio stvarnu grešku u mom helperu
+
+Prva verzija `blogPostLang` bila je `(post.language ?? '').toLowerCase()`. Test
+`blogPostLang({ language: 42 })` bacio je **`TypeError: .toLowerCase is not a function`**.
+Tip jeste `string | null`, ali vrijednost stiže s API-ja. Popravljeno s `typeof` provjerom
+(`blog-language.ts` 1010 → 1240 B). Bez te jedne asertacije greška bi otišla u produkciju.
+
+### Verifikacija — backend testovi SU pokrenuti
+
+`backend/node_modules` nije bio instaliran; instaliran s `npm ci --ignore-scripts`
+(`prisma generate` ne radi u sandboxu). Time je **jest prorad**:
+
+- `npx jest src/blog/` → **4 suite-a, 20 testova, 0 padova** (17 postojećih + **3 nova** za
+  `language`: create default, create s navedenim jezikom, update mijenja samo kad je naveden).
+- Postojeći specovi su **pali** nakon izmjene (`toHaveBeenCalledWith` na select liste) — to je
+  dokaz da stvarno čitaju select; ažurirani su.
+- Cijeli backend: **416 testova prošlo, 0 asertcijskih padova**; 51 suite ne može da se učita
+  zbog `@prisma/client/default.js` (nije generisan) — **306** takvih poruka i **nula**
+  grešaka koje nisu prisma. To je ograničenje okruženja, ne posljedica izmjene.
+
+### Ažurirani postojeći testovi (pali su zbog izmjene, što je i trebalo)
+
+- `test:public-blog-list-accessibility` — obrazac `/<h2 className=/` više ne hvata `<h2 lang=…
+  className=`; **pojačan** da zahtijeva `lang={blogPostLang(p)}`.
+- `test:admin-content-a11y` — 14 → **15** `<Label>` (novi `blog.admin.language`).
+
+### Matrica
+
+`3.1.2` ❌ → ✅; `3.3.3` dobio eksplicitan pokazivač na ručnu stavku **M13**.
+ETAPA B: ✅ **30** · mješovito 1 · 🟡 12 · ❌ **0** · ➖ 7 · ➖/⚠️ 1 = **51** (zbir provjeren).
+
+**Stavka 4 s liste („3.3.3 → M13") bila je već urađena** — M13 je definisan u `CHECKLIST.md:403`
+s punim uputstvom, referenciran na `:323` i u `HANDOFF.md:1369`. Dodan je samo pokazivač u matricu.
+
+### Mutacijska provjera (9/9)
+
+| # | mutacija | pada? |
+|---|---|---|
+| M1 | `lang` skinut s `<h1>` | ✅ `blog-language-a11y` #2 |
+| M2 | `lang` skinut sa sadržaja | ✅ #2 |
+| M3 | `@IsIn` izbačen iz create DTO | ✅ #6 |
+| M4 | `language` izbačen iz `PUBLIC_BLOG_LIST_SELECT` | ✅ #6 |
+| M5 | migracija `DEFAULT 'en'` | ✅ #6 |
+| M6 | `blogPostLang` zamjena = `en` | ✅ #1 |
+| B1 | `create` ne postavlja default jezik | ✅ jest (2 testa) |
+| B2 | `update` uvijek piše `language` | ✅ jest (1) |
+| B3 | `language` izbačen iz `DETAIL_SELECT` | ✅ jest (1) |
+
+Sve vraćeno preko `cp` backupa; kontrole 6/6 i 20/20.
+
+### ⚠️ Ograničenje koje NIJE provjereno
+
+Migracija **nije izvršena** nad bazom (nema baze ni `prisma generate` u sandboxu). SQL je
+pregledan i prati obrazac postojeće `20260915085100_blog_post_seo` migracije, ali **tvrdnja da
+prolazi nad stvarnom bazom nije potvrđena** — to mora proći kroz CI.
+
+### Usput: treći reset okruženja
+
+`node_modules` je nestao usred koraka, `HEAD` se vratio na bazni `9df498a`. Oporavak:
+`git fetch` → `git reset --mixed FETCH_HEAD` → `git status --short` pokazuje **tačno** 3.1.2
+izmjene → `npm ci`. Ništa nije izgubljeno.
+
+### Kapije
+
+frontend `test:*` **180/180** · `tsc --noEmit` **exit 0** · lint **0 errors / 7 warnings** ·
+build **274.1 KiB / 300** · backend `jest src/blog/` **20/20** · `check_ci_index`
+**PASS (360/363)** · `check_i18n --strict` **PASS** · `check_doc_links` **PASS** (670/202) ·
+`check_ui_contrast --strict` **PASS** (80) · `check_repo_hygiene` **PASS** ·
+`git diff --check` **čist**.

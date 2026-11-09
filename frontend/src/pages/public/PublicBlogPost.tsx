@@ -14,6 +14,7 @@ import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
 import { PublicBlogComments } from '../../features/blog/public-blog-comments'
 import { buildPublicBlogPostSeo } from '../../features/blog/public-blog-post-seo'
+import { blogPostLang } from '../../features/blog/blog-language'
 import { PublicBlogShare } from '../../features/blog/public-blog-share'
 import {
   parsePublicBlogPost,
@@ -248,7 +249,13 @@ export default function PublicBlogPost() {
                   : ''}
               </div>
             </div>
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl">{post.title}</h1>
+            {/* WCAG 3.1.2: naslov je dio članka, pa nosi jezik članka, ne jezik stranice. */}
+            <h1
+              lang={blogPostLang(post)}
+              className="text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl"
+            >
+              {post.title}
+            </h1>
           </div>
         </div>
         <div className={`px-0 md:px-2 ${publicPage.contentAfterHero}`}>
@@ -260,7 +267,10 @@ export default function PublicBlogPost() {
             onCopy={() => void copyShareUrl()}
           />
           {/* Backend sanitizes on writes and public slug reads; keep this API boundary mandatory. */}
+          {/* WCAG 3.1.2 Language of Parts: sadržaj članka nosi svoj jezik, jer se
+              jezik stranice (`document.documentElement.lang`) odnosi na UI, ne na članak. */}
           <div
+            lang={blogPostLang(post)}
             className="blog-content mb-14 text-lg leading-relaxed text-slate-700"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
           />

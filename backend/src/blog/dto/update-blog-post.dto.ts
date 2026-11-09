@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { BLOG_POST_LANGUAGES } from '../../common/constants/blog-post-languages';
 
 export class UpdateBlogPostDto {
   @IsOptional()
@@ -19,6 +20,11 @@ export class UpdateBlogPostDto {
   @IsOptional()
   @IsString()
   content?: string;
+
+  /** WCAG 3.1.2 — jezik članka; frontend ga izdaje kao `lang` na sadržaju. */
+  @IsOptional()
+  @IsIn(BLOG_POST_LANGUAGES)
+  language?: string;
 
   @IsOptional()
   @IsString()

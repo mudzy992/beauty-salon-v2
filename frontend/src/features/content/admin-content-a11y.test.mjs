@@ -51,8 +51,9 @@ test('svaki <Label> je programski povezan s kontrolom (1.3.1)', () => {
     }
   }
   // Reviews/Blog/posts-table/comments-dialog nemaju <Label> (koriste Badge,
-  // dugmad s tekstom i role="img"). Ukupno 14, svih 14 asocirano.
-  assert.equal(total, 14, `očekivano 14 <Label>, nađeno ${total}`)
+  // dugmad s tekstom i role="img"). Ukupno 15, svih 15 asocirano.
+  // 2026-11-09: +1 za `blog.admin.language` (selektor jezika članka, WCAG 3.1.2).
+  assert.equal(total, 15, `očekivano 15 <Label>, nađeno ${total}`)
 })
 
 test('Gallery: 6 polja u dijalozima ima htmlFor/id par (1.3.1)', () => {

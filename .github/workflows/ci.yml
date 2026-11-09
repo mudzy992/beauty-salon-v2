@@ -672,6 +672,9 @@ jobs:
       - name: Test dashboard shell accessibility (skip link, landmarks, page titles)
         working-directory: frontend
         run: npm run test:shell-a11y
+      - name: Test blog article language attribute (WCAG 3.1.2)
+        working-directory: frontend
+        run: npm run test:blog-language-a11y
       - name: Test localized amount formatting consistency (no toFixed + KM)
         working-directory: frontend
         run: npm run test:amount-format-consistency
