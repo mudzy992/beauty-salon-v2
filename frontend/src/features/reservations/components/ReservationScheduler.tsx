@@ -178,6 +178,18 @@ const getReservationResourceId = (r: Reservation): string => {
   return 'unassigned'
 }
 
+/* WCAG 2.1.1 — tastaturna navigacija kroz listbox. Isti algoritam kao u
+   features/daily-log/entry-form-fields.tsx; zadržan lokalno jer test
+   daily-log-form-a11y pinuje taj obrazac unutar tog fajla. */
+const stepIndex = (current: number, count: number, key: string): number | null => {
+  if (count === 0) return null
+  if (key === 'ArrowDown') return (current + 1) % count
+  if (key === 'ArrowUp') return (current - 1 + count) % count
+  if (key === 'Home') return 0
+  if (key === 'End') return count - 1
+  return null
+}
+
 export const ReservationScheduler = (props: Props) => {
   const { t } = useTranslation()
   const toast = useAppToast()
@@ -260,6 +272,7 @@ export const ReservationScheduler = (props: Props) => {
   const [clients, setClients] = useState<ClientOption[]>([])
   const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
+  const [serviceActiveIdx, setServiceActiveIdx] = useState(-1)
   const [createDraft, setCreateDraft] = useState<{
     bookingMode: 'STANDARD' | 'STAFF_ADMIN_DIRECT'
     stylistProfileId: string
@@ -340,6 +353,7 @@ export const ReservationScheduler = (props: Props) => {
     const onDown = (e: MouseEvent) => {
       if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(e.target as Node)) {
         setShowServiceDropdown(false)
+        setServiceActiveIdx(-1)
       }
     }
     document.addEventListener('mousedown', onDown)
@@ -1072,20 +1086,64 @@ export const ReservationScheduler = (props: Props) => {
                         ? t('reservations.calendar.create.selectClientPlaceholder')
                         : t('reservations.calendar.create.serviceSearchPlaceholder')
                     }
+                    role="combobox"
+                    aria-expanded={showServiceDropdown && filteredServices.length > 0}
+                    aria-controls="res-create-service-listbox"
+                    aria-autocomplete="list"
+                    autoComplete="off"
+                    aria-activedescendant={
+                      showServiceDropdown && filteredServices.length > 0 && serviceActiveIdx >= 0
+                        ? `res-create-service-opt-${filteredServices[serviceActiveIdx].id}`
+                        : undefined
+                    }
                     value={createDraft.serviceSearch}
                     onChange={(e) => {
                       const v = e.target.value
                       setCreateDraft((p) => ({ ...p, serviceSearch: v }))
                       setShowServiceDropdown(true)
+                      setServiceActiveIdx(-1)
                     }}
                     onFocus={() => setShowServiceDropdown(true)}
+                    onKeyDown={(e) => {
+                      const open = showServiceDropdown && filteredServices.length > 0
+                      const next = stepIndex(serviceActiveIdx, open ? filteredServices.length : 0, e.key)
+                      if (next !== null) {
+                        e.preventDefault()
+                        if (!open) setShowServiceDropdown(true)
+                        setServiceActiveIdx(next)
+                        return
+                      }
+                      if (e.key === 'Enter' && open && serviceActiveIdx >= 0) {
+                        e.preventDefault()
+                        toggleServiceId(filteredServices[serviceActiveIdx].id)
+                        return
+                      }
+                      if (e.key === 'Escape' && open) {
+                        e.preventDefault()
+                        setShowServiceDropdown(false)
+                        setServiceActiveIdx(-1)
+                      }
+                    }}
                   />
                   {showServiceDropdown && filteredServices.length > 0 ? (
-                    <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
-                      {filteredServices.map((svc) => (
+                    <ul
+                      id="res-create-service-listbox"
+                      role="listbox"
+                      aria-multiselectable="true"
+                      aria-label={t('reservations.calendar.create.service')}
+                      className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
+                    >
+                      {filteredServices.map((svc, idx) => (
                         <li
                           key={svc.id}
-                          className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                          id={`res-create-service-opt-${svc.id}`}
+                          role="option"
+                          aria-selected={createDraft.serviceIds.includes(svc.id)}
+                          className={
+                            idx === serviceActiveIdx
+                              ? 'cursor-pointer bg-brand-champagne/20 px-3 py-2'
+                              : 'cursor-pointer px-3 py-2 hover:bg-brand-champagne/20'
+                          }
                           onMouseDown={(ev) => ev.preventDefault()}
                           onClick={() => toggleServiceId(svc.id)}
                         >

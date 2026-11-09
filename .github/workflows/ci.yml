@@ -593,6 +593,9 @@ jobs:
       - name: Test onboarding accessibility
         working-directory: frontend
         run: npm run test:onboarding-a11y
+      - name: Test reservation scheduler combobox
+        working-directory: frontend
+        run: npm run test:reservation-scheduler-combobox
       # ESLint (react-hooks/rules-of-hooks = error). Uveden poslije React #310 regresije:
       # hvata hookove pozvane nakon early return-a, sto ni tsc ni testovi nad izvorom ne vide.
       - name: Lint frontend (rules-of-hooks)

@@ -2459,3 +2459,61 @@ Registrovan u `package.json` (173) i `ci.yml`.
 | `npm run build` | 274.1 KiB gzip |
 | `check_i18n.py --strict` | PASS (`numstat` 1/0 + 1/0) |
 | `check_ui_contrast.py --strict` / hygiene / doc_links | 80/80 / 1681 / 669 |
+
+---
+
+## 2026-11-09 — Faza 13 (commit 1): 2.1.1 + 4.1.2 — izbor usluge u ReservationScheduler bio samo mišem
+
+### Nalaz (iz izvora, prije ispravke)
+
+`features/reservations/components/ReservationScheduler.tsx:1084-1101`:
+
+```jsx
+<ul className="...">                                  // bez role="listbox"
+  <li className="cursor-pointer ..."                  // bez role="option"
+      onMouseDown={(ev) => ev.preventDefault()}       // bez tabIndex
+      onClick={() => toggleServiceId(svc.id)}>        // bez onKeyDown
+```
+
+Tastaturni korisnik je mogao **kucati** u pretragu i vidjeti filtriran spisak, ali nijednu
+opciju **nije mogao dosegnuti niti aktivirati**. Provjereno da nema alternativnog puta: od
+dva poziva `toggleServiceId` onaj na `:1116` je dugme za **uklanjanje** već izabrane usluge.
+
+→ **2.1.1 Keyboard** (tvrd prekršaj) + **4.1.2 Name, Role, Value**.
+
+### Ispravka
+
+Preslikan obrazac iz `features/daily-log/entry-form-fields.tsx` (**multi-select** varijanta,
+već pokrivena testom `daily-log-form-a11y`): `role="combobox"` + `aria-expanded` +
+`aria-controls` + `aria-autocomplete="list"` + `aria-activedescendant` na ulazu;
+`role="listbox"` + `aria-multiselectable="true"` + `aria-label` na `<ul>`;
+`role="option"` + `aria-selected` + `id` na `<li>`; `onKeyDown` sa ArrowDown/ArrowUp/Home/
+End/Enter/Escape. `stepIndex` je zadržan **lokalno** jer `daily-log-form-a11y:77` pinuje
+`if (key === '…')` unutar tog fajla — ekstrakcija u dijeljeni modul bi slomila ugovor.
+
+### Test
+
+`test:reservation-scheduler-combobox` (3 testa): combobox ugovor, tastaturne grane, i
+**globalni čuvar** koji za cijeli `src/` traži klikabilan `<li>` bez `role="option"`
+(trenutno 3 klikabilna `<li>`, sva 3 ispravna; donja granica `checked >= 3` sprječava tiho
+prolaženje na praznom skupu).
+
+**12/12 mutacija pada** — uključujući `role="combobox"`→`role="text"`, `role="listbox"`→
+`role="list"`, `role="option"`→`role="listitem"`, `onKeyDown`→`onKeyDownUnused`,
+`if (false)` na Enter/Escape, i `aria-controls` s pogrešnim id-jem.
+
+### Dvije greške u mom vlastitom testu (ispravljene prije commita)
+
+1. `const SRC = join(root, '..')` — a `root` u kolociranom testu **već jeste** `frontend/src`,
+   pa je sweep tražio fajlove u `frontend/`. (Ista zamka kao ranije.)
+2. `/<li\b[^>]*>/` nalazi **0** klikabilnih `<li>`: `[^>]*` se lomi na `=>` iz arrow-funkcija
+   u atributima (`onMouseDown={(ev) => ev.preventDefault()}`). Zamijenjeno skenerom koji
+   poštuje dubinu `{}` i stringove → 3 pogodaka.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **168/168** |
+| `npm run lint` | 0 errors, **16** warnings (bilo 17 — popravka je uklonila `no-noninteractive-element-interactions`) |
+| `npm run build` | 274.1 KiB gzip (calendar chunk 95.5 KiB) |
+| `npx tsc --noEmit` | čist |
+| `check_i18n` / `check_ui_contrast` / hygiene / doc_links | PASS / 80 / 1682 / 669 |
