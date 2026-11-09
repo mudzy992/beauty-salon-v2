@@ -28,7 +28,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 7 | Korisnici | `[x]` 1 commit | prošla |
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
-| 10 | Postavke (+ M2 ako odobren) | `[ ]` | |
+| 10 | Postavke (+ M2 ako odobren) | `[~]` 2 commita (`ba59834`, `44b0eed`) — **a11y gotov, M2 NIJE** | djelimično |
 | 11 | Stylist portal | `[ ]` | |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
@@ -103,6 +103,24 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > naveo: **1.1.1 `Stars`** — 5 `aria-hidden` ikona, a u **tabeli** nije bilo brojčanog
 > ekvivalenta (detaljni panel ga je imao), pa su ćelije ocjena za čitač ekrana bile prazne.
 > Novi test `test:admin-content-a11y` (10 testova); **14/14 mutacija palo**.
+
+> **Faza 10 — napomene (djelimično).** A11y dio završen u 2 commita. **M2 (D11) NIJE rađen**
+> iako je **odobren** — vidi ispravku ispod. Pet planiranih stavki **opovrgnuto**: **D4**
+> (pretraga postavki već ima `role="status" aria-live="polite"` na ln 75/85/102 i
+> `aria-controls`), **D5** (`window.confirm` nije prekršaj), **D6** (vizuelni email editor
+> **već ima** moveUp/moveDown dugmad s `aria-label` pored `draggable` blokova → 2.5.7
+> zadovoljen), **D10** (APK upload je već native input s `<Label htmlFor="apk">`, 0 `onDrop`),
+> a **D1/D2 NISU prekršaji** — izmjereni parovi prolaze (`text-#49332d`/`bg-#fffaf6` = 11.29:1,
+> `ring-#9b735f` = 4.19:1 ≥ 3.0 za 1.4.11); razlog zamjene je konzistentnost identiteta.
+> **D3 jeste stvaran** (2.56:1 → 5.61:1). Nalaz koji plan nije naveo: **`<Label>` uz `<pre>`**
+> (`htmlPreviewSource`) — `<pre>` nije labelabilan element, pa label nije imenovao ništa.
+> `<h1>` u `settings-shell.tsx` **namjerno netaknut** (ima test ugovor i nije smeđi, 17:1).
+>
+> **🔴 ISPRAVKA — M1 je preskočen pogrešno.** U fazi 6 sam zapisao „M1 nije odobren,
+> preskočen". To je **netačno**: `00_overview.md` §7 kaže „ODLUČENO 2026-11-08, vlasnik:
+> postupi po svojoj preporuci", a **Q3 glasi „M1 i M2 ODOBRENI"**, dok **Q7** izričito nalaže
+> da `client-analytics`/`stylist-analytics` „postaju tabovi unutar `/admin/analytics`, stare
+> rute redirectuju". Dakle **M1 (faza 6) i M2 (faza 10) su oba odobrena i oba neurađena**.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

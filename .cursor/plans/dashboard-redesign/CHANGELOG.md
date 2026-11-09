@@ -1812,3 +1812,126 @@ Registrovan u `frontend/package.json` (163 skripti) **i** `.github/workflows/ci.
 **Odgođeno na fazu 13:** razbijanje `Gallery.tsx` (600 ln) po panelima i migracija 2 tabele
 na `DataTable` (rizik za paritet podataka); `fieldset` za cijelu blog formu ako se uvedu
 vizuelne sekcije.
+
+---
+
+## 2026-11-08 — FAZA 10 (djelimično): Postavke — tokeni + ime kontrola
+
+Modul **3879 linija / 24 fajla / 18 testova**. Završen a11y dio u **2 commita**
+(`ba59834`, `44b0eed`). **M2 (D11) NIJE rađen** — vidi ispravku na kraju.
+
+### Commit 1 (`ba59834`) — paralelna smeđa paleta → brand tokeni + 1.4.3
+
+`features/settings` je koristio zasebnu smeđu hex skalu koja se ne poklapa s brand
+identitetom (`--brand-primary: #632238` burgund). Uklonjeno **svih 14 pojava u 4 fajla**, 0 preostalih.
+
+**Ovo NIJE bio WCAG prekršaj.** Izmjereni parovi su prolazili:
+
+| Par | Kontrast | Prag | |
+|---|---:|---:|---|
+| `text-#49332d` / `bg-#fffaf6` | 11.29:1 | 4.5 | PASS |
+| `text-white` / `bg-#49332d` | 11.70:1 | 4.5 | PASS |
+| `text-#6e493c` / `bg-#f3e8df` | 6.50:1 | 4.5 | PASS |
+| `border-#9d735d` | 4.16:1 | 3.0 | PASS |
+| `ring-#9b735f` (fokus) | 4.19:1 | 3.0 | PASS |
+
+Razlog zamjene je **konzistentnost identiteta**, ne usklađenost. Plan je D2 označio kao
+2.4.13 prekršaj — **nije**: 4.19:1 prelazi 3:1 koliko 1.4.11 traži za indikator fokusa.
+
+**D3 je bio stvaran 1.4.3 prekršaj:** `setting-editor-display.tsx:54` suffix u
+`text-slate-400` (#94A3B8) = **2.56:1 FAIL** → `text-content-muted` = **5.61:1 PASS**.
+
+**Netaknuto s razlogom:**
+- `EmailSettings.tsx:270,280` i `email-visual-editor.tsx:244,249` — generisani HTML za
+  email klijente (`renderCampaignHtml`) i njegov vjerni preview. Email klijenti ne
+  podržavaju CSS varijable.
+- `pages/public/PublicServiceDetail.tsx`, `PublicServices.tsx` — javni sajt, van obima.
+- `<h1>` u `settings-shell.tsx` — ima doslovan test ugovor u
+  `admin-settings-accessibility.test.mjs` i koristi slate (17:1), ne smeđu. Mijenjanje
+  bi slomilo test bez a11y dobiti.
+
+### Commit 2 (`44b0eed`) — 4.1.2 ime kontrola, 2.4.4, 1.3.1 tabele
+
+**4.1.2/1.3.1 — 28 `<Label>` u `EmailSettings.tsx`** bilo je sibling svojih kontrola bez
+`htmlFor`/`id`. Popravljeno 27 parova (ukupno **29 `htmlFor`, svi jedinstveni**, svaki s
+tačno jednim `id`): 21× `<Input>`/`<Textarea>`/`<select>` + 7× `<Switch>`
+(`secure`, `rejectUnauthorized`, `requireTls`, `ignoreTls`, `pool`, `onlyActiveAudience`,
+`createInAppNotification`).
+
+Radix `Switch` renderuje `<button>`, koji **jeste labelabilan element** — pa `<Label htmlFor>`
++ `<Switch id>` daje ime. To je **obrazac koji projekt već koristi** u
+`setting-editor-boolean.tsx:34`, asertovan postojećim testom.
+
+**1.3.1 — nalaz koji plan nije naveo:** `<Label>{t('…htmlPreviewSource')}</Label>` stajao je
+uz `<pre>`. **`<pre>` nije labelabilan element**, pa label nije imenovao ništa. Zamijenjeno
+običnim `<p id>` (iste klase, bez vizuelne promjene) + `aria-labelledby` na `<pre>`.
+
+**2.4.4 — `markAsRead`** je imao isto ime za svaku obavijest → `markAsReadNamed` s
+`{{title}}` (obrazac iz faze 7). Ikona `<Check>` dobila `aria-hidden`.
+
+**1.3.1/1.4.10 — tabela postavki obavijesti:** `scope="col"` 3/3, `<caption>`, `data-table`, `data-label` 3/3.
+
+### Recon: pet stavki opovrgnuto
+
+| Stavka | Tvrdnja plana | Stvarnost |
+|---|---|---|
+| **D4** | `role="status"` za rezultat pretrage | **Već postoji** — `settings-module-page.tsx:75,85,102` + `aria-controls="settings-groups-list"` (ln 62) |
+| **D5** | `window.confirm` → `ConfirmDialog` | `EmailSettings.tsx:757,880` — linije tačne, ali nije prekršaj |
+| **D6** | Dodati gore/dolje dugmad vizuelnom editoru | **Već postoje** — `email-visual-editor.tsx:145-161`, `aria-label` `moveUp`/`moveDown`/`deleteBlock` uz `draggable` (134-137). 2.5.7 zadovoljen |
+| **D10** | AppReleases upload → native input | **Već jeste** — `app-release-create-form.tsx:67` `<Input id="apk" type="file">` + `<Label htmlFor="apk">`, 0 `onDrop` |
+| **D1/D2** | 1.4.3 / 2.4.13 | **Nisu prekršaji** (tablica gore) |
+
+**D7** nije provjeren do kraja: `type="password"` postoji (ln 862), `autoComplete` **nedostaje**,
+`onPaste` blokiranja **nema** (što je dobro). Ostavljeno za zaseban prolaz.
+
+### Novi testovi
+
+| Test | Testova | Mutacije |
+|---|---:|---:|
+| `test:settings-semantic-tokens` | 5 | 5/5 palo |
+| `test:admin-settings-controls-a11y` | 9 | 9/9 palo |
+
+Oba registrovana u `frontend/package.json` (165 skripti) i `ci.yml` (ln 566-568, 570-572).
+Ukupno **5 regresionih čuvara** za opovrgnute D4/D6/D10 i za smeđu paletu.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| 159 `test:*` skripti | **159/159 PASS** |
+| 23 testa modula | **PASS** — uklj. `test:brand-colors` bez izmjene i `admin-settings-accessibility` s očuvanim `<h1>` ugovorom |
+| `npm run build` | **PASS**, **274.1 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2655/2655 |
+| `check_ui_contrast.py --strict` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1667 paths |
+| `git diff --check` | čist |
+| locale fajlovi | **2/0** po fajlu — bez reformata |
+| `MATRIX.md` | **netaknut** |
+
+---
+
+### 🔴 ISPRAVKA: M1 je u fazi 6 preskočen pogrešno
+
+U fazi 6 sam u `CHECKLIST.md` i `CHANGELOG.md` zapisao **„M1 nije odobren, preskočen"**.
+**Ta tvrdnja je netačna.** `00_overview.md` §7 nosi naslov *„Otvorena pitanja — ODLUČENO
+2026-11-08"* s napomenom *„Vlasnik: postupi po svojoj preporuci. Sve odluke su prihvaćene
+i važe za ETAPU B"*, a:
+
+- **Q3:** „**M1 i M2 ODOBRENI** (Analitika → tabovi; Postavke → hub). M3 = zajednički obrazac
+  bez spajanja ruta. Sve stare rute ostaju `<Navigate replace>`, `?tab=` i postojeći query
+  parametri rade."
+- **Q7:** „`client-analytics` / `stylist-analytics` **postaju tabovi** unutar `/admin/analytics`
+  (posljedica Q3/M1); stare rute redirectuju."
+
+Dakle su **M1 (faza 6) i M2 (faza 10) oba odobrena i oba neurađena**. Uzrok greške: oslonio
+sam se na sažetak sesije („M1 nije rađen, Q3 neodgovoren") umjesto da pročitam `00_overview.md`
+— isti obrazac kao i ranije tvrdnje koje je izvor opovrgao.
+
+**Stanje ruta sada** (`app/routes/admin.routes.tsx:53-62`): `settings`,
+`settings/operations`, `settings/appearance`, `settings/seo`, `email-settings`,
+`notifications`, `app-releases` (M2 = 7 ruta) · `analytics`, `client-analytics`,
+`stylist-analytics` (M1 = 3 rute). `SettingsShell` trenutno ima **4** kartice
+(`site`, `operations`, `appearance`, `seo`).
+
+Oba su **arhitektonske** izmjene (deep linkovi, navigacija, `<Navigate replace>`), za razliku
+od prezentacijskih a11y popravki koje su dosad rađene — zato nisu ubačene usput.
