@@ -57,10 +57,11 @@ export const UploadedBrandLogo = memo(
             loading="lazy"
           />
         )}
+        {/* 4.1.2: isto kao u app-logo.tsx — aria-label na <span> (role=generic) je
+            zabranjen i AT ga ignoriše; tekst ispod je već pristupačno ime. */}
         <span
           className="uploaded-brand-logo__word text-[22px] tracking-[0.22em] font-medium font-serif select-none"
           style={{ color: textColor }}
-          aria-label={displayWord}
         >
           {displayWord}
         </span>

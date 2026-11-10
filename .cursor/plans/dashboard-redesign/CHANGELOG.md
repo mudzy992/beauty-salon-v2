@@ -4554,3 +4554,127 @@ Pojedinačno izmjereni testovi: `blog-language-a11y` 6/6 · `form-error-suggesti
 Ništa iz §4 nije zatvoreno ovim commitom. Rendered axe i M1–M13 i dalje zahtijevaju
 preglednik, bazu i čitač ekrana; `continue-on-error` na axe koraku **ostaje** dok CI ne da
 potvrđen zeleni run.
+
+---
+
+## 2026-11-09 — Dvije klase defekta koje `jsx-a11y` ne vidi: `aria-label` na `role="generic"` i klikabilni red bez dugmeta
+
+Traženo je nešto što se može dokazati iz izvora, bez baze i bez preglednika. Umjesto da se
+krene od matrice, napisan je skener nad cijelim `src/**/*.tsx`.
+
+### Prije toga: dva matricina kandidata su opovrgnuta
+
+- **3.3.8** — matrica (`MATRIX.md:99`) tvrdi „`OtpInput` sam nema `autocomplete`".
+  Izmjereno: `components/ui/otp-input.tsx:60` ima
+  `autoComplete={i === 0 ? 'one-time-code' : 'off'}`. **Nalaz ne stoji.**
+- **4.1.3** — matrica (`MATRIX.md:108`) navodi „`Dashboard.tsx` loading bez `role="status"`".
+  Izmjereno: `pages/Dashboard.tsx:26` ima `role="status" aria-live="polite"` + `sr-only` tekst.
+  **Nalaz ne stoji.**
+
+Peti i šesti put da matrica drži status bez pokrića. Zato je sljedeći korak bio mjerenje, ne
+čitanje matrice.
+
+### Metoda: šta `jsx-a11y` strukturno ne može vidjeti
+
+`jsx-a11y` je na `error` i lint prolazi s 0 grešaka, pa je jasno da preostali defekti moraju
+biti u onome što plugin ne vidi: (a) ARIA pravila po **ulozi**, jer `aria-props` provjerava
+samo nepostojeća imena; (b) custom komponente, jer plugin ne zna šta renderuju.
+
+Za (b) je prvi pokušaj regex-om `<([A-Z]…)\b((?:[^<>"]|"[^"]*")*?)\bonClick=` **pao** —
+katastrofalno vraćanje (120 s bez izlaza), i drugi pokušaj s „do prvog `>`" dao je **lažno
+mjerenje** jer `onKeyDown={(e) => { if (e.key === 'Enter') … }}` sadrži `>` unutar
+arrow-funkcije i odsječe tag usred atributa (`<tr>` na 457 prijavljen bez `tabIndex` iako ga
+ima). Konačna verzija je brace-aware skener koji broji dubinu `{}` i stanje navodnika.
+
+### Nalaz 1 — `aria-label` na `role="generic"` (3 pojave, sve stvarne)
+
+ARIA zabranjuje `aria-label`/`aria-labelledby` na elementima čija je uloga `generic`
+(`<div>`, `<span>`, `<p>` bez `role`); AT takav atribut **ignoriše**. axe to javlja kao
+`aria-prohibited-attr`, ozbiljnost *serious* — a axe korak u CI ima `continue-on-error`, pa se
+to trenutno **nije vidjelo nigdje**.
+
+| Mjesto | Sadržaj elementa | Posljedica | Ispravka |
+|---|---|---|---|
+| `ClientAnalytics.tsx:135` (`StarRating`) | 5× `<Star aria-hidden="true">`, **nula teksta** | 🔴 ocjena **nije bila izložena nigdje** — 1.1.1 | dodat `role="img"` |
+| `app-logo.tsx:55` | `{word}` | atribut suvišan (tekst je već ime) | obrisan |
+| `uploaded-brand-logo.tsx:60` | `{displayWord}` | isto | obrisan |
+
+Posljednje dvije su u **dijeljenim brand komponentama** koje idu i na javni sajt. Diff je
+samo brisanje atributa + komentar: `className` nije dirnut ni na jednoj, pa je vizuelna
+promjena **nula**.
+
+### Nalaz 2 — klikabilan red kao jedini put (1 pravi prekršaj od 4 kandidata)
+
+Sweep nad `<tr onClick>` / `<Card onClick>` našao 4 admin tabele. Za svaku je izmjereno ima li
+pristupačno dugme i koliko se puta poziva handler:
+
+| Fajl | Handler | Tastatura | Pristupačno dugme | Presuda |
+|---|---|---|---|---|
+| `Reservations.tsx:401` | `openDetail` | nema | **DA** (`:443`, `reservations.adminList.details`) | nije prekršaj |
+| `Stylists.tsx:246` | `openEditForm` | nema | **DA** (`:278`, `stylists.aria.edit`) | nije prekršaj |
+| `ClientAnalytics.tsx:457` | `openReservationDetail` | `tabIndex`+`onKeyDown` | **DA** (`:482`) | 2.1.1 OK; **4.1.2** — red fokusabilan bez `role` |
+| `Reviews.tsx:164` | `openDetail` | nema | **NE** | 🔴 **2.1.1 (Level A)** |
+
+Dokaz za `Reviews.tsx`: `openDetail` se u fajlu pojavljuje **tačno dva puta** — definicija
+(96) i `onClick` reda (167). Kolona s akcijama imala je samo approve i delete. Nijedan
+tastaturni korisnik nije mogao otvoriti detalje recenzije.
+
+**Ispravke:**
+- `Reviews.tsx` — dugme `aria-label={t('reviews.details')}` s `Eye` ikonon u postojeću kolonu
+  s akcijama, obrazac identičan onom u `Reservations.tsx` i `ClientAnalytics.tsx`. Novi ključ
+  `reviews.details` u oba jezika.
+- `ClientAnalytics.tsx:457` — uklonjeni `tabIndex={0}` i `onKeyDown`: bez `role` su značili
+  „red" za AT, a pristupačni put je ionako postojao, pa je to bio i suvišan tab-stop po redu.
+  Red je ostao klikabilan mišem. **Nula vizuelne promjene.**
+- `Services.tsx:641` (`<div onClick={e => e.stopPropagation()}>`) je **opovrgnut** — već ima
+  komentar i `eslint-disable`, a pravi interaktivni elementi su dugmad unutar njega.
+
+### Šta je ostalo otvoreno i zašto nije dirano
+
+`<Card onClick>` za recenzije (`ClientAnalytics.tsx:552`): tastatura radi (`tabIndex` +
+`onKeyDown`), ali `Card` renderuje `<div>` bez `role` → 4.1.2. **Nije popravljeno** jer obje
+jeftine opcije imaju stvarnu cijenu:
+
+- `role="button"` — `button` ima **prezentacijsku djecu**, pa bi cijela recenzija (usluga,
+  ocjene, komentar) postala jedan dugačak naziv i prestala biti zasebno čitljiva;
+- pravo `<button>` — ne smije sadržavati `<p>` ni `<div>`, a kartica ima 5 `<p>` i nekoliko
+  `<div>`, pa je to strukturni refactor, ne atribut.
+
+Ispravan dugoročni obrazac je „stretched link/dugme preko naslova" (naslov je pravo dugme,
+`::after` s `inset-0` pokriva karticu) — mijenja DOM strukturu kartice, pa **traži odluku
+vlasnika**, i nije urađeno tiho.
+
+### Test i mutacije
+
+Novi `frontend/src/app/generic-aria-and-row-actions-a11y.test.mjs` — **6 testova**,
+registrovan u `package.json` i `.github/workflows/ci.yml` (`check_ci_index`: 361/364).
+
+1. repo-wide sweep: nijedan `<div>`/`<span>`/`<p>` s `aria-label`/`aria-labelledby` bez `role`
+2. `StarRating` ima `role="img"` + pozitivna kontrola da su zvjezdice `aria-hidden`
+3. `Reviews` detalji imaju dugme + pozitivna kontrola da je `openDetail(r)` tačno 2×
+4. `ClientAnalytics` `<tr>` nema `tabIndex` + pozitivna kontrola da skener vidi klikabilan `<tr>`
+5. konzistentnost: sve 4 tabele s klikabilnim redom imaju dugme s `aria-label`
+6. `reviews.details` postoji u bs i en
+
+**Mutacije 6/6** (`cp` backup, vraćeno, `diff -q` identično): `role="img"` skinut sa
+`StarRating` → #1 i #2 · vraćen suvišan `aria-label` u `app-logo` → #1 · pogrešan `aria-label`
+na dugmetu u `Reviews` → #3 i #5 · vraćen `tabIndex` na `<tr>` → #4 · `Stylists` edit bez svog
+`aria-label` → #5 · obrisan `reviews.details` iz `bs.json` → #6.
+
+**Dvije greške u mom vlastitom testu, obje uhvaćene prije commit-a:** `walk()` je stat-ovao
+`"<ime>/"` i za fajlove (`ENOTDIR`), a asertacija „`<tr>` bez `tabIndex`" bila je napisana
+regex-om `/<tr\b[^>]*tabIndex/` koji je pogodio **moj komentar** iznad reda. Prebačeno na
+skener.
+
+### Kapije
+
+`test:*` **181/181** skripti (**688** pojedinačnih testova, 0 padova) · `tsc --noEmit` exit
+**0** · lint **0 errors / 7 warnings** · build **274.1 KiB**/300 ·
+`check_ui_contrast --strict` **80/80** · `check_i18n --strict` PASS (BS↔EN 0 razlika) ·
+`check_repo_hygiene` PASS · `check_doc_links` **670/202** · `check_ci_index` **361/364** ·
+`git diff --check` čist · sken ćirilice/CJK „nema" za sve dirnute fajlove.
+
+Dirnuto: `Reviews.tsx`, `ClientAnalytics.tsx`, `app-logo.tsx`, `uploaded-brand-logo.tsx`,
+`bs.json`, `en.json`, novi test, `package.json`, `ci.yml`, `MATRIX.md`.
+**Nije dirnuto:** `mobile/`, `features/shell/public/`, ostatak `src/pages/public/`,
+`EmailSettings.tsx`, `StylistAnalytics.tsx`.

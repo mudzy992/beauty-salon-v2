@@ -619,6 +619,12 @@ jobs:
       - name: Test admin gallery keyboard access
         working-directory: frontend
         run: npm run test:admin-gallery-keyboard
+      # Guard: aria-label na <div>/<span>/<p> (role=generic) je zabranjen i AT ga
+      # ignoriše (axe: aria-prohibited-attr), a klikabilan <tr>/<Card> bez pravog dugmeta
+      # ostavlja miš kao jedini put (2.1.1). jsx-a11y NE vidi nijedno od toga.
+      - name: Test generic aria-label and clickable row actions
+        working-directory: frontend
+        run: npm run test:generic-aria-and-row-actions
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard

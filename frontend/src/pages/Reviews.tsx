@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedDateTime, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
-import { Check, Loader2, Star, Trash2 } from 'lucide-react'
+import { Check, Eye, Loader2, Star, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -180,6 +180,20 @@ export default function Reviews() {
                         : '—'}</td>
                       <td data-label={t('common.actions')} className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
+                          {/* 2.1.1 (Level A): cijeli redak ima onClick koji otvara dijalog
+                              detalja, ali <tr> nije fokusabilan i nema tastaturni handler —
+                              mis je bio JEDINI put. Ovo dugme je pristupacni put; obrazac je
+                              vec postojeci (Reservations.tsx, ClientAnalytics.tsx). */}
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            aria-label={t('reviews.details')}
+                            onClick={() => openDetail(r)}
+                          >
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                          </Button>
                           {r.isApproved !== true ? (
                             <Button
                               type="button"

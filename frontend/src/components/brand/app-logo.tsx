@@ -52,9 +52,9 @@ export const AppLogo = memo(
         <span className="app-logo__icon" aria-hidden="true">
           <WomanProfileIcon className="h-full w-full" />
         </span>
-        <div className="app-logo__word" aria-label={word}>
-          {word}
-        </div>
+        {/* 4.1.2: aria-label na <div> (role=generic) je zabranjen i AT ga ignoriše,
+            a tekst ispod je već pristupačno ime — atribut je bio suvišan. */}
+        <div className="app-logo__word">{word}</div>
       </div>
     )
   },

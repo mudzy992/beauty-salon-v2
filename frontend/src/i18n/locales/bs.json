@@ -2527,6 +2527,7 @@
     "client": "Klijent",
     "service": "Servis",
     "stylist": "Stilista",
+    "details": "Detalji recenzije",
     "detailsTitle": "Detalji recenzije",
     "notRated": "Nije ocijenjen",
     "approvedSuccess": "Recenzija odobrena.",

@@ -132,7 +132,10 @@ const SmallStatCard = ({
 const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center gap-0.5" aria-label={t('clientAnalyticsPage.rating', { rating, max })}>
+    // 1.1.1: zvjezdice su aria-hidden, pa je ovaj aria-label BIO jedina alternativa —
+    // ali na <div> (role=generic) je aria-label zabranjen i AT ga ignoriše. role="img"
+    // ga čita, pa ocjena postaje stvarno izložena.
+    <div role="img" className="flex items-center gap-0.5" aria-label={t('clientAnalyticsPage.rating', { rating, max })}>
       {Array.from({ length: max }, (_, i) => (
         <Star
           key={i}
@@ -457,14 +460,11 @@ export default function ClientAnalytics() {
                           <tr
                             key={r.id}
                             className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                            // 4.1.2: red je bio fokusabilan (tabIndex + onKeyDown) ali bez
+                            // role koja kaže da je aktivabilan — AT najavi samo "red". Pristupačni
+                            // put je dugme "Detalji" u zadnjoj koloni, isto kao u Reservations.tsx
+                            // i Stylists.tsx, pa red ostaje klikabilan samo mišem (zgodna prečica).
                             onClick={() => openReservationDetail(r)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                openReservationDetail(r)
-                              }
-                            }}
-                            tabIndex={0}
                           >
                             <td data-label={t('clientAnalyticsPage.date')} className="py-3 pl-4 pr-3">{formatDateOnly(r.reservationDate)}</td>
                             <td data-label={t('clientAnalyticsPage.time')} className="py-3 pr-3">
