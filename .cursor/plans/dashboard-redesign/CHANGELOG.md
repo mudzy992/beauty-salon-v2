@@ -4880,3 +4880,129 @@ sken ćirilice/CJK „nema".
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
 `StylistAnalytics.tsx`.
+
+---
+
+## 2026-11-09 — i18n: ključevi koji se traže a ne prikazuju (uzrok propusta na `/stylist/workbook`) + guard
+
+Vlasnik prijavio: „imamo propust na dnevnoj knjizi `/stylist/workbook`, tako da se ne desi to
+više nikada". Uzrok je izmjeren, a ne nagađan.
+
+### Uzrok
+
+`workbook-list-page.tsx` na **dva** mjesta (linija 112 — dugme u zaglavlju, i 150 — dugme u
+praznom stanju) zvao je:
+
+```tsx
+{t('stylistWorkbook.newEntry')}
+```
+
+Ali `stylistWorkbook.newEntry` **nije string nego imenski prostor** — objekat s ~40 ključeva
+(`title`, `client`, `service`, `paidAmount`, `loyalty`, `createEntry`, …). i18next nad granom
+ne može naći prijevod i **vraća sam ključ**, pa su oba dugmeta na stranici ispisivala doslovno
+`stylistWorkbook.newEntry` umjesto „Novi unos". Ispravno je `stylistWorkbook.newEntry.title`
+(„Novi unos" / „New entry").
+
+Oba mjesta ispravljena.
+
+### Zašto to nijedna postojeća provjera nije uhvatila
+
+`check_i18n.py --strict` poredi **BS ↔ EN** (paritet listova). On savršeno prolazi kad:
+
+- ključ nedostaje u **oba** jezika (paritet je i dalje jednak), i
+- kod traži **granu** (paritet listova je netaknut).
+
+Nedostajala je provjera u smjeru **kod → lokali**. To je sada `test:i18n-key-resolution`.
+
+### Šta je izmjereno prije izmjena
+
+Skriptom nad cijelim `src/**/*.{ts,tsx,mts}` (bez testova):
+
+- **2084** literalna `t()` ključa: 2077 list/leaf · **6** pluralnih · **1** grana;
+- tih **6** pluralnih su ispravne — postoje kao `_one`/`_few`/`_other`
+  (`gallery.admin.imageCount`, `autoCategorySummary`, `finance.expenseList.moreItems`,
+  `finance.integrity.moreItems`, `finance.expenseDetail.expensesTitle`,
+  `public.servicesPage.serviceCount`). **Prva verzija mog skenera prijavila ih je kao
+  nepostojeće** jer nije znala za i18next-ov JSON v4 format množine — to je bio lažni nalaz,
+  ispravljen prije bilo kakve tvrdnje;
+- **123** indirektna ključa (`labelKey:`, `headerKey:`, `titleKey:`, `key:` u
+  `seo/dashboard-titles.ts`) — 0 propusta.
+
+### Drugi stvarni propust, nađen istim sweepom
+
+`Users.tsx:956` — vidljivo dugme je koristilo **aria** ključ kao labelu:
+
+```tsx
+{t('users.aria.analytics')}          // vrijednost: "Analitika klijenta {{username}}"
+```
+
+Bez opcija → na ekranu se ispisivalo doslovno `Analitika klijenta {{username}}`. Svi
+`users.aria.*` ključevi nose `{{username}}` jer su aria-labele za redove tabele (isti ključ se
+na `:868` ispravno koristi s `{ username: u.username }`). Kako je ovo **vidljiva** labela pored
+susjednog `{t('common.edit')}`, dodat je kratak ključ `users.analytics` = „Analitika" /
+„Analytics" i dugme sada koristi njega.
+
+Ukupno: **2 stvarna propusta** (3 poziva), oba ispravljena.
+
+### Guard: `src/app/i18n-key-resolution.test.mjs` (4 testa)
+
+Registrovan u `package.json` i `.github/workflows/ci.yml` (`check_ci_index`: 363/366).
+
+1. nijedan `t()` ključ ne pokazuje na nepostojeći ključ **ni na imenski prostor** (oba jezika);
+   pozitivna kontrola da sweep vidi >1500 ključeva;
+2. nijedan **indirektno** prenesen ključ (`*Key:` svojstva, `key:` u `dashboard-titles.ts`) ne
+   visi; pozitivna kontrola >50 ključeva;
+3. svaka `{{interpolacija}}` iz prijevoda je i prosljeđena u pozivu; pozitivna kontrola da
+   analiza opcija čita shorthand `{ rating, max }`;
+4. regresija `/stylist/workbook`: `stylistWorkbook.newEntry` mora ostati grana,
+   `.title` mora biti string, goli `t('stylistWorkbook.newEntry')` se ne smije vratiti, a
+   `.title` se mora pojaviti **tačno 2×** (oba dugmeta).
+
+### Tri lažna nalaza mog sakupljača, svi ispravljeni prije commit-a
+
+- **Komentari.** `filter-bar.tsx:12` ima u JSDoc-u „npr. rezultat `t('table.showingRange', …)`".
+  Sakupljač ga je pročitao kao poziv. Dodat `blankComments` koji zakomentariše komentare **bez
+  pomjeranja offset-a** (svaki znak → razmak, novi red ostaje), pa brojevi linija ostaju tačni.
+- **Drugi argument kao izraz.** `Analytics.tsx:330` ima `t('adminAnalytics.chartAriaLabel',
+  chartSummary)` — opcije su u promjenljivoj, pa se statički ne mogu provjeriti. Sada se takav
+  poziv **preskače** (`opts === 'dynamic'`), a ne prijavljuje; `null` znači „poziv bez opcija"
+  i to se i dalje provjerava.
+- **Analiza opcija.** Prva verzija je dijelila tijelo po zarezima pa na dijelu tražila
+  `^\s*(\w+)\s*:?\s*(?:$|[=(])` — to **ne prepoznaje** `amount: formatX(…)`, pa je test
+  prijavio ~100 lažnih propusta na pozivima koji su svi ispravni (`{ service: svc.name }`,
+  `{ items: …, amount: … }`). Sada ide znak po znak: na dubini 0 uhvati identifikator i gleda
+  sljedeći značajan znak — `:` je obično svojstvo, `,`/kraj je shorthand. Lažnih nalaza: 100 → 0.
+
+### Mutacije
+
+**7/7** (`cp` backup, vraćeno, `diff -q` identično):
+
+| # | Mutacija | Uhvatio |
+|---|---|---|
+| K1 | `workbook-list-page`: goli `stylistWorkbook.newEntry` nazad (1 od 2 dugmeta) | test 1 i 4 |
+| K2 | `Users`: aria-ključ s `{{username}}` kao vidljiva labela | test 3 |
+| K3 | `bs.json`: obrisan `users.analytics` | test 1 |
+| K4 | `Users:868`: skinuta interpolacija `username` | test 3 |
+| K5 | `dashboard-titles`: nepostojeći indirektni ključ | test 2 |
+| K6 | `en.json`: `imageCount_other` → `imageCount_XXXX` | 🔴 **nije** uhvatio moj test |
+| K7 | `Users`: skinuta interpolacija na `users.aria.edit` | test 3 |
+
+**K6 je jedina koja je prošla, i to je ispravno.** Moj `resolve()` prihvata „postoji bar jedan
+pluralni oblik", a `_one` i `_few` su ostali. Izmjereno: tu mutaciju hvata **postojeći**
+`check_i18n.py --strict` — ispisao je `FAIL: strict BS/EN leaf-key parity check found
+differences.` s tačnim ključevima i **exit 1**, pa CI pada. Pokrivenost postoji, samo je u
+drugoj provjeri; nije je bilo pošteno duplicirati.
+
+### Kapije
+
+`test:*` **183/183** skripti (**698** pojedinačnih testova, 0 padova) · `tsc --noEmit` exit
+**0** · lint **0 errors / 7 warnings** · build **274.3 KiB**/300 · `check_ui_contrast --strict`
+**80/80** · `check_i18n --strict` PASS · `check_repo_hygiene` **1711** ·
+`check_doc_links` **670/202** · `check_ci_index` **363/366** · `git diff --check` čist ·
+sken ćirilice/CJK „nema".
+
+**Nije verificirano:** rendered prikaz — da tri ispravljena mjesta sada zaista iscrtavaju
+„Novi unos" i „Analitika". Izvor, tipovi, build i oba i18n guard-a su potvrđeni; vizuelno nije.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
+`StylistAnalytics.tsx`.

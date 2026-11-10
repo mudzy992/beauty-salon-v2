@@ -1006,6 +1006,7 @@
     }
   },
   "users": {
+    "analytics": "Analitika",
     "caption": "Tabela korisnika: avatar, korisničko ime, e-mail, ime i prezime, telefon, uloge, status i dostupne radnje.",
     "newUser": "Novi korisnik",
     "editUser": "Uredi korisnika",

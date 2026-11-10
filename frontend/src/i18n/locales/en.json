@@ -1009,6 +1009,7 @@
     }
   },
   "users": {
+    "analytics": "Analytics",
     "caption": "Users table: avatar, username, email, full name, phone, roles, status, and available actions.",
     "newUser": "New user",
     "editUser": "Edit user",

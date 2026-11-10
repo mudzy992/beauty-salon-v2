@@ -953,7 +953,10 @@ export default function Users() {
           </Button>
         ) : null}
         <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}>
-          {t('users.aria.analytics')}
+          {/* i18n: `users.aria.analytics` je ARIA ključ i glasi „Analitika klijenta
+              {{username}}" — bez opcija bi se na ekranu ispisalo doslovno „{{username}}".
+              Kao vidljiva labela, uz susjedno {t('common.edit')}, ide kratki ključ. */}
+          {t('users.analytics')}
         </Button>
         <Button type="button" size="sm" onClick={() => openEdit(u)}>
           {t('common.edit')}

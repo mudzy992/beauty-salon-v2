@@ -109,7 +109,10 @@ export const WorkbookListPage = () => {
           </Button>
           <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" />
-            {t('stylistWorkbook.newEntry')}
+            {/* i18n: `stylistWorkbook.newEntry` je IMENSKI PROSTOR (objekat s ~40 ključeva),
+                pa je t() nad njim vraćao goli ključ na ekranu umjesto „Novi unos".
+                List je `.title`. */}
+            {t('stylistWorkbook.newEntry.title')}
           </Button>
         </div>
       </div>
@@ -147,7 +150,8 @@ export const WorkbookListPage = () => {
           <div className="mt-4">
             <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4" />
-              {t('stylistWorkbook.newEntry')}
+              {/* i18n: isto kao u zaglavlju — `.title`, ne imenski prostor. */}
+              {t('stylistWorkbook.newEntry.title')}
             </Button>
           </div>
         </Card>

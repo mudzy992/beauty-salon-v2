@@ -179,6 +179,7 @@
     "test:admin-gallery-keyboard": "node --test src/features/gallery/admin-gallery-keyboard.test.mjs",
     "test:generic-aria-and-row-actions": "node --test src/app/generic-aria-and-row-actions-a11y.test.mjs",
     "test:form-control-labels": "node --test src/app/form-control-labels-a11y.test.mjs",
+    "test:i18n-key-resolution": "node --test src/app/i18n-key-resolution.test.mjs",
     "test:eslint-a11y-severity": "node --test src/app/eslint-a11y-severity.test.mjs",
     "test:a11y-routes": "node scripts/run-a11y-routes.mjs",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json",

@@ -630,6 +630,12 @@ jobs:
       - name: Test form controls have programmatic labels
         working-directory: frontend
         run: npm run test:form-control-labels
+      # Guard: check_i18n.py --strict poredi samo BS <-> EN. Ovo pokriva smjer KOD ->
+      # lokali: ključ koji ne postoji ILI je imenski prostor prikazuje se kao goli tekst,
+      # a neprosljeđena interpolacija kao doslovno {{x}}.
+      - name: Test i18n keys used in code actually resolve
+        working-directory: frontend
+        run: npm run test:i18n-key-resolution
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard
