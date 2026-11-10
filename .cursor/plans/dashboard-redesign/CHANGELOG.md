@@ -6062,10 +6062,22 @@ Kontrola koja je potvrdila dijagnozu: ista komanda `npm run build` u poslu
 Korak `Build frontend` u `a11y-e2e` dobio je `env: NODE_ENV: production`. Backend koraci u
 istom poslu i dalje nasljeđuju `NODE_ENV=test`. Nijedan drugi korak nije dirnut.
 
-### Šta ovo NE dokazuje
+### Rezultat prvog stvarnog izvršenja — run `42851373922` (commit `190b634`)
 
-Ovo **nije** dokaz da axe suite prolazi — dosad se nije izvršio nijednom, sada prvi put
-dobija priliku. Ako se Chromium ne instalira ili axe nađe prekršaje, vidjet će se iz runa.
-Korak je i dalje `continue-on-error`, pa ništa od toga ne može napraviti crven CI.
-Stavke 3 i 4 iz `HANDOFF.md` §4 (pokriti `/admin/**` i `/stylist/**`, pa skinuti
-`continue-on-error`) i dalje čekaju **zeleni** run, ne samo pokrenut.
+Popravka je upalila: `Build frontend`, `Install Chromium for Playwright` i
+`Run rendered a11y (axe) suite` su se **prvi put stvarno pokrenuli**. Posao je završio zelen —
+ali to **nije** prolaz: anotacija posla kaže `[failure] Process completed with exit code 1.`,
+dakle **axe suite je pao**.
+
+**Zamka:** `steps[].conclusion` za korak s `continue-on-error` javlja `success` iako je
+komanda pala; ispravan pokazatelj je `steps.<id>.outcome` ili anotacije. Prvo sam pročitao
+`conclusion` i zaključio da je sve prošlo — to je bilo pogrešno i ovdje je ispravljeno.
+
+Uzrok pada **nije poznat**: ni logovi ni artefakt `playwright-a11y-report` ne mogu se
+dohvatiti, jer oboje žive na `blob.core.windows.net`. Zato je korak proširen da izlaz pada
+iznese u **anotaciju** (`::error title=axe suite pao (exit N)::…`) i u step summary — jedini
+kanal čitljiv bez blob storagea. Shell logika provjerena lokalno nad uzorkom izlaza.
+
+**`continue-on-error` ostaje.** Stavke 3 i 4 iz `HANDOFF.md` §4 (pokriti `/admin/**` i
+`/stylist/**`, pa skinuti `continue-on-error`) čekaju **zeleni** run, ne samo pokrenut — a
+prvi stvarni run nije zelen.

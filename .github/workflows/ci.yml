@@ -883,7 +883,30 @@ jobs:
         id: axe
         continue-on-error: true
         working-directory: frontend
-        run: npm run test:a11y-routes
+        # Izlaz se MORA iznijeti u anotaciju: `continue-on-error` maskira pad koraka
+        # (steps[].conclusion javlja success), a logovi i artefakti žive na blob storageu
+        # koji nije svugdje dostižan. Bez ovoga run izgleda zelen iako axe suite pada.
+        run: |
+          set +e
+          npm run test:a11y-routes 2>&1 | tee "$RUNNER_TEMP/axe.log"
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ]; then
+            {
+              echo '### Axe suite — izlaz pada'
+              echo ''
+              echo "Izlazni kod: **$code**"
+              echo ''
+              echo '```'
+              tail -n 80 "$RUNNER_TEMP/axe.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|Error|Timed out|violation' "$RUNNER_TEMP/axe.log" | head -30 | tr '\n' ' ' | tr -d '\r')
+            if [ -z "$msg" ]; then
+              msg=$(tail -c 2000 "$RUNNER_TEMP/axe.log" | tr '\n' ' ' | tr -d '\r')
+            fi
+            echo "::error title=axe suite pao (exit $code)::$msg"
+          fi
+          exit "$code"
       - name: Upload Playwright report and traces
         if: always()
         uses: actions/upload-artifact@v4

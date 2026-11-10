@@ -1238,9 +1238,22 @@ poslu i dalje nasljeđuju `NODE_ENV=test` jer im treba. Isti `npm run build` u p
 `Frontend typecheck and production build` prolazi upravo zato što taj posao **ne** postavlja
 `NODE_ENV` — to je bila kontrola koja je potvrdila dijagnozu.
 
-⚠️ **Ovo nije dokaz da axe suite prolazi.** On se dosad nije izvršio nijednom; sada prvi put
-dobija priliku. Ako Chromium ne može da se instalira ili axe nađe prekršaje, to ćemo tek
-vidjeti iz runa — i dalje je `continue-on-error`, pa neće napraviti crven CI.
+**Rezultat prvog stvarnog izvršenja (run `42851373922`, commit `190b634`):** posao je
+završio zelen, ali to **nije** prolaz. `Build frontend`, `Install Chromium for Playwright` i
+`Run rendered a11y (axe) suite` su se prvi put stvarno pokrenuli — i **axe suite je pao**.
+Dokaz: anotacija posla `[failure] Process completed with exit code 1.` Uzrok pada još nije
+poznat jer se ni logovi ni artefakt ne mogu dohvatiti (oba su na `blob.core.windows.net`).
+
+🔴 **Zamka koju treba zapamtiti:** `steps[].conclusion` za korak s `continue-on-error` javlja
+`success` iako je komanda pala. Ispravan pokazatelj je `steps.<id>.outcome` — odnosno
+anotacije. Zelen posao ovdje **nije** značio zelen axe.
+
+Zato je korak sada proširen da izlaz pada iznese u **anotaciju** (`::error title=…`) i u
+step summary: to je jedini kanal koji se može pročitati bez blob storagea. Sljedeći run će
+reći zašto suite pada.
+
+⚠️ **`continue-on-error` ostaje.** Stavka 4 iz §4 (skinuti ga) i dalje čeka **zeleni** run —
+a sada znamo da prvi stvarni run nije zelen.
 
 🟡 **Axe korak je `continue-on-error`.** Razlog je isti kao u `playwright.config.ts`: run
 nikad nije izvršen, pa blokirajući gate ne bi bio pošten. **Nakon prvog zelenog runa
