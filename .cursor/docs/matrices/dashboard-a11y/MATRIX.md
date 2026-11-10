@@ -78,7 +78,7 @@
 | 2.5.4 | Motion actuation | `active:scale-[0.99]` nije uslov aktivacije; aktivacija je na `click` | ui | 0 | 🟡 | ručno |
 | 2.5.5 | Target Size (Enhanced) **AAA** 44px | Glavne akcije i navigacija ≥44px (`min-h-11`); `size="icon"` = 40px → povećati | ui | 0 | ❌ — `size="icon"` 40px, avatar trigger 36px, 61× `h-8 w-8` (32px) | grep (potvrđeno); ručno (M10) |
 | 2.5.7 | Dragging Movements **NOVO 2.2** | **Tastaturska alternativa za svako povlačenje:** kalendar → dugme „Promijeni termin“ + agenda/lista; email editor → gore/dolje dugmad; upload → native input; reorder → dugmad | modul | 2, 9, 10, 11 | ❌ — `onEventDrop`/`onEventResize` (`ReservationScheduler.tsx:653,661`), `draggable` (`email-visual-editor.tsx:134`), bez alternative | grep (potvrđeno); `test:reservations-calendar-keyboard-alternative`, `test:email-visual-editor-keyboard` |
-| 2.5.8 | Target Size (Minimum) **NOVO 2.2** 24px | Sve interaktivne mete ≥24px; gusti redovi tabele dobijaju razmak | ui, modul | 0–11 | 🟡 — `h-8 w-8` (32px) i `h-7 w-7` (28px) prolaze minimum; nije izmjereno u renderu | ručno (M10) |
+| 2.5.8 | Target Size (Minimum) **NOVO 2.2** 24px | Sve interaktivne mete ≥24px; gusti redovi tabele dobijaju razmak | ui, modul | 0–11 | ✅ — axe `target-size` (tag `wcag22aa`) **PROLAZ na svih 32 rute**: `passed 32, inapplicable 0, incomplete 0, violations 0` (run `42877920751`, anotacija o pokrivenosti pravila). Pravilo je **primjenjivo na svakoj ruti**, pa ovo nije prolaz zbog prazne stranice. Ranije označeno kao neizmjereno u renderu | `test:axe-coverage`; M10 ostaje za ručnu potvrdu |
 
 ## 3. Understandable
 
@@ -226,7 +226,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.5.3 | ✅ | **Axe nalaz (serious) na 6 ruta** (`/`, `/usluge`, `/galerija`, `/kontakt`, `/zadovoljni-klijenti`, `/blog`): `<button aria-label="Prebaci jezik na Engleski">BS</button>` — vidljivi tekst „BS" **nije** bio dio pristupačnog imena. Uzrok u `components/i18n/language-switcher.tsx`: `aria-label={actionLabel}` (cijela rečenica) uz sadržaj `{currentLanguage.toUpperCase()}`. Sada `aria-label={`${visibleCode} — ${actionLabel}`}`; `title` je **namjerno ostao** `actionLabel` jer `aria-label` ionako preglasava `title` u računanju imena → 0 vidljivih izmjena na javnom sajtu. `test:public-a11y-axe-findings` |
 | 2.5.5 (AAA) 44px | ✅ | `minHeight/minWidth.target` = 2.75rem u tokenima |
 | 2.5.7 | 🟡 | kalendar: `onEventDrop`/`onEventResize` (`:673`/`:682`) ostaju, ali postoji **agenda** prikaz (`:409`, `:565`) i `type="time"` polja u detaljima (`:807`/`:817`, `:1197`/`:1206`) kao put bez povlačenja. **Nije provjereno** da li je `onSelectEvent` dostupan tastaturom. `before-after-spotlight`: **0** drag/pointer handlera → ➖ |
-| 2.5.8 24px | 🟡 | `h-8 w-8` (32px) / `h-7 w-7` (28px) prolaze minimum; nije izmjereno u renderu |
+| 2.5.8 24px | ✅ | axe `target-size` **PROLAZ na svih 32 rute** (run `42877920751`); `h-8 w-8` (32px) / `h-7 w-7` (28px) prolaze minimum |
 | 3.1.1 | ✅ | `test:i18n-language` |
 | 3.1.2 | ✅ | jezik članka se sada **čuva** (`blog_posts.language VARCHAR(8) NOT NULL DEFAULT 'bs'`), pa više nije „nepoznat". Javne stranice ga izdaju kao `lang` na `<h1>`, kontejneru sadržaja (`dangerouslySetInnerHTML`), naslovu i sažetku kartice. Admin forma ima selektor (`blog.admin.language`). `blogPostLang()` normalizuje `en-GB → en` i pada na `bs`. |
 | 3.2.1 / 3.2.2 | 🟡 | nema akcije na fokus/input u kodu |

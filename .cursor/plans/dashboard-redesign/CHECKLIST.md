@@ -686,8 +686,19 @@ ključeva po jeziku, 0 razlika · `check_doc_links` **670/202** · `check_ci_ind
       **7/7**.
 - [x] **Izmjereno iz istog runa: 32 zapisa** = 9 javnih + 15 admin + 8 stylist ruta. Suite javlja
       38 jer uključuje nerutne testove — 32 je ispravno.
-- [ ] **Nijedan 🟡 još NIJE pomjeren na ✅** — to čeka CI run s **potpunom** anotacijom
-      pokrivenosti. Bez nje bi bilo nagađanje.
+- [x] **Prvi potpuni izvještaj (run `42877920751`, commit `b801bad`): 32 rute.**
+      **2.5.8 Target Size → ✅** (`target-size`: `passed 32, inapplicable 0, incomplete 0,
+      violations 0` — primijenilo se na svakoj ruti). Matrica: **5 ✅ / 22 🟡 → 6 ✅ / 21 🟡**.
+- [x] **Ispravka ranijeg broja:** stajalo je „23 🟡". Parser je tražio emoji bilo gdje u polju, pa
+      je brojao i 1.1.1 (`❌ za grafikone … 🟡 za ikone`) i `🟡 djelimično`. Tačno je **22**.
+- [ ] **2.5.3 NE ide na ✅** — `label-content-name-mismatch` je `passed 6, **incomplete 22**,
+      inapplicable 4`. Axe ne može dovršiti provjeru na 22 od 32 rute. Ovo pobija pretpostavku
+      da je kriterij dokazan time što suite ne pada.
+- [ ] **1.4.3 NE ide na ✅** — `color-contrast`: `passed 24, **incomplete 8**`.
+- [ ] **3.3.2, 1.4.4, 2.1.1, 1.1.1 ostaju 🟡/❌** iako su im pravila PROLAZ: axe vidi prisustvo
+      labele a ne uputstva (3.3.2); `meta-viewport` ne mjeri stvarno zumiranje (1.4.4);
+      `scrollable-region-focusable` se primijenio na 1/32 rute (2.1.1); grafikoni u
+      `Analytics.tsx` su i dalje ❌ (1.1.1).
 
 ### Kapije na kraju ovog poteza (izmjereno, ne prepisano)
 

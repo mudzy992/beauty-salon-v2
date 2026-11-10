@@ -1536,8 +1536,9 @@ CI run nad renderovanim markupom. Isti razlog objašnjava zašto `color-contrast
 
 ### 3.1e Zašto „0 failed" NE dokazuje 23 🟡 kriterija — mjerenje pokrivenosti (2026-11-08)
 
-`MATRIX.md` drži **23** kriterija na 🟡 (izmjereno parsiranjem tabele, ne prepisano — ranije se
-u bilješkama vrtio broj 12). Sad kad CI pokreće pravi Chromium, dio njih **ima** rendered dokaz.
+`MATRIX.md` drži **22** kriterija na 🟡 i **5** na ✅ (izmjereno parsiranjem tabele po **početku**
+polja statusa). *Ispravka:* prvi prolaz je javio 23 jer je tražio emoji **bilo gdje** u polju, pa je
+brojao i redove poput 1.1.1 (`❌ za grafikone … 🟡 za ikone`) i varijante `🟡 djelimično`. Sad kad CI pokreće pravi Chromium, dio njih **ima** rendered dokaz.
 Ali ishod suite-a to ne pokazuje, i to je zamka:
 
 > **„0 failed" znači da nijedno pravilo nije palo — ne i da se ijedno primijenilo.**
@@ -1563,6 +1564,27 @@ i to **prvi**). Dodato `encodeWorkflowMessage()` + 3 testa (mutacije 2/2).
 **Izmjereno iz tog runa:** zapisa je **32**, što je tačno zbir ruta (9 javnih + 15 admin +
 8 stylist). Suite javlja 38 jer uključuje i nerutne testove (skip-link i sl.) — 32 je dakle
 ispravan broj, ne propust.
+
+### Izmjereno iz runa `42877920751` (commit `b801bad`) — prvi potpuni izvještaj
+
+**Samo jedan kriterij smije na ✅, i to je 2.5.8 Target Size (Minimum):**
+
+| Pravilo | Presuda | Brojevi |
+|---|---|---|
+| `target-size` (2.5.8) | **PROLAZ** | `passed 32, inapplicable 0, incomplete 0, violations 0` — primjenjivo na **svakoj** ruti |
+
+`MATRIX.md` je za 2.5.8 pomjeren 🟡 → ✅. Stanje matrice: **5 ✅ / 22 🟡 → 6 ✅ / 21 🟡**.
+
+**Zašto ostali NE idu na ✅ — i to je važnije od onoga što je prošlo:**
+
+| Kriterij | Pravilo | Izmjereno | Zašto ostaje 🟡 |
+|---|---|---|---|
+| **2.5.3** Label in name | `label-content-name-mismatch` | `passed 6, **incomplete 22**, inapplicable 4` | Axe **ne može dovršiti** provjeru na 22 od 32 rute. Ovo pobija pretpostavku da je 2.5.3 „dokazan jer suite ne pada" — upravo suprotno |
+| 1.4.3 Contrast | `color-contrast` | `passed 24, **incomplete 8**` | 8 ruta s neriješenim kontrastom (axe ne zna izračunati pozadinu) |
+| 3.3.2 Labels/instructions | `label`, `select-name`, `form-field-multiple-labels` | sve **PROLAZ** | Axe provjerava **prisustvo** labele, ne i **uputstva** — a 3.3.2 traži oboje |
+| 1.4.4 Resize text | `meta-viewport` | **PROLAZ** 32/32 | Provjerava samo `user-scalable`/`maximum-scale`, **ne** stvarno zumiranje na 200% |
+| 2.1.1 Keyboard | `scrollable-region-focusable` | PROLAZ, ali **1/32** | Primijenilo se na jednoj ruti; tastaturnu dostupnost u cjelini axe ne mjeri |
+| 1.1.1 Non-text content | `image-alt`, `role-img-alt`, `link-name`, `button-name` | sve **PROLAZ** | Red u matrici nosi **❌ za grafikone** (`Analytics.tsx`, recharts) — axe pravila ga ne vide |
 
 **Šta ovo NE rješava:** 16 kriterija **nema** axe pravilo (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12,
 2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — za njih treba

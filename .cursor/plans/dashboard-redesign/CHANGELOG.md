@@ -6307,3 +6307,49 @@ provjera (M1–M13). Ostaju 🟡 bez obzira na ovaj alat.
 `test:*` **191/191** · `tsc --noEmit` **0** · `typecheck:e2e` **0** · lint **0 errors / 7
 warnings** · build **276.1 KiB**/300 · `check_ci_index` **372/375** · `check_doc_links`
 **670/202** · `check_i18n --strict` paritet 0/0 · `git diff --check` čist · CJK **0**.
+
+---
+
+## 2026-11-08 — Prvi potpuni izvještaj o pokrivenosti: 2.5.8 na ✅, i zašto ostali NE idu
+
+### Izmjereno iz runa `42877920751` (commit `b801bad`), anotacija o pokrivenosti — 32 rute
+
+**Jedan kriterij smije na ✅:**
+
+| Pravilo | Presuda | Brojevi |
+|---|---|---|
+| `target-size` (2.5.8 Target Size Minimum, WCAG 2.2) | **PROLAZ** | `passed 32, inapplicable 0, incomplete 0, violations 0` |
+
+Primijenilo se na **svakoj** od 32 rute, pa ovo nije prolaz zbog prazne stranice — upravo onu
+zamku koju je alat napravljen da spriječi. `MATRIX.md`: 2.5.8 🟡 → ✅.
+**Stanje matrice: 5 ✅ / 22 🟡 → 6 ✅ / 21 🟡** (mjereno po **početku** polja statusa).
+
+> **Ispravka ranijeg broja.** U prethodnom unosu stajalo je „23 🟡 kriterija, izmjereno
+> parsiranjem". Parser je tražio emoji **bilo gdje** u polju statusa, pa je brojao i redove
+> poput 1.1.1 (`❌ za grafikone … 🟡 za ikone`) i varijante `🟡 djelimično`. Tačan broj je 22.
+
+### Zašto ostali NE idu na ✅ — važnije od onoga što je prošlo
+
+| Kriterij | Pravilo | Izmjereno | Zašto ostaje 🟡 |
+|---|---|---|---|
+| **2.5.3** Label in name | `label-content-name-mismatch` | `passed 6, **incomplete 22**, inapplicable 4` | Axe **ne može dovršiti** provjeru na 22 od 32 rute. Ovo **pobija** pretpostavku da je 2.5.3 dokazan time što suite ne pada |
+| 1.4.3 Contrast | `color-contrast` | `passed 24, **incomplete 8**` | 8 ruta s neriješenim kontrastom |
+| 3.3.2 Labels/instructions | `label` · `select-name` · `form-field-multiple-labels` | sve **PROLAZ** | Axe vidi **prisustvo** labele, ne i **uputstva** — 3.3.2 traži oboje |
+| 1.4.4 Resize text | `meta-viewport` | **PROLAZ** 32/32 | Samo `user-scalable`/`maximum-scale`, **ne** stvarno zumiranje na 200% |
+| 2.1.1 Keyboard | `scrollable-region-focusable` | PROLAZ, **1/32** | Primijenilo se na jednoj ruti; tastaturu u cjelini axe ne mjeri |
+| 1.1.1 Non-text content | `image-alt` · `role-img-alt` · `link-name` · `button-name` | sve **PROLAZ** | Red nosi **❌ za grafikone** (`Analytics.tsx`, recharts) — ova pravila ih ne vide |
+
+Ovo je razlog zašto `verdictFor` razdvaja `PROLAZ` / `NEPOTPUNO` / `NIJE_SE_PRIMJENIO` / `PAD`:
+bez toga bi 2.5.3 i 1.4.3 bili proglašeni dokazanima na osnovu zelenog suite-a.
+
+### Uzgred ispravljeno
+
+Emoji 🟡 je izbačen iz **dokaznog** polja retka 2.5.8 u `MATRIX.md` — naivni parseri (uključujući
+moj) čitaju status po prisustvu emoji-ja bilo gdje u redu.
+
+### Kapije
+
+`test:*` **191/191** · `test:axe-coverage` **13/13** · mutacije na modulu **7/7** ·
+`tsc --noEmit` **0** · `typecheck:e2e` **0** · lint **0 errors / 7 warnings** · build
+**276.1 KiB**/300 · `check_doc_links` **670/202** · `check_ci_index` **372/375** ·
+`git diff --check` čist · CJK **0**.
