@@ -796,8 +796,25 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # Auth rute (`login`, `register`, `verify-email`, `send-verification-email`) su po
+      # odluci AUTH-01 **fail-closed**: bez Redis countera `HttpRateLimitInterceptor` vraca
+      # genericki 503 + `Retry-After: 30` PRIJE provjere lozinke
+      # (`common/rate-limiting/http-rate-limit.interceptor.ts:63`). Bez ovog servisa
+      # `POST /auth/login` vraca 503, `auth.setup.ts` upise ok:false, a svih 25 admin/stylist
+      # testova se tiho preskoci (izmjereno run 42854014729: 13 passed | 25 skipped).
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_PROVIDER: postgres
+      # Jednokratni Redis za HTTP rate limiter; auth rute bez njega fail-closed (503).
+      HTTP_RATE_LIMIT_REDIS_URL: redis://127.0.0.1:6379
       # Jednokratni CI servis; nikad produkcijski ili dijeljeni podaci.
       DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
       # `validateRuntimeSecrets` (backend/src/config/runtime-secrets.ts) pada na startupu
