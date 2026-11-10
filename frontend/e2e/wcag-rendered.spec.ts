@@ -6,9 +6,11 @@ import {
   clippedSnapshot,
   focusableSnapshot,
   hasVisibleFocusIndicator,
+  invalidWithoutDescription,
   labelInNameViolations,
   landmarkSnapshot,
   overflowingElements,
+  requiredNotMarked,
 } from './dom-metrics.mjs'
 import type { ClippedEntry, Landmark } from './dom-metrics.mjs'
 
@@ -249,5 +251,40 @@ for (const route of PUBLIC_ROUTES) {
       )
     }
     expect(bad, `${route.path}: pristupačno ime ne sadrži vidljivi tekst`).toEqual([])
+  })
+}
+
+// ── 3.3.1 Error identification / 3.3.2 Labels or instructions ────────────────
+//
+// Obje mjere su o VEZI, ne o postojanju teksta negdje na stranici: 3.3.1 traži da
+// `aria-describedby` na neispravnom polju razriješi u element sa sadržajem, a 3.3.2 da
+// vidljiva oznaka „obavezno" bude i programski vidljiva (`required`/`aria-required`), jer
+// čitač ekrana zvjezdicu ne čita.
+for (const route of PUBLIC_ROUTES) {
+  test(`3.3.1 neispravno polje ima pridružen tekst — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    // Na /login i /register se greška izazove stvarnim pokušajem slanja: mjerenje samog
+    // učitanog stanja ne bi dokazalo ništa, jer tada nijedno polje još nije neispravno.
+    if (route.path === '/login' || route.path === '/register') {
+      await page.locator('form button[type="submit"]').first().click({ trial: false }).catch(() => {})
+      await page.waitForTimeout(300)
+    }
+
+    const bad = await page.evaluate(invalidWithoutDescription)
+    if (bad.length) {
+      reportFailure(`3.3.1 ${route.path} — aria-invalid bez teksta`, bad.slice(0, 4).map((b) => `${b.element} → ${b.describedby}`).join(' | '))
+    }
+    expect(bad, `${route.path}: neispravno polje bez pridruženog teksta`).toEqual([])
+  })
+
+  test(`3.3.2 vidljiva oznaka obaveznog je i programski označena — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const bad = await page.evaluate(requiredNotMarked)
+    if (bad.length) {
+      reportFailure(`3.3.2 ${route.path} — obavezno bez required`, bad.slice(0, 4).map((b) => `${b.element} „${b.label}"`).join(' | '))
+    }
+    expect(bad, `${route.path}: vidljiva oznaka obaveznog bez programskog oznake`).toEqual([])
   })
 }

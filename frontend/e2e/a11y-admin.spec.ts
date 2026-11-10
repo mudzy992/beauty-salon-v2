@@ -4,7 +4,11 @@ import { defaultCoverageDir, recordAxeCoverage } from './axe-coverage.mjs'
 import { expect, test } from '@playwright/test'
 import { existsSync, readFileSync } from 'node:fs'
 
-import { labelInNameViolations } from './dom-metrics.mjs'
+import {
+  invalidWithoutDescription,
+  labelInNameViolations,
+  requiredNotMarked,
+} from './dom-metrics.mjs'
 import { ADMIN_STATUS, type AdminStatus } from './auth-paths'
 
 /**
@@ -126,9 +130,50 @@ for (const route of ADMIN_ROUTES) {
   })
 }
 
+/** Anotacija s detaljem — isti mehanizam kao u 2.5.3 admin bloku. */
+function reportAdmin(title: string, detail: string): void {
+  const encoded = detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  process.stdout.write(`::error title=${title}::${encoded}\n`)
+}
+
 test('2.4.1 admin: skip-link je prvi fokusabilni element', async ({ page }) => {
   await page.goto('/admin', { waitUntil: 'networkidle' })
   await page.keyboard.press('Tab')
   const focused = page.locator(':focus')
   await expect(focused).toHaveClass(/skip-link/)
 })
+
+// ── 3.3.1 Error identification / 3.3.2 Labels or instructions ────────────────
+//
+// Obje mjere su o VEZI, ne o postojanju teksta negdje na stranici: 3.3.1 traži da
+// `aria-describedby` na neispravnom polju razriješi u element sa sadržajem, a 3.3.2 da
+// vidljiva oznaka „obavezno" bude i programski vidljiva (`required`/`aria-required`), jer
+// čitač ekrana zvjezdicu ne čita.
+for (const route of ADMIN_ROUTES) {
+  test(`3.3.1 admin: neispravno polje ima pridružen tekst — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    // Na /login i /register se greška izazove stvarnim pokušajem slanja: mjerenje samog
+    // učitanog stanja ne bi dokazalo ništa, jer tada nijedno polje još nije neispravno.
+    if (route.path === '/login' || route.path === '/register') {
+      await page.locator('form button[type="submit"]').first().click({ trial: false }).catch(() => {})
+      await page.waitForTimeout(300)
+    }
+
+    const bad = await page.evaluate(invalidWithoutDescription)
+    if (bad.length) {
+      reportAdmin(`3.3.1 ${route.path} — aria-invalid bez teksta`, bad.slice(0, 4).map((b) => `${b.element} → ${b.describedby}`).join(' | '))
+    }
+    expect(bad, `${route.path}: neispravno polje bez pridruženog teksta`).toEqual([])
+  })
+
+  test(`3.3.2 admin: vidljiva oznaka obaveznog je i programski označena — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const bad = await page.evaluate(requiredNotMarked)
+    if (bad.length) {
+      reportAdmin(`3.3.2 ${route.path} — obavezno bez required`, bad.slice(0, 4).map((b) => `${b.element} „${b.label}"`).join(' | '))
+    }
+    expect(bad, `${route.path}: vidljiva oznaka obaveznog bez programskog oznake`).toEqual([])
+  })
+}

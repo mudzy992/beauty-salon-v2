@@ -30,3 +30,9 @@ export function overflowingElements(tolerance?: number): OverflowingElement[]
 export type LabelInNameViolation = { element: string; name: string; visible: string }
 
 export function labelInNameViolations(): LabelInNameViolation[]
+
+export type InvalidWithoutDescription = { element: string; describedby: string }
+export type RequiredNotMarked = { element: string; label: string }
+
+export function invalidWithoutDescription(): InvalidWithoutDescription[]
+export function requiredNotMarked(): RequiredNotMarked[]

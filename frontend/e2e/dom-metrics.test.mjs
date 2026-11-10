@@ -9,6 +9,8 @@ import {
   describeElement,
   focusableSnapshot,
   hasVisibleFocusIndicator,
+  invalidWithoutDescription,
+  requiredNotMarked,
   labelInNameViolations,
   landmarkSnapshot,
 } from './dom-metrics.mjs'
@@ -344,4 +346,89 @@ test('labelInNameViolations — <a> bez href-a nije link, pa je van opsega', () 
   withInnerText(el, 'Naslov')
   setBox(el, {})
   assert.deepEqual(labelInNameViolations(), [])
+})
+
+// ── 3.3.1 Error identification ───────────────────────────────────────────────
+
+test('invalidWithoutDescription — hvata aria-invalid bez teksta koji ga objašnjava', () => {
+  const doc = makeDom(`
+    <input id="a" name="email" aria-invalid="true" />
+    <input id="b" name="datum" aria-invalid="true" aria-describedby="nepostojeci" />
+    <input id="c" name="iznos" aria-invalid="true" aria-describedby="prazan" />
+    <p id="prazan"></p>
+  `)
+  assert.deepEqual(
+    invalidWithoutDescription().map((v) => v.element),
+    ['input#a[name=email]', 'input#b[name=datum]', 'input#c[name=iznos]'],
+  )
+  const byId = Object.fromEntries(invalidWithoutDescription().map((v) => [v.element, v.describedby]))
+  assert.equal(byId['input#a[name=email]'], '(nema)')
+  assert.equal(byId['input#b[name=datum]'], 'nepostojeci', 'pogrešan id mora biti vidljiv u nalazu')
+  assert.equal(doc.querySelectorAll('input').length, 3)
+})
+
+test('invalidWithoutDescription — ispravno pridružen tekst prolazi', () => {
+  makeDom(`
+    <input id="email" name="email" aria-invalid="true" aria-describedby="email-error" />
+    <p id="email-error" role="alert">Unesite ispravnu e-mail adresu</p>
+    <input id="ok" name="ok" />
+  `)
+  assert.deepEqual(invalidWithoutDescription(), [], 'bez aria-invalid nema ni prekršaja')
+})
+
+test('invalidWithoutDescription — više id-ova u aria-describedby, dovoljan je jedan s tekstom', () => {
+  makeDom(`
+    <input id="x" aria-invalid="true" aria-describedby="hint error" />
+    <p id="hint"></p>
+    <p id="error">Obavezno polje</p>
+  `)
+  assert.deepEqual(invalidWithoutDescription(), [])
+})
+
+// ── 3.3.2 Labels or instructions ─────────────────────────────────────────────
+
+test('requiredNotMarked — vidljiva zvjezdica bez `required` je prekršaj', () => {
+  makeDom(`
+    <label for="ime">Ime *</label>
+    <input id="ime" name="ime" />
+  `)
+  const found = requiredNotMarked()
+  assert.deepEqual(found.map((f) => f.element), ['input#ime'])
+  assert.equal(found[0].label, 'Ime *')
+})
+
+test('requiredNotMarked — required i aria-required zadovoljavaju zahtjev', () => {
+  makeDom(`
+    <label for="a">Ime *</label><input id="a" required />
+    <label for="b">Prezime (obavezno)</label><input id="b" aria-required="true" />
+    <label for="c">Nadimak</label><input id="c" />
+  `)
+  assert.deepEqual(requiredNotMarked(), [], 'označeno, ili bez vidljive oznake — nije prekršaj')
+})
+
+test('requiredNotMarked — prepoznaje i omatačku labedu bez `for`', () => {
+  makeDom(`<label>E-mail *<input id="mail" /></label>`)
+  assert.deepEqual(requiredNotMarked().map((f) => f.element), ['input#mail'])
+})
+
+test('requiredNotMarked — engleska varijanta i skrivene kontrole', () => {
+  makeDom(`
+    <label for="a">Email (required)</label><input id="a" />
+    <label for="b">Slogan</label><input id="b" type="hidden" />
+  `)
+  assert.deepEqual(requiredNotMarked().map((f) => f.element), ['input#a'], 'hidden nije unos')
+})
+
+test('requiredNotMarked — riječ „obavezno" bez oznake je prekršaj', () => {
+  // Bez ovog slučaja uklanjanje `\bobavezno\b` iz regexa prolazi neuhvaćeno: jedini test s
+  // tom riječi ima `aria-required`, pa se preskoči prije nego što regex uopšte odluči.
+  makeDom(`
+    <label for="p">Prezime (obavezno)</label><input id="p" />
+    <label for="e">Email (required)</label><input id="e" />
+  `)
+  assert.deepEqual(
+    requiredNotMarked().map((f) => f.element),
+    ['input#p', 'input#e'],
+    'oba jezika, nijedno programski označeno',
+  )
 })
