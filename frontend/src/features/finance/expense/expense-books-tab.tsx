@@ -59,9 +59,13 @@ export function ExpenseBooksTab() {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">
+          {/* h2, ne `CardTitle` (koji renderuje h3): stranica `/admin/finance` ima h1, pa bi
+              h3 preskočio nivo. axe `heading-order` to javlja kao "Heading order invalid"
+              (izmjereno na runu 42923727266, ruta /admin/finance). Klase su one koje
+              `CardTitle` već daje uz `text-base`, pa se izgled ne mijenja. */}
+          <h2 className="text-base font-semibold leading-none tracking-tight">
             {t('finance.book.openForMonth')}
-          </CardTitle>
+          </h2>
         </CardHeader>
         <CardContent>
           <BookPeriodPicker

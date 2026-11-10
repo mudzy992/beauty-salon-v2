@@ -331,3 +331,24 @@ test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', ()
     'oba dugmeta admin menija, ne samo jedno',
   )
 })
+
+test('2.4.6: naslov kartice u finance tabovima je h2, ne h3 koji preskače nivo', () => {
+  // `/admin/finance` ima h1 (naslov stranice), pa odmah karticu. `CardTitle` renderuje h3,
+  // pa bi redoslijed bio h1 → h3. axe `heading-order` to javlja kao "Heading order invalid"
+  // (izmjereno na runu 42923727266). Ovo je čuvar u jediničnom suite-u; stvarna mjera je
+  // axe u CI, jer samo render pokazuje konačan redoslijed naslova na stranici.
+  const files = [
+    'features/finance/income/income-books-tab.tsx',
+    'features/finance/expense/expense-books-tab.tsx',
+  ]
+  for (const file of files) {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const heading = src.match(/<(h\d|CardTitle)[^>]*>\s*\{t\('finance\.book\.openForMonth'\)\}/)
+    assert.ok(heading, `${file}: naslov s ključem finance.book.openForMonth mora postojati`)
+    assert.equal(
+      heading[1],
+      'h2',
+      `${file}: prvi naslov kartice mora biti h2 (stranica ima h1, h3 bi preskočio nivo)`,
+    )
+  }
+})

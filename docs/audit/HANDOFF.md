@@ -2095,3 +2095,50 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 > `fill: both` znači da završena animacija ostaje u `getAnimations()` i bez toga bi provjera
 > uvijek bila > 0; (3) **tri uzastopna zelena runa** (`42915877215` + dva ponavljanja), svaki
 > **157/0/0** i `color-contrast violations 0`.
+
+## 2026-11-08 — „22 ❌" su bila iz historijske tabele; mjerodavna tabela ima 0 ❌
+
+**Greška koja je pokrenula ovaj niz bila je u čitanju dokumenta, ne u kodu.**
+
+Trijžaža je krenula od spiska „22 ❌ kriterija". Taj spisak je pročitán iz tabela
+`## 1. Perceivable` … `## 4. Robust` (linije 31–110). Ali `MATRIX.md` na liniji 147 za te
+tabele kaže izričito:
+
+> Gornje tabele su **ETAPA A baseline** (zadržane kao historija).
+
+Mjerodavno stanje je `# KONAČNI STATUSI — ETAPA B` → `## Statusi po kriteriju`
+(linije 190–245). Prebrojano skriptom: **51 redova — ✅ 38 · ➖ 7 · 🟡 4 · ✅/❌ 1 · ➖/⚠️ 1 ·
+❌ 0.** Dakle nijedan kriterij nije ❌, a otvoreno je **4** 🟡 (`1.4.5`, `2.1.1`, `2.4.3`,
+`2.5.7`), ne 22.
+
+Druga, ista greška unutar samog dokumenta: blok `## Rezime (ETAPA B)` tvrdio je ✅ 30 i
+🟡 12, dok je njegova vlastita tabela imala ✅ 37 i 🟡 5. Sažetak je zaostajao za redovima.
+Ispravljeno, i brojke su sada izlaz brojanja.
+
+**Pravilo koje iz ovoga slijedi:** prije nego se ijedan kriterij proglasi nemjerljivim ili
+neispunjenim, provjeriti **obje** tabele i uzeti onu koju dokument označava kao konačnu.
+Ovo je četvrti put da `MATRIX.md` daje proturječne podatke.
+
+### Šta je ipak stvarno izmjereno u ovom koraku (run `42923727266`, success, 157/0/0)
+
+Axe se sada pokreće i s `best-practice` i s `wcag2aaa` tagovima, pa su prvi put mjereni:
+
+- **2.4.1 `bypass`** — PROLAZ, passed 31 / inapplicable 1 / violations 0.
+- **2.4.2 `document-title`** — PROLAZ, 32/32.
+- **2.4.6 `page-has-heading-one`** — PROLAZ 32/32; **`heading-order` PAD na `/admin/finance`**
+  (`<h3>Otvori knjigu za mjesec</h3>` odmah ispod `<h1>`, bez `<h2>`). Popravljeno: naslov
+  kartice u obje books-tab komponente je sada `<h2>`.
+- **1.4.6 `color-contrast-enhanced` (AAA)** — **PAD na 28 od 32 rute, 70 čvorova**;
+  `text-content-muted` `#67676f` na `#ffffff` = **5.6:1** pri 12–14 px, a AAA traži 7:1.
+  Poklapa se s ranijim proračunom 5.61:1 — proračun i render nisu u sukobu.
+- **2.4.9 `identical-links-same-purpose`** — NEPOTPUNO (1 čvor, `/admin/analytics`).
+  Ispravljeno pogrešno mapiranje: ovo pravilo nosi `wcag2aaa, wcag249`, pa je **2.4.9**,
+  ne 2.4.4. Za 2.4.4 axe nema pravila i to sada test izričito tvrdi.
+- **1.3.1 `th-has-data-cells`** — NEPOTPUNO na `/admin`: 2 prazne tabele
+  (`Table data cells are missing or empty`). Nije prekršaj, ali jeste razlog zašto 1.3.1
+  nema čist rendered prolaz za taj dio.
+- **2.2.4 `meta-refresh-no-exceptions`** — inapplicable 32 (nema `meta refresh` nigdje).
+
+Za **2.5.5** (Target Size Enhanced) i **2.4.13** (Focus Appearance) axe 4.14.0 **nema
+pravila** — provjereno preko `getRules([])`. Ta dva AAA kriterija zaista nisu mjerljiva
+ovim alatom, i to je sada utvrđeno, a ne pretpostavljeno.

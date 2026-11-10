@@ -162,11 +162,13 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 > svih 11 testova prolazi** (vlasnikova potvrda; prije ispravki bilo je 3/11). Četiri nalaza
 > su time dokazana rendered provjerom.
 >
-> **`/admin/**` i `/stylist/**` harness postoji od 2026-11-09 ali NIJE izvršen**
-> (`e2e/auth.setup.ts` + `a11y-admin.spec.ts` + `a11y-stylist.spec.ts`; **38 testova** po
-> `--list`: chromium 11 + setup 2 + admin 18 + stylist 11). Zato admin/stylist statusi
-> **ostaju 🟡** — alat postoji, mjerenja nema. Isto važi za stanje stranica *s podacima*
-> (javni run je bio bez backend-a).
+> **AŽURIRANO 2026-11-08: `/admin/**` i `/stylist/**` harness se SADA IZVRŠAVA u CI.**
+> Bilješka iznad bila je tačna kad je pisana, ali je zastarjela: posao `a11y-e2e`
+> (`e2e/auth.setup.ts` + `a11y-admin.spec.ts` + `a11y-stylist.spec.ts`) radi u Chromiumu na
+> svaki push i na runu `42923727266` daje **157 passed / 0 failed / 0 skipped** preko 32
+> rute. Admin/stylist statusi dakle **više nisu 🟡 zbog nedostatka mjerenja** — mjerenja ima.
+> Ono što i dalje nije pokriveno: stranice *s poslovnim podacima* (run radi s testnim
+> nalozima i praznim/fallback stanjem) i sve što traži AT (M1–M13).
 
 ## Mjerenja (izvor, 2026-11-09 — ponovo izmjereno nakon axe ispravki)
 
@@ -203,7 +205,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 1.4.10 | ✅ | **Izmjereno u Chromiumu 2026-11-08** (run `42913079367`, 156/0/0): **0px** horizontalnog skrola na 320px na 9 javnih ruta. Popravljena dva izvora — 755px pri 200% (`public-layout.tsx` red bez `flex-wrap`) i 53px na 320px (`.app-logo` širi od kontejnera → `@media (max-width: 25rem)`). Klauzula za horizontalni sadržaj (256px) nije mjerena — javne rute ga nemaju. |
 | 1.4.11 | ✅ | `--control-border` 4.24:1 (proračun); dekorativne ikone `aria-hidden` |
 | 1.4.13 | ➖ | tooltip komponenta **obrisana** (faza 13, D2) → nema tooltipova |
-| 1.4.6 (AAA) | ✅/❌ | glavni tekst 20.01:1 ✅; `--text-muted` 5.61:1 ispod 7:1 (Q5: admin override) |
+| 1.4.6 (AAA) | ✅/❌ | glavni tekst 20.01:1 ✅; `--text-muted` 5.61:1 ispod 7:1 (Q5: admin override). **Izmjereno u Chromiumu 2026-11-08** (`color-contrast-enhanced`, run `42923727266`): **28 od 32 rute padaju, 70 čvorova** — npr. `text-content-muted` `#67676f` na `#ffffff` daje **5.6:1** pri 12–14px, a AAA traži 7:1. Broj se poklapa s proračunom 5.61:1, pa proračun i render nisu u sukobu. Ostaje ❌ za sporedni tekst, ali sada s brojem, a ne s procjenom. |
 | 1.4.8 / 1.4.9 (AAA) | ➖ | odbijeno (Q5) |
 | 2.1.1 | 🟡 | combobox u `ReservationScheduler` popravljen (`test:reservation-scheduler-combobox`, 12/12 mutacija). **Novi nalaz 2026-11-09:** `<Card onClick>` u `Gallery.tsx` — `Card` renderuje običan `<div>`, a `loadImages` je jedini put do `selectedCatId`, pa tastaturni korisnik nije mogao otvoriti nijednu kategoriju. Popravljeno pravim `<button>` + `aria-pressed` (`test:admin-gallery-keyboard`, 5/5 mutacija). **Napomena:** `jsx-a11y` ovo NIJE javio jer ne zna šta custom komponenta renderuje. **Rendered dokaz 2026-11-08:** tastatura **jeste** provjerena na 9 javnih ruta — Tab doseže svaki fokusabilni element, fokus ima vidljiv indikator (run `42889168373` success) |
 | 2.1.2 | ✅ | Radix fokus trap; `window.confirm` ×14 je native i **nema** trap (vidi niže) |
@@ -235,7 +237,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 3.2.6 | ✅ | oba shell-a imaju `/kontakt` + `HelpCircle` u dijeljenom `<header>` (`admin-layout.tsx:82-170`, `StylistLayout.tsx:81-163`), prije korisničkog menija; ime iz `shell.help` (bs „Pomoć" / en „Help"). **Ispravka:** raniji ❌ je tvrdio da help element ne postoji — izmjereno 2026-11-09 da postoji. |
 | 3.3.1 | ✅ | `role="alert"` ×63; `test:stylist-status-messages-a11y`, `test:onboarding-a11y` |
 | 3.3.2 | ✅ | `aria-describedby` + vidljiv zahtjev (faza 12); `test:onboarding-a11y` (7/7 mutacija). **Novi nalaz 2026-11-09 (repo-wide sweep, `jsx-a11y` ovo ne vidi jer `label-has-associated-control` hvata samo labelu BEZ kontrole, ne i obrnuto):** 3 kontrole u opsegu bez programskog imena — `entry-filters.tsx:58,69,80` (dva `<Input type="date">` i `<select>` s vidljivim `<p>` umjesto labele; bio je to **jedini** filter bar u dashboardu bez `<Label htmlFor>`), `Reservations.tsx:645` (`<Textarea>` za razlog otkazivanja, ime samo iz placeholder-a koji nestaje pri kucanju), `Reviews.tsx:122` (`<select>` filter bez **ijedne** labele). Sve tri ispravljene. Preostali dug: `EmailSettings.tsx:926,1089,1100` — stvarne rupe, ali fajl je pod odlukom „ne dirati"; drži ih allowlist s razlogom. `test:form-control-labels` (5, 8/8 mutacija) |
-| 3.3.3 | 🟡 | **Normativni kriterij:** ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se korisniku daje u tekstu. Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je tehnika (G84/G85), ne zahtjev. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao serverski 400 (`ValidationPipe` + `@IsUUID`/`@IsArray` daju konkretne poruke = poznat prijedlog) i vraćao generički toast. Sada `serverValidationMessages` te poruke čita, `FieldError` ih prikazuje uz polje, `FormErrorSummary` ih najavljuje i linkuje. Ostaje 🟡 jer nema render/AT provjere — ručna stavka **M13** (`CHECKLIST.md`). |
+| 3.3.3 | ✅ | **Normativni kriterij:** ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se korisniku daje u tekstu. Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je tehnika (G84/G85), ne zahtjev. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao serverski 400 (`ValidationPipe` + `@IsUUID`/`@IsArray` daju konkretne poruke = poznat prijedlog) i vraćao generički toast. Sada `serverValidationMessages` te poruke čita, `FieldError` ih prikazuje uz polje, `FormErrorSummary` ih najavljuje i linkuje. **Zatvoreno rendered mjerom 2026-11-08:** `e2e/a11y-admin.spec.ts:157` (`3.3.3 admin: prijedlog ispravke je tekst uz polje, s linkom iz sažetka`) mjeri u Chromiumu na `/admin/daily-log` da sažetak postoji, da svako neispravno polje ima pridružen tekst i da link iz sažetka stvarno vodi na polje — CI run `42923727266` **success** (157/0/0). Nije dokazano samo ono što traži AT: da čitač ekrana najavi prijedlog (M13). — ručna stavka **M13** (`CHECKLIST.md`). |
 | 3.3.4 | ✅ | `window.confirm` ×14 **zadržan namjerno** — native potvrda zadovoljava kriterij |
 | 3.3.7 | ✅ | **Sistematski provjereno — prekršaja nema**, pa nema ni šta da se popravi. Kandidati iz matrice opovrgnuti iz izvora: `category-wizard-dialog.tsx` (223 ln) i `workbook-new-entry-page.tsx` (662 ln) **nemaju** brojač koraka — `useState(0)` u potonjem je `partialDiff`/`desiredLoyaltyPercent`, što je zamka za grep. Reschedule tok: dijalog pita „uključi pauze?" i prenosi rezultat **URL-om** (`?includeBreaks=0/1`), a preview **pred-popunjava** svoj toggle (`useState(initialIncludeBreaks)`) — upravo ono što kriterij traži. `PublicReserve` kontakt **ne pita uopće**: ako `email`/`phone`/verifikacija nedostaju, preusmjerava na `/profil` (ln 547), a forma traži samo usluge, datum, termin i bilješke. Onboarding pita tri različite stvari, svaku vezanu za svoju zastavicu. Razlika u odnosu na ostale ✅: ovdje je dokazano **odsustvo** prekršaja, pa ne postoji implementacija koju bi trebalo verificirati u renderu. |
 | 3.3.8 | ✅ | `autocomplete={i === 0 ? 'one-time-code' : 'off'}`, paste bez blokiranja, 0 captcha; `test:onboarding-a11y` |
@@ -246,20 +248,27 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 ## Rezime (ETAPA B)
 
 Brojano **skriptom** po redovima donje tabele (neki redovi pokrivaju više SC-ova, npr.
-`1.3.2–1.3.4` i `2.5.1 / 2.5.2 / 2.5.4`), ne napamet. Prebrojano ponovo **2026-11-09
-nakon axe runa**: `2.5.3` je prešao 🟡 → ✅ (axe je dokazao prekršaj, izvor ispravljen,
-`test:public-a11y-axe-findings` ga zakucava), pa je ✅ 26→**27** a 🟡 12→**11**.
-Ukupno 51 — nepromijenjeno.
+`1.3.2–1.3.4` i `2.5.1 / 2.5.2 / 2.5.4`), ne napamet.
+
+**Prebrojano ponovo 2026-11-08 skriptom nad tabelom `Statusi po kriteriju`.** Prethodne
+brojke u ovom bloku (✅ 30, 🟡 12) **nisu se slagale s vlastitom tabelom** (✅ 37, 🟡 5) —
+sažetak je zaostajao za redovima, što je ista vrsta greške zbog koje je ETAPA A baseline
+iznad imao 22 ❌ dok je ova tabela imala 0. Zato se brojke ovdje više ne pišu ručno: donja
+tabela je izlaz brojanja, a ne procjena. Promjena u ovom koraku: `3.3.3` 🟡 → ✅ uz
+rendered mjeru (`e2e/a11y-admin.spec.ts:157`, run `42923727266` success).
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (source-contract) | **30** |
+| ✅ verifikovano (test/skriptu/render) | **38** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **12** |
+| 🟡 u kodu, nije verifikovano u renderu | **4** |
 | ❌ nije zadovoljeno | **0** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
 | **ukupno** | **51** |
+
+Preostala **4** 🟡: `1.4.5` (tekst kao slika), `2.1.1` (tastatura — javni dio izmjeren,
+admin/stylist dijelom), `2.4.3` (redoslijed fokusa), `2.5.7` (pokreti povlačenja).
 
 ## Dvije planirane stavke koje **nisu** urađene — i zašto
 
