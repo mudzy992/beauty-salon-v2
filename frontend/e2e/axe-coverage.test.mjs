@@ -6,11 +6,14 @@ import test from 'node:test'
 
 import { readFileSync as readFile } from 'node:fs'
 import {
+  MAX_INCOMPLETE_NODES_PER_RULE,
   TRACKED_RULES,
   aggregateCoverage,
   coverageFileName,
+  describeIncompleteNodes,
   encodeWorkflowMessage,
   formatCoverageSummary,
+  formatIncompleteDetails,
   recordAxeCoverage,
   verdictFor,
 } from './axe-coverage.mjs'
@@ -209,4 +212,86 @@ test('teardown kodira poruku, a naslov nema separatora svojstava', () => {
   assert.ok(title, 'teardown mora imati ::notice title=...')
   assert.equal(title[1].includes(','), false, 'zarez razdvaja svojstva u workflow komandi')
   assert.equal(/globalTeardown/.test(readFile(new URL('./../playwright.config.ts', import.meta.url), 'utf8')), true)
+})
+
+// ── Nepotpuni čvorovi: ŠTA je nepotpuno, ne samo KOLIKO ───────────────────────
+
+/** Axe izvještaj s nepotpunim čvorovima kakve stvarno vraća `label-content-name-mismatch`. */
+function axeReportWithNodes(rule, nodes) {
+  return {
+    passes: [],
+    violations: [],
+    incomplete: [{ id: rule, nodes }],
+    inapplicable: [],
+  }
+}
+
+const NODE = (label, text) => ({
+  html: `<button   aria-label="${label}">${text}</button>`,
+  target: ['header', `button[aria-label="${label}"]`],
+  any: [{ id: 'x', message: `Vidljivi tekst "${text}" nije dio imena` }],
+})
+
+test('describeIncompleteNodes imenuje čvor, njegov HTML i axe poruku', () => {
+  const out = describeIncompleteNodes(
+    axeReportWithNodes('label-content-name-mismatch', [NODE('Prebaci jezik', 'BS')]),
+    'label-content-name-mismatch',
+  )
+  assert.equal(out.length, 1)
+  assert.equal(out[0].target, 'header button[aria-label="Prebaci jezik"]')
+  assert.equal(out[0].html, '<button aria-label="Prebaci jezik">BS</button>', 'višestruki razmaci se sažimaju')
+  assert.equal(out[0].message, 'Vidljivi tekst "BS" nije dio imena')
+})
+
+test('describeIncompleteNodes — pravilo bez nepotpunih čvorova daje prazan spisak', () => {
+  assert.deepEqual(describeIncompleteNodes(axeReport({ passed: ['label'] }), 'label'), [])
+  assert.deepEqual(describeIncompleteNodes(undefined, 'label'), [], 'nema izvještaja → prazno, ne pad')
+  assert.deepEqual(
+    describeIncompleteNodes(axeReportWithNodes('label-content-name-mismatch', []), 'label-content-name-mismatch'),
+    [],
+  )
+})
+
+test('describeIncompleteNodes poštuje granicu, a ne broji sve čvorove', () => {
+  const nodes = Array.from({ length: 9 }, (_, i) => NODE(`L${i}`, `T${i}`))
+  const out = describeIncompleteNodes(axeReportWithNodes('label-content-name-mismatch', nodes), 'label-content-name-mismatch')
+  assert.equal(out.length, MAX_INCOMPLETE_NODES_PER_RULE)
+  assert.equal(MAX_INCOMPLETE_NODES_PER_RULE, 3)
+  assert.deepEqual(describeIncompleteNodes(axeReportWithNodes('label-content-name-mismatch', nodes), 'label-content-name-mismatch', 5).length, 5)
+})
+
+test('zapis i zbir nose nepotpune čvorove do anotacije', () => {
+  const dir = tempDir()
+  try {
+    recordAxeCoverage(
+      'chromium',
+      '/',
+      axeReportWithNodes('label-content-name-mismatch', [NODE('Prebaci jezik', 'BS')]),
+      dir,
+    )
+    const raw = JSON.parse(readFileSync(join(dir, readdirSync(dir)[0]), 'utf8'))
+    assert.equal(raw.incompleteNodes['label-content-name-mismatch'].length, 1)
+
+    const agg = aggregateCoverage(dir)
+    assert.equal(agg.totals['label-content-name-mismatch'].incompleteNodes.length, 1)
+    assert.equal(agg.totals['label-content-name-mismatch'].incompleteNodes[0].route, '/')
+
+    const details = formatIncompleteDetails(agg)
+    assert.match(details, /2\.5\.3 label-content-name-mismatch — 1 nepotpunih čvorova:/)
+    assert.match(details, /BS/, 'vidljivi tekst mora stići do anotacije')
+    assert.match(details, /Prebaci jezik/, 'pristupačno ime mora stići do anotacije')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('formatIncompleteDetails je prazan kad ništa nije nepotpuno', () => {
+  const dir = tempDir()
+  try {
+    recordAxeCoverage('chromium', '/', axeReport({ passed: ['button-name'] }), dir)
+    const agg = aggregateCoverage(dir)
+    assert.equal(formatIncompleteDetails(agg), '', 'prazan string, ne "undefined" ni zaglavlje bez sadržaja')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })

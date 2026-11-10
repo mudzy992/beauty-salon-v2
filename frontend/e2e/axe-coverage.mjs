@@ -71,6 +71,32 @@ const AXE_REPORT_KEYS = {
 }
 
 /**
+ * Koliko nepotpunih čvorova po pravilu se čuva. Bez granice bi jedna ruta s mnogo ikona
+ * napunila zapis, a anotacija se ionako odsijeca (izmjereno: GitHub prekida poruku oko
+ * 2000 znakova).
+ */
+export const MAX_INCOMPLETE_NODES_PER_RULE = 3
+
+/**
+ * Koje čvorove axe nije mogao presuditi, i zašto.
+ *
+ * Ovo je razlog zašto je 2.5.3 ostao ŽUT: brojač je govorio `incomplete 22/32`, ali ne i
+ * ŠTA je nepotpuno. Bez ciljanog elementa se ne može razlikovati „treba čovjeka" od „axe
+ * ne vidi tekst koji je tu", a nagađanje je upravo ono što ovaj repo izbjegava.
+ *
+ * @returns {{target: string, html: string, message: string}[]}
+ */
+export function describeIncompleteNodes(results, rule, limit = MAX_INCOMPLETE_NODES_PER_RULE) {
+  const entry = (results?.incomplete ?? []).find((e) => e.id === rule)
+  if (!entry) return []
+  return (entry.nodes ?? []).slice(0, limit).map((n) => ({
+    target: String(Array.isArray(n.target) ? n.target.join(' ') : (n.target ?? '')).slice(0, 120),
+    html: String(n.html ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
+    message: String(n.any?.[0]?.message ?? n.all?.[0]?.message ?? n.none?.[0]?.message ?? '').slice(0, 140),
+  }))
+}
+
+/**
  * Zapiše status svakog praćenog pravila za jednu rutu. Jedan fajl po testu jer
  * `playwright.config.ts` ima `fullyParallel: true` — dijeljeni fajl bi se prepisivao.
  */
@@ -78,6 +104,12 @@ export function recordAxeCoverage(project, route, results, dir) {
   const buckets = new Map(STATUSES.map((status) => [status, new Set()]))
   for (const status of Object.keys(AXE_REPORT_KEYS)) {
     for (const entry of results?.[AXE_REPORT_KEYS[status]] ?? []) buckets.get(status).add(entry.id)
+  }
+
+  const incompleteNodes = {}
+  for (const { rule } of TRACKED_RULES) {
+    const samples = describeIncompleteNodes(results, rule)
+    if (samples.length) incompleteNodes[rule] = samples
   }
 
   const perRule = {}
@@ -95,7 +127,11 @@ export function recordAxeCoverage(project, route, results, dir) {
 
   mkdirSync(dir, { recursive: true })
   const file = join(dir, coverageFileName(project, route))
-  writeFileSync(file, `${JSON.stringify({ project, route, rules: perRule }, null, 2)}\n`, 'utf8')
+  writeFileSync(
+    file,
+    `${JSON.stringify({ project, route, rules: perRule, incompleteNodes }, null, 2)}\n`,
+    'utf8',
+  )
   return file
 }
 
@@ -104,7 +140,12 @@ export function aggregateCoverage(dir) {
   const totals = Object.fromEntries(
     TRACKED_RULES.map(({ rule }) => [
       rule,
-      Object.fromEntries([...STATUSES.map((s) => [s, 0]), ['routes', []], ['nodes', 0]]),
+      Object.fromEntries([
+        ...STATUSES.map((s) => [s, 0]),
+        ['routes', []],
+        ['nodes', 0],
+        ['incompleteNodes', []],
+      ]),
     ]),
   )
 
@@ -125,6 +166,9 @@ export function aggregateCoverage(dir) {
       // `absent` se namjerno NE upisuje u trag: bio bi na svakoj od 38 ruta za svako pravilo
       // koje tu ne postoji, pa bi trag bio beskoristan. Broji se i dalje u `absent`.
       if (entry.status !== 'absent') totals[rule].routes.push(`${record.route}:${entry.status}`)
+      for (const sample of record.incompleteNodes?.[rule] ?? []) {
+        totals[rule].incompleteNodes.push({ ...sample, route: record.route })
+      }
     }
   }
   return { totals, routeCount: files.length }
@@ -174,6 +218,28 @@ export function formatCoverageSummary(agg) {
           `(passed ${counts.passed}, incomplete ${counts.incomplete}, ` +
           `inapplicable ${counts.inapplicable}, violations ${counts.violations}, absent ${counts.absent})`,
       )
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Zaseban tekst o NEPOTPUNIM čvorovima — ide u **svoju** anotaciju, ne u sažetak.
+ *
+ * Razlog je izmjeren, ne pretpostavljen: GitHub prekida poruku anotacije oko 2000 znakova,
+ * pa bi dodatak sažetku bio istisnut (ili bi istisnuo njega). Odvojena anotacija ima
+ * vlastiti limit.
+ *
+ * @returns {string} prazan string ako nijedno pravilo nije nepotpuno
+ */
+export function formatIncompleteDetails(agg) {
+  const lines = []
+  for (const { rule, criteria } of TRACKED_RULES) {
+    const samples = agg.totals[rule]?.incompleteNodes ?? []
+    if (!samples.length) continue
+    lines.push(`${criteria.join('/')} ${rule} — ${samples.length} nepotpunih čvorova:`)
+    for (const s of samples.slice(0, 6)) {
+      lines.push(`  ${s.route} | ${s.target} | ${s.html} | ${s.message}`)
     }
   }
   return lines.join('\n')

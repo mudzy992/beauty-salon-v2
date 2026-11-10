@@ -3,6 +3,7 @@ import {
   defaultCoverageDir,
   encodeWorkflowMessage,
   formatCoverageSummary,
+  formatIncompleteDetails,
 } from './axe-coverage.mjs'
 
 /**
@@ -24,4 +25,12 @@ export default function coverageTeardown(): void {
   process.stdout.write(
     `::notice title=axe pokrivenost pravila po WCAG kriteriju::${encodeWorkflowMessage(summary)}\n`,
   )
+
+  // Nepotpuni čvorovi idu u ZASEBNU anotaciju: zajednička bi bila odsječena na ~2000 znakova.
+  const details = formatIncompleteDetails(aggregateCoverage(defaultCoverageDir()))
+  if (details) {
+    process.stdout.write(
+      `::warning title=axe nepotpuni cvorovi po pravilu::${encodeWorkflowMessage(details)}\n`,
+    )
+  }
 }
