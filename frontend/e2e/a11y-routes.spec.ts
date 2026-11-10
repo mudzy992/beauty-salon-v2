@@ -87,3 +87,22 @@ test('2.4.2: svaka ruta postavlja <title>', async ({ page }) => {
     expect(title.length, `${route.path}: prazan <title>`).toBeGreaterThan(0)
   }
 })
+
+// Preduvjet mjerenja, izdvojen u vlastiti test: čekanje animacija u axe specovima je tiho —
+// ako ne uspije, dobije se povremeni pad `color-contrast` bez objašnjenja (run `42907958179`).
+// Ovako se preduvjet provjerava glasu: ako se išta još vrti, mjerenje ne vrijedi.
+test('preduvjet mjerenja: nakon čekanja nema animacija u toku', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'networkidle' })
+
+  const settled = await settleAnimations(page)
+  if (settled === null) {
+    process.stdout.write(
+      '::error title=animacije se nisu smirile::čekanje je isteklo, pa bi axe mjerio prolazno stanje\n',
+    )
+  }
+  expect(settled, 'čekanje animacija nije smjelo isteći').not.toBeNull()
+  expect(
+    settled?.stillRunning,
+    'ako se animacija još vrti, axe bi mjerio tekst u prolaznom stanju (opacity 0.01)',
+  ).toBe(0)
+})

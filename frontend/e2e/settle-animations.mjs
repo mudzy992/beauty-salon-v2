@@ -28,8 +28,17 @@ export const ANIMATION_SETTLE_TIMEOUT_MS = 3000
  * @returns {Promise<number>}
  */
 export function animationSettler() {
-  const animations = typeof document.getAnimations === 'function' ? document.getAnimations() : []
+  const collect = () =>
+    typeof document.getAnimations === 'function' ? document.getAnimations() : []
+  const animations = collect()
   return Promise.all(
     animations.map((a) => (a && a.finished ? a.finished.catch(() => undefined) : Promise.resolve())),
-  ).then(() => animations.length)
+  ).then(() => {
+    // `fill: both` znači da ZAVRŠENA animacija ostaje u `getAnimations()` — pa se broje samo
+    // one koje se još vrte. Bez toga bi provjera bila besmislena (uvijek > 0).
+    const stillRunning = collect().filter(
+      (a) => a && (a.playState === 'running' || a.playState === 'pending'),
+    ).length
+    return { seen: animations.length, stillRunning }
+  })
 }

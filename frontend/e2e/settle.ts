@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 
 import { ANIMATION_SETTLE_TIMEOUT_MS, animationSettler } from './settle-animations.mjs'
+import type { AnimationSettleResult } from './settle-animations.mjs'
 
 /**
  * Čeka da se animacije završe prije axe analize.
@@ -9,9 +10,11 @@ import { ANIMATION_SETTLE_TIMEOUT_MS, animationSettler } from './settle-animatio
  * vješao nego bi nastavio — a to je i dalje bolje od fiksnog `waitForTimeout`, jer se u
  * uobičajenom slučaju ne čeka ni milisekund duže nego što treba.
  */
-export async function settleAnimations(page: Page): Promise<void> {
-  await Promise.race([
+export async function settleAnimations(page: Page): Promise<AnimationSettleResult | null> {
+  const result = await Promise.race([
     page.evaluate(animationSettler),
-    page.waitForTimeout(ANIMATION_SETTLE_TIMEOUT_MS),
+    // `waitForTimeout` daje `null`, pa se prekorakačenje razlikuje od „sve je završilo".
+    page.waitForTimeout(ANIMATION_SETTLE_TIMEOUT_MS).then(() => null),
   ])
+  return result
 }
