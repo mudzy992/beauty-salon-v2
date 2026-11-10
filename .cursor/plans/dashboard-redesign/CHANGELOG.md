@@ -6205,4 +6205,19 @@ Potvrdu daje isključivo CI run. Isti razlog objašnjava zašto `color-contrast`
 `check_doc_links` **670/202** · `check_ci_index` **371/374** · `git diff --check` čist ·
 CJK sken 0 · `mobile/` 0 dirnutih fajlova.
 
-**`continue-on-error` na axe koraku OSTAJE** dok CI ne da potvrđen **0 failed**.
+### Zeleni run i skidanje `continue-on-error` — run `42872969550` (commit `6a48167`)
+
+**38 passed | 0 failed | 0 skipped.** Oba preostala pada su zatvorena: `rowgroup` na kalendaru
+popravkom šima, a `/` **sam od sebe** — bez ijedne izmjene javnog sajta, što ga čini flakeom.
+
+- [x] `continue-on-error` skinut s axe koraka (stavka 4, `HANDOFF.md` §4) — uvjet je bio
+      potvrđen zeleni run, i on postoji.
+- [x] Uklonjen i korak „Annotate axe outcome" — postojao je samo da zaobiđe maskiranje pada.
+- [x] **Dodano `exit "$code"` na kraj koraka.** Bez toga bi `set +e` ostavio izlaz 0 i korak bi
+      prošao i kad axe padne — anotacija crvena, CI zelen.
+- [x] Komentari u `ci.yml` i `frontend/playwright.config.ts` ažurirani na stvarno stanje.
+
+> ⚠️ **Preostali rizik, izmjeren:** `/` je pao na `color-contrast` u `42871476988` i prošao u
+> `42872969550` bez promjene koda — **1 pad u ~5 runova**. Sada kad `continue-on-error` ne
+> štiti, takav flake **ruši CI**. Ako se ponovi, ispravna reakcija je retry koraka ili stvarna
+> popravka kontrasta, **ne** vraćanje `continue-on-error`.

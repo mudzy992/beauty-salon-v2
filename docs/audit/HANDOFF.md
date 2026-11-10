@@ -1512,11 +1512,20 @@ pao s 8 na **1** — preostali čvor je upravo `.rbc-allday-cell[role="rowgroup"
 otkrilo sastav ×8. Popravka je u istom potezu dodana u šim.
 
 **Novi pad na `/` (`color-contrast` serious ×1)** — nije postojao u runu `42866264214`, a nijedna
-izmjena ovog poteza ne dira javni sajt (sve tri datoteke su admin, ključevi su admin). Uzrok
+izmjena tog poteza ne dira javni sajt (sve tri datoteke su admin, ključevi su admin). Uzrok
 **nije utvrđen**; u istom logu su dva `[WebServer] Error: read ECONNRESET`, pa je nestabilnost
 moguća, ali to je pretpostavka, ne nalaz. `a11y-routes.spec.ts` je nosio **staru** poruku
-asertacije (samo broj, bez čvora) — moj propust, sada ispravljen u sva tri speka, pa će sljedeći
-run pokazati koji je element.
+asertacije (samo broj, bez čvora) — moj propust, sada ispravljen u sva tri speka.
+
+**Zeleni run `42872969550` (commit `6a48167`): 38 passed | 0 failed | 0 skipped.** Time su
+zatvorena oba preostala pada: `rowgroup` na kalendaru popravkom šima, a `/` **sam od sebe** —
+bez ijedne izmjene javnog sajta, što je taj pad učinilo **flakeom**, ne defektom.
+
+> ⚠️ **Preostali rizik, izmjeren a ne pretpostavljen:** `/` je pao na `color-contrast` u runu
+> `42871476988` i prošao u `42872969550`, bez promjene koda. To je **1 pad u ~5 runova**. Sada
+> kad `continue-on-error` više ne štiti, takav flake **ruši CI**. Ako se ponovi, ispravna reakcija
+> je retry koraka ili stvarna popravka kontrasta — **ne** vraćanje `continue-on-error`, jer bi
+> to ponovo sakrilo prave regresije.
 
 **Šta ovaj test NE dokazuje:** `scrollable-region-focusable` se u jsdomu **uopšte ne
 primjenjuje** (nema rasporeda → regija nije skrolabilna), pa je `tabindex="0"` provjeren samo
@@ -1789,11 +1798,12 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    **33 passed / 5 failed**. Nađeno **8 stvarnih prekršaja** na 4 admin stranice + 1 routing
    problem — vidi §3.1c. Svi su popravljeni (`09a275e`, §3.1d); preostala 2 pada su zatvorena
    u §3.1d. Posljednji izmjereni run prije te popravke: **36 passed / 2 failed**.
-4. **Skinuti `continue-on-error` s axe koraka** u poslu `a11y-e2e` — tek nakon što stavka 3
-   da potvrđen zeleni run. Bez toga axe regresiju ne blokira; skidati naslijepo bi značilo
-   crven CI bez dokaza da je problem stvaran. **Još NIJE skinuto.** Stanje: run `42871476988`
-   je i dalje **2 failed** (`/` kontrast + `rowgroup` na kalendaru), oboje adresirano u §3.1d
-   ali nijedno još potvrđeno zelenim runom.
+4. **Skinuti `continue-on-error` s axe koraka** u poslu `a11y-e2e` — **IZVRŠENO 2026-11-08.**
+   Uvjet je bio potvrđen zeleni run, i on postoji: `42872969550` (commit `6a48167`) daje
+   **38 passed | 0 failed | 0 skipped**. Skinuto je i `continue-on-error` i korak „Annotate"
+   (postojao je samo da zaobiđe maskiranje pada). Dodano je `exit "$code"` na kraj koraka —
+   bez toga bi `set +e` ostavio izlaz 0 i korak bi prošao i kad axe padne. **Axe regresija
+   sada stvarno ruši CI.** Rizik od flakea na `/` je zabilježen u §3.1d.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.

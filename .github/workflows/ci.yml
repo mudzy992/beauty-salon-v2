@@ -779,9 +779,12 @@ jobs:
   # Ovdje je baza jednokratni Postgres service kontejner, a naloge kreira
   # `npm run e2e:users` (backend/prisma/scripts/create-e2e-users.ts).
   #
-  # Axe korak je ZA SAD `continue-on-error`: nikad nije izvrsen, pa bi bilo neposteno
-  # tvrditi da prolazi (isti princip kao u frontend/playwright.config.ts). Nakon prvog
-  # zelenog runa ukloniti `continue-on-error` i korak "Annotate".
+  # Axe korak je BIO `continue-on-error` dok nikad nije bio izvrsen — tada bi bilo neposteno
+  # tvrditi da prolazi (isti princip kao u frontend/playwright.config.ts). Skidanje je uvjetovano
+  # potvrđenim zelenim runom, i taj dokaz sada postoji: run `42872969550` (commit `6a48167`)
+  # daje **38 passed | 0 failed | 0 skipped** nad prijavljenim `/admin/**` i `/stylist/**`.
+  # Zato `continue-on-error` i korak "Annotate" (koji je postojao samo da zaobiđe maskiranje
+  # pada) više nisu tu — axe regresija sada STVARNO ruši CI.
   a11y-e2e:
     name: Rendered a11y (axe) nad izolovanom CI bazom
     runs-on: ubuntu-latest
@@ -901,11 +904,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run rendered a11y (axe) suite
         id: axe
-        continue-on-error: true
         working-directory: frontend
-        # Izlaz se MORA iznijeti u anotaciju: `continue-on-error` maskira pad koraka
-        # (steps[].conclusion javlja success), a logovi i artefakti žive na blob storageu
-        # koji nije svugdje dostižan. Bez ovoga run izgleda zelen iako axe suite pada.
+        # Izlaz se MORA iznijeti u anotaciju: logovi i artefakti žive na blob storageu koji
+        # nije svugdje dostižan, pa se bez ovoga zna samo DA je suite pao, ne i koji čvor.
         run: |
           set +e
           npm run test:a11y-routes 2>&1 | tee "$RUNNER_TEMP/axe.log"
@@ -935,6 +936,9 @@ jobs:
             skipped=$(grep -aoE '[0-9]+ skipped' "$RUNNER_TEMP/axe.log" | tail -1)
             echo "::notice title=axe suite prošao (exit 0)::${passed:-bez 'passed' u izlazu} | ${failed:-0 failed} | ${skipped:-0 skipped}"
           fi
+          # `set +e` iznad znači da bi korak bez ovoga izišao s 0 i kad axe padne — anotacija
+          # bi bila crvena, a CI zelen. Ovo je linija koja pad stvarno prosljeđuje poslu.
+          exit "$code"
           # `auth.setup.ts` upiše razlog PRESKAKANJA u status fajl, a preskočeni admin/stylist
           # testovi su tihi u anotacijama. Bez ovoga "0 failed" izgleda kao uspjeh iako
           # /admin/** i /stylist/** (HANDOFF §4 stavka 3) nisu ni izvršeni.
@@ -956,18 +960,6 @@ jobs:
             frontend/test-results
           if-no-files-found: ignore
           retention-days: 7
-      - name: Annotate axe outcome
-        if: always()
-        run: |
-          {
-            echo '### Rendered a11y (axe) — izolovana CI baza'
-            echo ''
-            echo 'Ishod koraka: **${{ steps.axe.outcome }}**'
-            echo ''
-            echo 'Axe korak je trenutno `continue-on-error` jer nikad ranije nije izvrsen.'
-            echo 'Nakon prvog zelenog runa ukloniti `continue-on-error` iz `ci.yml`.'
-          } >> "$GITHUB_STEP_SUMMARY"
-
   mobile:
     name: Mobile TypeScript check
     runs-on: ubuntu-latest

@@ -13,9 +13,9 @@ import { ADMIN_STATE, STYLIST_STATE } from './e2e/auth-paths'
  * Od 2026-11-09 postoji CI posao **`a11y-e2e`** (`.github/workflows/ci.yml`) koji ovo
  * pokreće nad **jednokratnom** Postgres bazom (service kontejner) s testnim nalozima iz
  * `npm run e2e:users` — dakle bez ikakvog dodira s produkcijskim podacima. Axe korak je
- * tamo ZA SAD `continue-on-error`: još nema prvog izvršenog runa koji bi dokazao da
- * prolazi, pa bi blokirajući gate bio nepošten. Nakon prvog zelenog runa ukloniti
- * `continue-on-error` iz `ci.yml`.
+ * tamo bio `continue-on-error` dok nije postojao prvi izvršeni run; taj dokaz sada postoji
+ * (run `42872969550`, commit `6a48167`: **38 passed | 0 failed | 0 skipped**), pa je
+ * `continue-on-error` uklonjen i axe regresija ruši CI.
  *
  * Da se pokrene lokalno / u CI s pristupom CDN-u:
  *   cd frontend && npx playwright install --with-deps chromium && npm run test:a11y-routes

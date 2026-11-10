@@ -639,8 +639,16 @@ bila u specu — ruta sada nosi `expectPrefix: '/profil'` (`11b1b26`).
       samo atributski; test to eksplicitno asertira. Isti razlog objašnjava zašto `color-contrast`
       i `label-content-name-mismatch` **nisu** mogli biti uhvaćeni lokalno — `test:axe-render-a11y`
       ih vraća kao **INCOMPLETE**.
-- [ ] **`continue-on-error` na axe koraku i dalje OSTAJE** (stavka 4, `HANDOFF.md` §4) dok CI ne
-      da potvrđen **0 failed**. Skidati prije toga značilo bi crven CI bez dokaza.
+- [x] **Zeleni run `42872969550` (commit `6a48167`): 38 passed | 0 failed | 0 skipped.**
+      `rowgroup` zatvoren popravkom šima; `/` prošao **sam od sebe**, bez ijedne izmjene javnog
+      sajta — dakle flake, ne defekt.
+- [x] **`continue-on-error` SKINUT** s axe koraka (stavka 4, `HANDOFF.md` §4) — uvjet je bio
+      potvrđen zeleni run. Uklonjen i korak „Annotate axe outcome". **Dodano `exit "$code"`**
+      na kraj koraka: bez toga bi `set +e` ostavio izlaz 0 i korak bi prošao i kad axe padne.
+- [ ] **Rizik od flakea ostaje otvoren, izmjeren:** `/` je pao na `color-contrast` u
+      `42871476988` a prošao u `42872969550` bez promjene koda — **1 pad u ~5 runova**. Sada
+      takav flake **ruši CI**. Ako se ponovi: retry koraka ili stvarna popravka kontrasta,
+      **ne** vraćanje `continue-on-error`.
 
 ### Kapije na kraju ovog poteza (izmjereno, ne prepisano)
 
