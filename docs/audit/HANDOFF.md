@@ -1590,6 +1590,56 @@ ispravan broj, ne propust.
 2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — za njih treba
 čitač ekrana ili ručna provjera (M1–M13). Oni ostaju 🟡 bez obzira na ovaj alat.
 
+### 3.1f Zatvoreno 12 od 21 🟡 — izvor JE dokaz za dio njih (2026-11-08)
+
+Zahtjev je bio „kompletiraj svih 20 🟡". **Tačan broj je bio 21, i nisu svi zatvoreni** — za 9
+njih nema dokaza koji se u ovom okruženju može proizvesti, pa su ostali 🟡. Označiti ih ✅ bez
+dokaza bilo bi upravo ono što ovaj audit cijelo vrijeme ispravlja.
+
+Mjerilo je bilo: **može li se prekršaj vidjeti iz izvora?** Za dio kriterija može — 3.2.1 je
+prekršen ako `onFocus` navigira, i to ne ovisi o rasporedu. Za takve je uveden
+`test:wcag-source-contracts` (13 testova). Zatvoreno: 1.3.3, 1.3.4, 1.4.5, 2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.8.
+**Matrica: 6 ✅ / 21 🟡 → 18 ✅ / 9 🟡.**
+
+⚠️ **Svi ovi dokazi su provjere odsustva nad izvorom, NE rendered dokaz.** Dokazuju da
+prekršajni obrazac ne postoji u `src`, ne i da je ponašanje u pregledniku ispravno u svakom
+slučaju. U `MATRIX.md` je uz svaki naveden test i šta tačno mjeri.
+
+#### Stvarni defekt koji je mjerenje otkrilo — `framer-motion`
+
+`MATRIX.md` je za 2.3.3 tvrdio: „**`framer-motion` se ne koristi u dashboardu** (potvrđeno
+grep-om)". **Netačno.** Izmjereno: **9 fajlova**, **26** animacijskih propova (`whileHover`,
+`whileTap`, `initial`, `animate`), i **nijedan** ne koristi `useReducedMotion` ni
+`MotionConfig`.
+
+To znači da globalni CSS blok `prefers-reduced-motion` (`globals.css:241`) **nije dosezao** te
+animacije — framer-motion animira preko JS-a. Korisnik koji traži manje pokreta ih je i dalje
+dobijao. Ovo pogađa **2.5.4 Motion Actuation (AA)**, ne samo 2.3.3 (AAA).
+
+**Popravka:** `<MotionConfig reducedMotion="user">` na korijenu `app/providers.tsx` — službeni
+mehanizam, isključuje transform/layout animacije prema postavci sistema, zadržava opacity.
+
+#### Dva zastarjela/lažna dokaza u `MATRIX.md`
+
+- Red 2.3.3 je kao dokaz navodio **`test:reduced-motion`** — taj test **nikad nije postojao**
+  (nema ga ni u `package.json` ni u `src`).
+- Isti red je tvrdio da `globals.css` „pokriva samo `app-logo`" — globalni blok nad
+  `*, *::before, *::after` postoji od ranije.
+
+#### Šta je ostalo 🟡 i zašto (1.3.2, 1.4.4, 1.4.12, 2.1.1, 2.5.3, 3.3.1, 3.3.2, 3.3.3, 4.1.3)
+
+| Kriterij | Zašto se ne može zatvoriti ovdje |
+|---|---|
+| 1.3.2 Meaningful sequence | treba raspored + AT da se uporedi DOM i vizuelni redoslijed |
+| 1.4.4 Resize text 200% | treba stvarno zumiranje u pregledniku; axe `meta-viewport` pokriva samo `user-scalable` |
+| 1.4.12 Text spacing | treba primijeniti WCAG bookmarklet stilove i tražiti overflow |
+| 2.1.1 Keyboard | treba stvarni prolaz tastaturom; axe pokriva samo skrolabilne regije (1/32 rute) |
+| 2.5.3 Label in name | axe `incomplete` na **22 od 32** rute |
+| 3.3.1 Error identification | treba interakcija s formom i čitač ekrana |
+| 3.3.2 Labels or instructions | axe vidi prisustvo labele, ne i **uputstva** |
+| 3.3.3 Error suggestion | ručna stavka **M13** (NVDA/VoiceOver) |
+| 4.1.3 Status messages | izmjereno: sonner 2.0.8 ima **jedan** `aria-live: "polite"`, a u `src` je 95 `role="status"`/`aria-live` — nije dokazano da svaka statusna poruka prolazi kroz live region |
+
 ## 3. Šta NIJE dokazano — i to je preostali posao
 
 ### 3.1 `/admin/**` i `/stylist/**` — pokrivenost **napisana** (2026-11-09), ali još **neizvršena**
@@ -1877,7 +1927,8 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    sada stvarno ruši CI.** Rizik od flakea na `/` je zabilježen u §3.1d.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
-6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.
+6. **Zatvoriti 🟡 rendered dokazom** (§3.4) — **12 od 21 zatvoreno izvorom** (§3.1f); preostalo
+   **9** traži preglednik ili čitač ekrana i ne može se zatvoriti u ovom okruženju.
 7. ~~Djelimični rendered dokaz bez preglednika~~ — **ZATVORENO 2026-11-10** (§3.1b):
    `test:axe-render-a11y` pokreće pravi axe nad renderovanim markupom (35 scenarija,
    0 prekršaja, mutacije 6/6). Ne pokriva kontrast, 2.5.3, veličinu mete, reflow ni stanje s

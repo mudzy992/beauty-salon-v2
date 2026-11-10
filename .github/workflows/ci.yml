@@ -587,6 +587,9 @@ jobs:
       - name: Test axe rule coverage mapping
         working-directory: frontend
         run: npm run test:axe-coverage
+      - name: Test WCAG source contracts
+        working-directory: frontend
+        run: npm run test:wcag-source-contracts
       - name: Test admin content page accessibility
         working-directory: frontend
         run: npm run test:admin-content-a11y

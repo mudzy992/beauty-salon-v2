@@ -1,5 +1,6 @@
 import { PropsWithChildren, useEffect } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 
 import '../i18n'
 import { queryClient } from '../query/client'
@@ -26,16 +27,24 @@ export const AppProviders = ({ children }: PropsWithChildren) => {
   }, [token, refreshProfile, logout, setReady])
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SocketProvider>
-          <SettingsProvider>
-            {children}
-            <AppToaster />
-          </SettingsProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    // WCAG 2.5.4 (Motion Actuation, AA) i 2.3.3 (AAA): `framer-motion` animira preko JS-a, pa
+    // ga globalni CSS blok `prefers-reduced-motion` u `styles/globals.css` NE doseže —
+    // `whileHover`/`whileTap` bi se vrtjeli i kad korisnik traži manje pokreta.
+    // `reducedMotion="user"` je službeni mehanizam: isključuje transform/layout animacije prema
+    // postavci sistema, a zadržava opacity (koji ne izaziva vestibularne probleme).
+    // Bez ovoga je 9 fajlova s 26 animacija ignorisalo korisnikovu postavku.
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SocketProvider>
+            <SettingsProvider>
+              {children}
+              <AppToaster />
+            </SettingsProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   )
 }
 

@@ -6353,3 +6353,65 @@ moj) čitaju status po prisustvu emoji-ja bilo gdje u redu.
 `tsc --noEmit` **0** · `typecheck:e2e` **0** · lint **0 errors / 7 warnings** · build
 **276.1 KiB**/300 · `check_doc_links` **670/202** · `check_ci_index` **372/375** ·
 `git diff --check` čist · CJK **0**.
+
+---
+
+## 2026-11-08 — 12 od 21 🟡 zatvoreno izvorom + stvarni defekt: framer-motion je ignorisao reduced-motion
+
+### Zahtjev i šta je stvarno urađeno
+
+Zahtjev: „kompletiraj svih 20 🟡". **Tačan broj je bio 21** (moj prethodni sažetak je rekao 20 —
+pogrešno). **Nisu svi zatvoreni:** za **9** njih ne postoji dokaz koji se ovdje može proizvesti,
+pa su ostali 🟡. Označiti ih ✅ bez dokaza bilo bi upravo ono što ovaj audit ispravlja.
+
+Mjerilo: **može li se prekršaj vidjeti iz izvora?** Za dio kriterija može — 3.2.1 je prekršen
+ako `onFocus` navigira, i to ne ovisi o rasporedu. Uveden `test:wcag-source-contracts` (13
+testova). Zatvoreno: **1.3.3, 1.3.4, 1.4.5, 2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.8**.
+
+**`MATRIX.md`: 6 ✅ / 21 🟡 → 18 ✅ / 9 🟡.**
+
+⚠️ Svi ovi dokazi su **provjere odsustva nad izvorom**, NE rendered dokaz.
+
+### Stvarni defekt: `framer-motion` je ignorisao postavku o pokretu
+
+`MATRIX.md` je za 2.3.3 tvrdio „**`framer-motion` se ne koristi u dashboardu** (potvrđeno
+grep-om)". **Netačno.** Izmjereno: **9 fajlova**, **26** animacijskih propova, i **nijedan** ne
+koristi `useReducedMotion` ni `MotionConfig`. Globalni CSS blok `prefers-reduced-motion`
+(`globals.css:241`) ih **nije dosezao** jer framer-motion animira preko JS-a. Pogađa
+**2.5.4 Motion Actuation (AA)**, ne samo 2.3.3 (AAA).
+
+**Popravka:** `<MotionConfig reducedMotion="user">` na korijenu `app/providers.tsx`.
+
+### Dva lažna/zastarjela dokaza u `MATRIX.md`
+
+- Red 2.3.3 je kao dokaz navodio **`test:reduced-motion`** — **nikad nije postojao** (nema ga ni
+  u `package.json` ni u `src`).
+- Isti red: „`globals.css` pokriva samo `app-logo`" — globalni blok nad `*, *::before, *::after`
+  postoji od ranije.
+
+### Slabost koju je uhvatila mutacijska provjera
+
+Prve dvije verzije testa za 1.4.5 brojale su **fajlove** s `<img>`, ne **pojavljivanja**. Mutacija
+koja doda drugi `<img>` u postojeći fajl prolazila je **neuhvaćena** — izmjereno, dvaput. Prag je
+sada `assert.equal(total, 1)` na izmjerenu vrijednost (`avatar.tsx` svoj `<img>` ima samo u
+komentaru, pa ga `blankComments` ne broji).
+
+### Šta je ostalo 🟡 (1.3.2, 1.4.4, 1.4.12, 2.1.1, 2.5.3, 3.3.1, 3.3.2, 3.3.3, 4.1.3)
+
+1.3.2 raspored+AT · 1.4.4 stvarno zumiranje · 1.4.12 text-spacing bookmarklet · 2.1.1 stvarni
+prolaz tastaturom · 2.5.3 axe `incomplete` na 22/32 · 3.3.1 interakcija+AT · 3.3.2 axe ne vidi
+uputstva · 3.3.3 ručno M13 · 4.1.3 sonner 2.0.8 ima **jedan** `aria-live: "polite"` a u `src` je
+95 live regiona — nije dokazano da svaka statusna poruka prolazi kroz njih.
+
+### Dokaz
+
+`test:wcag-source-contracts` **13/13**. **Mutacije 6/6** uhvaćene: bez `MotionConfig` (1) ·
+`navigate` u `onChange` (1) · beskonačna animacija (1) · OTP paste odbacuje tekst (1) ·
+`autoComplete="off"` na `Login` (1) · treći `<img>` (1). Registrovan u `package.json` i `ci.yml`.
+
+### Kapije
+
+`test:*` **192/192** (harness verificiran namjernim ubacivanjem nepostojeće skripte — javlja
+`FAIL`, pa je prazan ishod stvaran prolaz) · `tsc --noEmit` **0** · `typecheck:e2e` **0** ·
+lint **0 errors / 7 warnings** · build **276.7 KiB**/300 · `check_doc_links` **670/202** ·
+`git diff --check` čist · CJK **0**.

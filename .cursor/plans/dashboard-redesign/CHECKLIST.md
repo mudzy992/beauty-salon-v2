@@ -707,6 +707,40 @@ lint **0 errors / 7 warnings** · build **276.1 KiB**/300 · `check_ci_index` **
 `check_doc_links` **670/202** · `check_i18n --strict` paritet **0/0** · `git diff --check`
 čist · CJK sken **0** · `mobile/` **0** dirnutih fajlova.
 
+### 12 od 21 🟡 zatvoreno izvorom (2026-11-08)
+
+Zahtjev je bio „kompletiraj svih 20 🟡". **Tačan broj je bio 21** (prethodni sažetak je rekao 20 —
+pogrešno). **Nisu svi zatvoreni** — za **9** nema dokaza koji se ovdje može proizvesti.
+
+- [x] **`test:wcag-source-contracts` 13/13** — mjerilo: može li se prekršaj vidjeti **iz izvora**?
+      Zatvoreno: **1.3.3, 1.3.4, 1.4.5, 2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2,
+      3.3.8**. Matrica: **6 ✅ / 21 🟡 → 18 ✅ / 9 🟡**. Registrovan u `package.json` i `ci.yml`.
+      **Mutacije 6/6.**
+- [x] ⚠️ Svi ovi dokazi su **provjere odsustva nad izvorom**, NE rendered dokaz — naznačeno uz
+      svaki red u `MATRIX.md`.
+- [x] **STVARNI DEFDEKT: `framer-motion` je ignorisao reduced-motion.** `MATRIX.md` je tvrdio
+      „ne koristi se u dashboardu (potvrđeno grep-om)" — **netačno**: 9 fajlova, 26 animacijskih
+      propova, nijedan bez `useReducedMotion`/`MotionConfig`. Globalni CSS blok ih nije dosezao
+      (framer-motion animira preko JS-a). Pogađa **2.5.4 (AA)**, ne samo 2.3.3 (AAA).
+      Popravka: `<MotionConfig reducedMotion="user">` u `app/providers.tsx`.
+- [x] **Dva lažna dokaza u `MATRIX.md`:** red 2.3.3 je navodio **`test:reduced-motion`** koji
+      **nikad nije postojao**; i tvrdio da `globals.css` pokriva samo `app-logo`, a globalni blok
+      postoji od ranije.
+- [x] **Slabost uhvaćena mutacijom:** prve dvije verzije testa za 1.4.5 brojale su **fajlove** s
+      `<img>`, ne **pojavljivanja** — mutacija s drugim `<img>` u istom fajlu prolazila je
+      neuhvaćena. Prag je sada `assert.equal(total, 1)` na izmjerenu vrijednost.
+- [ ] **Preostalo 9 🟡** — 1.3.2 (raspored+AT) · 1.4.4 (stvarno zumiranje) · 1.4.12 (text-spacing)
+      · 2.1.1 (stvarni prolaz tastaturom) · 2.5.3 (axe `incomplete` 22/32) · 3.3.1 (interakcija+AT)
+      · 3.3.2 (axe ne vidi uputstva) · 3.3.3 (ručno M13) · 4.1.3 (sonner 2.0.8 ima **jedan**
+      `aria-live`, u `src` je 95 live regiona — nije dokazano da svaka poruka prolazi kroz njih).
+
+### Kapije na kraju ovog poteza (izmjereno, ne prepisano)
+
+`test:*` **192/192** — harness je verificiran namjernim ubacivanjem nepostojeće skripte (javi
+`FAIL`), pa je prazan ishod stvaran prolaz, ne prazna petlja · `tsc --noEmit` exit **0** ·
+`typecheck:e2e` exit **0** · lint **0 errors / 7 warnings** · build **276.7 KiB**/300 ·
+`check_doc_links` **670/202** · `git diff --check` čist · CJK sken **0**.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)
