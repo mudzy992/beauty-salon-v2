@@ -913,6 +913,16 @@ jobs:
             skipped=$(grep -aoE '[0-9]+ skipped' "$RUNNER_TEMP/axe.log" | tail -1)
             echo "::notice title=axe suite prošao (exit 0)::${passed:-bez 'passed' u izlazu} | ${failed:-0 failed} | ${skipped:-0 skipped}"
           fi
+          # `auth.setup.ts` upiše razlog PRESKAKANJA u status fajl, a preskočeni admin/stylist
+          # testovi su tihi u anotacijama. Bez ovoga "0 failed" izgleda kao uspjeh iako
+          # /admin/** i /stylist/** (HANDOFF §4 stavka 3) nisu ni izvršeni.
+          for f in e2e/.auth/admin-status.json e2e/.auth/stylist-status.json; do
+            if [ -f "$f" ]; then
+              echo "::notice title=axe auth status $(basename "$f")::$(tr -d '\r\n' < "$f" | tr -s ' ')"
+            else
+              echo "::warning title=axe auth status::$(basename "$f") ne postoji — setup se nije izvršio"
+            fi
+          done
           exit "$code"
       - name: Upload Playwright report and traces
         if: always()
