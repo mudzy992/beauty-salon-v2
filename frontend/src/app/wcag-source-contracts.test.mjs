@@ -296,3 +296,38 @@ test('4.1.3: mjerenje stanja, ne tvrdnja o usklađenosti', () => {
   const live = filesMatching(/role="status"|aria-live=/)
   assert.ok(live.length >= 20, `samo ${live.length} fajlova s live regionom — očekivano ≥20`)
 })
+
+test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', () => {
+  // Axe je na 22 admin/stylist rute javio `label-content-name-mismatch` kao nepotpuno
+  // (run `42893779087`): `aria-label="Admin meni"` uz vidljive inicijale iz
+  // `AvatarFallback`. Ovo nije bila samo axe-ova nesigurnost nego stvarni prekršaj —
+  // glasovni korisnik koji izgovori ono što vidi ne pogađa dugme.
+  //
+  // `aria-hidden` nad inicijalima BI sakrio tekst od čitača ekrana, ali ne i od oka, pa bi
+  // prekršaj ostao a postao nevidljiv alatima. Zato se traži da ime SADRŽI vidljivi tekst.
+  const sites = [
+    ['../features/shell/admin/admin-chrome.tsx', 'shell.adminMenu', 'initials'],
+    ['../features/shell/public/public-layout.tsx', 'shell.userMenu', "avatarInitials || 'U'"],
+    ['../layouts/StylistLayout.tsx', 'shell.userMenu', "avatarInitials || 'S'"],
+  ]
+  for (const [file, key, visible] of sites) {
+    const src = readFileSync(new URL(file, import.meta.url), 'utf8')
+    const expected = `labelWithVisibleText(t('${key}'), ${visible})`
+    assert.ok(
+      src.includes(expected),
+      `${file}: očekivano ${expected}`,
+    )
+    assert.ok(
+      !src.includes(`aria-label={t('${key}')}`),
+      `${file}: gola labeta bez vidljivog teksta (2.5.3)`,
+    )
+  }
+
+  // Mobilno i desktop dugme u admin omotaču dijele istu labetu — oba moraju biti pokrivena.
+  const chrome = readFileSync(new URL('../features/shell/admin/admin-chrome.tsx', import.meta.url), 'utf8')
+  assert.equal(
+    chrome.split("labelWithVisibleText(t('shell.adminMenu'), initials)").length - 1,
+    2,
+    'oba dugmeta admin menija, ne samo jedno',
+  )
+})

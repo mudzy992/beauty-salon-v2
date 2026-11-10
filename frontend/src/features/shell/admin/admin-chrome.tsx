@@ -13,6 +13,7 @@ import {
 import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
+import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs';
 
 type BrandProps = {
   hasLogo: boolean
@@ -77,7 +78,7 @@ export const AdminUserMenu = ({
       <LanguageSwitcher />
       <button
         type="button"
-        aria-label={t('shell.adminMenu')}
+        aria-label={labelWithVisibleText(t('shell.adminMenu'), initials)}
         aria-expanded={mobileNavOpen}
         aria-controls="admin-mobile-navigation"
         className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
@@ -101,7 +102,7 @@ export const AdminUserMenu = ({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label={t('shell.adminMenu')}
+            aria-label={labelWithVisibleText(t('shell.adminMenu'), initials)}
             className="hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:inline-flex"
           >
             <Avatar className="h-9 w-9 ring-1 ring-slate-200">

@@ -18,6 +18,7 @@ import { LanguageSwitcher } from '../components/i18n/language-switcher'
 import { useFocusOnNavigate } from '../hooks/use-focus-on-navigate'
 import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
 import { SkipLink } from '../features/shell/admin/ui/skip-link'
+import { labelWithVisibleText } from '../components/a11y/label-in-name.mjs';
 
 type NavItem = { path: string; labelKey: string }
 
@@ -111,7 +112,7 @@ export default function StylistLayout() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label={t('shell.userMenu')}
+                  aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials || 'S')}
                 >
                   <Avatar className="h-9 w-9 ring-1 ring-line">
                     {avatarSrc ? (

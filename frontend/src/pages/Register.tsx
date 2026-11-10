@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { useSettings } from '../context/SettingsContext'
 import { getRegistrationErrorKey } from '../features/auth/registration-error.mjs'
+import { labelWithVisibleText } from '../components/a11y/label-in-name.mjs';
 
 const MotionDiv = motion.div
 
@@ -26,6 +27,9 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  // Vidljivi tekst avatara. Izvučeno u varijablu jer ga 2.5.3 traži i u pristupačnom imenu:
+  // dva odvojena izraza bi se neminovno razišla.
+  const avatarInitials = `${(firstName?.[0] ?? 'U').toUpperCase()}${(lastName?.[0] ?? '').toUpperCase()}`
   const [phone, setPhone] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -226,14 +230,11 @@ export default function Register() {
                     type="button"
                     className="rounded-full"
                     onClick={() => avatarInputRef.current?.click()}
-                    aria-label={t('auth.chooseAvatar')}
+                    aria-label={labelWithVisibleText(t('auth.chooseAvatar'), avatarInitials)}
                   >
                     <Avatar className="h-20 w-20">
                       <AvatarImage src={avatarPreview ?? undefined} />
-                      <AvatarFallback>
-                        {(firstName?.[0] ?? 'U').toUpperCase()}
-                        {(lastName?.[0] ?? '').toUpperCase()}
-                      </AvatarFallback>
+                      <AvatarFallback>{avatarInitials}</AvatarFallback>
                     </Avatar>
                   </button>
                   <div className="space-y-1">

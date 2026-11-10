@@ -28,7 +28,12 @@ test('registration blocks duplicate submission and ignores stale or unmounted re
 
 test('avatar selection has a group name and revokes replaced and unmounted preview URLs', () => {
   assert.match(source, /<fieldset className="space-y-2">\s*<legend[^>]*>\s*\{t\('auth\.avatarOptional'\)\}/)
-  assert.match(source, /aria-label=\{t\('auth\.chooseAvatar'\)\}/)
+  // 2.5.3 Label in Name: vidljivi inicijali moraju biti dio pristupačnog imena. Ključna
+  // tvrdnja je da VIDLJIVI tekst i ime koriste ISTU varijablu — dva odvojena izraza bi se
+  // razišla i prekršaj bi se vratio tiho.
+  assert.match(source, /aria-label=\{labelWithVisibleText\(t\('auth\.chooseAvatar'\), avatarInitials\)\}/)
+  assert.match(source, /<AvatarFallback>\{avatarInitials\}<\/AvatarFallback>/)
+  assert.doesNotMatch(source, /aria-label=\{t\('auth\.chooseAvatar'\)\}/, 'gola labeta bez vidljivog teksta')
   assert.match(source, /URL\.revokeObjectURL\(avatarPreviewUrl\.current\)/)
   assert.match(source, /const previewUrl = URL\.createObjectURL\(file\)/)
 })

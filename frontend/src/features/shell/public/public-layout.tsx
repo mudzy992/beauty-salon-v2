@@ -23,6 +23,7 @@ import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils
 import { isPublicFeatureOn } from './public-features'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
+import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs';
 
 type PublicFeatureFlag = 'public_feature_blog' | 'public_feature_gallery' | 'public_feature_reviews'
 type PublicNavItem = { path: string; labelKey: string; flag?: PublicFeatureFlag }
@@ -208,7 +209,7 @@ export const PublicLayout = () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label={t('shell.userMenu')}
+                    aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials || 'U')}
                   >
                     <Avatar className="h-9 w-9">
                       {avatarSrc ? (
