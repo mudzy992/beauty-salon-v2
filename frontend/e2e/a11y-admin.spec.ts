@@ -136,6 +136,56 @@ function reportAdmin(title: string, detail: string): void {
   process.stdout.write(`::error title=${title}::${encoded}\n`)
 }
 
+// ── 3.3.3 Error suggestion ───────────────────────────────────────────────────
+//
+// Normativni zahtjev: ako je greška prepoznata i prijedlog ispravke poznat, prijedlog se
+// korisniku daje **u tekstu**. Mjeri se na dnevnoj knjizi jer je to jedina forma koja ovo
+// radi kroz `field-error.tsx`, a njena validacija je klijentska (`use-daily-log-form.ts:203`
+// — prazan stilista/servis), pa test ne ovisi o backendu niti stvara podatke.
+test('3.3.3 admin: prijedlog ispravke je tekst uz polje, s linkom iz sažetka', async ({ page }) => {
+  await page.goto('/admin/daily-log', { waitUntil: 'networkidle' })
+
+  await page.getByRole('button', { name: /novi unos/i }).first().click()
+  await page.waitForTimeout(500)
+  await page.getByRole('button', { name: /sačuvaj/i }).first().click()
+  await page.waitForTimeout(500)
+
+  const summary = page.locator('[role="alert"][tabindex="-1"]').first()
+  const summaryText = (await summary.innerText().catch(() => '')).trim()
+  if (!summaryText) {
+    reportAdmin(
+      '3.3.3 /admin/daily-log — nema sažetka grešaka',
+      'nakon pokušaja spremanja prazne forme nije se pojavio [role="alert"][tabindex="-1"]',
+    )
+  }
+  await expect(summary, 'sažetak grešaka mora postojati i biti vidljiv').toBeVisible()
+
+  // 1) Sažetak prima fokus — korisnik odmah zna da nešto treba ispraviti, ne traži to Tabom.
+  const focusedRole = await page.evaluate(() => document.activeElement?.getAttribute('role'))
+  expect(focusedRole, 'fokus mora biti na sažetku grešaka').toBe('alert')
+
+  // 2) Svako neispravno polje ima pridružen tekst — ista mjera kao u 3.3.1.
+  const bad = await page.evaluate(invalidWithoutDescription)
+  if (bad.length) reportAdmin('3.3.3 /admin/daily-log — polje bez teksta', bad.map((b) => b.element).join(' | '))
+  expect(bad, 'neispravno polje bez pridruženog teksta').toEqual([])
+
+  // 3) Prijedlog je konkretan, ne generičan: govori ŠTA treba uraditi.
+  expect(summaryText.toLowerCase(), 'sažetak mora sadržavati konkretan prijedlog').toContain(
+    'odaberite stilistu i servis',
+  )
+
+  // 4) Linkovi iz sažetka vode na polja koja stvarno postoje — inače su mrtvi.
+  const hrefs = await summary
+    .locator('a[href^="#"]')
+    .evaluateAll((nodes) => nodes.map((n) => String(n.getAttribute('href'))))
+  expect(hrefs.length, 'sažetak mora linkovati na polja').toBeGreaterThan(0)
+  for (const href of hrefs) {
+    const target = await page.locator(href).count()
+    if (target === 0) reportAdmin('3.3.3 /admin/daily-log — mrtav link', href)
+    expect(target, `link ${href} vodi na nepostojeće polje`).toBeGreaterThan(0)
+  }
+})
+
 test('2.4.1 admin: skip-link je prvi fokusabilni element', async ({ page }) => {
   await page.goto('/admin', { waitUntil: 'networkidle' })
   await page.keyboard.press('Tab')
