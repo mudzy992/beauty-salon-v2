@@ -347,6 +347,233 @@ test('i18n: svaka {{interpolacija}} u prijevodu je i prosljeđena u pozivu', () 
   )
 })
 
+/**
+ * ── Test 5: literali koji LIČE na i18n ključ (mape, a ne samo `t()` pozivi) ──
+ * Testovi 1–4 čitaju ključ s mjesta gdje se vidi: `t('…')` ili `*Key:`. Ali
+ * ključevi se u ovom kodu prenose i kroz **mape**. Primjer izmjeren 2026-11-10:
+ * `pages/SettingsSeo.tsx` ima `SEO_FIELD_COPY_KEYS` čije vrijednosti
+ * (`'adminSettings.seo.fields.defaultTitle'` …) završe u `t(copyKeys.label)` —
+ * dinamički poziv koji test 1 označi kao 'dynamic' i **preskoči**.
+ *
+ * 🔴 Dokazano mutacijom: ključ u toj mapi promijenjen u nepostojeći prošao je
+ * kroz **svih 13** settings-testova (`admin-settings-seo-i18n`,
+ * `admin-settings-operations-appearance-i18n`, 6× `admin-settings-site-*-i18n`,
+ * `admin-settings-accessibility`, `settings-semantic-tokens`,
+ * `settings-hub-redirect`, `admin-settings-controls-a11y`) **i** kroz testove
+ * 1–4 iznad. Razlog: postojeći sakupljači traže `\bt\('([^']+)'`, a vrijednost
+ * u mapi nije argument od `t()`. Na ekranu bi se prikazao goli ključ.
+ *
+ * Zato se ovdje provjerava **svaki** string literal u `src/` koji počinje
+ * imenskim prostorom iz `bs.json` — mora se razriješiti na list (ili plural) u
+ * OBA jezika. Izmjereno: **2449** takvih literala; **7** se ne razrješava na
+ * list — 6 su legitimni plurali (`_one`/`_few`/`_other`, što `resolve` već
+ * prihvata), a preostali 1 je identifikator backend postavke, ne i18n ključ.
+ */
+const NAMESPACES = new Set(Object.keys(BS))
+const LOOKS_LIKE_KEY = /^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$/
+
+/**
+ * Identifikatori koji izgledaju kao `imenskiProstor.nešto` a **nisu** i18n
+ * ključevi. Mora ostati tačno ovaj skup — ako zarđa, test pada (pozitivna
+ * kontrola), jer bi svaka nova stavka mogla sakriti stvarni propust.
+ *
+ * `salon.timezone` je ključ backend postavke (`groups-operations.ts:13` i
+ * `SettingsOperations.tsx:22`); `salon` je istovremeno i18n imenski prostor, pa
+ * ga heuristika zahvati.
+ */
+const NOT_I18N_LITERALS = new Set(['salon.timezone'])
+
+/**
+ * Vadi sve obične string literale (`'…'` i `"…"`) iz izvora s zakomentarisanim
+ * komentarima. Predložci (backtick) se namjerno preskaču: oni s `${…}` su
+ * dinamički, a bez njega se u ovom kodu ne koriste za ključeve.
+ */
+function stringLiterals(src) {
+  const out = []
+  let i = 0
+  while (i < src.length) {
+    const c = src[i]
+    if (c === "'" || c === '"') {
+      let j = i + 1
+      let body = ''
+      let closed = false
+      while (j < src.length) {
+        const ch = src[j]
+        if (ch === '\\') {
+          body += ch + (src[j + 1] ?? '')
+          j += 2
+          continue
+        }
+        if (ch === c) {
+          closed = true
+          break
+        }
+        if (ch === '\n') break
+        body += ch
+        j++
+      }
+      if (closed) out.push({ body, line: src.slice(0, i).split('\n').length })
+      i = closed ? j + 1 : j
+      continue
+    }
+    if (c === '`') {
+      let j = i + 1
+      while (j < src.length) {
+        if (src[j] === '\\') {
+          j += 2
+          continue
+        }
+        if (src[j] === '`') break
+        j++
+      }
+      i = j + 1
+      continue
+    }
+    i++
+  }
+  return out
+}
+
+function collectNamespaceLiterals() {
+  const found = new Map()
+  for (const url of walk(SRC)) {
+    const rel = decodeURIComponent(url.pathname.replace(new RegExp('^' + SRC.pathname), ''))
+    const src = blankComments(readFileSync(url, 'utf8'))
+    for (const { body, line } of stringLiterals(src)) {
+      if (!LOOKS_LIKE_KEY.test(body)) continue
+      if (!NAMESPACES.has(body.split('.')[0])) continue
+      if (!found.has(body)) found.set(body, `${rel}:${line}`)
+    }
+  }
+  return found
+}
+
+const namespaceLiterals = collectNamespaceLiterals()
+
+test('i18n: svaki literal s imenskim prostorom se razrješava u oba jezika (mape uključene)', () => {
+  const bad = []
+  const allowlisted = []
+  for (const [key, where] of namespaceLiterals) {
+    const rb = resolve(BS, key)
+    const re = resolve(EN, key)
+    const ok = (v) => v === 'leaf' || v === 'plural'
+    if (ok(rb) && ok(re)) continue
+    if (NOT_I18N_LITERALS.has(key)) {
+      allowlisted.push(key)
+      continue
+    }
+    bad.push(`${where} '${key}' (bs=${rb}, en=${re})`)
+  }
+  assert.deepEqual(
+    bad,
+    [],
+    'Literal koji izgleda kao i18n ključ a ne razrješava se na list prikazuje se kao ' +
+      'goli ključ — čak i kad stoji u mapi pa ga `t()` vidi tek u runtime-u.\n  ' +
+      bad.join('\n  '),
+  )
+  // pozitivna kontrola 1: allowlist ne smije zarđati ni u jednom smjeru
+  assert.deepEqual(
+    [...new Set(allowlisted)].sort(),
+    [...NOT_I18N_LITERALS].sort(),
+    'NOT_I18N_LITERALS više ne odgovara stvarnim nerasriješenim literalima — ' +
+      'ili je stavka zarđala (ukloni je) ili se pojavio novi identifikator ' +
+      'koji nije i18n ključ (dodaj je uz obrazloženje)',
+  )
+  // pozitivna kontrola 2: sweep mora stvarno nešto i pročitati
+  assert.ok(
+    namespaceLiterals.size > 2000,
+    `sweep je vidio samo ${namespaceLiterals.size} literala — premalo da bi bio dokaz`,
+  )
+  // pozitivna kontrola 3: mape koje su bile slijepa tačka su stvarno pokrivene
+  for (const key of [
+    'adminSettings.seo.fields.defaultTitle',
+    'adminSettings.site.groups.maintenance',
+    'adminSettings.appearance.fields.appTitle',
+    'adminSettings.operations.fields.timezone',
+    'reservations.statuses.PENDING',
+    'reservations.statuses.CANCELLED_UNCONFIRMED_ATTENDANCE',
+  ]) {
+    assert.ok(
+      namespaceLiterals.has(key),
+      `'${key}' nije viđen — sakupljač literala je prestao čitati mape`,
+    )
+  }
+})
+
+/**
+ * ── Test 6: dinamički ključevi iz predloška `t(`a.b.${x}`)` ─────────────────
+ * Treći način prijenosa ključa: prefiks je literal, zadnji segment dolazi iz
+ * izraza. Ni test 1 (traži `t('…')`) ni test 5 (traži cijele literale) ne vide
+ * šta se tu traži, pa je i to slijepa tačka — npr. `EmailSettings.tsx:1040`
+ * gradi `emailSettings.templates.types.${item.id}`.
+ *
+ * Pravilo: **roditelj** interpoliranog segmenta mora biti imenski prostor u oba
+ * jezika. Ako literal prije `${` završava tačkom, roditelj je on sam; ako ne
+ * završava, interpolacija dopunjava zadnji segment pa se uzima dio do zadnje
+ * tačke. Bez toga bi `t(`emailSettings.campaigns.add${Type}`)` lažno prijavio
+ * propust — `add` nije ključ, nego početak `addTitle`/`addText`/`addButton`/
+ * `addSpacer` (izmjereno: sva četiri postoje u oba jezika).
+ */
+function collectTemplatePrefixes() {
+  const found = new Map()
+  let occurrences = 0
+  for (const url of walk(SRC)) {
+    const rel = decodeURIComponent(url.pathname.replace(new RegExp('^' + SRC.pathname), ''))
+    const src = blankComments(readFileSync(url, 'utf8'))
+    // 🔴 `[^`]*?` MORA biti lijeno: pohlepna verzija ide do kraja predloška pa se
+    //    vrati na ZADNJI `${`, što na `t(`a.b.add${X}${Y}`)` čita prefiks
+    //    `a.b.add${X}.` i lažno prijavljuje propust (izmjereno).
+    for (const m of src.matchAll(/\bt\(\s*`([^`]*?)\$\{/g)) {
+      const raw = m[1]
+      const parent = raw.endsWith('.') ? raw.slice(0, -1) : raw.slice(0, raw.lastIndexOf('.'))
+      if (parent === '') continue // `t(`${x}`)` — potpuno dinamički, nije provjerljivo
+      occurrences++
+      if (!found.has(parent)) {
+        found.set(parent, `${rel}:${src.slice(0, m.index).split('\n').length}`)
+      }
+    }
+  }
+  return { prefixes: found, occurrences }
+}
+
+const { prefixes: templatePrefixes, occurrences: templateOccurrences } = collectTemplatePrefixes()
+
+test('i18n: roditelj svakog dinamičkog ključa iz predloška postoji u oba jezika', () => {
+  const bad = []
+  for (const [parent, where] of templatePrefixes) {
+    const rb = resolve(BS, parent)
+    const re = resolve(EN, parent)
+    if (rb !== 'branch' || re !== 'branch') {
+      bad.push(`${where} t(\`${parent}.$\{…}\`) — roditelj bs=${rb}, en=${re}`)
+    }
+  }
+  assert.deepEqual(
+    bad,
+    [],
+    'Prefiks dinamičkog ključa ne postoji — svaki poziv tog oblika ispisuje goli ' +
+      'ključ, bez obzira na vrijednost izraza.\n  ' + bad.join('\n  '),
+  )
+  // pozitivna kontrola: sweep mora stvarno nešto i pročitati
+  // Izmjereno 2026-11-10: 34 poziva ovog oblika, 20 različitih roditelja.
+  assert.ok(
+    templateOccurrences > 30,
+    `sweep je vidio samo ${templateOccurrences} poziva — premalo da bi bio dokaz`,
+  )
+  assert.ok(
+    templatePrefixes.size > 15,
+    `sweep je vidio samo ${templatePrefixes.size} različitih roditelja — premalo`,
+  )
+  // pozitivna kontrola: pravilo o roditelju se stvarno primjenjuje na oba oblika
+  assert.ok(
+    templatePrefixes.has('emailSettings.templates.types'),
+    'prefiks s tačkom na kraju (`…types.${item.id}`) nije viđen',
+  )
+  assert.ok(
+    templatePrefixes.has('emailSettings.campaigns'),
+    'prefiks bez tačke (`…campaigns.add${Type}`) mora se svesti na roditelja',
+  )
+})
+
 test('regresija /stylist/workbook: newEntry je imenski prostor, .title je list', () => {
   assert.equal(resolve(BS, 'stylistWorkbook.newEntry'), 'branch',
     'stylistWorkbook.newEntry mora ostati imenski prostor — inače je struktura promijenjena')

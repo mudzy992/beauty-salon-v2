@@ -412,6 +412,43 @@ lint **0 errors / 7 warnings** · build **274.1 KiB**/300 · `check_ui_contrast 
 stavke M1–M13 — nema preglednika, baze ni čitača ekrana. `continue-on-error` na axe koraku
 u poslu `a11y-e2e` **ostaje** dok CI ne da potvrđen zeleni run.
 
+### i18n guard proširen: mape i predlošci (2026-11-10)
+
+Vlasnikova kapija „svaki ključ korišten u kodu mora postojati u oba jezika" (`2c7d4ce`)
+vidjela je ključeve samo tamo gdje stoje kao `t('literal')`. Izmjereno su postojala **još
+dva** načina prijenosa koja nijedan test nije pokrivao.
+
+- [x] **Pretpostavka „ima hardkodiranih vidljivih stringova" — provjerena i opovrgnuta.**
+      Regex sken je dao 158 „pogodaka", gotovo svi lažni (`>` u genericima `.ts` fajlova;
+      `//` unutar `"https://…"` desinhronizuje štitač za komentare). Prepisano na
+      **TypeScript AST**. Stvarno: **46** hardkodiranih bosanskih stringova, i **nijedan nije
+      živ defekt** — `reservations/status.ts` je samo `defaultValue` uz `t()`; `groups-*.ts`
+      prevede sve četiri stranice prije renderovanja (**0 praznina**, 16 grupa / 107 polja);
+      `EXISTING_TEMPLATE_TYPES[].label` je mrtav podatak (`EmailSettings.tsx:1038` renderuje
+      `t(…)`, ne `item.label`).
+- [x] **Rupa 1 — ključevi u mapama.** Dokazano mutacijom: `seo_default_title` u
+      `SettingsSeo.tsx:18` → nepostojeći ključ prošao je kroz **svih 13** settings-testova
+      **i** kroz sva 4 postojeća testa (`exit 0` svugdje). Uzrok: sakupljač
+      `/\bt\('([^']+)'/g` (`admin-settings-seo-i18n.test.mjs:18`) ne vidi vrijednost u mapi.
+- [x] **Rupa 2 — dinamički ključevi iz predloška** (`` t(`a.b.${x}`) ``): 34 poziva, 20
+      različitih roditelja, 0 propusta — ali ništa ih nije asertovalo.
+- [x] **Rješenje: test 5 i test 6 u postojećem `i18n-key-resolution.test.mjs`** (nije dodan
+      novi skript, pa registracija u `package.json` i `ci.yml` već važi; `check_ci_index`
+      ostaje **363/366**). Test 5 pokriva **2449** literala s imenskim prostorom; jedini
+      nerasriješeni je `salon.timezone` (identifikator backend postavke) u allowlist-u
+      `NOT_I18N_LITERALS` koji **mora ostati tačno taj skup**. Test 6 asertuje roditelja
+      svakog dinamičkog ključa.
+- [x] **Mutacije 6/6** (M1 pokvaren ključ u mapi · M2 allowlist ispraznjen · M3 allowlist
+      preširok · M4 pokvaren prefiks · M5 pohlepni umjesto lijenog regexa · M6 nova
+      nerasriješena vrijednost). Backup u `/tmp/mbk/`, vraćeno, `filecmp.cmp` potvrđuje.
+- [ ] **Ostatak, svjesno nepromijenjen:** `Settings.tsx:140` ima `if (!copyKeys) return group`,
+      a `SettingsOperations.tsx:38`, `SettingsAppearance.tsx:32` i `SettingsSeo.tsx:43` nemaju
+      taj štit (tamo bi nova grupa bez kopirnog ključa bacila `TypeError`). Usaglašavanje
+      znači izmjenu 4 stranice + do 10 testova koji asertuju doslovan izvor; test 5
+      CI-garanuje da do tog stanja ne može doći. **Čeka odobrenje kao zasebna stavka.**
+- [ ] **Ograničenje:** provjera je iz izvora — dokazuje da ključ postoji u oba jezika, ne da
+      ga i18next zaista ispiše u pregledniku.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)

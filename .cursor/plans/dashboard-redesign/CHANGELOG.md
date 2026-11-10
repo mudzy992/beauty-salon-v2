@@ -5107,3 +5107,139 @@ grupnog markupa, ali **nije razbijan**, što je bila vlasnikova odluka.
 čitaču ekrana, i da `<span>` s preuzetim razredima izgleda identično kao `<Label>`.
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `StylistAnalytics.tsx`.
+
+---
+
+## 2026-11-10 — i18n guard proširen na dva načina prijenosa ključa koja su bila slijepa tačka
+
+### Polazna pretpostavka je bila pogrešna — izmjereno prije izmjena
+
+Vlasnikova trajna kapija iz 2026-11-09 glasi: *svaki ključ korišten u kodu mora postojati u
+oba jezika*. Tražeći gdje ta kapija još ne važi, krenuo sam od pretpostavke da u `src/`
+postoje **hardkodirani vidljivi stringovi koji zaobilaze `t()`**. Prvi pokušaj (regex sken
+JSX tekstualnih čvorova i atributa) dao je 158 „pogodaka" — od čega **gotovo svi lažni**:
+`>` u genericima `.ts` fajlova (`React.ComponentPropsWithoutRef<…>`) i desinhronizovan štitač
+za komentare (`"https://…"` — `//` unutar stringa otvori „komentar") proizveli su nepostojeće
+nalaze. Skener je prepisan na **TypeScript AST** (`typescript@5.5.4`, već instaliran):
+300 fajlova, čvorovi `JsxText` / `JsxAttribute` / `JsxExpression` / `PropertyAssignment`.
+
+Stvarna populacija nakon toga:
+
+| Kategorija | Broj | Zaključak |
+|---|---|---|
+| JSX tekstualni čvor s riječima | 26 (van `api/`) | `CSV`, `PDF`, `SHA-256:`, `min`, `Facebook`/`Instagram`/`TikTok` — akronimi, jedinice, brendovi; javni fajlovi se ne diraju |
+| Atributi (`placeholder`, `title`, `alt`, …) | 5 | primjeri vrijednosti (`support@domena.com`, `https://vas-domen.ba`) i `SEO` |
+| `{"…"}` kao JSX dijete | 5 | tokeni predloška (`{{firstName}}` …) u `EmailSettings.tsx:1372` |
+| Svojstva objekata (`label:`/`title:`/…) | 75 | od toga **46 hardkodiranih bosanskih** |
+
+**Svih 46 hardkodiranih bosanskih stringova je provjereno pojedinačno i nijedan nije živ
+defekt:**
+
+1. **`features/reservations/status.ts`** (11 statusa) — sva mjesta upotrebe
+   (`Reservations.tsx:102` i `:312`, `ClientAnalytics.tsx:168`, `ReservationScheduler.tsx:74`
+   i `:719`) prvo zovu `t('reservations.statuses.*')`; bosanski je **samo `defaultValue`**.
+   Izmjereno: svih 11 + `CANCELLED_UNCONFIRMED_ATTENDANCE` + `listFilters.allStatuses`
+   postoje kao list u **oba** jezika.
+2. **`features/settings/groups-{site,operations,appearance,seo}.ts`** (16 grupa, 107 polja) —
+   sve četiri stranice (`Settings.tsx:136`, `SettingsOperations.tsx:32`,
+   `SettingsAppearance.tsx:26`, `SettingsSeo.tsx:37`) prevedu labele **prije** proslijeđivanja
+   u `SettingsModulePage`. Izmjereno AST-om: **0 praznina** — svaki `prefix` i svaki
+   `defaults[].key` ima svoj kopirni ključ.
+3. **`pages/EmailSettings.tsx:123-131`** (`EXISTING_TEMPLATE_TYPES[].label`) — **mrtav
+   podatak**: jedina upotreba je `:1038`, a tamo se renderuje
+   `t('emailSettings.templates.types.' + id)`; `item.label` se nikad ne čita. Svi 8 ključeva
+   postoje u oba jezika.
+
+### Šta je stvarno nađeno: kapija je imala dvije slijepe tačke
+
+Ključevi se u ovom kodu prenose na **tri** načina, a guard iz `2c7d4ce` vidio je samo jedan:
+
+| Način | Primjer | Vidjeli testovi 1–4? |
+|---|---|---|
+| `t('literal')` | `t('adminSettings.seo.title')` | ✅ da |
+| **mapa → dinamički `t()`** | `SEO_FIELD_COPY_KEYS[def.key]` → `t(copyKeys.label)` | ❌ **ne** |
+| **predložak → dinamički `t()`** | `` t(`emailSettings.templates.types.${item.id}`) `` | ❌ **ne** |
+
+**Dokazano mutacijom, ne pretpostavljeno:** ključ `seo_default_title` u
+`pages/SettingsSeo.tsx:18` promijenjen u `'adminSettings.seo.fields.NEPOSTOJECI_KLJUC'`
+prošao je kroz **svih 13** settings-testova (`admin-settings-seo-i18n`,
+`admin-settings-operations-appearance-i18n`, 6× `admin-settings-site-*-i18n`,
+`admin-settings-accessibility`, `settings-semantic-tokens`, `settings-hub-redirect`,
+`admin-settings-controls-a11y`) **i** kroz sva 4 postojeća testa u
+`i18n-key-resolution.test.mjs`. Svi vraćaju **exit 0**. Razlog je čitljiv u
+`admin-settings-seo-i18n.test.mjs:18`: sakupljač je `/\bt\('([^']+)'/g` — vrijednost u mapi
+**nije argument od `t()`**, pa je nijedan sakupljač ne vidi. Na ekranu bi se prikazao goli
+ključ, tačno kao u vlasnikovom slučaju `/stylist/workbook`.
+
+### Rješenje: dva nova testa u postojećem `i18n-key-resolution.test.mjs`
+
+Fajl je proširen, **nije** dodan novi skript — registracija u `package.json` i `ci.yml`
+(`test:i18n-key-resolution`) već postoji, pa `check_ci_index` ostaje **363/366**.
+
+**Test 5 — literali s imenskim prostorom.** Svaki string literal u `src/` čiji je prvi
+segment top-level ključ iz `bs.json` mora se razriješiti na **list ili plural** u oba jezika.
+Izmjereno: **2449** takvih literala; **7** se ne razrješava na list — 6 su legitimni plurali
+(`gallery.admin.imageCount`, `…autoCategorySummary`, `finance.expenseList.moreItems`,
+`finance.integrity.moreItems`, `finance.expenseDetail.expensesTitle`,
+`public.servicesPage.serviceCount`), a sedmi je `salon.timezone` — **identifikator backend
+postavke** (`groups-operations.ts:13`, `SettingsOperations.tsx:22`), koji heuristika zahvati
+jer je `salon` istovremeno i18n imenski prostor. On je u izričitom allowlist-u
+`NOT_I18N_LITERALS` koji **mora ostati tačno taj skup** (pozitivna kontrola u oba smjera).
+Još tri pozitivne kontrole: sweep mora vidjeti >2000 literala, i šest ključeva iz mapa koje
+su bile slijepa tačka moraju biti viđeni.
+
+**Test 6 — dinamički ključevi iz predloška.** Za `` t(`a.b.${x}`) `` asertuje se da
+**roditelj** interpoliranog segmenta postoji kao imenski prostor u oba jezika. Izmjereno:
+**34** poziva, **20** različitih roditelja, **0** propusta.
+
+🔴 Pravilo o roditelju nije ukras: kad literal prije `${` **ne** završava tačkom,
+interpolacija dopunjava zadnji segment. `` t(`emailSettings.campaigns.add${Type}`) ``
+(`email-visual-editor.tsx:122`) gradi `addTitle`/`addText`/`addButton`/`addSpacer` — sva
+četiri postoje u oba jezika. Bez svođenja na roditelja (`emailSettings.campaigns`) test bi
+dao lažan nalaz.
+
+🔴 Regex mora biti **lijen**: pohlepni `[^`]*` ide do kraja predloška pa se vrati na
+**zadnji** `${`, što na `` t(`a.b.add${X}${Y}`) `` čita prefiks `a.b.add${X}.` i lažno
+prijavljuje propust (mutacija M5).
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Uhvatio |
+|---|---|---|
+| M1 | `seo_default_title` → nepostojeći ključ (izmjerena rupa) | test 5 |
+| M2 | `NOT_I18N_LITERALS` ispraznjen | test 5 (kontrola 1) |
+| M3 | `NOT_I18N_LITERALS` proširen nepostojećom stavkom | test 5 (kontrola 1) |
+| M4 | `` t(`users.tabs. `` → `` t(`users.tabXX. `` | test 6 |
+| M5 | lijeno `[^`]*?` → pohlepno `[^`]*` | test 6 (lažan nalaz) |
+| M6 | nova nerasriješena vrijednost u `groups-appearance.ts` | test 5 |
+
+Svaka mutacija: `cp` u `/tmp/mbk/`, vraćeno, `filecmp.cmp(shallow=False)` potvrđuje identično
+vraćanje.
+
+### Ostatak koji je izmjeren i **nije** popravljen (svjesno)
+
+`pages/Settings.tsx:140` ima `if (!copyKeys) return group`, dok `SettingsOperations.tsx:38`,
+`SettingsAppearance.tsx:32` i `SettingsSeo.tsx:43` **nemaju** taj štit — tamo bi nova grupa
+bez kopirnog ključa bacila `TypeError` (`t(copyKeys.label)` na `undefined`) i oborila cijelu
+stranicu. **Nije dirano** jer postojeći testovi asertuju doslovan izvor tih fajlova
+(`admin-settings-seo-i18n.test.mjs` traži tačno `label: t(copyKeys.label)` i
+`label: t(SEO_FIELD_COPY_KEYS[def.key as keyof typeof SEO_FIELD_COPY_KEYS])`), pa bi
+usaglašavanje značilo izmjenu 4 stranice + do 10 testova. Novi test 5 **CI-garanuje** da do
+tog stanja ne može doći (svaki ključ u mapi mora postojati u oba jezika), pa je pad ostao
+teoretski. Usaglašavanje štita preporučujem kao zasebnu stavku, uz tvoje odobrenje.
+
+### Kapije
+
+`test:*` **183/183** skripti (**702** pojedinačna testa, 0 padova — bilo 700) ·
+`tsc --noEmit` exit **0** · lint **0 errors / 7 warnings** · build **274.3 KiB**/300 ·
+`check_ui_contrast --strict` **80/80** · `check_i18n --strict` **2662** leaf ključeva po
+jeziku, 0 razlika · `check_repo_hygiene` **1712** · `check_doc_links` **670/202** ·
+`check_ci_index` **363/366** · `git diff --check` čist.
+
+**Promijenjen je jedan fajl** (`frontend/src/app/i18n-key-resolution.test.mjs`, +227 linija) —
+produkcijski kod nije dirnut, jer nijedan od 46 hardkodiranih stringova nije živ defekt.
+
+**Nije verificirano:** rendered prikaz. Test je izvor-contract — dokazuje da ključevi postoje
+u oba jezika, ne da i18next zaista ispiše prijevod u pregledniku.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`.
