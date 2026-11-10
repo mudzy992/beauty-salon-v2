@@ -2,6 +2,7 @@ import {
   aggregateCoverage,
   defaultCoverageDir,
   encodeWorkflowMessage,
+  chunkWorkflowMessage,
   formatCoverageSummary,
   formatIncompleteDetails,
 } from './axe-coverage.mjs'
@@ -22,9 +23,15 @@ export default function coverageTeardown(): void {
   // Sirovi novi red bi prekinuo workflow komandu i anotacija bi nosila samo prvi red
   // (izmjereno na runu `42876931983`), pa se poruka mora kodirati. Naslov je namjerno bez
   // `:` i `,` — to su separatori svojstava u workflow komandi.
-  process.stdout.write(
-    `::notice title=axe pokrivenost pravila po WCAG kriteriju::${encodeWorkflowMessage(summary)}\n`,
-  )
+  // Dijeli se na više anotacija: jedna bi bila odsječena na ~2000 znakova, a s 37 praćenih
+  // pravila sažetak ima ~4300 — pa bi se tiho izgubila polovina izvještaja.
+  const parts = chunkWorkflowMessage(summary)
+  parts.forEach((part, index) => {
+    const suffix = parts.length > 1 ? ` ${index + 1}/${parts.length}` : ''
+    process.stdout.write(
+      `::notice title=axe pokrivenost pravila po WCAG kriteriju${suffix}::${encodeWorkflowMessage(part)}\n`,
+    )
+  })
 
   // Nepotpuni čvorovi idu u ZASEBNU anotaciju: zajednička bi bila odsječena na ~2000 znakova.
   const details = formatIncompleteDetails(aggregateCoverage(defaultCoverageDir()))

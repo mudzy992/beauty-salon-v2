@@ -6,9 +6,11 @@ import test from 'node:test'
 
 import { readFileSync as readFile } from 'node:fs'
 import {
+  MAX_ANNOTATION_MESSAGE_LENGTH,
   MAX_INCOMPLETE_NODES_PER_RULE,
   TRACKED_RULES,
   aggregateCoverage,
+  chunkWorkflowMessage,
   coverageFileName,
   describeIncompleteNodes,
   encodeWorkflowMessage,
@@ -207,7 +209,10 @@ test('kodirani sažetak nema sirovi novi red i nosi sva pravila', () => {
 
 test('teardown kodira poruku, a naslov nema separatora svojstava', () => {
   const source = readFile(new URL('./coverage-teardown.ts', import.meta.url), 'utf8')
-  assert.match(source, /encodeWorkflowMessage\(summary\)/)
+  // Poruka se dijeli na više anotacija, pa se kodira svaki DIO, ne cijeli sažetak: jedna
+  // anotacija bi bila odsječena na ~2000 znakova i pola izvještaja bi se tiho izgubilo.
+  assert.match(source, /chunkWorkflowMessage\(summary\)/)
+  assert.match(source, /encodeWorkflowMessage\(part\)/)
   const title = source.match(/::notice title=([^:]*)::/)
   assert.ok(title, 'teardown mora imati ::notice title=...')
   assert.equal(title[1].includes(','), false, 'zarez razdvaja svojstva u workflow komandi')
@@ -294,4 +299,47 @@ test('formatIncompleteDetails je prazan kad ništa nije nepotpuno', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
+})
+
+// ── Dijeljenje anotacije: bez ovoga se pola izvještaja tiho izgubi ────────────
+
+test('chunkWorkflowMessage — kratka poruka ostaje jedan dio', () => {
+  assert.deepEqual(chunkWorkflowMessage('sve u jednom redu'), ['sve u jednom redu'])
+})
+
+test('chunkWorkflowMessage — dijeli po granici kodirane dužine', () => {
+  const text = Array.from({ length: 20 }, (_, i) => `linija ${i}`).join('\n')
+  const parts = chunkWorkflowMessage(text, 60)
+  assert.ok(parts.length > 1, 'mora podijeliti')
+  for (const part of parts) {
+    assert.ok(encodeWorkflowMessage(part).length <= 60, 'nijedan dio ne smije preći granicu')
+  }
+  assert.equal(parts.join('\n'), text, 'dijeljenje ne smije izgubiti ni jedan znak')
+})
+
+test('chunkWorkflowMessage — jedan predug red se ipak razbije', () => {
+  const long = 'x'.repeat(250)
+  const parts = chunkWorkflowMessage(long, 50)
+  assert.ok(parts.length >= 5, 'bez razbijanja bi cijela poruka ostala u jednom dijelu')
+  for (const part of parts) assert.ok(part.length <= 50)
+  assert.equal(parts.join(''), long)
+})
+
+test('chunkWorkflowMessage — prazan ulaz daje jedan prazan dio', () => {
+  assert.deepEqual(chunkWorkflowMessage(''), [''], 'forEach nad praznim nizom ne bi ispisao ništa')
+})
+
+test('granica je ispod one koju GitHub odsijeca', () => {
+  assert.ok(MAX_ANNOTATION_MESSAGE_LENGTH < 2000)
+  assert.ok(MAX_ANNOTATION_MESSAGE_LENGTH > 200, 'inače bi se svaka linija dijelila zasebno')
+})
+
+test('svako praćeno pravilo ima barem jedan kriterij i bilješku', () => {
+  assert.ok(TRACKED_RULES.length >= 37, `očekivano >= 37, dobijeno ${TRACKED_RULES.length}`)
+  for (const entry of TRACKED_RULES) {
+    assert.ok(entry.criteria.length > 0, `${entry.rule} bez kriterija`)
+    assert.ok(entry.note.length > 0, `${entry.rule} bez bilješke`)
+  }
+  const ids = TRACKED_RULES.map((e) => e.rule)
+  assert.equal(new Set(ids).size, ids.length, 'duplo praćeno pravilo bi dvostruko brojalo')
 })

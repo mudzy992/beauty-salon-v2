@@ -38,6 +38,32 @@ export const TRACKED_RULES = [
   { rule: 'label', criteria: ['3.3.2'], note: 'samo prisustvo labele, NE i uputstva' },
   { rule: 'select-name', criteria: ['3.3.2'], note: '<select> bez imena' },
   { rule: 'form-field-multiple-labels', criteria: ['3.3.2'], note: 'više labeta za jedno polje' },
+
+  // ── Dodano jer su kriteriji bili ❌ bez ijednog mjerenja ────────────────────────
+  // axe već radi s `wcag2a/2aa/21a/21aa/22aa` i javlja 0 violations na 32 rute — pa ova
+  // pravila vjerovatno PROLAZE, samo nisu bila u izvještaju. Bez ovoga se nije moglo znati
+  // da li je ❌ stvarno stanje ili zastarjela bilješka iz rane faze.
+  { rule: 'list', criteria: ['1.3.1'], note: '<ul>/<ol> struktura' },
+  { rule: 'listitem', criteria: ['1.3.1'], note: '<li> mora biti u listi' },
+  { rule: 'definition-list', criteria: ['1.3.1'], note: '<dl> struktura' },
+  { rule: 'dlitem', criteria: ['1.3.1'], note: '<dt>/<dd> moraju biti u <dl>' },
+  { rule: 'th-has-data-cells', criteria: ['1.3.1'], note: 'zaglavlje tabele mora imati podatke' },
+  { rule: 'td-headers-attr', criteria: ['1.3.1'], note: 'headers atribut mora postojati' },
+  { rule: 'layout-table', criteria: ['1.3.1'], note: 'tabelarni raspored bez <th>' },
+  { rule: 'bypass', criteria: ['2.4.1'], note: 'skip-link ili landmark za zaobilaženje' },
+  { rule: 'document-title', criteria: ['2.4.2'], note: '<title> mora postojati i biti prazan' },
+  { rule: 'page-has-heading-one', criteria: ['2.4.6'], note: 'stranica mora imati <h1>' },
+  { rule: 'heading-order', criteria: ['2.4.6'], note: 'naslovi ne smiju preskakati nivoe' },
+  { rule: 'identical-links-same-purpose', criteria: ['2.4.4'], note: 'AAA — isti link, ista svrha' },
+  { rule: 'aria-valid-attr', criteria: ['4.1.2'], note: 'nepostojeći aria atribut' },
+  { rule: 'aria-valid-attr-value', criteria: ['4.1.2'], note: 'neispravna vrijednost aria atributa' },
+  { rule: 'aria-allowed-attr', criteria: ['4.1.2'], note: 'aria atribut nije dopušten na ulozi' },
+  { rule: 'aria-required-attr', criteria: ['4.1.2'], note: 'ulozi nedostaje obavezan aria' },
+  { rule: 'aria-required-children', criteria: ['4.1.2'], note: 'ulozi nedostaje obavezni dijete' },
+  { rule: 'aria-required-parent', criteria: ['4.1.2'], note: 'uloga zahtijeva određenog pretka' },
+  { rule: 'aria-hidden-focus', criteria: ['4.1.2'], note: 'fokusabilno unutar aria-hidden' },
+  { rule: 'nested-interactive', criteria: ['4.1.2'], note: 'interaktivno unutar interaktivnog' },
+  { rule: 'role-has-required-aria-attributes', criteria: ['4.1.2'], note: 'ulozi nedostaju aria svojstva' },
 ]
 
 /** Axe statusi koje pratimo. `absent` = pravilo se uopšte nije našlo u izvještaju. */
@@ -243,4 +269,56 @@ export function formatIncompleteDetails(agg) {
     }
   }
   return lines.join('\n')
+}
+
+/**
+ * Najveća dužina poruke anotacije koju GitHub ne odsijeca.
+ *
+ * Izmjereno, ne nagađeno: anotacija koraka `axe` stigla je skraćena na ~2000 znakova, pa je
+ * popis pravila bio odsječen. Uz 37 praćenih pravila sažetak ima ~4300 znakova i bez
+ * dijeljenja bi se izgubila polovina izvještaja — tiho, jer anotacija i dalje izgleda uredno.
+ */
+export const MAX_ANNOTATION_MESSAGE_LENGTH = 1800
+
+/**
+ * Dijeli višelinijsku poruku na anotacije koje stanu u limit.
+ *
+ * Mjeri se dužina **kodirane** poruke, ne sirove: `%` → `%25` i novi red → `%0A` značajno
+ * produžuju tekst, pa bi dijeljenje po sirovoj dužini i dalje prelazilo limit.
+ *
+ * @returns {string[]} barem jedan dio; prazan ulaz daje `['']`
+ */
+export function chunkWorkflowMessage(text, limit = MAX_ANNOTATION_MESSAGE_LENGTH) {
+  const fits = (candidate) => encodeWorkflowMessage(candidate).length <= limit
+  const chunks = []
+  let current = ''
+  for (const line of String(text).split('\n')) {
+    const candidate = current ? `${current}\n${line}` : line
+    if (current && !fits(candidate)) {
+      chunks.push(current)
+      current = line
+    } else {
+      current = candidate
+    }
+  }
+  // Odbrana od jednog predugog reda: bez ovoga bi cijela poruka ostala u jednom dijelu i
+  // bila odsječena — što je upravo problem koji ova funkcija rješava.
+  const out = []
+  for (const chunk of current ? [...chunks, current] : chunks) {
+    if (fits(chunk)) {
+      out.push(chunk)
+      continue
+    }
+    let part = ''
+    for (const char of chunk) {
+      if (part && !fits(part + char)) {
+        out.push(part)
+        part = char
+      } else {
+        part += char
+      }
+    }
+    if (part) out.push(part)
+  }
+  return out.length ? out : ['']
 }

@@ -71,3 +71,7 @@ export function describeIncompleteNodes(
 ): IncompleteNode[]
 
 export function formatIncompleteDetails(agg: CoverageAggregate): string
+
+export const MAX_ANNOTATION_MESSAGE_LENGTH: number
+
+export function chunkWorkflowMessage(text: string, limit?: number): string[]
