@@ -459,6 +459,7 @@
     "price": "Cijena",
     "status": "Status",
     "details": "Detalji",
+    "reviewDetailsAction": "Otvori detalje recenzije za {{service}}",
     "tip": "Napojnica",
     "source": "Izvor",
     "note": "Bilješka",

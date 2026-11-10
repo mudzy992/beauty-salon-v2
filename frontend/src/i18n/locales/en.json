@@ -462,6 +462,7 @@
     "price": "Price",
     "status": "Status",
     "details": "Details",
+    "reviewDetailsAction": "Open review details for {{service}}",
     "tip": "Tip",
     "source": "Source",
     "note": "Note",

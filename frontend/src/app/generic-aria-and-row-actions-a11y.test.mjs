@@ -179,6 +179,56 @@ test('konzistentnost: sve tri admin tabele s klikabilnim redom imaju dugme po re
   }
 })
 
+test('4.1.2: kartica recenzije — naslov je pravo dugme razvučeno preko cijele kartice', () => {
+  const src = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  const tags = scanTags(src)
+
+  // Kartica više ne smije biti fokusabilna/interaktivna na nivou <div>-a
+  const badCards = tags
+    .filter((t) => t.tag === 'Card' && /tabIndex\s*=|onClick\s*=|onKeyDown\s*=/.test(t.attrs))
+    .map((t) => `linija ${t.line}`)
+  assert.deepEqual(
+    badCards,
+    [],
+    '<Card> je običan <div>: bez role ne smije biti fokusabilan ni nositi onClick (4.1.2)',
+  )
+  // pozitivna kontrola: skener stvarno vidi <Card> u ovom fajlu
+  assert.ok(tags.some((t) => t.tag === 'Card'), 'skener mora naći <Card>')
+
+  // Naslov mora biti pravo <button> razvučeno pseudo-elementom preko kartice
+  const stretched = tags.filter(
+    (t) =>
+      t.tag === 'button' &&
+      /after:absolute/.test(t.attrs) &&
+      /after:inset-0/.test(t.attrs) &&
+      /after:content-\[''\]/.test(t.attrs),
+  )
+  assert.equal(stretched.length, 1, 'očekivan tačno jedan stretched naslov-dugme')
+  // bez `relative` na kartici inset-0 se veže za stranicu, ne za karticu
+  assert.match(
+    src,
+    /<Card\s[^>]*className="relative cursor-pointer p-4 transition-shadow hover:shadow-md"/,
+    'kartica mora imati `relative` da bi after:inset-0 pokrio nju, a ne cijelu stranicu',
+  )
+  // ime dugmeta mora sadržavati vidljivi tekst (2.5.3)
+  assert.match(
+    stretched[0].attrs,
+    /aria-label=\{t\('clientAnalyticsPage\.reviewDetailsAction'/,
+    'aria-label mora imenovati akciju, ne samo uslugu',
+  )
+  assert.match(
+    stretched[0].attrs,
+    /text-left/,
+    '<button> je inače centriran — bez text-left naslov bi vizuelno skočio',
+  )
+  const after = src.slice(src.indexOf(stretched[0].attrs) + stretched[0].attrs.length)
+  assert.match(
+    after.slice(0, 200),
+    /\{r\.service\?\.name \?\? '-'\}/,
+    'vidljivi tekst dugmeta mora biti naziv usluge (isti koji ide u aria-label)',
+  )
+})
+
 test('i18n: reviews.details postoji u oba jezika (aria-label nije goli ključ)', () => {
   for (const loc of ['bs', 'en']) {
     const json = JSON.parse(
@@ -186,5 +236,12 @@ test('i18n: reviews.details postoji u oba jezika (aria-label nije goli ključ)',
     )
     assert.ok(json.reviews?.details, `${loc}: nedostaje reviews.details`)
     assert.notEqual(json.reviews.details, 'reviews.details')
+    const action = json.clientAnalyticsPage?.reviewDetailsAction
+    assert.ok(action, `${loc}: nedostaje clientAnalyticsPage.reviewDetailsAction`)
+    assert.match(
+      action,
+      /\{\{service\}\}/,
+      `${loc}: ključ mora primati naziv usluge, inače ime dugmeta ne sadrži vidljivi tekst (2.5.3)`,
+    )
   }
 })

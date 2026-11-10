@@ -551,20 +551,30 @@ export default function ClientAnalytics() {
                   {analytics.reviews.map((r) => (
                     <Card
                       key={r.id}
-                      className="cursor-pointer p-4 transition-shadow hover:shadow-md"
-                      onClick={() => openReviewDetail(r)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          openReviewDetail(r)
-                        }
-                      }}
-                      tabIndex={0}
+                      className="relative cursor-pointer p-4 transition-shadow hover:shadow-md"
                     >
+                      {/* 4.1.2: kartica je bila <div> s tabIndex + onKeyDown — tastatura je
+                          radila, ali AT nije imao šta najaviti (Card renderuje običan <div>,
+                          components/ui/card.tsx:7). Pravo <button> oko cijele kartice nije
+                          izvodljivo jer <p> i <div> nisu dozvoljeni unutar <button>, a
+                          role="button" bi progutao sadržaj (button ima prezentacijsku djecu).
+                          Zato: naslov JE pravo dugme, a after:inset-0 ga razvlači preko cijele
+                          kartice. Cijela površina ostaje klikabilna, sav sadržaj ostaje
+                          čitljiv, a ime dugmeta sadrži vidljivi tekst (2.5.3). Fokus prsten
+                          daje globalno pravilo globals.css:208. */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="mb-1 flex flex-wrap items-center gap-2">
-                            <p className="font-medium text-slate-900 dark:text-slate-50">{r.service?.name ?? '-'}</p>
+                            <button
+                              type="button"
+                              onClick={() => openReviewDetail(r)}
+                              aria-label={t('clientAnalyticsPage.reviewDetailsAction', {
+                                service: r.service?.name ?? '-',
+                              })}
+                              className="cursor-pointer rounded text-left font-medium text-slate-900 after:absolute after:inset-0 after:content-[''] dark:text-slate-50"
+                            >
+                              {r.service?.name ?? '-'}
+                            </button>
                             <Badge variant={r.isApproved ? 'success' : 'warning'} className="text-[10px]">
                               {r.isApproved ? t('clientAnalyticsPage.approved') : t('clientAnalyticsPage.pending')}
                             </Badge>

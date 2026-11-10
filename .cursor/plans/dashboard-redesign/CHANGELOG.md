@@ -4678,3 +4678,97 @@ Dirnuto: `Reviews.tsx`, `ClientAnalytics.tsx`, `app-logo.tsx`, `uploaded-brand-l
 `bs.json`, `en.json`, novi test, `package.json`, `ci.yml`, `MATRIX.md`.
 **Nije dirnuto:** `mobile/`, `features/shell/public/`, ostatak `src/pages/public/`,
 `EmailSettings.tsx`, `StylistAnalytics.tsx`.
+
+---
+
+## 2026-11-09 — `ClientAnalytics`: kartica recenzije dobila pravo dugme (stretched obrazac); 4.1.2 zatvoren
+
+Vlasnik odobrio obrazac koji je prethodni commit ostavio otvoren.
+
+### Zašto nijedna jeftina opcija nije valjala
+
+`<Card onClick>` za recenzije bio je `<div>` s `tabIndex={0}` + `onKeyDown` — tastatura je
+radila, ali AT nije imao šta najaviti. Dvije naizgled jeftine ispravke imaju stvarnu cijenu:
+
+- `role="button"` — ARIA daje `button` **prezentacijsku djecu**, pa bi cijela recenzija
+  (usluga, obje ocjene, komentar, datum) postala jedan dugačak naziv i prestala biti zasebno
+  čitljiva;
+- pravo `<button>` oko kartice — HTML ne dozvoljava `<p>` ni `<div>` unutar `<button>`, a
+  kartica ima 5 `<p>` i nekoliko `<div>`. To je strukturni refactor, ne atribut.
+
+### Rješenje: naslov jeste dugme, a pseudo-element ga razvlači preko kartice
+
+`ClientAnalytics.tsx` — kartica ostaje `<Card>` (kontejner), a naziv usluge postaje pravo
+`<button type="button">`:
+
+- `after:absolute after:inset-0 after:content-['']` na dugmetu + **`relative`** na kartici —
+  bez `relative` bi se `inset-0` vezao za stranicu, ne za karticu;
+- cijela površina kartice ostaje klikabilna (`::after` presreće klik), pa **nema promjene u
+  ponašanju za miša**;
+- sav sadržaj ostaje u DOM-u bez prezentacijske djece, pa čitač ekrana i dalje čita i ocjene i
+  komentar;
+- `aria-label={t('clientAnalyticsPage.reviewDetailsAction', { service })}` — imenuje akciju i
+  **sadrži vidljivi tekst** (naziv usluge), pa je 2.5.3 zadovoljen;
+- `text-left` jer je `<button>` inače centriran — bez toga naslov bi vizuelno skočio;
+- uklonjeni `tabIndex={0}` i `onKeyDown` s kartice, pa više **nema** elementa koji je
+  fokusabilan bez `role`;
+- fokus prsten daje postojeće globalno pravilo `globals.css:208`
+  (`:where(a, button, …):focus-visible`, 3px outline) — 2.4.7 bez novog koda.
+
+Novi ključ `clientAnalyticsPage.reviewDetailsAction` u oba jezika, s `{{service}}`.
+
+### Provjera da Tailwind stvarno generiše utilityje
+
+`after:` se do sada **nije koristio nigdje u repou**, pa samo postojanje klasa u izvoru nije
+dokaz. Provjereno u build izlazu (`dist/assets/index-*.css`):
+
+```
+.after\:absolute:after{content:var(--tw-content);position:absolute}
+.after\:inset-0:after{content:var(--tw-content);top:0;right:0;bottom:0;left:0}
+.after\:content-\[\'\']:after{--tw-content: "";content:var(--tw-content)}
+```
+
+Build **274.2 KiB**/300 (bilo 274.1 — tri nova utilityja).
+
+### Greška pri izmjeni, uhvaćena prije commit-a
+
+Prvi pokušaj je stavio `{/* komentar */}` **ispred** `<Card>` unutar
+`analytics.reviews.map((r) => ( … ))` — na poziciji izraza, gdje vitičaste zagrade nisu JSX
+komentar nego blok. `tsc` je vratio **16 grešaka** (`TS1005`, `TS17002` „Expected corresponding
+JSX closing tag"). Komentar premješten unutar `<Card>` kao prvi child; `tsc` exit 0.
+
+### Test i mutacije
+
+`generic-aria-and-row-actions-a11y.test.mjs` **6 → 7** testova. Novi test asertuje, sve preko
+brace-aware skenera (ne regex-om):
+
+- nijedan `<Card>` nema `tabIndex`/`onClick`/`onKeyDown` + pozitivna kontrola da skener vidi
+  `<Card>`;
+- postoji **tačno jedan** stretched `<button>` (`after:absolute` + `after:inset-0` +
+  `after:content-['']`);
+- kartica ima `relative`;
+- `aria-label` je `clientAnalyticsPage.reviewDetailsAction`;
+- dugme ima `text-left`;
+- vidljivi tekst dugmeta je `{r.service?.name ?? '-'}`.
+
+i18n test proširen: `reviewDetailsAction` mora postojati u oba jezika **i** sadržavati
+`{{service}}`.
+
+**Mutacije 6/6** (`cp` backup, vraćeno, `diff -q` identično): `after:inset-0` skinut · kartica
+bez `relative` · vraćen `onClick` na `<Card>` · skinut `text-left` · `en` ključ bez
+`{{service}}` · vidljivi tekst zamijenjen generičkim „Detalji".
+
+### Kapije
+
+`test:*` **181/181** skripti (**689** pojedinačnih testova, 0 padova) · `tsc --noEmit` exit
+**0** · lint **0 errors / 7 warnings** · build **274.2 KiB**/300 ·
+`check_ui_contrast --strict` **80/80** · `check_i18n --strict` PASS ·
+`check_repo_hygiene` **1710** · `check_doc_links` **670/202** · `check_ci_index` **361/364** ·
+`git diff --check` čist · sken ćirilice/CJK „nema".
+
+**Nije verificirano:** rendered ponašanje (da `::after` zaista presreće klik preko cijele
+kartice i da fokus prsten izgleda kako treba) — za to treba preglednik. Izvor, generisani CSS i
+build su potvrđeni; vizuelno ne.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
+`StylistAnalytics.tsx`.
