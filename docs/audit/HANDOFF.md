@@ -1250,6 +1250,35 @@ nije moguć; moj fajl ima tačno **1** grešku, istu kao `seed.ts`.
 
 ## 1. Stanje na kraju
 
+### 1a. Ponovno izmjereno 2026-11-09, poslije serije zatvaranja ❌ stavki
+
+Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripti (frontend) | **180/180** skripti, 0 padova — **682** pojedinačna testa |
+| `tsc --noEmit` | exit **0** |
+| `npm run lint` | **0 errors** / 7 warnings |
+| `npm run build` | PASS — **274.1 KiB** gzip (budžet 300) |
+| `check_ui_contrast.py --strict` | **80/80** |
+| `check_i18n.py --strict` | PASS — **2654** leaf ključeva po jeziku, 0 razlika BS↔EN |
+| `check_repo_hygiene.py` | PASS — **1709** putanja |
+| `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
+| `check_ci_index.py` | PASS — **360/363** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
+| **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
+| `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
+
+`features/blog/` (248+/31−) i `src/pages/public/` (29+/10−) **jesu** dirnuti, ali samo uz
+izričito odobrenje vlasnika: `features/blog/` + `PublicBlogList`/`PublicBlogPost` za WCAG
+**3.1.2**, `PublicReserve` za **4.1.2**, `PublicContact` za 1.4.3 kontrast. `mobile/` ostaje
+netaknut — `git diff --name-only <bazni> HEAD -- mobile` vraća **0** fajlova.
+
+WCAG 2.2 matrica: **51 red** = **30 ✅** · 1 ✅/❌ · **12 🟡** · **0 ❌** · 7 ➖ · 1 ➖/⚠️
+(skript-izbrojano; izvor: `MATRIX.md` §Rezime). Broj ❌ je pao s 4 na **0** kroz
+§3.3 ispod.
+
+### 1b. Snapshot na kraju faze 13 (prije serije zatvaranja)
+
 | Provjera | Rezultat |
 |---|---|
 | `test:*` skripti (frontend) | **171/171**, 0 padova |
@@ -1353,14 +1382,45 @@ Log je bio pun `ECONNREFUSED 127.0.0.1:10001`, pa su stranice renderovane u **pr
 fallback stanju**. Nalazi važe za to stanje; stanje **s podacima** (stvarne cijene, galerija
 s medijima, duge liste) nije testirano.
 
-### 3.3 Dva kriterija su ❌ (bilo četiri; 3.3.3 i 3.3.7 zatvoreni 2026-11-09)
+### 3.3 Nijedan kriterij više nije ❌ (bilo četiri)
 
-| SC | Zašto | Šta treba |
-|---|---|---|
-| 3.1.2 | dinamički API sadržaj bez `lang` (jezik nije poznat) | backend mora vraćati jezik, ili `lang` po elementu |
-| 3.2.6 | nema help elementa u shellu — **nije dodato** jer bi bio novi feature | odluka vlasnika |
+Sva četiri ❌ su zatvorena 2026-11-09. **Tri su bila stvarna i popravljena u izvoru; jedan
+(3.2.6) je bio pogrešna premisa** — mjerenje je pokazalo da kriterij jeste zadovoljen i da je
+matrica držala ❌ bez pokrića.
 
 **Zatvoreno 2026-11-09:**
+
+- **3.1.2 → ✅** (commit `3ad3a5b`). Razlog ❌ je stajao: javni članak bloga dolazi iz API-ja,
+  a jezik nije bio poznat, pa je `<html lang="bs">` bio jedini signal i engleski članak se
+  čitao bosanskom fonetikom. Rješenje je cijeli lanac, ne samo atribut:
+  - šema: `backend/prisma/schema.prisma:888` — `language String @default("bs") @db.VarChar(8)`;
+  - migracija `backend/prisma/migrations/20261109220000_blog_post_language/migration.sql` —
+    `ALTER TABLE "blog_posts" ADD COLUMN "language" VARCHAR(8) NOT NULL DEFAULT 'bs';`
+    (`'bs'` jer je to jezik sajta, `frontend/index.html:2`);
+  - izvor istine: `backend/src/common/constants/blog-post-languages.ts` —
+    `BLOG_POST_LANGUAGES = ['bs','en'] as const` + `DEFAULT_BLOG_POST_LANGUAGE = 'bs'`;
+  - oba DTO-a (`create`/`update-blog-post.dto.ts:30`, `:26`) — `@IsIn(BLOG_POST_LANGUAGES)`;
+  - `blog.service.ts` — `language: true` u oba SELECT-a (`:25`, `:38`), create
+    `dto.language ?? DEFAULT_BLOG_POST_LANGUAGE` (`:62`), update
+    `...(dto.language !== undefined && { language: dto.language })` (`:188`), pa PATCH bez
+    polja ne resetuje jezik;
+  - frontend `features/blog/blog-language.ts` — `blogPostLang()` normalizuje (`en-GB` → `en`,
+    `EN` → `en`) i pada na `'bs'` za `undefined`/`null`/`''`/nepoznat jezik/broj;
+  - `lang` je izdat na `<h1>` i kontejneru sadržaja (`PublicBlogPost.tsx`) te na `<h2>` i
+    `<p>` odlomka (`PublicBlogList.tsx`);
+  - admin forma dobila `<select id="blog-language">` s opcijama iz iste konstante.
+
+  Provjera: `test:blog-language-a11y` **6/6** (6/6 mutacija), backend `npx jest src/blog/`
+  **20/20** (3/3 mutacije), a dva **postojeća** testa su pala i **pojačana** —
+  `test:public-blog-list-accessibility` sada *zahtijeva* `lang={blogPostLang(p)}`, a
+  `test:admin-content-a11y` broji 15 `<Label>` umjesto 14.
+  🔴 **Migracija nije izvršena nad bazom u ovom okruženju** (nema baze ni `prisma generate`) —
+  prolaz migracije mora potvrditi CI.
+- **3.2.6 → ✅, nalaz OPOVGRGNUT.** Matrica je držala ❌ uz razlog „nema help elementa u
+  shellu". Izmjereno: oba shell-a **već imaju** isti link, i to na istom mjestu u navigaciji —
+  `features/shell/admin/admin-layout.tsx:154` i `layouts/StylistLayout.tsx:101`, oba
+  `to="/kontakt"`. Zakucano u `test:shell-a11y` (**7/7**), koji čita oba fajla i asertuje
+  pojavu `to="/kontakt"`. Nije dodavan nikakav novi feature.
 
 - **3.3.3 → 🟡.** Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij** — sažetak je
   tehnika G84/G85. Stvarni prekršaj bio je u `use-daily-log-form.ts`: `catch` je odbacivao
@@ -1427,8 +1487,20 @@ cijelog journeya. Zoom 200/400%, text spacing, touch target na stvarnom uređaju
 
 ### 3.6 Namjerno odgođeno (nije prekršaj, ali je dug)
 
-- **D10:** `formatLocalizedAmount` zaobiđen na **15** mjesta (`toFixed(2) + ' KM'`) →
-  miješani format i `"NaN KM"`. Bez odluke o formatu ne popravljati tiho.
+- ~~**D10:** `formatLocalizedAmount` zaobiđen na **15** mjesta (`toFixed(2) + ' KM'`) →
+  miješani format i `"NaN KM"`~~ — **RIJEŠENO 2026-11-09** (commit `213ffe3`), nakon što je
+  vlasnik donio odluku o formatu. Izvor istine je `formatLocalizedAmount` iz
+  `frontend/src/i18n/locale-utils.mjs`; za **bs** `49.9` daje `49,90 KM` a ne `49.90 KM`,
+  `1234.5` daje `1.234,50 KM`. Popravljeno **8** mjesta.
+  Izmjereno sada: u `frontend/src` (bez testova) ostalo je **9** pojava `toFixed(2)` i nijedna
+  stvarna `' KM'` konkatenacija — jedini pogodak za `+ ' KM'` je komentar koji objašnjava
+  zašto to nije ispravno. Tih 9 je namjerno:
+  **6×** CSV izvoz (`income-book-detail.tsx:197,201,211,212`,
+  `expense-book-detail.tsx:174,190`) gdje se piše mašinski čitljiv broj bez hiljadarki i
+  simbola valute · **2×** vrijednost za `<input>` (`pricing-panel.tsx:144` placeholder,
+  `use-daily-log-form.ts:123` `setPaidAmount`) gdje se očekuje `.` kao decimalni separator ·
+  **1×** komentar (`expense-table.helpers.ts:16`). Zakucano u
+  `test:amount-format-consistency` (**4/4**, izmjereno sada).
 - ~~`EmailSettings.tsx` (1377 ln) na < 120 ln~~ — **ODLUKA VLASNIKA 2026-11-09: PRESKOČITI, ostaje 1381 ln.** Razlozi (dokazani, ne procjena):
   - `settings-hub-redirect.test.mjs` ima test koji se zove **„moduli ostaju u svojim fajlovima jer ih testovi čita po putanji"** — politika je namjerna.
   - `admin-settings-controls-a11y.test.mjs:28` asertuje **tačno 29 `<Label>`** u tom fajlu.
@@ -1440,8 +1512,19 @@ cijelog journeya. Zoom 200/400%, text spacing, touch target na stvarnom uređaju
 
 ## 4. Preporučeni redoslijed
 
-1. **Podignuti backend** i ponoviti `npm run test:a11y-routes` — jeftino, a pokriva stanje s podacima.
-2. **Pokriti `/admin/**`** u specu (`storageState` s tokenom) — najveći dobitak.
-3. **3.3.3 error summary** — jedini ❌ koji je čist frontend posao bez novog feature-a.
-4. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije; do sada nijedan AT test ne postoji.
-5. 3.1.2 / 3.2.6 / 3.3.7 — svaki treba odluku vlasnika ili backend izmjenu.
+Stavke **3** i **5** iz prvobitnog spiska su **zatvorene** (§3.3), a D10 iz §3.6 je riješen.
+Ostaje samo ono što traži okruženje koje ovaj sandbox nema — bazu, preglednik i čitač ekrana.
+Ništa od navedenog nije moguće verificirati iz izvora.
+
+1. **Izvršiti migraciju `20261109220000_blog_post_language` nad bazom** i potvrditi zeleni CI.
+   Jedina izmjena u cijeloj seriji koja nije verificirana izvršavanjem (§3.3, 3.1.2).
+2. **Podignuti backend** i ponoviti `npm run test:a11y-routes` — jeftino, a pokriva stanje s
+   podacima (§3.2) i preduslov je za sljedeću stavku.
+3. **Pokriti `/admin/**` i `/stylist/**`** — harness je napisan (§3.1), ali **nikad izvršen**.
+   Najveći dobitak.
+4. **Skinuti `continue-on-error` s axe koraka** u poslu `a11y-e2e` — tek nakon što stavka 3
+   da potvrđen zeleni run. Bez toga axe regresiju ne blokira; skidati naslijepo bi značilo
+   crven CI bez dokaza da je problem stvaran.
+5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
+   (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
+6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.

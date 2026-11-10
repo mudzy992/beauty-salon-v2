@@ -29,7 +29,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
-| 11 | Stylist portal | `[~]` 4 commita — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33, 4.1.2. **DoD verificiran** (mobilna 0 diff, API netaknut) | u toku |
+| 11 | Stylist portal | `[x]` 4 commita + `a44354a` — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33. **4.1.2 zatvoren 2026-11-09** (`a44354a`) — nalaz o `progressbar` **opovrgnut**, stvarni defekt bio je 5 ikona bez `aria-hidden` + goli brojevi u traci. **DoD verificiran** (mobilna 0 fajlova, API netaknut) | prošla |
 | 12 | Onboarding / ForceChangePassword | `[x]` 1 commit — D1/D2/D7 opovrgnuti, D3/D4 zadovoljeni, D9 nije prekršaj; stvarno: **3.3.1/3.3.2** (zahtjev za lozinku) | prošla |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[x]` 4 commita — **2.1.1+4.1.2** combobox · **1.4.3 ×4** · **D2** dead-code · **D7/D8/D9** docs; Q4 axe instaliran ali **neizvršen** | prošla |
 
@@ -380,6 +380,37 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 - [x] **Regresija u `Loyalty` (`text-xs uppercase text-slate-500`) bila je STVARNA** — ta klasa
       je stajala na `<thead><tr>` i nasljeđivala se, a **nema je nigdje u CSS-u** za `app-table`
       (`grep -n "uppercase\|text-xs" src/index.css src/styles/globals.css` → 0 rezultata).
+
+### Serija zatvaranja ❌ stavki (2026-11-09)
+
+Poslije faze 13 matrica je imala **4 ❌**. Sva četiri su zatvorena; broj ❌ je sada **0**,
+✅ je **30**, 🟡 **12**, ukupno **51** (`MATRIX.md` §Rezime). Redoslijed je birao vlasnik.
+
+| SC | Commit | Ishod | Test (izmjereno) |
+|---|---|---|---|
+| 3.3.3 | `78f2003` | Razlog ❌ („nema sažetka grešaka") **nije normativni kriterij**. Stvarni prekršaj: `use-daily-log-form.ts` je odbacivao serverski 400. Ostaje **🟡** — ručna stavka **M13** | `test:form-error-suggestion` **15/15** |
+| 3.3.7 | `d0e80d7` | **Nalaz opovrgnut** — oba matricina kandidata su jednostranačne forme; `useState(0)` u `workbook-new-entry-page` je `partialDiff`. Pred-popunjavanje **nije** prekršaj | `test:redundant-entry-a11y` **9/9** |
+| 1.3.1 | `877d324`, `6b733c0` | Grupisanje riješeno **bez** `FormSection` (vidljiva regresija): `role="group"` + `aria-labelledby` na postojećem `Card`. Plus 7 `scope="col"` u `StylistAnalytics` | `test:workbook-form-groups-a11y` **8/8** · `test:stylist-analytics-tables-a11y` **5/5** |
+| 3.2.6 | — | **Nalaz opovrgnut**: oba shell-a već imaju `/kontakt` na istom mjestu (`admin-layout.tsx:154`, `layouts/StylistLayout.tsx:101`) | `test:shell-a11y` **7/7** |
+| 3.1.2 | `3ad3a5b` | Šema + migracija + DTO + servis + `blogPostLang()` + `<select>` u admin formi. 🔴 **migracija nije izvršena nad bazom** — prolaz mora potvrditi CI | `test:blog-language-a11y` **6/6** · backend `jest src/blog/` **20/20** |
+| D10 | `213ffe3` | `formatLocalizedAmount` na 8 mjesta; preostalih 9 `toFixed(2)` je namjerno (6 CSV, 2 input, 1 komentar) | `test:amount-format-consistency` **4/4** |
+| 4.1.2 | `a44354a` | **Nalaz opovrgnut** (`step` se postavlja uz iste uslove koji otkrivaju sadržaj; `selectedServiceIds` je izveden iz `selectedServices`). Stvarno: 5 ikona bez `aria-hidden` + goli brojevi `1 2 3 4` u traci | `test:public-reservation-accessibility` **9/9** |
+
+**Metodološka pouka koja se ponovila 4×** (3.3.7, 3.2.6, 4.1.2, D10): matrica i `HANDOFF.md`
+nisu mjerenje. Svaki defekt se izvede iz izvora i asertuje **prije** nego se prihvati kao
+prekršaj — tri od četiri nalaza iz ove serije nisu stajala.
+
+### Kapije na kraju serije (izmjereno, ne prepisano)
+
+`test:*` **180/180** skripti (**682** pojedinačna testa) · `tsc --noEmit` exit **0** ·
+lint **0 errors / 7 warnings** · build **274.1 KiB**/300 · `check_ui_contrast --strict`
+**80/80** · `check_i18n --strict` **2654** leaf ključeva po jeziku, 0 razlika ·
+`check_repo_hygiene` **1709** putanja · `check_doc_links` **670/202** ·
+`check_ci_index` **360/363** · `mobile/` **0** dirnutih fajlova.
+
+**Neizvršeno i zašto:** rendered axe (`test:a11y-routes`, `a11y-admin.spec.ts`) i sve ručne
+stavke M1–M13 — nema preglednika, baze ni čitača ekrana. `continue-on-error` na axe koraku
+u poslu `a11y-e2e` **ostaje** dok CI ne da potvrđen zeleni run.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

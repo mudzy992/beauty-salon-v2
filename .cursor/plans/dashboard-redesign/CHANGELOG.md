@@ -4479,3 +4479,78 @@ frontend `test:*` **180/180** · `tsc --noEmit` **exit 0** · lint **0 errors / 
 build **274.1 KiB / 300** · `check_i18n --strict` **PASS** · `check_doc_links` **PASS**
 (670/202) · `check_ci_index` **PASS (360/363)** · `check_repo_hygiene` **PASS** ·
 `git diff --check` **čist**.
+
+---
+
+## 2026-11-09 — Dokumenti usklađeni s izmjerenim stanjem (❌ = 0); nijedan kod dirnut
+
+### Zašto
+
+`docs/audit/HANDOFF.md` je na tri mjesta tvrdio stvari koje više nisu tačne, i to nakon što
+sam ih sam zatvorio u prethodnim commit-ovima. Dokument koji kasni za kodom gori je od
+dokumenta koji ne postoji: sljedeći čitalac bi krenuo popravljati 3.1.2 i 3.2.6 koji su već
+gotovi, i brojao bi 15 zaobilaženja `formatLocalizedAmount` kojih više nema.
+
+Nijedan fajl koda nije dirnut u ovom commitu — `git diff --name-only` daje **2** fajla, oba
+`.md`.
+
+### Šta je bilo netačno, i čime je zamijenjeno
+
+**§3.3 — „Dva kriterija su ❌" s tabelom `3.1.2` / `3.2.6`.** Oba su zatvorena:
+
+- `3.1.2` → ✅ (`3ad3a5b`). Dokaz u izvoru, ne prepričan:
+  `schema.prisma:888` `language String @default("bs") @db.VarChar(8)` ·
+  `migrations/20261109220000_blog_post_language/migration.sql` `ALTER TABLE "blog_posts"
+  ADD COLUMN "language" VARCHAR(8) NOT NULL DEFAULT 'bs';` ·
+  `create-blog-post.dto.ts:30` i `update-blog-post.dto.ts:26` `@IsIn(BLOG_POST_LANGUAGES)` ·
+  `blog.service.ts:25,38` `language: true`, `:62` `dto.language ?? DEFAULT_BLOG_POST_LANGUAGE`,
+  `:188` `...(dto.language !== undefined && { language: dto.language })`.
+  🔴 Zadržano upozorenje da **migracija nije izvršena nad bazom** ovdje.
+- `3.2.6` → ✅, nalaz **opovrgnut**. Razlog ❌ („nema help elementa u shellu") ne stoji:
+  `features/shell/admin/admin-layout.tsx:154` i `layouts/StylistLayout.tsx:101` oba imaju
+  `to="/kontakt"`. Zakucano u `test:shell-a11y` (**7/7**, izmjereno sada).
+
+**§3.6 — D10 „zaobiđen na 15 mjesta".** Izmjereno sada: u `frontend/src` bez testova ostalo je
+**9** pojava `toFixed(2)` i **nijedna** stvarna `' KM'` konkatenacija (jedini pogodak za
+`+ ' KM'` je komentar u `expense-table.helpers.ts:16`). Raspodjela tih 9: **6×** CSV izvoz
+(`income-book-detail.tsx:197,201,211,212`, `expense-book-detail.tsx:174,190`) · **2×**
+vrijednost za `<input>` (`pricing-panel.tsx:144`, `use-daily-log-form.ts:123`) · **1×**
+komentar. Sve namjerno i navedeno pojedinačno, da se sljedeći put ne „popravlja" CSV.
+
+**§1 — kapije.** Stara tabela (171/171, 273.8 KiB, 16 warnings, 2650 ključeva, 1686 putanja,
+„27 ✅ · 4 ❌") ostavljena je kao **1b. Snapshot na kraju faze 13**, a iznad nje je **1a** s
+brojevima iz ovog runa. Isto za tvrdnju `features/blog/ 0 diff` — sada je dirnut (248+/31−),
+uz odobrenje, i to je eksplicitno navedeno uz spisak odobrenih izuzetaka.
+
+**§4 — preporučeni redoslijed.** Stavke 3 (`3.3.3 error summary` — „jedini ❌ koji je čist
+frontend posao") i 5 (`3.1.2 / 3.2.6 / 3.3.7`) su bile gotove. Novi spisak ima 6 stavki i
+počinje onim što je stvarno otvoreno: izvršiti migraciju nad bazom → podignuti backend →
+pokriti `/admin/**` → skinuti `continue-on-error` → čitač ekrana → 12 🟡.
+
+`CHECKLIST.md`: faza 11 prešla `[~]`/„u toku" → `[x]`/„prošla" jer je 4.1.2 (`a44354a`) bio
+jedini razlog za „u toku"; dodata sekcija **Serija zatvaranja ❌ stavki** s tabelom
+7 stavki (SC · commit · ishod · test) i sekcija **Kapije na kraju serije**.
+
+### Dokaz
+
+Svi brojevi iz ovog commit-a su iz runa u ovom okruženju, ne prepisani:
+
+`test:*` **180/180** skripti (**682** pojedinačna testa, 0 padova) · `tsc --noEmit` exit **0** ·
+lint **0 errors / 7 warnings** · build **274.1 KiB**/300 · `check_ui_contrast --strict`
+**80/80** · `check_i18n --strict` **2654** leaf ključeva po jeziku, 0 razlika BS↔EN ·
+`check_repo_hygiene` **1709** putanja · `check_doc_links` **670/202** ·
+`check_ci_index` **360/363** · `git diff --check` čist · sken ćirilice/CJK „nema" za oba fajla.
+
+Pojedinačno izmjereni testovi: `blog-language-a11y` 6/6 · `form-error-suggestion` 15/15 ·
+`redundant-entry-a11y` 9/9 · `workbook-form-groups-a11y` 8/8 ·
+`stylist-analytics-tables-a11y` **5/5** (ranije bilježeno 8 — stvarni broj je 5) ·
+`public-reservation-accessibility` 9/9 · `amount-format-consistency` 4/4 ·
+`admin-content-a11y` 10/10 · `shell-a11y` 7/7.
+
+`mobile/`: `git diff --name-only 9df498a HEAD -- mobile` → **0** fajlova.
+
+### Šta nije urađeno
+
+Ništa iz §4 nije zatvoreno ovim commitom. Rendered axe i M1–M13 i dalje zahtijevaju
+preglednik, bazu i čitač ekrana; `continue-on-error` na axe koraku **ostaje** dok CI ne da
+potvrđen zeleni run.
