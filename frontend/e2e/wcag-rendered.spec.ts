@@ -134,6 +134,10 @@ for (const route of PUBLIC_ROUTES) {
     // Run `42887204875` izmjerio je identičnih 755px na svih 6 ruta javnog omotača i 0px na
     // /rezervacija — jedan zajednički krivac, ne šest defekata. Prijavljuje se kao nalaz
     // 1.4.10 s imenovanjem elementa, a ne kao pad 1.4.4.
+    // ⚠️ Ovo NIJE asertacija namjerno. Horizontalni skrol pri 200% fonta nije prekršaj
+    // 1.4.4 (sadržaj je dosegljiv) ni 1.4.10 (koji vrijedi pri 320px, vidi test ispod) —
+    // ali je stvarni defekt koji je popravljen u `public-layout.tsx` (755px → 0), pa ostaje
+    // kao regresijski čuvar u anotaciji. Da postane asertacija, trebao bi vlastiti kriterij.
     const overflowAfter = await measureHorizontalOverflow(page)
     if (overflowAfter > Math.max(overflowBefore, 0) + 2) {
       const offenders = await page.evaluate(overflowingElements, 2)
@@ -286,5 +290,35 @@ for (const route of PUBLIC_ROUTES) {
       reportFailure(`3.3.2 ${route.path} — obavezno bez required`, bad.slice(0, 4).map((b) => `${b.element} „${b.label}"`).join(' | '))
     }
     expect(bad, `${route.path}: vidljiva oznaka obaveznog bez programskog oznake`).toEqual([])
+  })
+}
+
+// ── 1.4.10 Reflow ────────────────────────────────────────────────────────────
+//
+// Normativni tekst: „bez gubitka informacija ili funkcionalnosti i bez skrolanja u dvije
+// dimenzije za vertikalni sadržaj **na širini od 320 CSS piksela**". Dakle mjeri se na
+// 320px — a NE pri 200% fonta na 1280px, što je bio nalaz koji je ovaj kriterij otvorio.
+// To su dva različita zahtjeva i dva različita viewporta.
+for (const route of PUBLIC_ROUTES) {
+  test(`1.4.10 Reflow 320px: ${route.name} (${route.path})`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 })
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const overflow = await measureHorizontalOverflow(page)
+    if (overflow > 2) {
+      const offenders = await page.evaluate(overflowingElements, 2)
+      reportFailure(
+        `1.4.10 ${route.path} — horizontalni skrol na 320px`,
+        `${overflow}px; krivci: ` +
+          offenders
+            .slice(0, 4)
+            .map((o) => `${o.element} +${o.excess}px`)
+            .join(', '),
+      )
+    }
+    expect(
+      overflow,
+      `${route.path}: na 320px stranica zahtijeva horizontalni skrol (${overflow}px)`,
+    ).toBeLessThanOrEqual(2)
   })
 }

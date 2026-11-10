@@ -157,7 +157,12 @@ export const PublicLayout = () => {
           admin/stylist shell), pa je prvi Tab išao na logo. axe: 2.4.1. */}
       <SkipLink />
       <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
+        {/* WCAG 1.4.10 Reflow — red se MORA moći prelomiti. Bez `flex-wrap` (i `min-w-0`
+            na nav-u) flex-stavka se ne skuplja ispod širine svog sadržaja, pa pri 200%
+            veličine teksta red probija kontejner: izmjereno **755px** horizontalnog skrola
+            na svih 6 ruta javnog omotača (run `42893779087`), a krivac je bio upravo ovaj
+            `<header>`. Sada se red lomi i zaglavlje raste u visinu, ne u širinu. */}
+        <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap items-center justify-between gap-4 min-w-0">
           <Link to="/" className="flex items-center gap-2 flex-none">
             {hasLogo ? (
               <UploadedBrandLogo
@@ -178,7 +183,7 @@ export const PublicLayout = () => {
             )}
           </Link>
 
-          <nav className="hidden lg:flex items-center justify-center gap-0.5 flex-1">
+          <nav className="hidden lg:flex flex-wrap items-center justify-center gap-0.5 flex-1 min-w-0">
             {navItems.map((item) => (
               <Link
                 key={item.path}
