@@ -2043,3 +2043,31 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 > **Šta ostaje NEPROVJERENO, javno:** redoslijed najave čitača ekrana (ručna stavka **M13**) —
 > za to treba AT, kojeg u projektu nema. I dalje otvoren **1.4.10** (❌, izmjerenih **755px**
 > horizontalnog skrola, krivac `header.sticky.top-0.z-50`, `public-layout.tsx:158`).
+
+> **Zatvoreno 2026-11-08 — 1.4.10 Reflow (bio jedini kriterij s izmjerenim a neispravljenim
+> brojem).** Popravljena su **dva nezavisna** izvora, oba imenovana mjerenjem a ne nagađanjem:
+> 1. **755px pri 200% fonta** — red zaglavlja u `public-layout.tsx` bio je `flex` bez
+>    `flex-wrap`, a `nav` `flex-1` bez `min-w-0`. Flex-stavka se po defaultu ne skuplja ispod
+>    širine svog sadržaja (`min-width: auto`), pa je navigacija pri 200% teksta probijala
+>    kontejner. Sada se red lomi i zaglavlje raste u visinu.
+> 2. **53px na 320px** — `.app-logo` (ikona `4rem` + riječ `3.2rem` s `letter-spacing: 0.2em` +
+>    `gap: 1.5rem`) zauzimao je ~341px u kontejneru od 288px (320 − 2×1rem `px-4`). Dodat
+>    `@media (max-width: 25rem)` u `globals.css` + `min-width: 0` da dugačak naziv salona
+>    prelomi umjesto da gura stranicu.
+>
+> Test `1.4.10 Reflow 320px` mjeri `scrollWidth − innerWidth` na viewportu **320px** — jer
+> kriterij glasi „na širini od 320 CSS piksela", a **ne** „pri 200% fonta". To su dva različita
+> zahtjeva i dosad je postojalo samo ovo drugo, što je i razlog zašto je kriterij bio crven a
+> da niko nije znao za pravi broj.
+>
+> CI run `42913079367` = **success**, **156 passed / 0 failed / 0 skipped**, i **nijednog**
+> upozorenja o horizontalnom skrolu pri 200% više.
+>
+> **Usput ispravljen šum u dijagnostici:** `overflowingElements` je kao „krivce" navodio i
+> `h2.sr-only` (+153px) i `section.overflow-hidden` (+64px). Oba režu svoj sadržaj i ne
+> prenose višak na viewport, pa su mogla odvesti u pogrešnom smjeru. Sada se prijavljuju samo
+> elementi s `overflow-x: visible`.
+>
+> **Šta NIJE pokriveno, javno:** klauzula 1.4.10 za **horizontalni** sadržaj (256px visine)
+> nije mjerena — javne rute nemaju horizontalno orijentisan sadržaj. Admin tabele s
+> `overflow-x-auto` + `tabindex="0"` ostaju kakve jesu.
