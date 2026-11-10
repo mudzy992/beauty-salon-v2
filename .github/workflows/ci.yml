@@ -905,6 +905,13 @@ jobs:
               msg=$(tail -c 2000 "$RUNNER_TEMP/axe.log" | tr '\n' ' ' | tr -d '\r')
             fi
             echo "::error title=axe suite pao (exit $code)::$msg"
+          else
+            # Ispisati i PROLAZ: izlazni kod 0 ne dokazuje da se ijedan test izvršio
+            # (skripta izlazi s 0 i kad Chromium nije instaliran), a log se ne da dohvatiti.
+            passed=$(grep -aoE '[0-9]+ passed' "$RUNNER_TEMP/axe.log" | tail -1)
+            failed=$(grep -aoE '[0-9]+ failed' "$RUNNER_TEMP/axe.log" | tail -1)
+            skipped=$(grep -aoE '[0-9]+ skipped' "$RUNNER_TEMP/axe.log" | tail -1)
+            echo "::notice title=axe suite prošao (exit 0)::${passed:-bez 'passed' u izlazu} | ${failed:-0 failed} | ${skipped:-0 skipped}"
           fi
           exit "$code"
       - name: Upload Playwright report and traces
