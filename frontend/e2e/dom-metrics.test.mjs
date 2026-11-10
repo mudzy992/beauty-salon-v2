@@ -306,3 +306,42 @@ test('labelInNameViolations — element BEZ aria-label se ne provjerava', () => 
   }
   assert.deepEqual(labelInNameViolations(), [], 'bez aria-label nema ni prekršaja 2.5.3')
 })
+
+test('labelInNameViolations — van opsega 2.5.3: select, textarea i tekstualno polje', () => {
+  // Kod `<select>` je `innerText` spojen tekst SVIH opcija, pa bi provjera prijavila
+  // besmislen prekršaj (izmjereno na runu `42897798720` nad `/admin/reviews`).
+  const doc = makeDom(`
+    <select class="filter" aria-label="Filtriraj recenzije po statusu">
+      <option>Sve</option><option>Na čekanju</option><option>Odobreno</option>
+    </select>
+    <textarea class="poruka" aria-label="Poruka">nacrt</textarea>
+    <input class="ime" aria-label="Ime" type="text" />
+  `)
+  for (const [el, text] of [
+    [doc.querySelector('select'), 'SveNa čekanjuOdobreno'],
+    [doc.querySelector('textarea'), 'nacrt'],
+    [doc.querySelector('input'), ''],
+  ]) {
+    withInnerText(el, text)
+    setBox(el, {})
+  }
+  assert.deepEqual(labelInNameViolations(), [], 'nijedno od njih nije „dugme s vidljivomarbetom"')
+})
+
+test('labelInNameViolations — input[type=submit] JE u opsegu', () => {
+  const doc = makeDom(`<input type="submit" class="posalji" aria-label="Potvrdi unos" />`)
+  const el = doc.querySelector('input')
+  withInnerText(el, 'Pošalji')
+  setBox(el, {})
+  const found = labelInNameViolations()
+  assert.deepEqual(found.map((f) => f.element), ['input.posalji'])
+})
+
+test('labelInNameViolations — <a> bez href-a nije link, pa je van opsega', () => {
+  // Bez `href` element nije link nego običan tekst; 2.5.3 se na njega ne primjenjuje.
+  const doc = makeDom(`<a class="lazni" aria-label="Samo tekst">Naslov</a>`)
+  const el = doc.querySelector('a')
+  withInnerText(el, 'Naslov')
+  setBox(el, {})
+  assert.deepEqual(labelInNameViolations(), [])
+})

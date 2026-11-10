@@ -196,7 +196,22 @@ export function labelInNameViolations() {
   // [role=button] s aria-label". Izmjereno na runu `42896831615`: svi linkovi i dugmad
   // su ušli u provjeru, `getAttribute('aria-label')` je vratio `null`, pa je anotacija
   // nosila besmisleno „nije u „null"" na svih 10 ruta.
-  const interactive = ['button', 'a', '[role="button"]', '[role="menuitem"]', '[role="tab"]', 'input', 'select', 'textarea']
+  // Opseg je namjerno UŽI od „svi interaktivni elementi": 2.5.3 govori o komponentama čija
+  // je VIDLJIVA LABETA njihov naziv — dugmad i linkovi. Kod `<select>` je innerText spojen
+  // tekst SVIH opcija (izmjereno na runu `42897798720`: „sve recenzije na čekanju odobreno"
+  // za filter čije je ime „Filtriraj recenzije po statusu"), a kod tekstualnih polja ono što
+  // korisnik vidi je vrijednost, ne labeta. axe isto tako ne primjenjuje ovo pravilo na njih.
+  const interactive = [
+    'button',
+    'a[href]',
+    '[role="button"]',
+    '[role="link"]',
+    '[role="menuitem"]',
+    '[role="tab"]',
+    'input[type="button"]',
+    'input[type="submit"]',
+    'input[type="reset"]',
+  ]
   const selector = interactive.map((part) => `${part}[aria-label]`).join(', ')
   for (const el of document.querySelectorAll(selector)) {
     if (el.getAttribute('aria-hidden') === 'true') continue
