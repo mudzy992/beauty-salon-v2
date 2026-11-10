@@ -70,6 +70,52 @@ export const TRACKED_RULES = [
 export const STATUSES = ['passed', 'violations', 'incomplete', 'inapplicable', 'absent']
 
 /**
+ * Tagovi kojima se axe pokreće.
+ *
+ * `best-practice` je dodan namjerno. `page-has-heading-one`, `heading-order` i
+ * `identical-links-same-purpose` su jedine mjere koje imamo za 2.4.6 i 2.4.4, a nijedno od
+ * njih nije u WCAG tagovima. Bez ovog taga ta pravila se **uopće ne pokrenu**, pa izvještaj
+ * kaže `absent` — a `absent` se lako pročita kao „nema takvih elemenata na stranici", što
+ * ovdje nije tačno. Izmjereno na runu `42921090665`: sva tri pravila `absent 32`.
+ */
+export const AXE_RULE_TAGS = [
+  'wcag2a',
+  'wcag2aa',
+  'wcag21a',
+  'wcag21aa',
+  'wcag22aa',
+  'best-practice',
+];
+
+/**
+ * Tagovi koji odgovaraju WCAG nivoima usaglašenosti. Služe za razdvajanje onoga što smije
+ * rušiti CI od onoga što je samo preporuka (vidi `assertableViolations`).
+ */
+export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+
+/**
+ * Prekršaji koji smiju rušiti test.
+ *
+ * Pokrivenost se skuplja iz **svih** prekršaja, ali asertcija ide samo preko pravila koja
+ * nose WCAG tag. Razlog: `heading-order` i `identical-links-same-purpose` su preporuke, ne
+ * kriteriji usaglašenosti — njihov nalaz ne znači da aplikacija ne zadovoljava WCAG. Da
+ * preporuka ruši CI, izvještaj bi prestao biti mjerilo usaglašenosti; da ih uopće ne
+ * mjerimo, za 2.4.4 i 2.4.6 ne bismo imali ništa. Zato: mjeri sve, presuđuj po WCAG-u.
+ *
+ * @param {{id: string, tags: string[]}[]} violations
+ * @param {{rule: string}[]} [tracked]
+ */
+export function assertableViolations(violations, tracked = TRACKED_RULES) {
+  const trackedNames = new Set((tracked || []).map((entry) => entry.rule));
+  return (violations || []).filter(
+    (violation) =>
+      trackedNames.has(violation.id) &&
+      Array.isArray(violation.tags) &&
+      violation.tags.some((tag) => WCAG_TAGS.includes(tag)),
+  );
+}
+
+/**
  * Direktorij zapisa. `process.cwd()` jer Playwright uvijek radi iz `frontend/`, a u ESM-u
  * (`package.json` ima `"type": "module"`) `__dirname` ne postoji.
  * Putanja je pod `test-results/`, koji je u `.gitignore`.

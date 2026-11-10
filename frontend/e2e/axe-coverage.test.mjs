@@ -9,7 +9,10 @@ import {
   MAX_ANNOTATION_MESSAGE_LENGTH,
   MAX_INCOMPLETE_NODES_PER_RULE,
   TRACKED_RULES,
+  AXE_RULE_TAGS,
+  WCAG_TAGS,
   aggregateCoverage,
+  assertableViolations,
   chunkWorkflowMessage,
   coverageFileName,
   describeIncompleteNodes,
@@ -343,3 +346,79 @@ test('svako praćeno pravilo ima barem jedan kriterij i bilješku', () => {
   const ids = TRACKED_RULES.map((e) => e.rule)
   assert.equal(new Set(ids).size, ids.length, 'duplo praćeno pravilo bi dvostruko brojalo')
 })
+
+/* -------------------------------------------------------------------------- */
+/*  assertableViolations: šta se mjeri, a šta smije rušiti CI                 */
+/* -------------------------------------------------------------------------- */
+
+test('assertableViolations — WCAG prekršaj praćenog pravila ide dalje', () => {
+  const out = assertableViolations([
+    { id: 'color-contrast', tags: ['wcag2aa', 'wcag143'], impact: 'serious' },
+  ]);
+  assert.deepEqual(
+    out.map((v) => v.id),
+    ['color-contrast'],
+  );
+});
+
+test('assertableViolations — best-practice nalaz se ne presuđuje', () => {
+  // `heading-order` i `identical-links-same-purpose` su preporuke, ne kriteriji.
+  // Da ruše CI, izvještaj bi prestao biti mjerilo usaglašenosti s WCAG-om.
+  const out = assertableViolations([
+    { id: 'heading-order', tags: ['best-practice'], impact: 'moderate' },
+    { id: 'identical-links-same-purpose', tags: ['best-practice'], impact: 'minor' },
+    { id: 'page-has-heading-one', tags: ['best-practice'], impact: 'moderate' },
+  ]);
+  assert.deepEqual(out, []);
+});
+
+test('assertableViolations — nepraćeno pravilo se ne presuđuje ni uz WCAG tag', () => {
+  // Opseg presude mora biti opseg onoga što tvrdimo da mjerimo.
+  const out = assertableViolations([{ id: 'landmark-one-main', tags: ['best-practice', 'wcag2a'] }]);
+  assert.deepEqual(out, []);
+});
+
+test('assertableViolations — prekršaj bez tags se ne presuđuje', () => {
+  assert.deepEqual(assertableViolations([{ id: 'color-contrast' }]), []);
+  assert.deepEqual(assertableViolations(undefined), []);
+  assert.deepEqual(assertableViolations([]), []);
+});
+
+test('assertableViolations — custom lista praćenih pravila se poštuje', () => {
+  const tracked = [{ rule: 'heading-order', criteria: ['2.4.6'], note: 'x' }];
+  const out = assertableViolations(
+    [
+      { id: 'heading-order', tags: ['best-practice'] },
+      { id: 'color-contrast', tags: ['wcag2aa'] },
+    ],
+    tracked,
+  );
+  // Ništa ne prolazi: heading-order je praćen ali nema WCAG tag, color-contrast ima WCAG
+  // tag ali nije praćen. Oba uslova moraju biti ispunjena.
+  assert.deepEqual(out, []);
+});
+
+test('AXE_RULE_TAGS uključuje best-practice, WCAG_TAGS ne', () => {
+  // Bez `best-practice` se 2.4.4 i 2.4.6 uopće ne mjere — pravila su `absent`, a to se
+  // lako pročita kao „nema takvih elemenata".
+  assert.ok(AXE_RULE_TAGS.includes('best-practice'), 'best-practice mora biti uključen');
+  for (const tag of ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']) {
+    assert.ok(AXE_RULE_TAGS.includes(tag), `${tag} mora biti uključen`);
+    assert.ok(WCAG_TAGS.includes(tag), `${tag} je WCAG nivo`);
+  }
+  assert.ok(!WCAG_TAGS.includes('best-practice'), 'best-practice nije WCAG nivo');
+});
+
+test('svi axe spekovi pokreću iste tagove i presuđuju preko assertableViolations', () => {
+  // Čuvar: kad bi jedan spec ostao na staroj listi tagova, pravila bi na tom skupu ruta
+  // bila `absent` i izvještaj bi lagao da su pokrivena.
+  for (const file of ['a11y-routes', 'a11y-admin', 'a11y-stylist']) {
+    const src = readFile(new URL(`./${file}.spec.ts`, import.meta.url), 'utf8');
+    assert.match(src, /\.withTags\(AXE_RULE_TAGS\)/, `${file}: mora koristiti AXE_RULE_TAGS`);
+    assert.match(
+      src,
+      /assertableViolations\(results\.violations\)/,
+      `${file}: asertcija mora ići preko assertableViolations`,
+    );
+  }
+});

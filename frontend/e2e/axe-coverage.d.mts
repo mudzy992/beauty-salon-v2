@@ -6,7 +6,7 @@
 /** Minimalni strukturni opis axe izvještaja (ne vuče tipove iz `axe-core`). */
 export interface AxeLikeResults {
   passes?: { id: string }[]
-  violations?: { id: string; nodes?: unknown[] }[]
+  violations?: { id: string; nodes?: unknown[]; tags?: string[]; impact?: string | null }[]
   incomplete?: { id: string }[]
   inapplicable?: { id: string }[]
 }
@@ -36,6 +36,24 @@ export interface RuleCounts {
 
 export const TRACKED_RULES: TrackedRule[]
 export const STATUSES: CoverageStatus[]
+
+/** Tagovi kojima se axe pokreće (uključuje `best-practice`). */
+export const AXE_RULE_TAGS: string[]
+
+/** Samo WCAG nivoi — po njima se presuđuje. */
+export const WCAG_TAGS: string[]
+
+/**
+ * Prekršaji koji smiju rušiti test: praćeno pravilo **i** WCAG tag.
+ * Best-practice nalazi se mjere, ali ne ruše CI.
+ *
+ * Generička po tipu prekršaja da pozivatelj zadrži puni axe `Result` (s `nodes`, `impact`…)
+ * umjesto najmanjeg zajedničkog oblika.
+ */
+export function assertableViolations<V extends { id: string; tags?: string[] }>(
+  violations: V[] | undefined,
+  tracked?: TrackedRule[],
+): V[]
 
 export function defaultCoverageDir(cwd?: string): string
 
