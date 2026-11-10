@@ -1259,6 +1259,44 @@ a sada znamo da prvi stvarni run nije zelen.
 nikad nije izvršen, pa blokirajući gate ne bi bio pošten. **Nakon prvog zelenog runa
 ukloniti `continue-on-error`** iz `ci.yml` — inače test koji nikad ne pade s vremenom istrune.
 
+### 3.1c Prvi stvarni axe run nad `/admin/**` i `/stylist/**` — 2026-11-08
+
+Tri uzastopna uzroka su dijelila ovaj run; svi su izmjereni iz CI anotacija, ne pretpostavljeni:
+
+| Run | Simptom | Uzrok | Popravka |
+|---|---|---|---|
+| ≤ `42851373922` | posao pada na `Build frontend`, axe `skipped` | `NODE_ENV=test` s nivoa posla → Vite veže React-ov razvojni build → 341.9 KiB > budžet 300 | `env: NODE_ENV: production` na tom koraku |
+| `42854014729` | `13 passed / 25 skipped`, login **503** | auth rute su fail-closed (AUTH-01), a posao nema Redis → `incrementWindow` vraća `null` → 503 | `redis:7` service + `HTTP_RATE_LIMIT_REDIS_URL` |
+| `42855048776` | login `ok:true`, i dalje `25 skipped` | `test.skip(!status.ok)` na **nivou fajla** čita status pri sakupljanju testova, prije nego `setup` upiše fajl | odluka prebačena u `test.beforeEach` |
+
+**Rezultat (run `42857076298`): 33 passed / 5 failed.** Ovo je prvi put da je ijedna admin ili
+stilistička ruta stvarno izmjerena axe-om. Nađeni prekršaji:
+
+| Ruta | axe pravilo | Impact | Čvorova |
+|---|---|---|---|
+| `/admin/salon` | `label` | critical | 5 |
+| `/admin/settings` | `color-contrast` | serious | 1 |
+| `/admin/settings` | `label-content-name-mismatch` | serious | 11 |
+| `/admin/loyalty` | `button-name` | critical | 3 |
+| `/admin/loyalty` | `label` | critical | 5 |
+| `/admin/reservations/calendar` | `aria-required-children` | critical | 1 |
+| `/admin/reservations/calendar` | `aria-required-parent` | critical | 8 |
+| `/admin/reservations/calendar` | `scrollable-region-focusable` | serious | 1 |
+
+`/admin/reservations/calendar` — `aria-required-parent` ×8 uz `aria-required-children` ×1 —
+skoro sigurno znači ARIA strukturu (vjerovatno `role="grid"`/`tablist` hijerarhija) u kojoj
+djeca nisu unutar traženog roditelja.
+
+**Zaseban nalaz, NIJE a11y i NIJE greška aplikacije:** `/stylist/profile` redirektuje na
+`/profil`, pa je test javljao „sesija nema ulogu STYLIST". Provjereno u izvoru:
+`src/app/router.tsx:126-129` definiše tu rutu kao `<Navigate to="/profil" replace />` —
+redirect je **namjeran**. Greška je bila u specu. Ispravljeno: ruta sada nosi
+`expectPrefix: '/profil'`, pa se mjeri stvarna odredišna stranica umjesto da se pada na
+prefiksu. `typecheck:e2e` i `tsc --noEmit`: 0 grešaka.
+
+⚠️ **Ovo NIJE zelen suite.** `continue-on-error` ostaje; stavka 4 iz §4 (skinuti ga) čeka
+popravku svih 8 prekršaja i zeleni run.
+
 ### Šta je verificirano, a šta nije
 
 **Verificirano stvarnim izvršavanjem skripte** (5 scenarija, pravi fajl):
@@ -1689,8 +1727,10 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    Jedina izmjena u cijeloj seriji koja nije verificirana izvršavanjem (§3.3, 3.1.2).
 2. **Podignuti backend** i ponoviti `npm run test:a11y-routes` — jeftino, a pokriva stanje s
    podacima (§3.2) i preduslov je za sljedeću stavku.
-3. **Pokriti `/admin/**` i `/stylist/**`** — harness je napisan (§3.1), ali **nikad izvršen**.
-   Najveći dobitak.
+3. **Pokriti `/admin/**` i `/stylist/**`** — **IZVRŠENO 2026-11-08** (run `42857076298`):
+   **33 passed / 5 failed**. Nađeno **8 stvarnih prekršaja** na 4 admin stranice + 1 routing
+   problem — vidi §3.1c. Popravka prekršaja je sljedeći korak; `continue-on-error` ostaje
+   dok suite ne bude zelen.
 4. **Skinuti `continue-on-error` s axe koraka** u poslu `a11y-e2e` — tek nakon što stavka 3
    da potvrđen zeleni run. Bez toga axe regresiju ne blokira; skidati naslijepo bi značilo
    crven CI bez dokaza da je problem stvaran.

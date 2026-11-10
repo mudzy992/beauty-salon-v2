@@ -30,8 +30,11 @@ const STYLIST_ROUTES = [
   { path: '/stylist/schedule/new', name: 'Raspored (nova rezervacija)' },
   { path: '/stylist/debts', name: 'Dugovanja' },
   { path: '/stylist/stats', name: 'Statistika' },
-  { path: '/stylist/profile', name: 'Profil' },
-]
+  // `/stylist/profile` je NAMJERNI redirect na `/profil` (`src/app/router.tsx:126-129`), pa se
+  // mjeri stvarna odredišna ruta. Bez ovog izuzetka asertija o prefiksu pada iako aplikacija
+  // radi ispravno (izmjereno run 42857076298: „redirektovano na /profil").
+  { path: '/stylist/profile', name: 'Profil (redirect na /profil)', expectPrefix: '/profil' },
+] as { path: string; name: string; expectPrefix?: string }[]
 
 const readStatus = (): AdminStatus =>
   existsSync(STYLIST_STATUS)
@@ -55,9 +58,10 @@ for (const route of STYLIST_ROUTES) {
     // 🔴 Bez uloge STYLIST `StylistRoute` redirektuje na `/` (ne na `/login`). Ako bismo
     // provjeravali samo `/login`, axe bi izmjerio NASLOVNU stranicu i javio lažni prolaz.
     const url = new URL(page.url())
+    const expectedPrefix = route.expectPrefix ?? '/stylist'
     expect(
-      url.pathname.startsWith('/stylist'),
-      `${route.path}: redirektovano na ${url.pathname} — sesija nema ulogu STYLIST`,
+      url.pathname.startsWith(expectedPrefix),
+      `${route.path}: očekivano ${expectedPrefix}*, dobijeno ${url.pathname} — sesija nema ulogu STYLIST`,
     ).toBe(true)
 
     const results = await new AxeBuilder({ page })

@@ -6081,3 +6081,43 @@ kanal čitljiv bez blob storagea. Shell logika provjerena lokalno nad uzorkom iz
 **`continue-on-error` ostaje.** Stavke 3 i 4 iz `HANDOFF.md` §4 (pokriti `/admin/**` i
 `/stylist/**`, pa skinuti `continue-on-error`) čekaju **zeleni** run, ne samo pokrenut — a
 prvi stvarni run nije zelen.
+
+---
+
+## 2026-11-08 — Prvi stvarni axe run nad `/admin/**` i `/stylist/**`: 33 passed / 5 failed, 8 prekršaja
+
+Ovo je stavka 3 iz `HANDOFF.md` §4 („najveći dobitak"). Dosad nije bila izvršena nijednom.
+Tri uzastopna uzroka su je dijelila; svaki je izmjeren iz CI anotacija, ne pretpostavljen.
+
+| Run | Simptom | Uzrok | Popravka |
+|---|---|---|---|
+| ≤ `42851373922` | posao pada na `Build frontend`, axe `skipped` | `NODE_ENV=test` s nivoa posla → Vite veže React-ov razvojni build → **341.9 KiB** > budžet 300 | `env: NODE_ENV: production` na tom koraku |
+| `42854014729` | `13 passed / 25 skipped`, login **503** | auth rute su fail-closed (AUTH-01), posao nema Redis → `incrementWindow` vraća `null` → 503 | `redis:7` service + `HTTP_RATE_LIMIT_REDIS_URL` |
+| `42855048776` | login `ok:true`, i dalje `25 skipped` | `test.skip(!status.ok)` na **nivou fajla** čita status pri sakupljanju testova, prije nego `setup` upiše fajl | odluka prebačena u `test.beforeEach` |
+
+Da bi se išta od ovoga moglo dijagnosticirati, korak je proširen da ishod iznosi u
+**anotaciju**: `continue-on-error` maskira pad (`steps[].conclusion` javlja `success`), a
+logovi i artefakt žive na `blob.core.windows.net` koji nije dostižan. Anotiraju se brojači,
+razlog preskakanja iz `e2e/.auth/*-status.json` i ID-ovi axe pravila.
+
+### Nađeni prekršaji (run `42857076298`)
+
+| Ruta | axe pravilo | Impact | Čvorova |
+|---|---|---|---|
+| `/admin/salon` | `label` | critical | 5 |
+| `/admin/settings` | `color-contrast` | serious | 1 |
+| `/admin/settings` | `label-content-name-mismatch` | serious | 11 |
+| `/admin/loyalty` | `button-name` | critical | 3 |
+| `/admin/loyalty` | `label` | critical | 5 |
+| `/admin/reservations/calendar` | `aria-required-children` | critical | 1 |
+| `/admin/reservations/calendar` | `aria-required-parent` | critical | 8 |
+| `/admin/reservations/calendar` | `scrollable-region-focusable` | serious | 1 |
+
+`/stylist/profile` je javljao „sesija nema ulogu STYLIST", ali to **nije** greška aplikacije:
+`src/app/router.tsx:126-129` definiše rutu kao `<Navigate to="/profil" replace />`. Greška je
+bila u specu — ruta sada nosi `expectPrefix: '/profil'`.
+
+### Stanje
+
+**Suite NIJE zelen** i `continue-on-error` ostaje. Stavka 4 iz §4 (skinuti ga) čeka popravku
+svih 8 prekršaja. `typecheck:e2e` i `tsc --noEmit`: 0 grešaka.
