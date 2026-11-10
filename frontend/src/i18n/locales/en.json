@@ -763,6 +763,8 @@
       "greetingTimeout": "Greeting timeout (ms)",
       "socketTimeout": "Socket timeout (ms)",
       "maxConnectionsAndMessages": "Max connections / max messages",
+      "maxConnections": "Max connections",
+      "maxMessages": "Max messages",
       "providerCredentialsHint": "For {{provider}}, use an App Password or OAuth SMTP credentials.",
       "fromEmail": "From email",
       "fromName": "From name",
@@ -822,6 +824,8 @@
     },
     "campaigns": {
       "newTemplate": "New campaign template",
+      "templatePicker": "Campaign template",
+      "modePicker": "Template editing mode",
       "builderMode": "Visual editor (drag and drop)",
       "htmlMode": "HTML editor",
       "templateName": "Template name",

@@ -26,7 +26,11 @@ const labels = (src) => [...src.matchAll(/<Label\b([^>]*)>/g)]
 
 test('svaki <Label> u EmailSettings je asociran (1.3.1)', () => {
   const all = labels(email)
-  assert.equal(all.length, 29, `očekivano 29 <Label>, nađeno ${all.length}`)
+  // 28, ne 29: jedan <Label> je 2026-11-09 zamijenjen <span>-om unutar
+  // `role="group"` jer je jednom vidljivom labelom „Maks. konekcija / maks. poruka"
+  // bio pokriven PAR polja, a samo prvo je imalo id. Vidljivi tekst je sada ime
+  // grupe, a svako polje ima svoj `aria-label`.
+  assert.equal(all.length, 28, `očekivano 28 <Label>, nađeno ${all.length}`)
   for (const m of all) {
     assert.match(m[1], /htmlFor="[^"]+"/, `<Label> bez htmlFor: ${m[0]}`)
   }
@@ -112,4 +116,43 @@ test('D10 iz plana NIJE prekršaj — APK upload je native input s labelom (2.5.
   assert.match(releaseForm, /<Label htmlFor="apk">/)
   assert.match(releaseForm, /id="apk"\s+type="file"/)
   assert.equal(/onDrop=/.test(releaseForm), false, 'ne smije postojati drag-only put')
+})
+
+test('1.3.1/3.3.2: par „maks. konekcija / maks. poruka" je grupa s po jednim imenom po polju', () => {
+  // Prije: JEDAN <Label htmlFor="email-smtp-max-connections"> s tekstom
+  // „Maks. konekcija / maks. poruka" iznad DVA input-a, od kojih je samo prvi imao id.
+  // Drugi nije imao nikakvo ime -> AT: „edit, prazno".
+  assert.match(
+    email,
+    /<div role="group" aria-labelledby="email-smtp-limits-label">/,
+    'vidljivi tekst para mora biti ime grupe, ne labeta jednog od polja',
+  )
+  assert.match(
+    email,
+    /<span\s+id="email-smtp-limits-label"/,
+    'grupa mora imati element na koji pokazuje aria-labelledby',
+  )
+  for (const key of ['maxConnections', 'maxMessages']) {
+    assert.match(
+      email,
+      new RegExp(`aria-label=\\{t\\('emailSettings\\.smtp\\.${key}'\\)\\}`),
+      `polje ${key} mora imati svoje ime`,
+    )
+  }
+  // regresija: kombinovani ključ ne smije ponovo biti <Label htmlFor>
+  assert.equal(
+    /<Label htmlFor="email-smtp-max-connections">/.test(email),
+    false,
+    'jedna vidljiva labeta ne smije ponovo pokrivati par polja',
+  )
+})
+
+test('3.3.2/4.1.2: oba campaign select-a imaju programsku labelu', () => {
+  for (const key of ['templatePicker', 'modePicker']) {
+    assert.match(
+      email,
+      new RegExp(`<select\\s+aria-label=\\{t\\('emailSettings\\.campaigns\\.${key}'\\)\\}`),
+      `select ${key} je bez labele AT imenovao tek po izabranoj opciji`,
+    )
+  }
 })

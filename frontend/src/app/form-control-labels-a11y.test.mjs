@@ -19,7 +19,7 @@ import assert from 'node:assert/strict'
  * | `blog-post-form-dialog.tsx:180` | `<input type="file" className="hidden">` | nije prekršaj — `display:none` ga vadi iz stabla, pokreće ga `<Button>` s vidljivim tekstom |
  * | `Register.tsx:239` | isto kao gore | nije prekršaj (uz to Q2: van redizajna) |
  * | `components/ui/{input,textarea}.tsx` | primitivi koji samo prosljeđuju props | nisu prekršaj |
- * | `EmailSettings.tsx:926,1089,1100` | **stvarne rupe** (drugi input u paru dijeli labelu; dva `<select>` bez imena) | 🔴 ali fajl je pod „ne dirati" — dug, vidi allowlist |
+ * | `EmailSettings.tsx:926,1089,1100` | **stvarne rupe** (drugi input u paru dijeli labelu; dva `<select>` bez imena) | 🔴 ispravljeno 2026-11-09 uz odobrenje vlasnika — allowlist je sada **prazan** |
  *
  * Uz to: `entry-filters.tsx` bio je **jedini** filter bar u dashboardu s golim `<p>` —
  * `expense-filters`, `income-entry-filters` i `reservation-filters` svi koriste
@@ -37,10 +37,6 @@ const ALLOWLIST = {
     'primitiv koji samo prosljeđuje props; ime daje pozivalac',
   'components/ui/textarea.tsx':
     'primitiv koji samo prosljeđuje props; ime daje pozivalac',
-  'pages/EmailSettings.tsx':
-    'DUG: 926 drugi input u paru dijeli labelu s prvim, 1089 i 1100 dva <select> bez imena. ' +
-    'Stvarni prekršaji, ali fajl je pod odlukom vlasnika „ne dirati" (1381 ln). ' +
-    'Skinuti s allowlist-a čim vlasnik odobri izmjenu.',
 }
 
 function walk(dir) {

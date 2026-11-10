@@ -760,6 +760,8 @@
       "greetingTimeout": "Greeting timeout (ms)",
       "socketTimeout": "Socket timeout (ms)",
       "maxConnectionsAndMessages": "Maks. konekcija / maks. poruka",
+      "maxConnections": "Maks. konekcija",
+      "maxMessages": "Maks. poruka",
       "providerCredentialsHint": "Za {{provider}} koristite App Password ili OAuth SMTP podatke.",
       "fromEmail": "Email pošiljaoca",
       "fromName": "Ime pošiljaoca",
@@ -819,6 +821,8 @@
     },
     "campaigns": {
       "newTemplate": "Novi predložak kampanje",
+      "templatePicker": "Predložak kampanje",
+      "modePicker": "Način uređivanja predloška",
       "builderMode": "Vizuelni editor (drag and drop)",
       "htmlMode": "HTML editor",
       "templateName": "Naziv predloška",

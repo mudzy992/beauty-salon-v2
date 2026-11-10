@@ -915,15 +915,28 @@ export default function EmailSettings() {
                     onChange={(event) => setSocketTimeoutMs(event.target.value)}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="email-smtp-max-connections">{t('emailSettings.smtp.maxConnectionsAndMessages')}</Label>
+                {/* 1.3.1/3.3.2: jedna vidljiva labeta „Maks. konekcija / maks. poruka"
+                    pokrivala je DVA polja, a samo prvo je imalo id — drugo nije imalo
+                    nikakvo ime, pa ga je AT najavio kao „edit, prazno". Sada je vidljivi
+                    tekst ime GRUPE (role="group" + aria-labelledby), a svako polje ima
+                    svoje. Vizuelno identično: <span> nosi iste razrede koje Label ima
+                    u osnovi (text-sm font-medium leading-none text-slate-700 dark:text-slate-200). */}
+                <div role="group" aria-labelledby="email-smtp-limits-label">
+                  <span
+                    id="email-smtp-limits-label"
+                    className="text-sm font-medium leading-none text-slate-700 dark:text-slate-200"
+                  >
+                    {t('emailSettings.smtp.maxConnectionsAndMessages')}
+                  </span>
                   <div className="mt-1 flex gap-2">
-                    <Input id="email-smtp-max-connections"
+                    <Input
+                      aria-label={t('emailSettings.smtp.maxConnections')}
                       value={maxConnections}
                       onChange={(event) => setMaxConnections(event.target.value)}
                       placeholder="5"
                     />
                     <Input
+                      aria-label={t('emailSettings.smtp.maxMessages')}
                       value={maxMessages}
                       onChange={(event) => setMaxMessages(event.target.value)}
                       placeholder="100"
@@ -1086,7 +1099,11 @@ export default function EmailSettings() {
                     <Plus className="mr-2 h-4 w-4" />
                     {t('emailSettings.campaigns.newTemplate')}
                   </Button>
+                  {/* 3.3.2/4.1.2: oba select-a su bila bez i jedne labele — AT ih je
+                      imenovao tek po izabranoj opciji. Vidljive labele ovdje nema (red je
+                      dugme + dva select-a), pa idu programske. */}
                   <select
+                    aria-label={t('emailSettings.campaigns.templatePicker')}
                     className={`${selectClass} sm:w-[320px]`}
                     value={selectedCampaignId}
                     onChange={(event) => setSelectedCampaignId(event.target.value)}
@@ -1098,6 +1115,7 @@ export default function EmailSettings() {
                     ))}
                   </select>
                   <select
+                    aria-label={t('emailSettings.campaigns.modePicker')}
                     className={`${selectClass} sm:w-[220px]`}
                     value={campaignMode}
                     onChange={(event) => setCampaignMode(event.target.value as 'builder' | 'html')}

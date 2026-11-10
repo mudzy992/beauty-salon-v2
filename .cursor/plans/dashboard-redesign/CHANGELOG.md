@@ -5006,3 +5006,104 @@ sken ćirilice/CJK „nema".
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
 `StylistAnalytics.tsx`.
+
+---
+
+## 2026-11-09 — `EmailSettings.tsx`: tri rupe s labelama zatvorene, allowlist sada prazan
+
+Vlasnik odobrio (`nastavi dalje` nakon što je stavka ponuđena). **Opseg je bio samo dodavanje
+labela** — fajl NIJE razbijan niti restrukturiran, što je bila originalna odluka („ostaje
+1381 ln").
+
+### Tri rupe, izmjerene u prethodnom sweepu
+
+**1. `:919` — jedna vidljiva labeta pokrivala je PAR polja.**
+
+```tsx
+<Label htmlFor="email-smtp-max-connections">{t('…maxConnectionsAndMessages')}</Label>
+<div className="mt-1 flex gap-2">
+  <Input id="email-smtp-max-connections" … />   {/* ima ime */}
+  <Input … />                                    {/* 🔴 nema NIŠTA */}
+</div>
+```
+
+Vidljivi tekst je „Maks. konekcija / maks. poruka" — dakle jedna labeta za dva polja, a `htmlFor`
+pokazuje samo na prvo. Drugi input nije imao ni `id` ni `aria-label`, pa ga je AT najavio kao
+„edit, prazno".
+
+Zašto **nije** dovoljno samo dodati `aria-label` drugom polju: tada bi prvo polje i dalje
+nosilo kombinovano ime, a dodavanje preciznog `aria-label` i prvom polju **bi prekršilo 2.5.3**
+— vidljivi tekst „Maks. konekcija / maks. poruka" ne bi bio sadržan u imenu „Maks. konekcija".
+
+Rješenje: vidljivi tekst postaje **ime grupe**, a svako polje dobija svoje ime.
+
+```tsx
+<div role="group" aria-labelledby="email-smtp-limits-label">
+  <span id="email-smtp-limits-label" className="text-sm font-medium leading-none text-slate-700 dark:text-slate-200">
+    {t('emailSettings.smtp.maxConnectionsAndMessages')}
+  </span>
+  …
+  <Input aria-label={t('emailSettings.smtp.maxConnections')} … />
+  <Input aria-label={t('emailSettings.smtp.maxMessages')} … />
+```
+
+`<span>` nosi **iste razrede koje `Label` ima u osnovi**, pa je vizuelno identično; izbačene su
+samo `peer-disabled:` klase — izmjereno, `peer` se ne koristi ni u `components/ui/input.tsx` ni
+u `EmailSettings.tsx`, pa nema efekta.
+
+**2. i 3. `:1089` i `:1100` — dva `<select>` bez i jedne labele.** Birač predloška kampanje i
+birač načina uređivanja (builder/HTML). AT ih je imenovao tek po izabranoj opciji. Vidljive
+labele u tom redu nema (dugme + dva select-a), pa su dodate programske:
+`emailSettings.campaigns.templatePicker` i `.modePicker`.
+
+Novi ključevi: `emailSettings.smtp.maxConnections`, `.maxMessages`,
+`emailSettings.campaigns.templatePicker`, `.modePicker` — u oba jezika.
+
+### Posljedica po postojeći test, i zašto je ispravna
+
+`admin-settings-controls-a11y.test.mjs` asertuje **tačan broj `<Label>`** u tom fajlu, uz
+poruku „očekivano N". Broj je s **29** pao na **28** jer je jedan `<Label>` zamijenjen
+`<span>`-om. Test je ažuriran s objašnjenjem — to je upravo svrha takve asertacije: da se
+promjena broja ne desi tiho.
+
+Dodata i dva nova testa u istom fajlu (ukupno **11**):
+
+- par mora biti `role="group"` + `aria-labelledby`, element s tim `id` mora postojati, oba
+  polja moraju imati svoj `aria-label`, i kombinovani `<Label htmlFor>` se **ne smije vratiti**;
+- oba campaign `<select>` moraju imati `aria-label`.
+
+### Allowlist je sada prazan
+
+`pages/EmailSettings.tsx` skinut s allowlist-a u `form-control-labels-a11y.test.mjs`. Allowlist
+je sada **prazan objekat** — nijedna kontrola u cijelom `src/` nije bez programskog imena.
+Provjera „allowlist ne smije zarđati" i dalje važi i sada dokazuje da zaista nema pogodaka.
+
+### Mutacije
+
+**6/6** (`cp` backup, vraćeno, `diff -q` identično), svaka provjerena kroz **tri** testa
+istovremeno:
+
+| # | Mutacija | Uhvatili |
+|---|---|---|
+| E1 | `maxMessages` bez `aria-label` | `admin-settings-controls-a11y` + `form-control-labels` |
+| E2 | skinut `role="group"` | `admin-settings-controls-a11y` |
+| E3 | `templatePicker` bez `aria-label` | `admin-settings-controls-a11y` |
+| E4 | `modePicker` bez `aria-label` | `admin-settings-controls-a11y` |
+| E5 | `<span>` nazad u `<Label htmlFor>` | `admin-settings-controls-a11y` ×3 (broj, htmlFor↔id, regresija) |
+| E6 | `bs.json`: obrisan `smtp.maxMessages` | `i18n-key-resolution` |
+
+### Kapije
+
+`test:*` **183/183** skripti (**700** pojedinačnih testova, 0 padova) · `tsc --noEmit` exit
+**0** · lint **0 errors / 7 warnings** · build **274.3 KiB**/300 · `check_ui_contrast --strict`
+**80/80** · `check_i18n --strict` PASS · `check_repo_hygiene` **1712** ·
+`check_doc_links` **670/202** · `check_ci_index` **363/366** · `git diff --check` čist ·
+sken ćirilice/CJK „nema".
+
+`EmailSettings.tsx` je sada **1399 ln** (bilo 1381) — porastao je za 18 linija komentara i
+grupnog markupa, ali **nije razbijan**, što je bila vlasnikova odluka.
+
+**Nije verificirano:** rendered prikaz — da grupa i dvije nove programske labele zaista rade u
+čitaču ekrana, i da `<span>` s preuzetim razredima izgleda identično kao `<Label>`.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `StylistAnalytics.tsx`.
