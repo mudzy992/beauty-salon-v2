@@ -2071,3 +2071,27 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 > **Šta NIJE pokriveno, javno:** klauzula 1.4.10 za **horizontalni** sadržaj (256px visine)
 > nije mjerena — javne rute nemaju horizontalno orijentisan sadržaj. Admin tabele s
 > `overflow-x-auto` + `tabindex="0"` ostaju kakve jesu.
+
+> **Riješeno 2026-11-08 — `color-contrast` flake na `/`.** Crven CI bez stvarne regresije
+> poništava vrijednost cijelog mjernog aparata, pa je ovo bila sljedeća stvar za riješiti.
+> Uzrok je nađen u izvoru, ne nagađen: `globals.css` ima `@keyframes app-logo-reveal` koji ide
+> od **`opacity: 0.01`** do `1` kroz 700ms (uz 40ms kašnjenja), i `app-logo-enter` od `0.1`.
+> Ako axe analizira dok animacija traje, izračuna kontrast teksta koji je tog trena gotovo
+> nevidljiv i prijavi prekršaj — run `42907958179` dao je `violations 1`, a ponavljanje istog
+> posla `violations 0`.
+>
+> Popravka: `settleAnimations(page)` čeka `Promise.all(document.getAnimations().map(a => a.finished))`
+> prije `.analyze()`, u sva tri axe speca. `Promise.race` s granicom od 3000ms je zaštita od
+> vješanja, ne procjena trajanja — za razliku od fiksnog `waitForTimeout` ne čeka se ni
+> milisekund duže nego što treba.
+>
+> **Čekanje nije zaobilaženje kriterija:** 1.4.3 govori o čitljivosti teksta kakav jeste, a ne
+> o prolaznom stanju tokom pojavljivanja od 700ms. Ustaljeno stanje ima ispravan kontrast i
+> 24 rute to dosljedno potvrđuju.
+>
+> **Kako je dokazano, jer jedan zelen run ne dokazuje da je flake 1/5 nestao:**
+> (1) preduvjet je postao **invarijant** — test tvrdi da je `stillRunning === 0` u trenu
+> mjerenja, pa se ne pretpostavlja; (2) `animationSettler` broji samo `running`/`pending`, jer
+> `fill: both` znači da završena animacija ostaje u `getAnimations()` i bez toga bi provjera
+> uvijek bila > 0; (3) **tri uzastopna zelena runa** (`42915877215` + dva ponavljanja), svaki
+> **157/0/0** i `color-contrast violations 0`.
