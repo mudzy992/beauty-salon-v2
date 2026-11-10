@@ -286,3 +286,23 @@ test('labelInNameViolations — element širine 0 se preskače', () => {
   setBox(doc.querySelector('button'), { w: 0, h: 12 })
   assert.deepEqual(labelInNameViolations(), [], 'ništa se ne iscrtava, pa nema vidljivog teksta')
 })
+
+test('labelInNameViolations — element BEZ aria-label se ne provjerava', () => {
+  // Ovo je rupa koju je otkrio CI (run 42896831615), a jsdom testovi nisu: `[aria-label]`
+  // nadovezan na cijelu listu važi samo za posljednji selektor, pa su svi linkovi ušli u
+  // provjeru i javljali „nije u „null"".
+  const doc = makeDom(`
+    <a class="nav" href="/">Početna</a>
+    <button class="bez">Dugme bez labele</button>
+    <span role="button" class="span">Klik</span>
+  `)
+  for (const [el, text] of [
+    [doc.querySelector('a'), 'Početna'],
+    [doc.querySelector('button'), 'Dugme bez labele'],
+    [doc.querySelector('span'), 'Klik'],
+  ]) {
+    withInnerText(el, text)
+    setBox(el, {})
+  }
+  assert.deepEqual(labelInNameViolations(), [], 'bez aria-label nema ni prekršaja 2.5.3')
+})

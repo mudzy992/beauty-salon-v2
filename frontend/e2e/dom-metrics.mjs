@@ -191,8 +191,14 @@ export function labelInNameViolations() {
   const norm = (t) => String(t ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
 
   const out = []
-  const interactive = 'button, a, [role="button"], [role="menuitem"], [role="tab"], input, select, textarea'
-  for (const el of document.querySelectorAll(`${interactive}[aria-label]`)) {
+  // `[aria-label]` se mora dodati SVAKOM dijelu, ne cijeloj listi: selektor
+  // `button, a, [role="button"][aria-label]` znači „svaki button ILI svaki a ILI
+  // [role=button] s aria-label". Izmjereno na runu `42896831615`: svi linkovi i dugmad
+  // su ušli u provjeru, `getAttribute('aria-label')` je vratio `null`, pa je anotacija
+  // nosila besmisleno „nije u „null"" na svih 10 ruta.
+  const interactive = ['button', 'a', '[role="button"]', '[role="menuitem"]', '[role="tab"]', 'input', 'select', 'textarea']
+  const selector = interactive.map((part) => `${part}[aria-label]`).join(', ')
+  for (const el of document.querySelectorAll(selector)) {
     if (el.getAttribute('aria-hidden') === 'true') continue
     // Nula na BILO KOJOJ dimenziji znači da se ništa ne iscrtava, pa nema ni vidljivog
     // teksta. Namjerno `||`, ne `&&` kao u `landmarkSnapshot`: tamo se traži landmark koji
