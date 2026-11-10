@@ -17,6 +17,16 @@
  * 2. `scrollable-region-focusable` (serious) — `TimeGrid.js:339` renderuje `.rbc-time-content`
  *    kao skrolabilnu regiju bez `tabindex`, pa se ne može dohvatiti tastaturom (WCAG 2.1.1).
  *
+ * 3. `aria-required-parent` (critical) — `DateContentRow.js:159` postavlja `role="rowgroup"` na
+ *    omotač koji iz `TimeGridHeader.js:63` nosi `className: "rbc-allday-cell"`. Uloga `rowgroup`
+ *    traži pretka s ulogom `grid`, `table` ili `treegrid`, a sedmični pogled ih nema nigdje u
+ *    lancu (`.rbc-time-header` → `.rbc-time-grid` → `.rbc-time-view`). Skidamo ulogu SAMO kad
+ *    takav predak stvarno ne postoji, da se ne diraju ispravne tabele.
+ *
+ * Broj `aria-required-parent` u CI anotaciji bio je **8**, ne 7: sedam `<span role="columnheader">`
+ * (riješeno propom `components.header`) **plus** ovaj `rowgroup`. Anotacija prikazuje samo prva
+ * 3 čvora, pa se osmi vidio tek kad su ostali zatvoreni.
+ *
  * Uloga `columnheader` se NE rješava ovdje: za nju postoji podržana zamjena `components.header`
  * (`TimeGridHeader.js:91-92`), pa je riješena u `SchedulerColumnHeader`.
  */
@@ -30,6 +40,20 @@ export function applyCalendarAriaShim(root) {
   for (const el of root.querySelectorAll('.rbc-time-content:not([tabindex])')) {
     el.setAttribute('tabindex', '0')
   }
+  for (const el of root.querySelectorAll('[role="rowgroup"]')) {
+    if (!hasRequiredAncestor(el, ROWGROUP_PARENTS)) el.removeAttribute('role')
+  }
+}
+
+/** Uloge koje axe dopušta kao pretka za `rowgroup`. */
+const ROWGROUP_PARENTS = new Set(['grid', 'table', 'treegrid'])
+
+/** Ima li ijedan predak jednu od traženih uloga? */
+function hasRequiredAncestor(el, allowed) {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    if (allowed.has(node.getAttribute('role') ?? '')) return true
+  }
+  return false
 }
 
 /**

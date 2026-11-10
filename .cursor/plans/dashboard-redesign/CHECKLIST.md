@@ -599,11 +599,15 @@ bila u specu — ruta sada nosi `expectPrefix: '/profil'` (`11b1b26`).
 - [x] **WCAG 1.4.3** ×1: `text-slate-500` → `text-slate-600` u `settings-tab-nav.tsx`.
 - [x] Mrtvi ključevi `adminSettings.sections.expand` / `.collapse` uklonjeni iz oba jezika
       (leaf **2712 → 2710**, paritet 0/0).
-- [x] **WCAG 4.1.2** ×8 na kalendaru: `react-big-calendar` postavlja `role="columnheader"` na
-      `<span>` (`Header.js:12-15`), a `TimeGridHeader.js:109-115` ga omota u
-      `<button class="rbc-button-link">` jer `Calendar.js:347` ima default
-      `drilldownView: views.DAY`. Riješeno **podržanom zamjenom** `components.header` →
-      `SchedulerColumnHeader` bez uloge.
+- [x] **WCAG 4.1.2** ×8 na kalendaru — **dva uzroka, ne jedan** (anotacija prikazuje samo prva
+      3 čvora, pa se drugi vidio tek kad je prvi zatvoren):
+      - **×7** — `Header.js:12-15` postavlja `role="columnheader"` na `<span>`, a
+        `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer
+        `Calendar.js:347` ima default `drilldownView: views.DAY`. Riješeno **podržanom
+        zamjenom** `components.header` → `SchedulerColumnHeader` bez uloge.
+      - **×1** — `DateContentRow.js:159` postavlja `role="rowgroup"` na `.rbc-allday-cell`
+        (`TimeGridHeader.js:63`), a nijedan predak nije `grid`/`table`/`treegrid`. Šim skida
+        ulogu **samo** kad takav predak stvarno ne postoji, da se ne diraju ispravne tabele.
 - [x] **WCAG 4.1.2** ×1 i **2.1.1** ×1: `WeekWrapper.js:249` ubacuje
       `<div class="rbc-addons-dnd-row-body">` kao direktno dijete
       `<div class="rbc-row-content" role="row">` (`DateContentRow.js:176-178`); `TimeGrid.js:339`
@@ -611,9 +615,25 @@ bila u specu — ruta sada nosi `expectPrefix: '/profil'` (`11b1b26`).
       `1.20.0` je **već** zadnja objavljena verzija (`dist-tags.latest`, npm registry,
       2026-11-08) → `calendar-aria-shim.mjs` + `useCalendarAriaShim` (MutationObserver, jer rbc
       re-renderuje pri promjeni datuma/pogleda).
-- [x] **`test:calendar-aria-shim` 7/7** — jsdom fiksura **doslovnim HTML-om iz CI anotacije**,
-      pravi `axe-core` prije i poslije, izvršava isporučeni `.mjs`. **Mutacije 4/4** uhvaćene
-      (3/2/1/2 pada); vraćeni fajl bajt-identičan. Registrovan u `package.json` i `ci.yml`.
+- [x] **`test:calendar-aria-shim` 8/8** — jsdom fiksura **doslovnim HTML-om iz CI anotacije**,
+      **ugniježđena** kao stvarni DOM (`.rbc-row-content` unutar `.rbc-allday-cell`), pravi
+      `axe-core` prije i poslije, izvršava isporučeni `.mjs`. **Mutacije 6/6** uhvaćene
+      (3/2/1/2/1/2 pada); vraćeni fajl bajt-identičan. Registrovan u `package.json` i `ci.yml`.
+
+> **Ispravka ranije tvrdnje.** Prva verzija ovog unosa je tvrdila da je svih ×8 bio
+> `columnheader`, i da fiksura daje `aria-required-parent` ×2 „jer i `.rbc-row-content[role=row]`
+> traži roditelja". **Oba su netačna:** ×8 = 7 `columnheader` + 1 `rowgroup`, a u stvarnom DOM-u
+> `row` **ima** valjanog roditelja (`.rbc-allday-cell[role=rowgroup]`). Greška je bila artefakt
+> **plitke** fiksure bez `rowgroup` pretka, ne ponašanje stranice.
+
+- [x] **Run `42871476988` (commit `cd6e14b`): 36 passed / 2 failed.** `/admin/settings` **zelen**;
+      na kalendaru `aria-required-children` i `scrollable-region-focusable` **nestali**,
+      `aria-required-parent` **8 → 1** (preostali `.rbc-allday-cell[role="rowgroup"]`).
+- [ ] **Novi pad na `/`:** `color-contrast` (serious) ×1 — nije postojao u runu `42866264214`, a
+      nijedna izmjena ne dira javni sajt. Uzrok **nije utvrđen**; u istom logu su dva
+      `[WebServer] Error: read ECONNRESET`, pa je nestabilnost moguća, ali to je pretpostavka.
+      `a11y-routes.spec.ts` je nosio **staru** poruku asertacije (samo broj, bez čvora) — moj
+      propust, sada ispravljen u **sva tri** speka.
 - [ ] **Šta test NE dokazuje:** `scrollable-region-focusable` se u jsdomu **uopšte ne
       primjenjuje** (nema rasporeda → regija nije skrolabilna), pa je `tabindex="0"` provjeren
       samo atributski; test to eksplicitno asertira. Isti razlog objašnjava zašto `color-contrast`

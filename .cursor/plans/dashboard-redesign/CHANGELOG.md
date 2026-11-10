@@ -6150,7 +6150,7 @@ jezika. Leaf **2712 → 2710**, paritet `check_i18n --strict` 0/0.
 
 | Pravilo | Impact | Uzrok (linija u biblioteci) | Popravka |
 |---|---|---|---|
-| `aria-required-parent` | critical ×8 | `Header.js:12-15` postavlja `role="columnheader"` na `<span>`; `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY` | `components.header` → `SchedulerColumnHeader` bez uloge |
+| `aria-required-parent` | critical ×8 | **dva uzroka, ne jedan** (anotacija prikazuje samo prva 3 čvora): **×7** — `Header.js:12-15` postavlja `role="columnheader"` na `<span>`, a `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY`. **×1** — `DateContentRow.js:159` postavlja `role="rowgroup"` na `.rbc-allday-cell`, a nijedan predak nije `grid`/`table`/`treegrid` | ×7: `components.header` → `SchedulerColumnHeader` bez uloge. ×1: šim skida ulogu **samo** kad takav predak ne postoji |
 | `aria-required-children` | critical ×1 | `addons/dragAndDrop/WeekWrapper.js:249` ubacuje `<div class="rbc-addons-dnd-row-body">` kao direktno dijete `<div class="rbc-row-content" role="row">` (`DateContentRow.js:176-178`); `row` ne dopušta presentational djecu | šim skida nevažeći `role` |
 | `scrollable-region-focusable` | serious ×1 | `TimeGrid.js:339` renderuje `.rbc-time-content` bez `tabindex` (WCAG 2.1.1) | šim dodaje `tabindex="0"` |
 
@@ -6162,13 +6162,33 @@ za nju postoji podržana zamjena propom, pa se ne dira DOM koji React kontroliš
 
 ### Dokaz
 
-- `test:calendar-aria-shim` **7/7** — gradi jsdom fiksturu **doslovnim HTML-om iz CI anotacije**,
+- `test:calendar-aria-shim` **8/8** — gradi jsdom fiksturu **doslovnim HTML-om iz CI anotacije**,
   pokrene pravi `axe-core` prije i poslije, i izvršava isporučeni `.mjs`. Logika je zato u
   `.mjs` (ne u `.ts`), da test ne bi testirao svoju kopiju.
-- **Mutacije 4/4 uhvaćene:** šim ne skida `role` (3 pada) · ne dodaje `tabindex` (2) · bez
-  MutationObserver (1) · preširoko dira `columnheader` (2). Vraćeni fajl bajt-identičan, 0 pada.
-- Izmjereno u fiksturi: `aria-required-parent` je **×2**, ne ×1 — i `.rbc-row-content[role=row]`
-  traži roditelja (`rowgroup`/`grid`/`table`), pa jedan čvor nosi dva prekršaja.
+- **Mutacije 6/6 uhvaćene:** šim ne skida `role` (3 pada) · ne dodaje `tabindex` (2) · bez
+  MutationObserver (1) · preširoko dira `columnheader` (2) · skida `rowgroup` bez provjere
+  pretka (1) · uopšte ne dira `rowgroup` (2). Vraćeni fajl bajt-identičan, 0 pada.
+- Fiksura je **ugniježđena** kao stvarni DOM (`.rbc-row-content` unutar `.rbc-allday-cell`), pa
+  daje isti omjer kao stranica: `aria-required-children` ×1 i `aria-required-parent` ×2
+  (`rowgroup` + `columnheader`).
+
+> **Ispravka ranije tvrdnje u ovom unosu.** Prva verzija je tvrdila da je svih ×8 bio
+> `columnheader`, i da fiksura daje `aria-required-parent` ×2 „jer i `.rbc-row-content[role=row]`
+> traži roditelja". **Oba su netačna:** ×8 = 7 `columnheader` + 1 `rowgroup`, a u stvarnom DOM-u
+> `row` **ima** valjanog roditelja. Greška je bila artefakt **plitke** fiksure bez `rowgroup`
+> pretka, ne ponašanje stranice.
+
+### Potvrda dijelom — run `42871476988` (commit `cd6e14b`): 36 passed / 2 failed
+
+- `/admin/settings` je **zelen** — oba prekršaja (2.5.3 i 1.4.3) zatvorena.
+- Kalendar: `aria-required-children` i `scrollable-region-focusable` **nestali**;
+  `aria-required-parent` pao **8 → 1**, a preostali čvor je `.rbc-allday-cell[role="rowgroup"]` —
+  što je i otkrilo sastav ×8. Popravka dodana u šim u istom potezu.
+- **Novi pad na `/`:** `color-contrast` (serious) ×1. Nije postojao u runu `42866264214`, a nijedna
+  izmjena ovog poteza ne dira javni sajt. Uzrok **nije utvrđen**; u istom logu su dva
+  `[WebServer] Error: read ECONNRESET`, pa je nestabilnost moguća — ali to je pretpostavka, ne
+  nalaz. `a11y-routes.spec.ts` je nosio **staru** poruku (samo broj, bez čvora) — moj propust,
+  sada ispravljen u sva tri speka, pa će sljedeći run pokazati koji je element.
 
 ### Šta NIJE dokazano
 

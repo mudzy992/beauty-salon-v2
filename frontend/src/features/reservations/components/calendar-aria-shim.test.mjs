@@ -21,7 +21,9 @@ const { JSDOM } = require('jsdom')
  * reproducira. Šim se izvršava stvarno (zato je logika u .mjs, a ne u .ts).
  */
 const RBC_MARKUP = `<div id="cal">
-  <div class="rbc-row-content" role="row"><div class="rbc-addons-dnd-row-body"><div class="rbc-row"></div><div class="rbc-row"></div></div></div>
+  <div class="rbc-allday-cell" role="rowgroup">
+    <div class="rbc-row-content" role="row"><div class="rbc-addons-dnd-row-body"><div class="rbc-row"></div><div class="rbc-row"></div></div></div>
+  </div>
   <div class="rbc-header"><button type="button" class="rbc-button-link"><span role="columnheader" aria-sort="none">09 pon</span></button></div>
   <div class="rbc-time-content"></div>
 </div>`
@@ -57,10 +59,20 @@ const scheduler = readFileSync(new URL('./ReservationScheduler.tsx', import.meta
 test('fiksura reproducira prekršaje iz CI anotacije, prije bilo kakve popravke', async () => {
   const root = makeDom(RBC_MARKUP)
   const { counts } = await scan(root)
-  // Izmjereno: aria-required-parent je ×2, ne ×1 — i .rbc-row-content[role=row] traži roditelja
-  // (rowgroup/grid/table), pa jedan čvor nosi dva prekršaja.
+  // .rbc-row-content[role=row] ima valjanog roditelja (.rbc-allday-cell[role=rowgroup]), pa NE
+  // nosi aria-required-parent. Nosi ga sam rowgroup: nijedan predak nije grid/table/treegrid.
+  // Ukupno ×2 = rowgroup + columnheader, što je tačno omjer sa stvarne stranice (CI anotacija
+  // runa 42866264214: ×8 = 7 columnheader + 1 rowgroup; anotacija prikazuje samo prva 3 čvora,
+  // pa se rowgroup vidio tek kad su columnheaderi zatvoreni).
   assert.equal(counts['aria-required-children'], 1)
   assert.equal(counts['aria-required-parent'], 2)
+  const { violations } = await axe.run(root, { runOnly: RULES })
+  const parentTargets = violations
+    .find((v) => v.id === 'aria-required-parent')
+    .nodes.map((n) => n.target.join(' '))
+    .sort()
+  assert.deepEqual(parentTargets, ['.rbc-allday-cell', 'span'])
+  assert.equal(parentTargets.includes('.rbc-row-content'), false, 'row ima valjanog roditelja')
 })
 
 test('applyCalendarAriaShim skida nevažeći role="row" i dodaje tabindex skrolabilnoj regiji', async () => {
@@ -69,6 +81,8 @@ test('applyCalendarAriaShim skida nevažeći role="row" i dodaje tabindex skrola
 
   assert.equal(root.querySelector('.rbc-row-content').hasAttribute('role'), false)
   assert.equal(root.querySelector('.rbc-time-content').getAttribute('tabindex'), '0')
+
+  assert.equal(root.querySelector('.rbc-allday-cell').hasAttribute('role'), false)
 
   const { counts } = await scan(root)
   assert.equal(counts['aria-required-children'], 0)
@@ -137,6 +151,15 @@ test('šim je povezan na kontejner kalendara u ReservationScheduleru', () => {
   assert.match(scheduler, /const calendarShellRef = useRef<HTMLDivElement \| null>\(null\)/)
   assert.match(scheduler, /<div ref=\{calendarShellRef\} className="rounded-xl border border-line overflow-hidden">/)
   assert.match(scheduler, /header: SchedulerColumnHeader as any,/)
+})
+
+test('šim NE skida role="rowgroup" kad predak stvarno jeste grid/table/treegrid', () => {
+  const root = makeDom(
+    '<div id="cal"><div role="table"><div role="rowgroup"><div role="row"><div role="cell">x</div></div></div></div></div>',
+  )
+  applyCalendarAriaShim(root)
+  assert.equal(root.querySelector('[role="rowgroup"]').getAttribute('role'), 'rowgroup')
+  assert.equal(root.querySelector('[role="row"]').getAttribute('role'), 'row')
 })
 
 test('scrollable-region-focusable se u jsdomu NE može dokazati — nema rasporeda', async () => {

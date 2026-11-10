@@ -39,7 +39,18 @@ for (const route of PUBLIC_ROUTES) {
     expect(
       blocking,
       `${route.path}: ${blocking.length} critical/serious prekršaja\n` +
-        blocking.map((v) => `  ${v.id} (${v.impact}) ×${v.nodes.length}`).join('\n'),
+        blocking
+          .map(
+            (v) =>
+              // Target + HTML prvih čvorova: bez toga se zna samo BROJ prekršaja, ne i koji
+              // element — a log i artefakt se ne daju dohvatiti izvan GitHub blob storagea.
+              `  ${v.id} (${v.impact}) ×${v.nodes.length} :: ` +
+              v.nodes
+                .slice(0, 3)
+                .map((n) => `[${(n.target || []).join(' ')}] ${String(n.html || '').slice(0, 140)}`)
+                .join(' ~~ '),
+          )
+          .join('\n'),
     ).toEqual([])
   })
 }

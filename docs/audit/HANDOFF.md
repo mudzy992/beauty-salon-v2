@@ -1478,7 +1478,7 @@ artefakt su na blob storageu koji nije dostižan. Izmjereno iz anotacije runa `4
 |---|---|---|---|---|
 | `/admin/settings` | `label-content-name-mismatch` | serious ×11 | `aria-label` grupnog prekidača i dugmeta za uređivanje **nije sadržavao vidljivi tekst** (WCAG 2.5.3) | uklonjen `aria-label` s prekidača (stanje nosi `aria-expanded`, ime daje sadržaj); glagol u imenu dugmeta uzet iz iste grane kao i vidljivi tekst |
 | `/admin/settings` | `color-contrast` | serious ×1 | `text-slate-500` na bijeloj za opis taba | `text-slate-600` |
-| `/admin/reservations/calendar` | `aria-required-parent` | critical ×8 | `react-big-calendar` postavlja `role="columnheader"` na `<span>` (`Header.js:12-15`), a `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY` | `components.header` (podržana zamjena, `TimeGridHeader.js:91-92`) → `SchedulerColumnHeader` bez uloge |
+| `/admin/reservations/calendar` | `aria-required-parent` | critical ×8 | **dva različita uzroka**, a ne jedan: anotacija prikazuje samo prva 3 čvora, pa se drugi vidio tek kad je prvi zatvoren. (a) **×7** — `Header.js:12-15` postavlja `role="columnheader"` na `<span>`, a `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY`. (b) **×1** — `DateContentRow.js:159` postavlja `role="rowgroup"` na `.rbc-allday-cell` (`TimeGridHeader.js:63`), a nijedan predak nije `grid`/`table`/`treegrid` | (a) `components.header` (podržana zamjena, `TimeGridHeader.js:91-92`) → `SchedulerColumnHeader` bez uloge. (b) šim skida ulogu **samo** kad takav predak stvarno ne postoji |
 | `/admin/reservations/calendar` | `aria-required-children` | critical ×1 | `addons/dragAndDrop/WeekWrapper.js:249` ubacuje `<div class="rbc-addons-dnd-row-body">` kao direktno dijete `<div class="rbc-row-content" role="row">` (`DateContentRow.js:176-178`); `row` ne dopušta presentational djecu | šim skida nevažeći `role` |
 | `/admin/reservations/calendar` | `scrollable-region-focusable` | serious ×1 | `TimeGrid.js:339` renderuje `.rbc-time-content` bez `tabindex` (WCAG 2.1.1) | šim dodaje `tabindex="0"` |
 
@@ -1492,9 +1492,31 @@ podržana zamjena propom, pa se ne dira DOM koji React kontroliše.
 **Nuspojava:** ključevi `adminSettings.sections.expand` / `.collapse` su postali mrtvi pa su
 uklonjeni iz oba jezika (leaf **2712 → 2710**, paritet `check_i18n --strict` 0/0).
 
-**Dokaz:** `test:calendar-aria-shim` (7/7) gradi jsdom fiksturu **doslovnim HTML-om iz CI
+**Dokaz:** `test:calendar-aria-shim` (8/8) gradi jsdom fiksturu **doslovnim HTML-om iz CI
 anotacije**, pokrene pravi `axe-core` prije i poslije, i izvršava isporučeni `.mjs` (logika je
-zato u `.mjs`, ne u `.ts`). Mutacije 4/4 uhvaćene.
+zato u `.mjs`, ne u `.ts`). Mutacije 6/6 uhvaćene.
+
+> **Ispravka ranije tvrdnje u ovom zapisu.** Prva verzija je tvrdila da je svih ×8 bio
+> `columnheader`, i da fiksura daje `aria-required-parent` ×2 „jer i `.rbc-row-content[role=row]`
+> traži roditelja". **Oba su netačna.** Prvo: ×8 = 7 `columnheader` + 1 `rowgroup`. Drugo: u
+> stvarnom DOM-u `row` **ima** valjanog roditelja (`.rbc-allday-cell[role=rowgroup]`), pa taj ×2
+> nije dolazio od `row`-a nego od `rowgroup`-a i `columnheader`-a. Greška je nastala iz **plitke**
+> fiksure bez `rowgroup` pretka — artefakt mog testnog markupa, ne ponašanje stranice. Fiksura je
+> sada ugniježđena kao stvarni DOM, pa daje isti omjer: `aria-required-children` ×1 i
+> `aria-required-parent` ×2.
+
+**Potvrda dijelom (run `42871476988`, commit `cd6e14b`): 36 passed / 2 failed.**
+`/admin/settings` je **zelen** (oba prekršaja zatvorena). Na kalendaru su
+`aria-required-children` i `scrollable-region-focusable` **nestali**, a `aria-required-parent`
+pao s 8 na **1** — preostali čvor je upravo `.rbc-allday-cell[role="rowgroup"]`, što je i
+otkrilo sastav ×8. Popravka je u istom potezu dodana u šim.
+
+**Novi pad na `/` (`color-contrast` serious ×1)** — nije postojao u runu `42866264214`, a nijedna
+izmjena ovog poteza ne dira javni sajt (sve tri datoteke su admin, ključevi su admin). Uzrok
+**nije utvrđen**; u istom logu su dva `[WebServer] Error: read ECONNRESET`, pa je nestabilnost
+moguća, ali to je pretpostavka, ne nalaz. `a11y-routes.spec.ts` je nosio **staru** poruku
+asertacije (samo broj, bez čvora) — moj propust, sada ispravljen u sva tri speka, pa će sljedeći
+run pokazati koji je element.
 
 **Šta ovaj test NE dokazuje:** `scrollable-region-focusable` se u jsdomu **uopšte ne
 primjenjuje** (nema rasporeda → regija nije skrolabilna), pa je `tabindex="0"` provjeren samo
@@ -1769,8 +1791,9 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    u §3.1d. Posljednji izmjereni run prije te popravke: **36 passed / 2 failed**.
 4. **Skinuti `continue-on-error` s axe koraka** u poslu `a11y-e2e` — tek nakon što stavka 3
    da potvrđen zeleni run. Bez toga axe regresiju ne blokira; skidati naslijepo bi značilo
-   crven CI bez dokaza da je problem stvaran. **Još NIJE skinuto:** popravka iz §3.1d je
-   pushovana, ali zeleni run (0 failed) još nije potvrđen.
+   crven CI bez dokaza da je problem stvaran. **Još NIJE skinuto.** Stanje: run `42871476988`
+   je i dalje **2 failed** (`/` kontrast + `rowgroup` na kalendaru), oboje adresirano u §3.1d
+   ali nijedno još potvrđeno zelenim runom.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.
