@@ -713,6 +713,9 @@ jobs:
       - name: Render admin templates and dashboard (catches runtime crashes static tests miss)
         working-directory: frontend
         run: npm run test:admin-render-smoke
+      - name: Run axe-core over rendered markup (no browser; jsdom DOM, structural rules only)
+        working-directory: frontend
+        run: npm run test:axe-render-a11y
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build

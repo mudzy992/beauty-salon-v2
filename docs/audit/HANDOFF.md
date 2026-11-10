@@ -1256,7 +1256,7 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 
 | Provjera | Rezultat |
 |---|---|
-| `test:*` skripti (frontend) | **183/183** skripti, 0 padova — **703** pojedinačna testa |
+| `test:*` skripti (frontend) | **184/184** skripti, 0 padova — **708** pojedinačnih testova |
 | `tsc --noEmit` | exit **0** |
 | `npm run lint` | **0 errors** / 7 warnings |
 | `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
@@ -1264,7 +1264,7 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 | `check_i18n.py --strict` | PASS — **2662** leaf ključeva po jeziku, 0 razlika BS↔EN |
 | `check_repo_hygiene.py` | PASS — **1712** putanja |
 | `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
-| `check_ci_index.py` | PASS — **363/366** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
+| `check_ci_index.py` | PASS — **364/367** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
 | **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
 | `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
 
@@ -1447,11 +1447,16 @@ description="d"><input /></FormSection>` — golo `<input>` je napisan kao fixtu
 - ❌ stanje s podacima i `/admin/**` rute — `render-smoke` pokriva šablone i dashboard, ne
   cijele stranice s ruterom i API-jem.
 
-**Preduslov koji čeka odobrenje:** `jsdom` kao devDependency. **Nije** na Q4 listi
-(`@axe-core/playwright`, `@playwright/test`, `eslint-plugin-jsx-a11y`), pa **nije dodan bez
-odobrenja**. Instalacija radi: `jsdom@31.0.0` s `registry.npmjs.org`, 28 paketa, ~2 s.
-Mjerenje je izvedeno instalacijom u `/tmp/axe-probe`, tako da repo i `package-lock.json`
-nisu dirnuti.
+**Odobreno i implementirano 2026-11-10.** Vlasnik je odgovorio „Da — dodaj jsdom + trajni
+test". `jsdom@^31.0.0` je devDependency, a trajni test je
+`src/features/shell/admin/ui/axe-render-a11y.test.mjs` (skripta `test:axe-render-a11y`,
+korak u `ci.yml`): **5 testova, 35 scenarija, 0 prekršaja**, mutacije **6/6**.
+
+Jedna tvrdnja iz probe bila je **netačna** i ispravljena je mjerenjem: uz scope
+`document.body` pravila `html-has-lang`, `document-title` i `landmark-one-main` su
+**inapplicable** — ne evaluiraju se uopšte, pa omotač `<html lang="bs">` ne doprinosi
+pokrivenosti. `<main>` u omotaču **je** nužan (bez njega `region` pada na svakoj komponenti).
+Novi test tu granicu asertuje, pa proširenje scope-a na `document` ne može proći tiho.
 
 ### 3.2 Backend nije bio podignut ni u javnom runu
 
@@ -1605,11 +1610,10 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.
-7. **Djelimični rendered dokaz bez preglednika — čeka odobrenje za `jsdom`.** Izmjereno
-   (§3.1b): axe nad `renderToStaticMarkup` markupom u `jsdom` daje **31** prolaznih
-   strukturnih pravila na **35** scenarija, uz **0 stvarnih nalaza**. Ne pokriva kontrast,
-   2.5.3, veličinu mete, reflow ni stanje s podacima — ali pokriva sve ono što dosad nije
-   imalo **nikakav** rendered dokaz.
+7. ~~Djelimični rendered dokaz bez preglednika~~ — **ZATVORENO 2026-11-10** (§3.1b):
+   `test:axe-render-a11y` pokreće pravi axe nad renderovanim markupom (35 scenarija,
+   0 prekršaja, mutacije 6/6). Ne pokriva kontrast, 2.5.3, veličinu mete, reflow ni stanje s
+   podacima — ali pokriva strukturna pravila koja dosad nisu imala **nikakav** rendered dokaz.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,

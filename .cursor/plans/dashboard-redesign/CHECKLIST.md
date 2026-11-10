@@ -455,6 +455,30 @@ dva** načina prijenosa koja nijedan test nije pokrivao.
 - [ ] **Ograničenje:** provjera je iz izvora — dokazuje da ključ postoji u oba jezika, ne da
       ga i18next zaista ispiše u pregledniku.
 
+### Rendered axe bez preglednika — `test:axe-render-a11y` (2026-11-10, odobrio vlasnik)
+
+- [x] **`jsdom@^31.0.0` dodan kao devDependency** (vlasnik: „Da — dodaj jsdom + trajni test").
+      Q4 je odobravao tri paketa; `jsdom` nije bio među njima, pa je odluka tražena, ne
+      donesena tiho.
+- [x] **Izdvojen `render-harness.mjs`** iz `render-smoke.test.mjs` (510 → 90 linija) jer dva
+      testa trebaju isti esbuild bundle. Sigurnost izdvajanja izmjerena **prije** izmjene:
+      fajl nijedan test ne čita po putanji. `test:admin-render-smoke` i dalje **42/42**.
+- [x] **Novi test (5 testova)** pokreće pravi `axe-core@4.14.0` nad `renderToStaticMarkup`
+      markupom: **35 scenarija, 0 prekršaja**, uz kontrole da axe nije radio prazno.
+- [x] **Fixture popravljen, nalaz nije sakriven** — `<FormSection><input /></FormSection>` je
+      davao `label [critical]`; umjesto allowlist-a fixture je dobio `<label htmlFor>` +
+      `<input id>`, pa je asertacija „0 prekršaja" bez izuzetaka.
+- [x] **Vlastita netačna tvrdnja ispravljena mjerenjem:** komentari su tvrdili da omotač
+      `<html lang="bs">` čini da `html-has-lang`/`landmark-one-main` prolaze. Izmjereno: uz
+      scope `body` ta pravila su **inapplicable** — ne evaluiraju se uopšte. Test 4 tu granicu
+      sada asertuje. `<main>` u omotaču **je** nužan (bez njega `region` pada na svakoj
+      komponenti — izmjereno).
+- [x] **Mutacije 6/6**, uključujući A2 koja je stvarna produktna regresija
+      (`aria-sort="asc"` umjesto `"ascending"` u `data-table.tsx`).
+- [ ] **Ne pokriva:** kontrast, 2.5.3, 2.5.8, 1.4.10, 1.4.12, 2.4.3 (treba raspored),
+      dokument-nivo pravila, `/admin/**` rute i stanje s podacima. `@axe-core/playwright`
+      i dalje neizvršen.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)

@@ -5420,3 +5420,102 @@ tačno tri paketa — `@axe-core/playwright`, `@playwright/test`, `eslint-plugin
   mobilni raspored dugmadi koji se na `sm:` vraća u DOM redoslijed — nije 1.3.2 prekršaj.
 
 Zabilježeno u `docs/audit/HANDOFF.md` §3.1b (novo) i §4 stavka 7.
+
+---
+
+## 2026-11-10 — axe-core nad stvarno renderovanim markupom: `test:axe-render-a11y` (vlasnik odobrio `jsdom`)
+
+Vlasnik je na izmjerenu ponudu odgovorio „Da — dodaj jsdom + trajni test".
+
+### Šta je dodato
+
+**`jsdom@^31.0.0`** kao devDependency (`registry.npmjs.org`, 27 paketa, lockfile sinhronizovan
+— provjereno: `packages['node_modules/jsdom'].version === '31.0.0'`).
+
+**Novi test `src/features/shell/admin/ui/axe-render-a11y.test.mjs`** (5 testova), skripta
+`test:axe-render-a11y`, korak u `ci.yml` odmah poslije `test:admin-render-smoke`.
+`check_ci_index` **363/366 → 364/367**.
+
+**Izdvojen `render-harness.mjs`** iz `render-smoke.test.mjs` (510 → **90** linija; harness
+**438**). Razlog: dva testa sada trebaju **isti** esbuild bundle + stub-ove, a ~415 linija
+ENTRY-ja i esbuild konfiguracije u dva primjerka bi se neminovno razdvojila. Sigurnost
+izdvajanja je izmjerena prije izmjene: `render-smoke.test.mjs` **nijedan test ne čita po
+putanji** — referenciraju ga samo `package.json:196` i `ci.yml:715` kao skriptu.
+Poslije izdvajanja `test:admin-render-smoke` i dalje **42/42**.
+
+### Popravljen fixture, ne zaobiđen nalaz
+
+Proba je pokazala jedan violation: `FormSection: label [critical] -> <input>`. Nije proizvodni
+defekt — `render-harness.mjs` je doslovno renderovao `<FormSection><input /></FormSection>`.
+Umjesto allowlist-a koji bi taj nalaz sakrio, fixture je popravljen u realan obrazac
+(`<label htmlFor> + <input id>`), pa je glavna asertacija sada **0 prekršaja bez izuzetaka**.
+
+### Pet testova i zašto svaki postoji
+
+| # | Test | Šta garantuje |
+|---|---|---|
+| 1 | nijedan WCAG prekršaj nad renderovanim markupom | **0** violation-a na **35** scenarija |
+| 2 | axe je stvarno evaluirao pravila | ≥25 scenarija, ≥20 prošlih pravila, i **tačan** skup INCOMPLETE pravila |
+| 3 | axe hvata `<input>` bez imena | bez ovoga „0 prekršaja" ne znači ništa |
+| 4 | dokument-nivo pravila se **ne** evaluiraju | scope je `body` — vidi ispod |
+| 5 | axe hvata `role="slider"` bez `aria-valuenow` | strukturna ARIA pravila se zaista evaluiraju |
+
+### Izmjerena granica — i jedna moja netačna tvrdnja ispravljena
+
+Prva verzija komentara tvrdila je da omotač `<html lang="bs">` čini da `html-has-lang` i
+`landmark-one-main` „prođu". **To nije tačno.** Mjerenje (scope `body` vs `document`):
+
+| Pravilo | scope `body` | scope `document` |
+|---|---|---|
+| `html-has-lang` | **inapplicable** | pass / VIOLATION |
+| `document-title` | **inapplicable** | pass |
+| `landmark-one-main` | **inapplicable** | incomplete |
+| `region` | pass | pass |
+| `button-name` | VIOLATION | VIOLATION |
+
+Dakle `lang="bs"` je **inertan** — dokument-nivo pravila se uopšte ne evaluiraju. Komentar je
+ispravljen, a test 4 tu granicu sada **asertuje**, pa ako neko sutra proširi scope na
+`document`, test pada i podsjeća da bi tada ti prolazi dolazili od **omotača**, ne od koda.
+
+`<main>` u omotaču **je** nužan i to je izmjereno: bez njega `region` pada na svakoj
+komponenti (s `<main>` → pass, bez → VIOLATION), a landmark je svojstvo shell-a
+(`admin-layout.tsx:179`, `StylistLayout.tsx:166`, `public-layout.tsx:394`), ne komponente.
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Uhvatio |
+|---|---|---|
+| A1 | fixture nazad na golo `<input />` | test 1 |
+| A2 | **produkt**: `aria-sort="asc"` umjesto `"ascending"` u `data-table.tsx` | test 1 |
+| A3 | scope proširen s `body` na `document` | testovi 1, 2 i 4 |
+| A4 | kontrola za `label` onesposobljena | test 3 |
+| A5 | skup INCOMPLETE pravila promijenjen | test 2 |
+| A6 | kontrola za `aria-required-attr` onesposobljena | test 5 |
+
+Svaka: `cp` u `/tmp/abk/`, vraćeno, `filecmp.cmp(shallow=False)` potvrđuje.
+
+### Dvije greške napravljene i uhvaćene pri pisanju testa
+
+1. Ostavio sam **prazan test** (`test('pozitivna kontrola…', () => { /* komentar */ })`) —
+   uvijek prolazi, a ime tvrdi da nešto provjerava. Uklonjen; broj `test()` poziva asertovan.
+2. Zalutali CJK znakovi (U+7EC4 U+4EF6, kineski „komponenta") umjesto latiničnog — uhvaćeni skenom nad opsezima U+0400–U+04FF i U+3000–U+9FFF.
+
+### Kapije
+
+`test:*` **184/184** skripti (**708** pojedinačnih testova, 0 padova — bilo 703/183) ·
+`tsc --noEmit` exit **0** · lint **0 errors / 7 warnings** · build **274.3 KiB**/300 ·
+`check_ui_contrast --strict` **80/80** · `check_i18n --strict` **2662** leaf ·
+`check_repo_hygiene` **1712** · `check_doc_links` **670/202** · `check_ci_index` **364/367** ·
+`git diff --check` čist · sken ćirilice/CJK nad sva tri nova/dirnuta fajla: **0**.
+
+### Šta ovo i dalje NE dokazuje
+
+Kontrast (1.4.3/1.4.6 — `check_ui_contrast.py --strict`), 2.5.3 Label in Name, 2.5.8 Target
+Size, 1.4.10 Reflow, 1.4.12 Text Spacing, 2.4.3 Focus Order — sve treba raspored, a `jsdom` ga
+nema (`color-contrast`, `label-content-name-mismatch`, `th-has-data-cells` ostaju
+**INCOMPLETE**). Ne pokriva ni `/admin/**` rute ni stanje s podacima: harness renderuje
+šablone i dashboard. `@axe-core/playwright` i dalje ostaje neizvršen.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`.
+Jedini produkcijski fajl dirnut tokom mutacija bio je `data-table.tsx` i **vraćen je**
+(`filecmp` potvrđuje) — u commitu nema izmjena produkcijskog koda osim harness-a.
