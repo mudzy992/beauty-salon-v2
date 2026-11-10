@@ -644,6 +644,13 @@ jobs:
       - name: Test API-error translation keys resolve and match backend messages
         working-directory: frontend
         run: npm run test:api-error-keys-i18n
+      # Guard: INVENTAR mjesta gdje sirova bosanska poruka iz backenda stize do UI-ja
+      # (16 sirovih naslova + 37 toastApiError s previsenim naslovom a sirovim opisom).
+      # Ne mijenja ponasanje i ne bira popravku — to je odluka vlasnika (I18N-01).
+      # Pada ako se spisak promijeni, da se odluka donese svjesno, ne tiho.
+      - name: Test raw API-error exposure inventory is unchanged
+        working-directory: frontend
+        run: npm run test:raw-api-error-exposure
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard

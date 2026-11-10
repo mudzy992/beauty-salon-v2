@@ -5627,3 +5627,100 @@ Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSe
 Jedini produkcijski fajlovi dirnuti tokom mutacija bili su `backend/src/finance/
 client-debts.service.ts` i `frontend/src/features/admin/admin-api-error.mjs` — oba **vraćena**
 (`git status --porcelain` pokazuje samo 3 namjerna fajla).
+
+## 2026-11-10 — Inventar izloženosti sirovim serverskim porukama: `test:raw-api-error-exposure`
+
+### Prvo: zatvoren rizik iz prethodnog commita
+
+Prethodni commit je dirao `.github/workflows/ci.yml`, a **nijedna kapija ne provjerava YAML
+validnost** — `check_ci_index.py` to radi namjerno po uvlačenju (docstring: „``pyyaml`` is
+deliberately NOT used", jer `repo-checks` job ima goli Python). Provjereno `js-yaml@4.3.2`
+koji već postoji kao transitivna zavisnost: workflow parsira, 5 poslova, 412 koraka, moj
+korak prisutan tačno jednom s `working-directory: frontend` i istim skupom ključeva kao
+prethodni korak. **Nisam dodao YAML parser kao zavisnost** — to je odluka vlasnika.
+
+### Mjerenje: kuda sirova bosanska poruka stvarno stiže do korisnika
+
+`getErrorMessage(err, fallback)` (`api/error.ts`) vraća `response.data.message` **sirovo**.
+Izmjeren inventar nad 298 izvornih fajlova:
+
+| Kategorija | Broj | Šta korisnik vidi |
+|---|---|---|
+| A) mapirano (poruka → resolver → `t()`) | **8** | prevedeno |
+| B) **sirov naslov** — `toast.error(getErrorMessage(err, t(...)))` | **16** | **cijeli toast bosanski**, prevedeni fallback odbačen |
+| C) predikat — poruka se čita samo kao regex nad `message` (traži „zaključan" ili „KIF") | 1 | prevedeno (prikaz ide kroz D) |
+| D) `toastApiError(err, t(...))` | **37** | naslov preveden, **opis sirov** |
+
+Render-put za D je **potvrđen u izvoru sonner-a**, ne pretpostavljen:
+`React.createElement("div", { "data-description": "" }, …description)` — opis je vidljiv
+tekst u DOM-u, ne samo developerska informacija. Za EN korisnika to je WCAG **3.1.2**
+(Language of Parts): dio sadržaja na drugom jeziku, neoznačen.
+
+### Vlastito mjerenje ispravljeno prije nego što je postalo tvrdnja
+
+Prvi pokušaj je tvrdio da **1** poziv `toastApiError` ne prosljeđuje naslov i time prikazuje
+hardkodirano bosansko `'Greška'` iz default parametra. Bilo je pogrešno: parser je gledao
+**samo jednu liniju**, a poziv u `use-reservation-detail-actions.ts:90` je višelinijski.
+Ponovljeno s balansiranim zagradama preko više linija: **svih 37** poziva prosljeđuje drugi
+argument (36 s `t(...)`, 1 s prevedenom validacijskom porukom iz
+`complete-reservation-dialog.tsx:102/106/116`). Default `'Greška'` se **nikad ne koristi**,
+pa **nije** živ defekt i nije „popravljan".
+
+Druga greška istog tipa: klasifikator je `use-reservation-detail-actions.ts` svrstao u
+sirove, jer tamo poruka ide u `toastApiError` (već brojan u D), a ne u naslov. Dodana
+eksplicitna kategorija C, pa se ne broji dvaput.
+
+### Novi test — `frontend/src/app/raw-api-error-exposure.test.mjs`, 5 testova
+
+1. inventar sirovih naslova **po fajlu** (ne po brojevima linija — ti se pomjeraju)
+2. broj mapiranih mjesta ne smije pasti (≥8), uz provjeru da su resolveri prepoznati u
+   `Users.tsx` / `Services.tsx` / `Profile.tsx`
+3. `toastApiError`: tačno 37 poziva, **svaki** s naslovom, tačno 1 bez direktnog `t(...)`
+4. skup predikat-mjesta zaključan
+5. pozitivna kontrola: `Users.tsx` mapirano, `Loyalty.tsx` sirovo, predikat-mjesto nije sirovo
+
+Pozitivna kontrola opsega: skenirano > 250 fajlova (izmjereno 298) — bez toga prazan
+sakupljač „prolazi". Prag je isprva bio 300, pao je na stvarnom broju, pa je spušten na
+izmjerenu vrijednost.
+
+Registracija: `frontend/package.json` (186 `test:*` skripti, bilo 185) + `ci.yml` korak.
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Uhvatio |
+|---|---|---|
+| C1 | novo sirovo mjesto u `Loyalty.tsx` | test 1 |
+| C2 | uklonjen resolver u `Users.tsx` (poruka ide sirova) | testovi 1, 2, 5 |
+| C3 | `toastApiError` poziv bez naslova (default „Greška") | test 3 |
+| C4 | predikat preimenovan → mjesto postaje sirovo | testovi 1, 4, 5 |
+| C5 | klasifikator onesposobljen (sve ide u mapped) | testovi 1, 4, 5 |
+| C6 | sakupljač fajlova vraća prazno | svih 5 (pozitivna kontrola) |
+
+`restore()` ovog puta vraća **i sâm test fajl** — lekcija iz prethodnog commita, gdje je
+mutacija B6 tiho ostala u fajlu. Restauracija potvrđena `filecmp.cmp(shallow=False)` za sva
+četiri fajla: `True`.
+
+### Šta ovaj test NE radi
+
+**Ne mijenja ponašanje i ne bira popravku.** Hoće li se 16 sirovih naslova provući kroz
+resolver, hoće li se sirovi opisi označiti `lang`, ili će se problem riješiti kodovima
+grešaka u backendu — **odluka je vlasnika** (`I18N-01`). Test postoji da se spisak ne može
+tiho povećati.
+
+Napomena uz opciju „označiti `lang=bs`": nije jednoznačno ispravna. `getErrorMessage` pada
+na `axiosErr.message` kad backend ne vrati poruku, a to je **engleski** tekst
+(„Request failed with status code 500"), pa hardkodiran `lang="bs"` ne bi bio tačan.
+
+### Kapije
+
+`test:*` **185/186** skripti prošle (**717** pojedinačnih testova, **0** padova;
+`test:a11y-routes` preskočen jer je interaktivan — bilo 712/185) · `tsc --noEmit` exit **0** ·
+lint **0 errors / 7 warnings** · build **274.3 KiB**/300 · `check_i18n --strict` **2662**
+leaf · `check_repo_hygiene` **1715** · `check_ci_index` **366/369** · CI YAML parsiran
+(`js-yaml`, 5 poslova / 413 koraka) · `git diff --check` čist · sken ćirilice/CJK nad novim
+linijama: **0**.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`.
+Produkcijski fajlovi dirnuti tokom mutacija (`Loyalty.tsx`, `Users.tsx`,
+`use-reservation-detail-actions.ts`) **vraćeni su** — `git status --porcelain` pokazuje samo
+3 namjerna fajla.

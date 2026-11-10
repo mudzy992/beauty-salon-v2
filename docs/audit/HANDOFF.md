@@ -1256,15 +1256,15 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 
 | Provjera | Rezultat |
 |---|---|
-| `test:*` skripti (frontend) | **184/185** skripti, 0 padova — **712** pojedinačnih testova (`test:a11y-routes` preskočen jer je interaktivan) |
+| `test:*` skripti (frontend) | **185/186** skripti, 0 padova — **717** pojedinačnih testova (`test:a11y-routes` preskočen jer je interaktivan) |
 | `tsc --noEmit` | exit **0** |
 | `npm run lint` | **0 errors** / 7 warnings |
 | `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
 | `check_ui_contrast.py --strict` | **80/80** |
 | `check_i18n.py --strict` | PASS — **2662** leaf ključeva po jeziku, 0 razlika BS↔EN |
-| `check_repo_hygiene.py` | PASS — **1714** putanja |
+| `check_repo_hygiene.py` | PASS — **1715** putanja |
 | `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
-| `check_ci_index.py` | PASS — **365/368** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
+| `check_ci_index.py` | PASS — **366/369** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
 | **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
 | `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
 
@@ -1287,6 +1287,21 @@ bi tiho vratio generički fallback) i (b) da svaki vraćeni ključ postoji u oba
 vraćaju kratke ključeve bez imenskog prostora (`errorSlotUnavailable`), koje pozivatelj tek
 prefiksira, pa ih `test:i18n-key-resolution` ne vidi — dokazano mutacijom B3 (obrisan EN
 ključ → taj test **prolazi**, novi pada). Mutacije **6/6**.
+
+**Dodano odmah zatim — `test:raw-api-error-exposure` (5 testova).** Izmjeren je inventar
+mjesta gdje sirova bosanska poruka stvarno stiže do korisnika: **8** mapirano, **16** sirovih
+naslova (`toast.error(getErrorMessage(err, t(...)))` — prevedeni fallback biva odbačen, pa je
+cijeli toast bosanski), **1** predikat i **37** `toastApiError` poziva gdje je naslov preveden
+a **opis sirov**. Render-put opisa potvrđen je u izvoru sonner-a (`<div data-description>`),
+ne pretpostavljen. Za EN korisnika to je WCAG 3.1.2 (Language of Parts). Test **zaključava
+inventar i ne bira popravku** — mutacije 6/6. Usput ispravljeno vlastito mjerenje: prvi
+parser je gledao jednu liniju pa je tvrdio da 1 poziv prikazuje hardkodirano „Greška";
+ponovljeno preko više linija, **svih 37** prosljeđuje naslov, pa default nije živ defekt.
+
+**CI YAML validnost nije pokrivena nijednom kapijom** — `check_ci_index.py` namjerno parsira
+po uvlačenju jer `repo-checks` job ima goli Python. Provjereno ručno `js-yaml@4.3.2`
+(transitivna zavisnost): workflow parsira, 5 poslova, 413 koraka. Parser **nije** dodan kao
+zavisnost — to je odluka vlasnika.
 
 Backend i dalje nema funkcionalan i18n sloj: **0** pogodaka za `nestjs-i18n` / `I18nService`
 / `Accept-Language` / `errorCode`; `backend/src/i18n/constants.ts` postoji ali je **mrtav kod**
@@ -1635,8 +1650,12 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 8. **Odlučiti o API-greškama (`I18N-01`)** — backend vraća **191** različitih bosanskih
    poruka, a frontend prevodi samo **40** po tačnom tekstu. To je krhko (promjena jednog
    znaka u backendu tiho vraća generički fallback), ali sada **zaključano testom**
-   `test:api-error-keys-i18n` (2026-11-10, mutacije 6/6). Trajna popravka traži odluku
-   vlasnika: kodovi grešaka ili backend i18n sloj. **Nije** odlučeno ovdje.
+   `test:api-error-keys-i18n` (2026-11-10, mutacije 6/6). Izloženost je sada i **izmjerena i
+   zaključana**: `test:raw-api-error-exposure` čuva inventar od **16** sirovih naslova i
+   **37** sirovih opisa (mutacije 6/6). Trajna popravka traži odluku vlasnika: (a) provući
+   tih 16 kroz postojeće resolvere, (b) označiti sirove opise jezikom — uz napomenu da to
+   nije jednoznačno, jer `getErrorMessage` pada na **engleski** `axiosErr.message` kad backend
+   ne vrati poruku, ili (c) kodovi grešaka / backend i18n sloj. **Nije** odlučeno ovdje.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,

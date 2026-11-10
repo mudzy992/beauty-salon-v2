@@ -507,6 +507,30 @@ korak u `ci.yml` odmah poslije `test:i18n-key-resolution`.
       fallback. Trajna popravka traži odluku vlasnika — kodovi grešaka ili backend i18n sloj
       (`I18N-01`, `docs/audit/FINDINGS.md`; `docs/audit/HANDOFF.md` §4 stavka 8).
 
+### Inventar izloženosti sirovim serverskim porukama (2026-11-10)
+
+`frontend/src/app/raw-api-error-exposure.test.mjs` — skripta `test:raw-api-error-exposure`.
+
+- [x] **Zatvoren rizik iz prethodnog commita:** nijedna kapija ne provjerava YAML validnost
+      (`check_ci_index.py` namjerno parsira po uvlačenju). Provjereno `js-yaml@4.3.2`
+      (transitivna zavisnost): workflow parsira, 5 poslova, 413 koraka. Parser **nije**
+      dodan kao zavisnost.
+- [x] **Izmjeren inventar** nad 298 izvornih fajlova: **8** mapirano · **16** sirovih naslova ·
+      **1** predikat · **37** `toastApiError` (naslov preveden, **opis sirov**).
+- [x] **Render-put potvrđen, ne pretpostavljen:** sonner ubacuje `description` u
+      `<div data-description>` kao vidljiv tekst. Za EN korisnika = WCAG **3.1.2**.
+- [x] **Vlastito mjerenje ispravljeno prije tvrdnje:** prvi parser je gledao jednu liniju pa
+      je tvrdio da 1 poziv prikazuje hardkodirano „Greška". Ponovljeno preko više linija:
+      **svih 37** prosljeđuje naslov → default **nije** živ defekt i nije „popravljan".
+- [x] **5 testova**, inventar po **fajlu** (ne po brojevima linija), uz pozitivnu kontrolu
+      opsega (> 250 skeniranih fajlova, izmjereno 298).
+- [x] **Mutacije 6/6**; `restore()` ovog puta vraća i sâm test fajl, restauracija potvrđena
+      `filecmp.cmp(shallow=False)` za sva 4 fajla.
+- [ ] **Ne mijenja ponašanje i ne bira popravku.** Opcije su (a) provući 16 sirovih naslova
+      kroz postojeće resolvere, (b) označiti sirove opise jezikom — **nije jednoznačno**, jer
+      `getErrorMessage` pada na **engleski** `axiosErr.message` kad backend ne vrati poruku,
+      ili (c) kodovi grešaka / backend i18n sloj. Odluka vlasnika (`I18N-01`).
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)
