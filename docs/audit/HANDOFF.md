@@ -1995,3 +1995,21 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 >   **ima** (`public-layout.tsx:394`) pa uzrok pada **nije utvrđen**; dodan ispis viđenih
 >   landmarka da sljedeći run to razriješi umjesto nagađanja.
 > Matrica **nije** dirnuta: nijedan od ova četiri kriterija ne ide na ✅ dok CI ne pozeleni.
+
+> **Zatvoreno 2026-11-08 — 2.5.3 Label in Name (rendered dokaz):** axe ovo pravilo **ne može**
+> presuditi, pa je mjeren direktno. Redoslijed dokaza, jer je svaki korak promijenio zaključak:
+> 1. Dijagnostika (run `42893779087`) pokazala je da `incomplete 22/32` nije 22 problema nego
+>    **jedan** element na 22 rute: `<button aria-label="Admin meni">` s vidljivim inicijalima.
+> 2. To **nije** bila samo axe-ova nesigurnost nego stvarni prekršaj — glasovni korisnik koji
+>    izgovori ono što vidi nije pogađao dugme. Isti obrazac nađen na **5** mjesta (admin omotač
+>    ×2, javni omotač, stylist omotač, registracija) i popravljen preko `labelWithVisibleText()`.
+> 3. Nakon popravke (run `42895442598`) ime je postalo „Admin meni, C", a axe je **i dalje**
+>    javljao `incomplete 22/22`. Zaključak: ograničenje alata, ne nalaz.
+> 4. Zato je dodana mjera `labelInNameViolations()` koja u Chromiumu upoređuje `aria-label` s
+>    `innerText` — 9 javnih + 15 admin ruta, **0** prekršaja (run `42898886511`, **98/0/0**).
+>
+> **Dvije greške koje je mjera otkrila na sebi samoj, obje javno zabilježene:**
+> `` `${interactive}[aria-label]` `` dodaje atribut **samo zadnjem** selektoru liste, pa su svi
+> linkovi i dugmad ušli u provjeru i javljali „nije u „null"" (run `42896831615`); a `innerText`
+> nad `<select>` vraća spojen tekst **svih** opcija, što je lažni prekršaj (run `42897798720`).
+> Opseg je sada onaj koji kriterij stvarno pokriva: dugmad, linkovi i dugmad-uloge.
