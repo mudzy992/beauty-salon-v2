@@ -581,6 +581,9 @@ jobs:
       - name: Test salon services and stylists accessibility
         working-directory: frontend
         run: npm run test:salon-services-stylists-a11y
+      - name: Test react-big-calendar ARIA shim
+        working-directory: frontend
+        run: npm run test:calendar-aria-shim
       - name: Test admin content page accessibility
         working-directory: frontend
         run: npm run test:admin-content-a11y

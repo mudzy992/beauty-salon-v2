@@ -80,7 +80,7 @@ export function SettingsTabNav() {
               >
                 {t(`adminSettings.nav.${tab}`)}
               </span>
-              <span className="mt-0.5 block text-xs leading-4 text-slate-500">
+              <span className="mt-0.5 block text-xs leading-4 text-slate-600">
                 {t(`adminSettings.navDescriptions.${tab}`)}
               </span>
             </span>

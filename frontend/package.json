@@ -162,6 +162,7 @@
     "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs",
     "test:users-a11y": "node --test src/features/users/users-a11y.test.mjs",
     "test:salon-services-stylists-a11y": "node --test src/features/salon/salon-services-stylists-a11y.test.mjs",
+    "test:calendar-aria-shim": "node --test src/features/reservations/components/calendar-aria-shim.test.mjs",
     "test:admin-content-a11y": "node --test src/features/content/admin-content-a11y.test.mjs",
     "test:settings-semantic-tokens": "node --test src/features/settings/settings-semantic-tokens.test.mjs",
     "test:admin-settings-controls-a11y": "node --test src/features/settings/admin-settings-controls-a11y.test.mjs",

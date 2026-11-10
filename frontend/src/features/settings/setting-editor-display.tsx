@@ -61,7 +61,9 @@ export function SettingEditorDisplay({
           variant="outline"
           size="sm"
           onClick={onEdit}
-          aria-label={t('adminSettings.editor.editSetting', { label: displayLabel })}
+          // 2.5.3: ime mora sadržavati vidljivi tekst. Glagol se zato uzima iz iste
+          // grane kao i vidljivi tekst — inače „Postavi" ne bi bilo sadržano u „Uredi: X".
+          aria-label={`${hasValue ? t('common.edit') : t('adminSettings.editor.configure')}: ${displayLabel}`}
         >
           <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
           {hasValue ? t('common.edit') : t('adminSettings.editor.configure')}

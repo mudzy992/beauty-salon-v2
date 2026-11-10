@@ -1467,6 +1467,42 @@ pozadini, pa `text-slate-500` (4.76:1 na bijeloj) nije mogao otkriti isti tekst 
 `bg-slate-200` (3.86:1). **Source-level sweep nije zamjena za rendered provjeru**, čak ni uz
 pokrivenost od 178 fajlova.
 
+### 3.1d Popravka preostalih prekršaja — settings i kalendar rezervacija (2026-11-08)
+
+Poslije `09a275e` (61 form kontrola bez imena) suite je bio na **36 passed / 2 failed**
+(run `42865252124`). Prekršaji su identifikovani tek kad je poruka asertacije proširena da
+nosi `target` selektor i HTML čvora (`72acaa0`) — do tada se znao samo broj, a log i
+artefakt su na blob storageu koji nije dostižan. Izmjereno iz anotacije runa `42866264214`:
+
+| Ruta | Pravilo | Impact | Uzrok | Popravka |
+|---|---|---|---|---|
+| `/admin/settings` | `label-content-name-mismatch` | serious ×11 | `aria-label` grupnog prekidača i dugmeta za uređivanje **nije sadržavao vidljivi tekst** (WCAG 2.5.3) | uklonjen `aria-label` s prekidača (stanje nosi `aria-expanded`, ime daje sadržaj); glagol u imenu dugmeta uzet iz iste grane kao i vidljivi tekst |
+| `/admin/settings` | `color-contrast` | serious ×1 | `text-slate-500` na bijeloj za opis taba | `text-slate-600` |
+| `/admin/reservations/calendar` | `aria-required-parent` | critical ×8 | `react-big-calendar` postavlja `role="columnheader"` na `<span>` (`Header.js:12-15`), a `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY` | `components.header` (podržana zamjena, `TimeGridHeader.js:91-92`) → `SchedulerColumnHeader` bez uloge |
+| `/admin/reservations/calendar` | `aria-required-children` | critical ×1 | `addons/dragAndDrop/WeekWrapper.js:249` ubacuje `<div class="rbc-addons-dnd-row-body">` kao direktno dijete `<div class="rbc-row-content" role="row">` (`DateContentRow.js:176-178`); `row` ne dopušta presentational djecu | šim skida nevažeći `role` |
+| `/admin/reservations/calendar` | `scrollable-region-focusable` | serious ×1 | `TimeGrid.js:339` renderuje `.rbc-time-content` bez `tabindex` (WCAG 2.1.1) | šim dodaje `tabindex="0"` |
+
+**Za kalendar nije bilo nadogradnje:** `react-big-calendar@1.20.0` je **već** zadnja objavljena
+verzija (`dist-tags.latest`, npm registry, 2026-11-08), pa su obje preostale greške uzvodne.
+Za `WeekWrapper` i `TimeGrid` nema `components` override-a, pa je uveden
+`calendar-aria-shim.mjs` + `useCalendarAriaShim` (MutationObserver, jer rbc re-renderuje pri
+promjeni datuma/pogleda). Uloga `columnheader` je namjerno **izvan** šima — za nju postoji
+podržana zamjena propom, pa se ne dira DOM koji React kontroliše.
+
+**Nuspojava:** ključevi `adminSettings.sections.expand` / `.collapse` su postali mrtvi pa su
+uklonjeni iz oba jezika (leaf **2712 → 2710**, paritet `check_i18n --strict` 0/0).
+
+**Dokaz:** `test:calendar-aria-shim` (7/7) gradi jsdom fiksturu **doslovnim HTML-om iz CI
+anotacije**, pokrene pravi `axe-core` prije i poslije, i izvršava isporučeni `.mjs` (logika je
+zato u `.mjs`, ne u `.ts`). Mutacije 4/4 uhvaćene.
+
+**Šta ovaj test NE dokazuje:** `scrollable-region-focusable` se u jsdomu **uopšte ne
+primjenjuje** (nema rasporeda → regija nije skrolabilna), pa je `tabindex="0"` provjeren samo
+atributski. Izmjereno, ne pretpostavljeno: test to eksplicitno asertira. Potvrdu daje isključivo
+CI run nad renderovanim markupom. Isti razlog objašnjava zašto `color-contrast` i
+`label-content-name-mismatch` s `/admin/settings` **nisu** mogli biti uhvaćeni lokalno —
+`test:axe-render-a11y` ih vraća kao INCOMPLETE (§3.1b).
+
 ## 3. Šta NIJE dokazano — i to je preostali posao
 
 ### 3.1 `/admin/**` i `/stylist/**` — pokrivenost **napisana** (2026-11-09), ali još **neizvršena**
@@ -1729,11 +1765,12 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    podacima (§3.2) i preduslov je za sljedeću stavku.
 3. **Pokriti `/admin/**` i `/stylist/**`** — **IZVRŠENO 2026-11-08** (run `42857076298`):
    **33 passed / 5 failed**. Nađeno **8 stvarnih prekršaja** na 4 admin stranice + 1 routing
-   problem — vidi §3.1c. Popravka prekršaja je sljedeći korak; `continue-on-error` ostaje
-   dok suite ne bude zelen.
+   problem — vidi §3.1c. Svi su popravljeni (`09a275e`, §3.1d); preostala 2 pada su zatvorena
+   u §3.1d. Posljednji izmjereni run prije te popravke: **36 passed / 2 failed**.
 4. **Skinuti `continue-on-error` s axe koraka** u poslu `a11y-e2e` — tek nakon što stavka 3
    da potvrđen zeleni run. Bez toga axe regresiju ne blokira; skidati naslijepo bi značilo
-   crven CI bez dokaza da je problem stvaran.
+   crven CI bez dokaza da je problem stvaran. **Još NIJE skinuto:** popravka iz §3.1d je
+   pushovana, ali zeleni run (0 failed) još nije potvrđen.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.

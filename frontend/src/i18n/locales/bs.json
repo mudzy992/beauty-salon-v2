@@ -204,9 +204,7 @@
     },
     "sections": {
       "settingsCount": "Broj postavki: {{count}}",
-      "customizedCount": "Prilagođeno: {{count}}",
-      "expand": "Otvori sekciju",
-      "collapse": "Zatvori sekciju"
+      "customizedCount": "Prilagođeno: {{count}}"
     },
     "editor": {
       "configured": "Postavljeno",

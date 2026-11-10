@@ -207,9 +207,7 @@
     },
     "sections": {
       "settingsCount": "Settings: {{count}}",
-      "customizedCount": "Customized: {{count}}",
-      "expand": "Expand section",
-      "collapse": "Collapse section"
+      "customizedCount": "Customized: {{count}}"
     },
     "editor": {
       "configured": "Configured",

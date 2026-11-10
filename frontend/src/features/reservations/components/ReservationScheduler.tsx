@@ -13,6 +13,8 @@ import {
 } from 'react-big-calendar'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 
+import { useCalendarAriaShim } from './use-calendar-aria-shim'
+
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import './reservation-scheduler.css'
@@ -121,6 +123,19 @@ type Props = {
 }
 
 const DragAndDropCalendar = withDragAndDrop(BigCalendar as any) as any
+
+/**
+ * Zamjena za rbc-ov default `Header`. Biblioteka postavlja `role="columnheader"` na `<span>`
+ * (`Header.js:12-15`), a `TimeGridHeader.js:109-115` taj span omota u `<button class=
+ * "rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY`.
+ * Uloga `columnheader` zahtijeva roditelja s ulogom `row`, pa axe javlja aria-required-parent
+ * na svih 7-8 kolona sedmičnog pogleda. Zamjena je podržana (`TimeGridHeader.js:91-92`
+ * `components.header || Header`). Ulogu skidamo umjesto da je preselimo: sedmični pogled nema
+ * tabelarnu semantiku, a dugme i dalje dobija ime iz svog sadržaja (datuma).
+ */
+function SchedulerColumnHeader({ label }: { date?: Date; label?: string; localizer?: unknown }) {
+  return <span>{label}</span>
+}
 
 const toYmd = (date: Date): string =>
   getDateOnlyFromLocalCalendarDate(date)
@@ -273,6 +288,9 @@ export const ReservationScheduler = (props: Props) => {
   const [clientsLoading, setClientsLoading] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
   const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
+  // Kontejner kalendara: šim ispravlja ARIA markup koji generiše react-big-calendar.
+  const calendarShellRef = useRef<HTMLDivElement | null>(null)
+  useCalendarAriaShim(calendarShellRef)
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [serviceActiveIdx, setServiceActiveIdx] = useState(-1)
   const [createDraft, setCreateDraft] = useState<{
@@ -636,7 +654,7 @@ export const ReservationScheduler = (props: Props) => {
       </div>
 
       <div className="p-3">
-        <div className="rounded-xl border border-line overflow-hidden">
+        <div ref={calendarShellRef} className="rounded-xl border border-line overflow-hidden">
           <DragAndDropCalendar
             localizer={localizer}
             culture={localeKey}
@@ -693,6 +711,7 @@ export const ReservationScheduler = (props: Props) => {
             eventPropGetter={eventPropGetter as any}
             components={{
               event: SchedulerEventContent as any,
+              header: SchedulerColumnHeader as any,
             }}
             style={{ height: 'calc(100dvh - 260px)' }}
           />

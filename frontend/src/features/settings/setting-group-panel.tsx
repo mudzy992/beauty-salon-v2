@@ -42,7 +42,9 @@ export function SettingGroupPanel({
         type="button"
         aria-expanded={expanded}
         aria-controls={contentId}
-        aria-label={`${t(expanded ? 'adminSettings.sections.collapse' : 'adminSettings.sections.expand')}: ${group.label}`}
+        // 2.5.3 (label in name): ime NE smije biti aria-label koji izostavlja vidljivi tekst
+        // (naslov grupe + badge-ovi s brojem postavki), jer axe tada javlja
+        // label-content-name-mismatch. Stanje već nosi aria-expanded, a ime daje sadržaj.
         onClick={() => setExpanded((current) => !current)}
         className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus-ring sm:px-5"
       >

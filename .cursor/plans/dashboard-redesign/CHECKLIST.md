@@ -554,6 +554,81 @@ korak u `ci.yml` odmah poslije `test:i18n-key-resolution`.
       žice: da `code` zaista stiže u stvarni HTTP odgovor dokazano je na nivou filtera, ne od
       kraja do kraja.
 
+### Prvi izvršeni axe nad `/admin/**` i `/stylist/**` — 6 runova (2026-11-08)
+
+Suite je postojao, ali nikad nije izvršen nad prijavljenim rutama. Svaki run je otkrio po jedan
+sloj; svi uzroci su izmjereni iz CI anotacija, ne pretpostavljeni.
+
+- [x] `NODE_ENV=test` s nivoa posla → Vite veže React-ov razvojni build → 341.9 KiB > budžet
+      300 → `env: NODE_ENV: production` na tom koraku (`190b634`).
+- [x] login **503**: auth rute su fail-closed (AUTH-01), a posao nema Redis →
+      `incrementWindow` vraća `null` → `redis:7` service + `HTTP_RATE_LIMIT_REDIS_URL` (`b95bd91`).
+- [x] `test.skip(!status.ok)` **na nivou fajla** čita status pri sakupljanju testova, prije nego
+      `setup` upiše fajl → 25 skipped uz `ok:true`. Odluka prebačena u `test.beforeEach`
+      (`0031803`). **`0 failed` ne znači da je prijava uspjela.**
+- [x] grep je hvatao samo `critical` pa je brojao 33/5 umjesto stvarnih → proširen na
+      `(critical|serious)` (`babd711`).
+- [x] **61 form kontrola bez programskog imena** + rupa u guardu `test:form-control-labels`
+      koja ih je krila: `if (hasBareLabel) continue` je jednim bare `<Label>` u fajlu
+      „opravdavao" **sve** kontrole tog fajla, iako je u praksi *sibling*. Izmjereno: 79
+      „opravdanih", **61 stvaran prekršaj**. Guard sada uparuje po rasponu (`wrapSpans`) i
+      broji zagrade za template-literal id-ove (`attrValue`). (`09a275e`)
+
+| Run | Commit | Ishod |
+|---|---|---|
+| `42853163996` | `3a20ef3` | 13 passed / 0 failed / **25 skipped** |
+| `42854014729` | `ac93c4b` | isto + login **503** ×2 |
+| `42855048776` | `b95bd91` | `ok:true`, i dalje **25 skipped** |
+| `42857076298` | `babd711` | **33 passed / 5 failed** — admin/stylist prvi put izvršeni |
+| `42858137587` | `11b1b26` | **34 passed / 4 failed** |
+| `42865252124` | `09a275e` | **36 passed / 2 failed** |
+
+`/stylist/profile` je javljao „sesija nema ulogu STYLIST", ali to **nije** greška aplikacije:
+`src/app/router.tsx:126-129` definiše rutu kao `<Navigate to="/profil" replace />`. Greška je
+bila u specu — ruta sada nosi `expectPrefix: '/profil'` (`11b1b26`).
+
+### Zadnja 2 pada: settings i kalendar rezervacija (2026-11-08)
+
+- [x] **Preduslov — dijagnostika (`72acaa0`):** poruka asertacije nosila je samo id pravila i
+      broj čvorova, a log i artefakt su na blob storageu koji nije dostižan. Sada nosi `target`
+      selektor i HTML prva 3 čvora — tek tako su uzroci postali čitljivi.
+- [x] **WCAG 2.5.3** ×11 na `/admin/settings`: `aria-label` grupnog prekidača i dugmeta za
+      uređivanje **nije sadržavao vidljivi tekst**. Prekidač: `aria-label` uklonjen (stanje
+      nosi `aria-expanded`, ime daje sadržaj). Dugme: glagol uzet iz iste grane kao vidljivi
+      tekst, pa „Postavi" više nije u sukobu s „Uredi: X".
+- [x] **WCAG 1.4.3** ×1: `text-slate-500` → `text-slate-600` u `settings-tab-nav.tsx`.
+- [x] Mrtvi ključevi `adminSettings.sections.expand` / `.collapse` uklonjeni iz oba jezika
+      (leaf **2712 → 2710**, paritet 0/0).
+- [x] **WCAG 4.1.2** ×8 na kalendaru: `react-big-calendar` postavlja `role="columnheader"` na
+      `<span>` (`Header.js:12-15`), a `TimeGridHeader.js:109-115` ga omota u
+      `<button class="rbc-button-link">` jer `Calendar.js:347` ima default
+      `drilldownView: views.DAY`. Riješeno **podržanom zamjenom** `components.header` →
+      `SchedulerColumnHeader` bez uloge.
+- [x] **WCAG 4.1.2** ×1 i **2.1.1** ×1: `WeekWrapper.js:249` ubacuje
+      `<div class="rbc-addons-dnd-row-body">` kao direktno dijete
+      `<div class="rbc-row-content" role="row">` (`DateContentRow.js:176-178`); `TimeGrid.js:339`
+      renderuje `.rbc-time-content` bez `tabindex`. Za oba **nema** `components` override-a, a
+      `1.20.0` je **već** zadnja objavljena verzija (`dist-tags.latest`, npm registry,
+      2026-11-08) → `calendar-aria-shim.mjs` + `useCalendarAriaShim` (MutationObserver, jer rbc
+      re-renderuje pri promjeni datuma/pogleda).
+- [x] **`test:calendar-aria-shim` 7/7** — jsdom fiksura **doslovnim HTML-om iz CI anotacije**,
+      pravi `axe-core` prije i poslije, izvršava isporučeni `.mjs`. **Mutacije 4/4** uhvaćene
+      (3/2/1/2 pada); vraćeni fajl bajt-identičan. Registrovan u `package.json` i `ci.yml`.
+- [ ] **Šta test NE dokazuje:** `scrollable-region-focusable` se u jsdomu **uopšte ne
+      primjenjuje** (nema rasporeda → regija nije skrolabilna), pa je `tabindex="0"` provjeren
+      samo atributski; test to eksplicitno asertira. Isti razlog objašnjava zašto `color-contrast`
+      i `label-content-name-mismatch` **nisu** mogli biti uhvaćeni lokalno — `test:axe-render-a11y`
+      ih vraća kao **INCOMPLETE**.
+- [ ] **`continue-on-error` na axe koraku i dalje OSTAJE** (stavka 4, `HANDOFF.md` §4) dok CI ne
+      da potvrđen **0 failed**. Skidati prije toga značilo bi crven CI bez dokaza.
+
+### Kapije na kraju ovog poteza (izmjereno, ne prepisano)
+
+`test:*` **190/190** skripti · `tsc --noEmit` exit **0** · `typecheck:e2e` exit **0** ·
+lint **0 errors / 7 warnings** · build **276.1 KiB**/300 · `check_i18n --strict` **2710** leaf
+ključeva po jeziku, 0 razlika · `check_doc_links` **670/202** · `check_ci_index` **371/374** ·
+`git diff --check` čist · CJK sken **0** · `mobile/` **0** dirnutih fajlova.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)

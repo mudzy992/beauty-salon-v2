@@ -6121,3 +6121,68 @@ bila u specu — ruta sada nosi `expectPrefix: '/profil'`.
 
 **Suite NIJE zelen** i `continue-on-error` ostaje. Stavka 4 iz §4 (skinuti ga) čeka popravku
 svih 8 prekršaja. `typecheck:e2e` i `tsc --noEmit`: 0 grešaka.
+
+---
+
+## 2026-11-08 — Popravka preostalih 2 pada: `/admin/settings` i kalendar rezervacija
+
+### Šta
+
+Poslije `09a275e` (61 form kontrola bez programskog imena) axe suite je bio na **36 passed /
+2 failed** (run `42865252124`): `/admin/salon` i `/admin/loyalty` su postali zeleni. Ovaj potez
+zatvara preostala dva.
+
+**Preduslov — dijagnostika (`72acaa0`).** Do tada je poruka asertacije nosila samo id pravila i
+broj čvorova, a log i artefakt su na blob storageu koji nije dostižan. Poruka sada nosi `target`
+selektor i HTML prva 3 čvora po pravilu — tek tako su uzroci postali čitljivi (run `42866264214`).
+
+**`/admin/settings` (naš kod):**
+
+| Pravilo | Impact | Uzrok | Popravka |
+|---|---|---|---|
+| `label-content-name-mismatch` | serious ×11 | `aria-label` grupnog prekidača (`setting-group-panel.tsx`) i dugmeta za uređivanje (`setting-editor-display.tsx`) **nije sadržavao vidljivi tekst** (WCAG 2.5.3) | prekidač: `aria-label` uklonjen — stanje već nosi `aria-expanded`, ime daje sadržaj; dugme: glagol u imenu uzet iz iste grane kao vidljivi tekst, pa „Postavi" više nije u sukobu s „Uredi: X" |
+| `color-contrast` | serious ×1 | `text-slate-500` na bijeloj za opis taba (`settings-tab-nav.tsx`) | `text-slate-600` |
+
+Nuspojava: `adminSettings.sections.expand` / `.collapse` su postali mrtvi → uklonjeni iz oba
+jezika. Leaf **2712 → 2710**, paritet `check_i18n --strict` 0/0.
+
+**`/admin/reservations/calendar` (`react-big-calendar@1.20.0`):**
+
+| Pravilo | Impact | Uzrok (linija u biblioteci) | Popravka |
+|---|---|---|---|
+| `aria-required-parent` | critical ×8 | `Header.js:12-15` postavlja `role="columnheader"` na `<span>`; `TimeGridHeader.js:109-115` ga omota u `<button class="rbc-button-link">` jer `Calendar.js:347` ima default prop `drilldownView: views.DAY` | `components.header` → `SchedulerColumnHeader` bez uloge |
+| `aria-required-children` | critical ×1 | `addons/dragAndDrop/WeekWrapper.js:249` ubacuje `<div class="rbc-addons-dnd-row-body">` kao direktno dijete `<div class="rbc-row-content" role="row">` (`DateContentRow.js:176-178`); `row` ne dopušta presentational djecu | šim skida nevažeći `role` |
+| `scrollable-region-focusable` | serious ×1 | `TimeGrid.js:339` renderuje `.rbc-time-content` bez `tabindex` (WCAG 2.1.1) | šim dodaje `tabindex="0"` |
+
+**Nadogradnja nije bila opcija:** `1.20.0` je **već** zadnja objavljena verzija
+(`dist-tags.latest`, npm registry, 2026-11-08). Za `WeekWrapper` i `TimeGrid` nema `components`
+override-a, pa je uveden `calendar-aria-shim.mjs` + `useCalendarAriaShim` (MutationObserver, jer
+rbc re-renderuje pri promjeni datuma/pogleda). Uloga `columnheader` je namjerno **izvan** šima:
+za nju postoji podržana zamjena propom, pa se ne dira DOM koji React kontroliše.
+
+### Dokaz
+
+- `test:calendar-aria-shim` **7/7** — gradi jsdom fiksturu **doslovnim HTML-om iz CI anotacije**,
+  pokrene pravi `axe-core` prije i poslije, i izvršava isporučeni `.mjs`. Logika je zato u
+  `.mjs` (ne u `.ts`), da test ne bi testirao svoju kopiju.
+- **Mutacije 4/4 uhvaćene:** šim ne skida `role` (3 pada) · ne dodaje `tabindex` (2) · bez
+  MutationObserver (1) · preširoko dira `columnheader` (2). Vraćeni fajl bajt-identičan, 0 pada.
+- Izmjereno u fiksturi: `aria-required-parent` je **×2**, ne ×1 — i `.rbc-row-content[role=row]`
+  traži roditelja (`rowgroup`/`grid`/`table`), pa jedan čvor nosi dva prekršaja.
+
+### Šta NIJE dokazano
+
+`scrollable-region-focusable` se u jsdomu **uopšte ne primjenjuje** (nema rasporeda → regija nije
+skrolabilna), pa je `tabindex="0"` provjeren samo atributski; test to eksplicitno asertira.
+Potvrdu daje isključivo CI run. Isti razlog objašnjava zašto `color-contrast` i
+`label-content-name-mismatch` s `/admin/settings` **nisu** mogli biti uhvaćeni lokalno —
+`test:axe-render-a11y` ih vraća kao **INCOMPLETE**.
+
+### Kapije
+
+`test:*` **190/190** · `tsc --noEmit` **0** · lint **0 errors / 7 warnings** · build
+**276.1 KiB**/300 · `typecheck:e2e` **0** · `check_i18n --strict` **2710** leaf, paritet 0/0 ·
+`check_doc_links` **670/202** · `check_ci_index` **371/374** · `git diff --check` čist ·
+CJK sken 0 · `mobile/` 0 dirnutih fajlova.
+
+**`continue-on-error` na axe koraku OSTAJE** dok CI ne da potvrđen **0 failed**.
