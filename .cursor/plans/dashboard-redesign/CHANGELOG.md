@@ -4395,3 +4395,87 @@ build **274.1 KiB / 300** · backend `jest src/blog/` **20/20** · `check_ci_ind
 **PASS (360/363)** · `check_i18n --strict` **PASS** · `check_doc_links` **PASS** (670/202) ·
 `check_ui_contrast --strict` **PASS** (80) · `check_repo_hygiene` **PASS** ·
 `git diff --check` **čist**.
+
+---
+
+## 2026-11-09 — `PublicReserve` (4.1.2): nalaz **opovrgnut**, stvarni defekt popravljen
+
+Vlasnik odobrio rad u `src/pages/public/` za ovu stavku.
+
+### 🔴 Premisa nalaza nije izdržala mjerenje
+
+Nalaz (`HANDOFF.md` §3.3b) je tvrdio da `role="progressbar"` s „korak X od 4" najavljuje stanje
+koje se ne poklapa sa sadržajem, jer „`step` nigdje ne uslovljava sadržaj".
+
+**Izmjereno: `step` se postavlja uz iste uslove koji otkrivaju sadržaj.**
+
+| otkrivanje sadržaja | `setStep` |
+|---|---|
+| `selectedServices.length > 0 ?` (863) | `setStep(2)` kad `selectedServiceIds.length > 0` (642) |
+| `selectedDate ?` (901) | `setStep(3)` (663) |
+| `selectedSlot ?` (1011) | `setStep(4)` na klik slota (970) |
+| bez odabira / nakon slanja | `setStep(1)` (639, 743) |
+
+Odlučujuće: `selectedServiceIds` je **izveden** iz `selectedServices`
+(`useMemo(() => selectedServices.map((s) => s.id), …)`, ln 604) — ta dva stanja se ne mogu
+razići. `progressbar` + `aria-valuetext` „Korak X od 4" je tačan, a **isti obrazac je namjerno
+usvojen i u mobilnoj aplikaciji** (`UX_UI_ROUTE_INVENTORY.md:231`, `:274`) kao odabrano rješenje.
+**Uloga nije dirana**, i već je bila asertovana u `test:public-reservation-accessibility`.
+
+### Stvarni defekt: 5 od 7 ikona bez `aria-hidden`
+
+Mjerenje po importu iz `lucide-react`:
+
+| linija | ikona | `aria-hidden` prije | kontekst |
+|---|---|---|---|
+| 152 | `Clock` | ❌ | uz tekst `public.reserve.totalDuration` |
+| 188 | `Search` | ❌ | uz `<Input>` (placeholder + labela) |
+| 248 | `Search` | ❌ | isto, druga grana |
+| 821 | `CheckCircle2` | ❌ | unutar `progressbar` trake |
+| 1150 | `Calendar` | ❌ | uz tekst dugmeta `public.reserve.submit` |
+| 400 | `ChevronLeft` | ✅ | — |
+| 417 | `ChevronRight` | ✅ | — |
+
+Svih 5 je **dekorativno** (svaka stoji uz tekst ili uz input), pa je `aria-hidden="true"` dodato.
+Repo već ima taj obrazac — `users-a11y.test.mjs` eksplicitno traži
+`<Search … text-slate-400" aria-hidden="true" />`.
+
+**Drugi dio:** traka s tačkama je sadržavala gole brojeve `1 2 3 4` koje je AT čitao **povrh**
+`aria-valuetext`. Svaka tačka je sada `aria-hidden`, pa kontejner najavljuje samo
+„Napredak rezervacije, Korak 2 od 4".
+
+### Test
+
+`test:public-reservation-accessibility` 8 → **9** testova. Novi test čita spisak ikona **iz
+`lucide-react` importa** pa hvata i novododate ikone; postojeći progressbar test pojačan
+asertacijom da je traka `aria-hidden`.
+
+### Mutacijska provjera (4/4)
+
+| # | mutacija | pada? |
+|---|---|---|
+| R1 | `aria-hidden` skinut s `CheckCircle2` | ✅ test #6 |
+| R2 | `aria-hidden` skinut s `Clock` | ✅ #6 |
+| R3 | traka bez `aria-hidden` | ✅ #5 |
+| R4 | **nova** ikona uvedena bez `aria-hidden` | ✅ #6 |
+
+R4 je ključna: dokazuje da test hvata i ikone koje još ne postoje. Sve vraćeno preko `cp`
+backupa; kontrola 9/9.
+
+### Dokumentacija
+
+`HANDOFF.md` §3.3b prepisan: naslov „Novi nalaz, NIJE popravljen" → „nalaz **OPOVGRGNUT**;
+stvarni defekt bio je drugdje", s tabelom sinhronizacije `step` ↔ otkrivanje sadržaja i
+tabelom ikona.
+
+### Usput: četvrti reset okruženja
+
+`HEAD` se vratio na bazni `9df498a`, `frontend/node_modules` nestao. Oporavak: `git fetch` →
+`git reset --mixed FETCH_HEAD` → `git status --short` = **0 izmjena** → `npm ci`.
+
+### Kapije
+
+frontend `test:*` **180/180** · `tsc --noEmit` **exit 0** · lint **0 errors / 7 warnings** ·
+build **274.1 KiB / 300** · `check_i18n --strict` **PASS** · `check_doc_links` **PASS**
+(670/202) · `check_ci_index` **PASS (360/363)** · `check_repo_hygiene` **PASS** ·
+`git diff --check` **čist**.

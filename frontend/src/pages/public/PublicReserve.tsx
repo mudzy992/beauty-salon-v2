@@ -149,7 +149,7 @@ const ServiceAutocomplete = ({
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
-              <Clock className="h-3.5 w-3.5 text-slate-500" />
+              <Clock className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
               {t('public.reserve.totalDuration', { minutes: totalMinutes })}
             </span>
           </div>
@@ -185,7 +185,7 @@ const ServiceAutocomplete = ({
         {addingMore ? (
           <div ref={wrapperRef} className="relative">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
               <Input
                 id="public-service-search"
                 ref={inputRef}
@@ -245,7 +245,7 @@ const ServiceAutocomplete = ({
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
         <Input
           id="public-service-search"
           ref={inputRef}
@@ -810,15 +810,17 @@ export default function PublicReserve() {
               aria-valuetext={t('public.reserve.progressStep', { current: step, total: 4 })}
               className="flex items-center justify-center mt-8"
             >
+              {/* Traka je dekorativna: `aria-valuetext` na kontejneru vec daje
+                  "Korak X od Y". Bez ovoga AT preko toga procita i gole brojeve. */}
               {[1, 2, 3, 4].map((s) => (
-                <div key={s} className="flex items-center">
+                <div key={s} aria-hidden="true" className="flex items-center">
                   <div
                     className={[
                       'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition',
                       step >= s ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600',
                     ].join(' ')}
                   >
-                    {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
+                    {step > s ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : s}
                   </div>
                   {s < 4 ? (
                     <div className={step > s ? 'h-0.5 w-10 bg-slate-900' : 'h-0.5 w-10 bg-slate-200'} />
@@ -1147,7 +1149,7 @@ export default function PublicReserve() {
                     disabled={submitting || !selectedSlot}
                   >
                     <span className="inline-flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-4 w-4" aria-hidden="true" />
                       {submitting ? t('public.reserve.submitting') : t('public.reserve.submit')}
                     </span>
                   </Button>

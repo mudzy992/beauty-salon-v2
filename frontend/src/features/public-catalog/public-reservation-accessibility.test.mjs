@@ -41,6 +41,38 @@ test('reservation progress exposes the current step with localized text', () => 
   assert.ok(enLocale.public.reserve.progress.length > 0)
   assert.ok(bsLocale.public.reserve.progressStep.includes('{{current}}'))
   assert.ok(enLocale.public.reserve.progressStep.includes('{{total}}'))
+
+  // Traka s tačkama je dekorativna: `aria-valuetext` vec kaze "Korak X od Y", pa
+  // AT ne smije preko toga procitati i gole brojeve 1 2 3 4.
+  assert.match(
+    source,
+    /\{\[1, 2, 3, 4\]\.map\(\(s\) => \(\s*<div key=\{s\} aria-hidden="true"/,
+    'svaka tacka indikatora mora biti aria-hidden',
+  )
+})
+
+test('sve lucide ikone u PublicReserve su dekorativne (1.1.1 / 4.1.2)', () => {
+  // Spisak ikona se cita iz importa, pa test hvata i novododate ikone.
+  const importBlock = source.match(/import \{([^}]*)\} from 'lucide-react'/)
+  assert.ok(importBlock, 'PublicReserve mora importovati lucide-react')
+  const icons = importBlock[1].split(',').map((x) => x.trim()).filter(Boolean)
+  assert.ok(icons.length >= 6, `ocekivano najmanje 6 ikona, nadjeno ${icons.length}`)
+
+  const offenders = []
+  for (const name of icons) {
+    for (const tag of source.matchAll(new RegExp(`<${name}\\b([^>]*)>`, 'g'))) {
+      if (!tag[1].includes('aria-hidden')) offenders.push(`<${name}>`)
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    'ikona bez aria-hidden: svaka ovdje stoji uz tekst ili uz input, dakle dekorativna je',
+  )
+
+  // Pozitivna kontrola: obrazac zaista hvata ikonu bez aria-hidden.
+  assert.match('<Clock className="h-4 w-4" />', /<Clock\b([^>]*)>/)
+  assert.ok(!'<Clock className="h-4 w-4" />'.match(/<Clock\b([^>]*)>/)[1].includes('aria-hidden'))
 })
 
 test('service, date, and slot request failures remain distinct from valid empty results and offer retry', () => {

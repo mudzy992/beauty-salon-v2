@@ -1374,17 +1374,46 @@ s medijima, duge liste) nije testirano.
   kontakt koji već ima (`PublicReserve.tsx:547`), onboarding pita tri različite stvari.
   `test:redundant-entry-a11y` (9, 13/13 mutacija).
 
-### 3.3b Novi nalaz, NIJE popravljen: progressbar nad jednostranačnom formom (4.1.2)
+### 3.3b Nalaz o `progressbar` u `PublicReserve` — **OPOVGRGNUT**; stvarni defekt bio je drugdje
 
-`PublicReserve.tsx:804-826` ima `role="progressbar"` s `aria-valuemin={1} aria-valuemax={4}`
-i `aria-valuetext` „korak X od 4", dok je forma u stvarnosti **jedna skrolajuća stranica** s
-progresivnim otkrivanjem (`selectedServices.length > 0 ?`, `selectedDate ?`, `selectedSlot ?`).
-`step` **nigdje** ne uslovljava sadržaj — u cijelom fajlu nema `step ===`. Čitaču ekrana se
-dakle najavljuje stanje koje se ne poklapa sa stvarnim sadržajem.
+**Originalna tvrdnja (2026-11-08):** `role="progressbar"` s „korak X od 4" najavljuje stanje
+koje se ne poklapa sa stvarnim sadržajem, jer „`step` nigdje ne uslovljava sadržaj".
 
-**Nije dirano** jer je u `src/pages/public/`, a javni sajt se ne mijenja bez posebnog
-odobrenja. Nalaz je **kandidat**, ne dokazan prekršaj: nije provjereno u renderu ni čitačem
-ekrana. Nađen usput tokom provjere 3.3.7.
+**Izmjereno 2026-11-09 — tvrdnja NE stoji.** `step` se postavlja uz **iste** uslove koji
+otkrivaju sadržaj, pa ne mogu odstupiti:
+
+| otkrivanje sadržaja | `setStep` |
+|---|---|
+| `selectedServices.length > 0 ?` (ln 863) | `setStep(2)` kad `selectedServiceIds.length > 0` (ln 642) |
+| `selectedDate ?` (ln 901) | `setStep(3)` (ln 663) |
+| `selectedSlot ?` (ln 1011) | `setStep(4)` na klik slota (ln 970) |
+| nema odabira / nakon slanja | `setStep(1)` (ln 639, 743) |
+
+Ključno: `selectedServiceIds` je **izveden** iz `selectedServices`
+(`useMemo(() => selectedServices.map((s) => s.id), …)`, ln 604), pa ta dva stanja ne mogu
+da se raziđu. Uloga `progressbar` uz `aria-valuetext` „Korak X od 4" je dakle **tačna**, i
+isti obrazac je namjerno usvojen i u mobilnoj aplikaciji
+(`UX_UI_ROUTE_INVENTORY.md:231` i `:274`). **Uloga nije dirana.**
+
+**Stvarni defekt, izmjeren i popravljen (1.1.1 / 4.1.2):** od 7 pojava lucide ikona u
+`PublicReserve.tsx` samo 2 su imale `aria-hidden` (`ChevronLeft` 400, `ChevronRight` 417).
+Ostalih **5 nije** — a svaka je dekorativna:
+
+| linija | ikona | kontekst |
+|---|---|---|
+| 152 | `Clock` | uz tekst `public.reserve.totalDuration` |
+| 188, 248 | `Search` ×2 | uz `<Input>` s placeholderom i labelom |
+| 1150 | `Calendar` | uz tekst dugmeta `public.reserve.submit` |
+| 821 | `CheckCircle2` | unutar `progressbar` trake |
+
+Uz to, traka s tačkama je sadržavala **gole brojeve** `1 2 3 4` koje je AT čitao *povrh*
+`aria-valuetext`. Sada je svaka tačka `aria-hidden`, pa kontejner najavljuje samo
+„Napredak rezervacije, Korak 2 od 4".
+
+**Dokaz:** `test:public-reservation-accessibility` (8 → **9** testova). Novi test čita spisak
+ikona **iz `lucide-react` importa**, pa hvata i novododate ikone bez `aria-hidden`.
+Mutacijska provjera 4/4 (skinut `aria-hidden` s `CheckCircle2`, s `Clock`, traka bez
+`aria-hidden`, nova ikona bez `aria-hidden`).
 
 ### 3.4 Jedanaest kriterija je 🟡 (u kodu, nije verifikovano u renderu)
 
