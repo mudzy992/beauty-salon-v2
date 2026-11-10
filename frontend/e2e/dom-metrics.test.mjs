@@ -4,6 +4,7 @@ import test from 'node:test'
 
 import {
   activeElementLabel,
+  overflowingElements,
   clippedSnapshot,
   describeElement,
   focusableSnapshot,
@@ -156,4 +157,42 @@ test('activeElementLabel i describeElement daju ISTU oznaku — inače se skupov
   const el = document.querySelector('#dugme')
   el.focus()
   assert.equal(activeElementLabel(), describeElement(el))
+})
+
+test('overflowingElements — nalazi samo element koji širi stranicu, i to u px', () => {
+  const doc = makeDom('<main class="w-screen"><section class="grid">tekst</section></main>')
+  setBox(doc.querySelector('main'), { scrollWidth: 2035, clientWidth: 1280 })
+  setBox(doc.querySelector('section'), { scrollWidth: 1280, clientWidth: 1280 })
+
+  const found = overflowingElements(2)
+  assert.equal(found.length, 1, 'element koji ne širi stranicu ne ide na spisak')
+  assert.equal(found[0].element, 'main.w-screen')
+  assert.equal(found[0].excess, 755, 'višak mora biti izmjeren, ne pretpostavljen')
+  assert.equal(found[0].overflowX, 'visible')
+})
+
+test('overflowingElements — poštuje toleranciju i sortira po veličini viška', () => {
+  const doc = makeDom('<div class="mali"></div><div class="veliki"></div><div class="unutar"></div>')
+  // DOM redoslijed je namjerno OBRNUT od veličine viška: bez sorta bi 'mali' bio prvi.
+  setBox(doc.querySelector('.mali'), { scrollWidth: 600, clientWidth: 100 })
+  setBox(doc.querySelector('.veliki'), { scrollWidth: 2000, clientWidth: 100 })
+  setBox(doc.querySelector('.unutar'), { scrollWidth: 103, clientWidth: 100 })
+
+  const all = overflowingElements(2)
+  assert.deepEqual(
+    all.map((e) => e.element),
+    ['div.veliki', 'div.mali', 'div.unutar'],
+    'sortira po višku, ne po DOM redoslijedu',
+  )
+  assert.deepEqual(
+    all.map((e) => e.excess),
+    [1900, 500, 3],
+  )
+
+  const tight = overflowingElements(5)
+  assert.deepEqual(
+    tight.map((e) => e.element),
+    ['div.veliki', 'div.mali'],
+    'višak od 3px je unutar tolerancije 5',
+  )
 })

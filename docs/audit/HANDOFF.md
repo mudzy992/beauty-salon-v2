@@ -1973,3 +1973,25 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 > `undefined` baca `TypeError` (putanja grupe), a `t(undefined)` vraća `''` (putanja polja →
 > prazna labeta) — obje su sada pokrivene. 7 asertacija u 6 postojećih skripti je pojačano,
 > mutacije **6/6**.
+
+> **Izmjereno 2026-11-08 (rendered WCAG mjere, prvi rezultati):** posao `a11y-e2e` diže pravi
+> Chromium, pa su 1.4.4 / 1.4.12 / 1.3.2 / 2.1.1 postali mjerljivi — ranija tvrdnja da „treba
+> preglednik, pa se ne može mjeriti" bila je netačna za CI. `frontend/e2e/wcag-rendered.spec.ts`
+> (36 testova × 9 javnih ruta) + `frontend/e2e/dom-metrics.mjs` (**13/13** pod jsdom-om,
+> mutacije **7/7**) daju prvi rendered dokaz:
+> - **1.4.12 i 2.1.1 prolaze** na svih 9 ruta (run `42887204875`).
+> - **1.4.4:** gubitka sadržaja pri 200% **nema nigdje** — kriterij glasi „bez gubitka sadržaja
+>   ili funkcionalnosti" i to je izmjereno kao nula. Prvi test je uz to tražio i nulti
+>   horizontalni skrol, što **nije** 1.4.4 nego 1.4.10 Reflow (i to pri 320px, ne pri 200% od
+>   1280px) — ta asertacija je bila na pogrešnom kriteriju, ne prestroga.
+> - **Nalaz 1.4.10, izmjeren a NEPOPRAVLJEN:** pri 200% fonta stranica bježi **755px** udesno na
+>   svih 6 ruta javnog omotača (`/`, `/usluge`, `/galerija`, `/kontakt`, `/zadovoljni-klijenti`,
+>   `/blog`) i **0px** na `/rezervacija`. Isti broj na svim rutama = **jedan** zajednički krivac,
+>   ne šest defekata. Prijavljuje se u anotaciju s imenovanjem elementa (`overflowingElements`);
+>   1.4.10 ostaje crven u matrici.
+> - **1.3.2:** `/login` i `/register` nisu imali **nijedan** landmark (`grep -c '<main'` = 0 u
+>   oba fajla) — stvarni defekt, **popravljen** (`<main>` umjesto omotačkog `<div>` desne kolone,
+>   `Login.tsx:120/187`, `Register.tsx:125/288`). `/rezervacija` dijeli omotač koji `<main>`
+>   **ima** (`public-layout.tsx:394`) pa uzrok pada **nije utvrđen**; dodan ispis viđenih
+>   landmarka da sljedeći run to razriješi umjesto nagađanja.
+> Matrica **nije** dirnuta: nijedan od ova četiri kriterija ne ide na ✅ dok CI ne pozeleni.

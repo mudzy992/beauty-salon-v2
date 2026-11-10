@@ -131,3 +131,37 @@ export function activeElementLabel() {
   const text = (el.textContent || '').trim().slice(0, 40)
   return `${tag}${id}${cls}${text ? ` "${text}"` : ''}`
 }
+
+/**
+ * 1.4.4 / koji element gura stranicu u stranu.
+ *
+ * Izmjereno na CI runu 42887204875: overflow je IDENTICNIH 755px na svih sest javnih ruta
+ * (/, /usluge, /galerija, /kontakt, /zadovoljni-klijenti, /blog) i nula na /rezervacija,
+ * /login i /register. Isti broj na svim javnim rutama znaci JEDAN element u javnom omotacu,
+ * ne sest nezavisnih defekata — pa se trazi po elementu, a ne nagađa iz ukupnog broja.
+ *
+ * @param {number} tolerance
+ */
+export function overflowingElements(tolerance = 2) {
+  const describe = (el) => {
+    const tag = el.tagName.toLowerCase()
+    const id = el.id ? `#${el.id}` : ''
+    const cls = typeof el.className === 'string' && el.className.trim()
+      ? `.${el.className.trim().split(/\s+/).slice(0, 3).join('.')}` : ''
+    return `${tag}${id}${cls}`
+  }
+  const out = []
+  for (const el of document.querySelectorAll('body *')) {
+    const excess = el.scrollWidth - el.clientWidth
+    if (excess > tolerance) {
+      out.push({
+        element: describe(el),
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+        excess,
+        overflowX: getComputedStyle(el).overflowX,
+      })
+    }
+  }
+  return out.sort((a, b) => b.excess - a.excess)
+}

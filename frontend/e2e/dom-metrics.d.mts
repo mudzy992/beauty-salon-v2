@@ -16,3 +16,13 @@ export function focusableSnapshot(): string[]
 export function hasVisibleFocusIndicator(): boolean
 export function activeElementLabel(): string | null
 export function landmarkSnapshot(): Landmark[]
+
+export type OverflowingElement = {
+  element: string
+  scrollWidth: number
+  clientWidth: number
+  excess: number
+  overflowX: string
+}
+
+export function overflowingElements(tolerance?: number): OverflowingElement[]

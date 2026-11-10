@@ -117,7 +117,7 @@ export default function Login() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center bg-slate-50 px-6 py-10">
+      <main className="flex items-center justify-center bg-slate-50 px-6 py-10">
         <MotionDiv
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -184,7 +184,7 @@ export default function Login() {
             </div>
           </div>
         </MotionDiv>
-      </div>
+      </main>
     </div>
   )
 }
