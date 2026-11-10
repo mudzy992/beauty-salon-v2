@@ -5519,3 +5519,111 @@ nema (`color-contrast`, `label-content-name-mismatch`, `th-has-data-cells` ostaj
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`.
 Jedini produkcijski fajl dirnut tokom mutacija bio je `data-table.tsx` i **vraćen je**
 (`filecmp` potvrđuje) — u commitu nema izmjena produkcijskog koda osim harness-a.
+
+## 2026-11-10 — API-greška → i18n: ugovor „tačna bosanska poruka" zaključan testom (`test:api-error-keys-i18n`)
+
+### Polazna mjerenja (prije ijedne izmjene)
+
+Backend **nema funkcionalan i18n sloj ni sloj kodova grešaka**. Izmjereno:
+
+| Mjerenje | Rezultat | Komanda |
+|---|---|---|
+| `nestjs-i18n` / `I18nService` / `Accept-Language` / `errorCode` | **0** pogodaka | `grep -rn` nad `backend/src` + `backend/package.json` |
+| Pozivi `…Exception(...)` s literalnom porukom | **429** pojavljivanja | python regex nad `backend/src/**.ts` bez `.spec.`: ime klase Exception, pa poruka u navodnicima |
+| — od toga s bosanskim tekstom | **413** | isto |
+| — različitih bosanskih poruka | **191** | isto |
+| frontend mjesta koja prikazuju sirovu `response?.data?.message` | **20** | `grep -rn` nad `frontend/src` |
+| uvoznika `backend/src/i18n/constants.ts` | **0** (mrtav kod) | `grep -rn "DEFAULT_LOCALE\|i18n/constants"` → 1 pogodak = sâm `export` |
+
+`backend/src/i18n/constants.ts` **postoji**, ali je mrtav kod: 0 uvoznika, samo BS, a
+sâm komentar u fajlu kaže „Za budući engleski (EN) dodati prevode i odabir locale preko
+env/headers". Ovo je **preciznije** od moje ranije formulacije „backend nema i18n sloj" —
+postoji stub, ali ne radi.
+
+Pet modula na frontendu zato prevodi greške tako što mapira **tačnu bosansku poruku** na
+i18n ključ: `admin-api-error.mjs` **30** parova · `profile-api-error.mjs` **14** ·
+`client-reservation-error.mjs` **10** · `public-reservation-error.mjs` **7** ·
+`registration-error.mjs` **3**. Ukupno **64** para = **55** različitih poruka → **58**
+različitih ključeva.
+
+### Rupa: nijedan postojeći test nije čuvao taj ugovor
+
+1. **Drift.** Promijeni li se poruka u backendu i za jedan znak, `Map.get()` promaši i
+   korisnik umjesto konkretnog razloga dobije generički fallback. Tiho — bez greške, bez
+   pada ijednog drugog testa.
+2. **Ključ bez prijevoda.** `client-reservation-error.mjs` i `public-reservation-error.mjs`
+   vraćaju **kratke** ključeve (`errorSlotUnavailable`, `errorCancelDeadline`, …) koje
+   pozivatelj tek prefiksira: `MyReservations.tsx:46` → `public.myReservations.`,
+   `PublicReserve.tsx:766` → `public.reserve.`. Bez tačke u sebi ti ključevi su **nevidljivi**
+   za `test:i18n-key-resolution` (on traži literale s imenskim prostorom).
+
+Izmjereno: u svih 5 postojećih testova (`test:admin-api-errors`, `test:registration-errors`,
+`test:profile-api-errors`, `test:client-reservation-errors`, `test:reservation-errors`) ima
+**0** pogodaka za `locales/bs.json` — provjeravaju logiku mapiranja, ne i da ključ postoji.
+
+### Novi test — `frontend/src/app/api-error-keys-i18n.test.mjs`, 4 testa
+
+1. **Drift:** svih 64 poruke mora postojati **doslovno** u `backend/src` (314 fajlova).
+   Pozitivna kontrola: korpus mora biti > 500 000 znakova, inače „sve prolazi" jer je prazan.
+2. **Ključ postoji:** za svaki par stvarno se pozove `resolve*()` modul i dobijeni ključ
+   (s prefiksom pozivatelja) mora biti leaf/plural u **oba** jezika; asertuje se i da kod
+   vraća onaj ključ koji mapa obećava. Pokriva i hardkodirani fallback
+   `auth.registrationError`.
+3. **Dinamičke (regex) grane:** `Rola <ime> nije pronađena.` → `users.errors.roleNotFound`;
+   tri grane u `public-reservation-error.mjs` s interpolacijom — skup `{{placeholder}}` u
+   lokalima mora se poklopiti sa `values` koje kod šalje.
+4. **Pozitivne kontrole:** broj parova po modulu (30/3/14/10/7), nepoznata poruka **mora**
+   pasti na fallback/`null` (5 asertova), i stvarno preslikavanje radi (2 asertova).
+
+Registracija: `frontend/package.json` (185 `test:*` skripti, bilo 184) +
+`.github/workflows/ci.yml` korak odmah poslije `test:i18n-key-resolution`.
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Uhvatio |
+|---|---|---|
+| B1 | backend poruka `Dug nije pronađen.` → `…pronađen!` (5 pojavljivanja) | test 1 |
+| B2 | obrisan `en` ključ `public.reserve.errorServiceRequired` | test 2 |
+| B3 | obrisan `en` ključ `public.myReservations.errorSlotUnavailable` (kratak ključ) | test 2 |
+| B4 | regex grana `Rola .+ nije pronađena` pokvarena | testovi 3 i 4 |
+| B5 | `{{hours}}` preimenovan u `{{h}}` u `en.json` | test 3 |
+| B6 | backend korpus usmjeren samo na `backend/src/finance/` | test 1 (pozitivna kontrola) |
+
+**B3 je dokaz da je rupa bila stvarna:** na toj mutaciji `test:i18n-key-resolution`
+**PROLAZI** — ne vidi je. Novi test pada.
+
+### Tri greške napravljene i uhvaćene pri pisanju
+
+1. **Pretpostavio sam povratni oblik.** Omotači su vraćali `resolve*()` direktno, a tri
+   modula vraćaju **string** (ključ), ne `{ key }` — testovi 2 i 3 pali su s `'undefined'`
+   (bs=missing). Pročitao sam izvore i normalizovao omotače. Bez mutacije, samo čitanjem.
+2. **`restore()` nije vraćao sâm test fajl.** Mutacija B6 mijenja `BACKEND_SRC` u testu, a
+   backup-skripta je vraćala samo `bs.json`, `en.json` i dva produkcijska fajla — mutacija je
+   **tiho ostala** u fajlu. Uhvaćeno `filecmp.cmp(shallow=False)` protiv `/tmp/bbk/test.mjs`
+   (`False`), vraćeno, ponovo **4/4**. Ovo je ista klasa greške kao ranije „mutacija tiho
+   prošla" — provjera backupa nije opciona.
+3. **B5 je prvi put tražio bosanski tekst u `en.json`** (`{{hours}} prije termina`, 0
+   pogodaka). `assert` je pukao **prije** pokretanja mutacije, pa mutacija nikad nije
+   izvršena niti je lažno „uhvaćena"; ispravljeno na `'at least {{hours}} hours'`.
+
+### Kapije
+
+`test:*` **184/185** skripti prošle (**712** pojedinačnih testova, **0** padova; `test:a11y-routes`
+preskočen jer je interaktivan — bilo 708/184) · `tsc --noEmit` exit **0** · lint **0 errors /
+7 warnings** · build **274.3 KiB**/300 · `check_ui_contrast --strict` **80/80** ·
+`check_i18n --strict` **2662** leaf · `check_repo_hygiene` **1714** · `check_doc_links`
+**670/202** · `check_ci_index` **365/368** · `git diff --check` čist · sken ćirilice/CJK
+(opsezi U+0400–U+04FF, U+3000–U+303F, U+4E00–U+9FFF) nad 3 nova/dirnuta fajla: **0**.
+
+### Šta ovo NE rješava
+
+Ovo **zaključava** 64 mapirana para. Ne čini nemapirane bosanske poruke prevedenima — unutar
+izmjerenog skupa od 191 jednolinijske `Exception('…')` poruke to je **151**, i one i dalje
+padaju na generički fallback. To ostaje stavka `I18N-01`
+(`docs/audit/FINDINGS.md:532`, „API-error audit") i traži arhitektonsku odluku vlasnika:
+kodovi grešaka ili backend i18n sloj. Test **nije** odlučio o tome.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`.
+Jedini produkcijski fajlovi dirnuti tokom mutacija bili su `backend/src/finance/
+client-debts.service.ts` i `frontend/src/features/admin/admin-api-error.mjs` — oba **vraćena**
+(`git status --porcelain` pokazuje samo 3 namjerna fajla).

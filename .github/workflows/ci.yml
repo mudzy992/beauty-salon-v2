@@ -636,6 +636,14 @@ jobs:
       - name: Test i18n keys used in code actually resolve
         working-directory: frontend
         run: npm run test:i18n-key-resolution
+      # Guard: 5 modula mapira TACNU bosansku poruku iz backenda na i18n ključ. Backend
+      # nema i18n ni sloj kodova (425 hardkodiranih poruka), pa ugovor puca tiho: promjena
+      # poruke u backendu -> Map.get() promaši -> generički fallback. Dva modula vracaju
+      # kratke ključeve bez imenskog prostora, pa ih test:i18n-key-resolution NE vidi
+      # (mutacija B3: obriši en ključ -> taj test prolazi, ovaj pada).
+      - name: Test API-error translation keys resolve and match backend messages
+        working-directory: frontend
+        run: npm run test:api-error-keys-i18n
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard

@@ -479,6 +479,34 @@ dva** načina prijenosa koja nijedan test nije pokrivao.
       dokument-nivo pravila, `/admin/**` rute i stanje s podacima. `@axe-core/playwright`
       i dalje neizvršen.
 
+### API-greška → i18n: ugovor „tačna bosanska poruka" zaključan (2026-11-10)
+
+`frontend/src/app/api-error-keys-i18n.test.mjs` — skripta `test:api-error-keys-i18n`,
+korak u `ci.yml` odmah poslije `test:i18n-key-resolution`.
+
+- [x] **Izmjereno prije izmjena:** backend **0** pogodaka za `nestjs-i18n` / `I18nService` /
+      `Accept-Language` / `errorCode`; `backend/src/i18n/constants.ts` postoji ali je **mrtav
+      kod** (0 uvoznika, samo BS). **429** `…Exception(...)` poziva s literalnom porukom,
+      **413** bosanskih, **191** različitih.
+- [x] **Rupa dokazana, ne pretpostavljena:** u 5 postojećih testova tih modula **0** pogodaka
+      za `locales/bs.json`; dva modula vraćaju **kratke** ključeve bez imenskog prostora
+      (`errorSlotUnavailable`), pa ih `test:i18n-key-resolution` ne vidi.
+- [x] **Test 1 — drift:** svih **64** poruke postoji doslovno u `backend/src` (314 fajlova);
+      pozitivna kontrola da korpus > 500 000 znakova (prazan korpus bi „prošao").
+- [x] **Test 2 — ključ postoji:** za svaki par stvarno se pozove `resolve*()`, ključ s
+      prefiksom pozivatelja mora biti leaf/plural u **oba** jezika; pokriva i hardkodirani
+      fallback `auth.registrationError`.
+- [x] **Test 3 — dinamičke grane:** regex grane (`Rola <ime> nije pronađena.` →
+      `users.errors.roleNotFound`) i poklapanje `{{placeholder}}` s `values` koje kod šalje.
+- [x] **Test 4 — pozitivne kontrole:** broj parova 30/3/14/10/7, nepoznata poruka **mora**
+      pasti na fallback/`null` (5 asertova), stvarno preslikavanje radi (2 asertova).
+- [x] **Mutacije 6/6**, uključujući B3 koja dokazuje da je rupa stvarna (obrisan EN ključ →
+      `test:i18n-key-resolution` **prolazi**, novi test pada) i B1 koja je stvarna
+      produktna regresija (backend poruka promijenjena za jedan znak).
+- [ ] **Ne rješava:** **151** nemapirana poruka (od 191 izmjerenih) i dalje pada na generički
+      fallback. Trajna popravka traži odluku vlasnika — kodovi grešaka ili backend i18n sloj
+      (`I18N-01`, `docs/audit/FINDINGS.md`; `docs/audit/HANDOFF.md` §4 stavka 8).
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)

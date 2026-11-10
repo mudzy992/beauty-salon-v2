@@ -180,6 +180,7 @@
     "test:generic-aria-and-row-actions": "node --test src/app/generic-aria-and-row-actions-a11y.test.mjs",
     "test:form-control-labels": "node --test src/app/form-control-labels-a11y.test.mjs",
     "test:i18n-key-resolution": "node --test src/app/i18n-key-resolution.test.mjs",
+    "test:api-error-keys-i18n": "node --test src/app/api-error-keys-i18n.test.mjs",
     "test:eslint-a11y-severity": "node --test src/app/eslint-a11y-severity.test.mjs",
     "test:a11y-routes": "node scripts/run-a11y-routes.mjs",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json",

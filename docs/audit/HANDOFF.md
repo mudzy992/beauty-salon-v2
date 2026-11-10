@@ -1250,21 +1250,21 @@ nije moguć; moj fajl ima tačno **1** grešku, istu kao `seed.ts`.
 
 ## 1. Stanje na kraju
 
-### 1a. Ponovno izmjereno 2026-11-10, poslije proširenja i18n guard-a
+### 1a. Ponovno izmjereno 2026-11-10, poslije proširenja i18n guard-a i API-error guard-a
 
 Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 
 | Provjera | Rezultat |
 |---|---|
-| `test:*` skripti (frontend) | **184/184** skripti, 0 padova — **708** pojedinačnih testova |
+| `test:*` skripti (frontend) | **184/185** skripti, 0 padova — **712** pojedinačnih testova (`test:a11y-routes` preskočen jer je interaktivan) |
 | `tsc --noEmit` | exit **0** |
 | `npm run lint` | **0 errors** / 7 warnings |
 | `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
 | `check_ui_contrast.py --strict` | **80/80** |
 | `check_i18n.py --strict` | PASS — **2662** leaf ključeva po jeziku, 0 razlika BS↔EN |
-| `check_repo_hygiene.py` | PASS — **1712** putanja |
+| `check_repo_hygiene.py` | PASS — **1714** putanja |
 | `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
-| `check_ci_index.py` | PASS — **364/367** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
+| `check_ci_index.py` | PASS — **365/368** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
 | **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
 | `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
 
@@ -1276,6 +1276,24 @@ nije vidio. Novi test 6 asertuje roditelja svakog dinamičkog ključa oblika
 kopirnih ključeva u sve četiri stranice postavki. Rupa je bila dokazana mutacijom: ključ u mapi
 promijenjen u nepostojeći prolazio je kroz svih 13 settings-testova i kroz sva 4 postojeća
 testa. Detalji u `.cursor/plans/dashboard-redesign/CHANGELOG.md` (2026-11-10).
+
+**Dodano istog dana — `test:api-error-keys-i18n` (4 testa).** Pet frontend modula prevodi
+serverske greške tako što mapira **tačnu bosansku poruku** na i18n ključ (64 para = 55
+različitih poruka → 58 ključeva), a nijedan od 5 postojećih testova tih modula ne čita ni
+`locales/*.json` ni `backend/` — izmjereno: **0** pogodaka za `locales/bs.json` u svih pet.
+Novi test zaključava (a) da svih 64 poruke još postoji **doslovno** u `backend/src` (drift
+bi tiho vratio generički fallback) i (b) da svaki vraćeni ključ postoji u oba jezika. Stavka
+(b) je bila **slijepa tačka**: `client-reservation-error.mjs` i `public-reservation-error.mjs`
+vraćaju kratke ključeve bez imenskog prostora (`errorSlotUnavailable`), koje pozivatelj tek
+prefiksira, pa ih `test:i18n-key-resolution` ne vidi — dokazano mutacijom B3 (obrisan EN
+ključ → taj test **prolazi**, novi pada). Mutacije **6/6**.
+
+Backend i dalje nema funkcionalan i18n sloj: **0** pogodaka za `nestjs-i18n` / `I18nService`
+/ `Accept-Language` / `errorCode`; `backend/src/i18n/constants.ts` postoji ali je **mrtav kod**
+(0 uvoznika, samo BS). Svih **55** mapiranih poruka postoji doslovno u `backend/src`; unutar
+izmjerenog skupa od **191** jednolinijskih `Exception('…')` poruka mapirano je **40**, a
+**151** nije (preostalih 15 mapiranih dolazi iz višelinijskih `throw` poziva i DTO
+dekoratora). Nemapirane padaju na generički fallback. To ostaje `I18N-01` — vidi §4 stavka 8.
 
 ### 1b. Izmjereno 2026-11-09, poslije serije zatvaranja ❌ stavki
 
@@ -1614,6 +1632,11 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    `test:axe-render-a11y` pokreće pravi axe nad renderovanim markupom (35 scenarija,
    0 prekršaja, mutacije 6/6). Ne pokriva kontrast, 2.5.3, veličinu mete, reflow ni stanje s
    podacima — ali pokriva strukturna pravila koja dosad nisu imala **nikakav** rendered dokaz.
+8. **Odlučiti o API-greškama (`I18N-01`)** — backend vraća **191** različitih bosanskih
+   poruka, a frontend prevodi samo **40** po tačnom tekstu. To je krhko (promjena jednog
+   znaka u backendu tiho vraća generički fallback), ali sada **zaključano testom**
+   `test:api-error-keys-i18n` (2026-11-10, mutacije 6/6). Trajna popravka traži odluku
+   vlasnika: kodovi grešaka ili backend i18n sloj. **Nije** odlučeno ovdje.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,
