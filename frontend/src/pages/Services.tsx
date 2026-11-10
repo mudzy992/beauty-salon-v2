@@ -773,8 +773,8 @@ export default function Services() {
           {modalMode === 'category' ? (
             <div className="space-y-4">
               <div>
-                <Label>{t('common.name')}</Label>
-                <Input
+                <Label htmlFor="services-common-name">{t('common.name')}</Label>
+                <Input id="services-common-name"
                   className="mt-1"
                   value={catForm.name}
                   onChange={(e) =>
@@ -783,8 +783,8 @@ export default function Services() {
                 />
               </div>
               <div>
-                <Label>{t('common.description')}</Label>
-                <Textarea
+                <Label htmlFor="services-common-description">{t('common.description')}</Label>
+                <Textarea id="services-common-description"
                   className="mt-1"
                   value={catForm.description}
                   onChange={(e) =>
@@ -794,8 +794,8 @@ export default function Services() {
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('services.sortOrder')}</Label>
-                  <Input
+                  <Label htmlFor="services-sort-order">{t('services.sortOrder')}</Label>
+                  <Input id="services-sort-order"
                     className="mt-1"
                     type="number"
                     min={0}
@@ -827,8 +827,8 @@ export default function Services() {
           {modalMode === 'subcategory' ? (
             <div className="space-y-4">
               <div>
-                <Label>{t('common.name')}</Label>
-                <Input
+                <Label htmlFor="services-common-name-2">{t('common.name')}</Label>
+                <Input id="services-common-name-2"
                   className="mt-1"
                   value={subForm.name}
                   onChange={(e) =>
@@ -837,8 +837,8 @@ export default function Services() {
                 />
               </div>
               <div>
-                <Label>{t('common.description')}</Label>
-                <Textarea
+                <Label htmlFor="services-common-description-2">{t('common.description')}</Label>
+                <Textarea id="services-common-description-2"
                   className="mt-1"
                   value={subForm.description}
                   onChange={(e) =>
@@ -848,8 +848,8 @@ export default function Services() {
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('services.sortOrder')}</Label>
-                  <Input
+                  <Label htmlFor="services-services-sort-order-2">{t('services.sortOrder')}</Label>
+                  <Input id="services-services-sort-order-2"
                     className="mt-1"
                     type="number"
                     min={0}
@@ -881,8 +881,8 @@ export default function Services() {
           {modalMode === 'service' ? (
             <div className="space-y-4">
               <div>
-                <Label>{t('services.serviceName')}</Label>
-                <Input
+                <Label htmlFor="services-service-name">{t('services.serviceName')}</Label>
+                <Input id="services-service-name"
                   className="mt-1"
                   value={svcForm.name}
                   onChange={(e) =>
@@ -891,8 +891,8 @@ export default function Services() {
                 />
               </div>
               <div>
-                <Label>{t('services.shortDescription')}</Label>
-                <Textarea
+                <Label htmlFor="services-short-description">{t('services.shortDescription')}</Label>
+                <Textarea id="services-short-description"
                   className="mt-1"
                   value={svcForm.shortDescription}
                   onChange={(e) =>
@@ -938,8 +938,8 @@ export default function Services() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('services.duration')}</Label>
-                  <Input
+                  <Label htmlFor="services-duration">{t('services.duration')}</Label>
+                  <Input id="services-duration"
                     className="mt-1"
                     type="number"
                     min={5}
@@ -955,8 +955,8 @@ export default function Services() {
                   />
                 </div>
                 <div>
-                  <Label>{t('services.price')}</Label>
-                  <Input
+                  <Label htmlFor="services-price">{t('services.price')}</Label>
+                  <Input id="services-price"
                     className="mt-1"
                     type="number"
                     min={0}
@@ -974,8 +974,8 @@ export default function Services() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>{t('services.gender')}</Label>
-                  <select
+                  <Label htmlFor="services-gender">{t('services.gender')}</Label>
+                  <select id="services-gender"
                     className={`${selectClass} mt-1`}
                     value={svcForm.gender}
                     onChange={(e: ChangeEvent<HTMLSelectElement>) =>
@@ -990,8 +990,8 @@ export default function Services() {
                   </select>
                 </div>
                 <div>
-                  <Label>{t('services.sortOrder')}</Label>
-                  <Input
+                  <Label htmlFor="services-services-sort-order-3">{t('services.sortOrder')}</Label>
+                  <Input id="services-services-sort-order-3"
                     className="mt-1"
                     type="number"
                     min={0}
@@ -1034,8 +1034,8 @@ export default function Services() {
               {svcForm.loyaltyEnabled ? (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <Label>{t('services.maxDiscount')}</Label>
-                    <Input
+                    <Label htmlFor="services-max-discount">{t('services.maxDiscount')}</Label>
+                    <Input id="services-max-discount"
                       className="mt-1"
                       type="number"
                       min={0}

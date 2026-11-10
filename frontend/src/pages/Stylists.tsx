@@ -327,8 +327,8 @@ export default function Stylists() {
             <TabsContent value="profile" className="mt-4">
               <div className="space-y-4">
                 <div>
-                  <Label>{t('stylists.specializationAuto')}</Label>
-                  <Input className="mt-1" value={form.specialization} readOnly />
+                  <Label htmlFor="stylists-specialization-auto">{t('stylists.specializationAuto')}</Label>
+                  <Input id="stylists-specialization-auto" className="mt-1" value={form.specialization} readOnly />
                   <p className="mt-1 text-xs text-slate-500">
                     {t('stylists.specializationHint')}
                   </p>
@@ -347,14 +347,14 @@ export default function Stylists() {
                 </div>
 
                 <div>
-                  <Label>{t('stylists.bio')}</Label>
-                  <Textarea className="mt-1" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
+                  <Label htmlFor="stylists-bio">{t('stylists.bio')}</Label>
+                  <Textarea id="stylists-bio" className="mt-1" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <Label>{t('stylists.hireDate')}</Label>
-                    <Input className="mt-1" type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
+                    <Label htmlFor="stylists-hire-date">{t('stylists.hireDate')}</Label>
+                    <Input id="stylists-hire-date" className="mt-1" type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
                   </div>
                   <div className="flex items-center justify-between gap-3 md:pt-7">
                     <Label className="mb-0">{t('common.active')}</Label>

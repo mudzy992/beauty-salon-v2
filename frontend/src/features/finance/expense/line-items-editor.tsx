@@ -153,6 +153,7 @@ export function LineItemsEditor({
                       <input
                         type="file"
                         className="max-w-full text-xs"
+                        aria-label={t('finance.expenseForm.attachmentForLine', { number: index + 1 })}
                         disabled={isUploading || !label}
                         onChange={(e) => {
                           const file = e.target.files?.[0]

@@ -2492,6 +2492,8 @@
       "uploadFailed": "Attachment upload failed.",
       "fixedFields": "Fixed items",
       "fieldAmount": "Amount for {{name}}",
+      "attachmentFor": "Attachment for {{name}}",
+      "attachmentForLine": "Attachment for line {{number}}",
       "remove": "Remove",
       "existingAttachment": "existing attachment",
       "total": "Total",

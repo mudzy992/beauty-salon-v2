@@ -2489,6 +2489,8 @@
       "uploadFailed": "Slanje priloga nije uspjelo.",
       "fixedFields": "Fiksne stavke",
       "fieldAmount": "Iznos za {{name}}",
+      "attachmentFor": "Prilog za {{name}}",
+      "attachmentForLine": "Prilog za stavku {{number}}",
       "remove": "Ukloni",
       "existingAttachment": "postojeći prilog",
       "total": "Ukupno",

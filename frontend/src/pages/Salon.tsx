@@ -315,26 +315,26 @@ export default function Salon() {
         <Card>
           <div className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label>{t('salon.salonName')}</Label>
-              <Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
+              <Label htmlFor="salon-salon-name">{t('salon.salonName')}</Label>
+              <Input id="salon-salon-name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>{t('salon.phone')}</Label>
-                <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+                <Label htmlFor="salon-phone">{t('salon.phone')}</Label>
+                <Input id="salon-phone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
               </div>
               <div className="space-y-2">
-                <Label>{t('salon.email')}</Label>
-                <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
+                <Label htmlFor="salon-email">{t('salon.email')}</Label>
+                <Input id="salon-email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{t('salon.address')}</Label>
-              <Input value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
+              <Label htmlFor="salon-address">{t('salon.address')}</Label>
+              <Input id="salon-address" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>{t('salon.description')}</Label>
-              <Textarea rows={3} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
+              <Label htmlFor="salon-description">{t('salon.description')}</Label>
+              <Textarea id="salon-description" rows={3} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
             </div>
             <div className="flex justify-end">
               <Button type="button" onClick={() => void handleCreateSalon()} disabled={saving}>
@@ -493,31 +493,31 @@ export default function Salon() {
             <TabsContent value="general" className="mt-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>{t('salon.salonName')}</Label>
-                  <Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
+                  <Label htmlFor="salon-salon-salon-name-2">{t('salon.salonName')}</Label>
+                  <Input id="salon-salon-salon-name-2" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.address')}</Label>
-                  <Input value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
+                  <Label htmlFor="salon-salon-address-2">{t('salon.address')}</Label>
+                  <Input id="salon-salon-address-2" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.phone')}</Label>
-                  <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+                  <Label htmlFor="salon-salon-phone-2">{t('salon.phone')}</Label>
+                  <Input id="salon-salon-phone-2" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.email')}</Label>
-                  <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
+                  <Label htmlFor="salon-salon-email-2">{t('salon.email')}</Label>
+                  <Input id="salon-salon-email-2" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>{t('salon.description')}</Label>
-                  <Textarea rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
+                  <Label htmlFor="salon-salon-description-2">{t('salon.description')}</Label>
+                  <Textarea id="salon-salon-description-2" rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>{t('salon.pauseBetween')}</Label>
-                  <Input
+                  <Label htmlFor="salon-pause-between">{t('salon.pauseBetween')}</Label>
+                  <Input id="salon-pause-between"
                     type="number"
                     min={0}
                     value={String(formData.pauseBetweenServices)}
@@ -525,8 +525,8 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.cancellationDeadline')}</Label>
-                  <Input
+                  <Label htmlFor="salon-cancellation-deadline">{t('salon.cancellationDeadline')}</Label>
+                  <Input id="salon-cancellation-deadline"
                     type="number"
                     min={0}
                     value={String(formData.cancellationDeadlineHours)}
@@ -534,8 +534,8 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.reservationLock')}</Label>
-                  <Input
+                  <Label htmlFor="salon-reservation-lock">{t('salon.reservationLock')}</Label>
+                  <Input id="salon-reservation-lock"
                     type="number"
                     min={1}
                     value={String(formData.reservationLockMinutes)}
@@ -543,8 +543,8 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.maxCancellations')}</Label>
-                  <Input
+                  <Label htmlFor="salon-max-cancellations">{t('salon.maxCancellations')}</Label>
+                  <Input id="salon-max-cancellations"
                     type="number"
                     min={0}
                     value={String(formData.maxCancellationsBeforePenalty)}
@@ -552,8 +552,8 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('salon.penaltyDuration')}</Label>
-                  <Input
+                  <Label htmlFor="salon-penalty-duration">{t('salon.penaltyDuration')}</Label>
+                  <Input id="salon-penalty-duration"
                     type="number"
                     min={0}
                     value={String(formData.penaltyDurationDays)}
@@ -625,17 +625,17 @@ export default function Salon() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>{t('salon.holidayForm.date')}</Label>
-                <Input type="date" value={holForm.date} onChange={(e) => setHolForm((p) => ({ ...p, date: e.target.value }))} />
+                <Label htmlFor="salon-holiday-form-date">{t('salon.holidayForm.date')}</Label>
+                <Input id="salon-holiday-form-date" type="date" value={holForm.date} onChange={(e) => setHolForm((p) => ({ ...p, date: e.target.value }))} />
               </div>
               <div className="space-y-2">
-                <Label>{t('salon.holidayForm.name')}</Label>
-                <Input value={holForm.name} onChange={(e) => setHolForm((p) => ({ ...p, name: e.target.value }))} />
+                <Label htmlFor="salon-holiday-form-name">{t('salon.holidayForm.name')}</Label>
+                <Input id="salon-holiday-form-name" value={holForm.name} onChange={(e) => setHolForm((p) => ({ ...p, name: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{t('salon.holidayForm.message')}</Label>
-              <Textarea rows={3} value={holForm.message} onChange={(e) => setHolForm((p) => ({ ...p, message: e.target.value }))} />
+              <Label htmlFor="salon-holiday-form-message">{t('salon.holidayForm.message')}</Label>
+              <Textarea id="salon-holiday-form-message" rows={3} value={holForm.message} onChange={(e) => setHolForm((p) => ({ ...p, message: e.target.value }))} />
             </div>
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
               <div className="space-y-0.5">

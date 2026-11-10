@@ -139,7 +139,9 @@ test('D1 iz plana NIJE prekršaj — dva <h1> su u međusobno isključivim grana
 })
 
 test('D6 (2.5.7) zadovoljen — upload ima native input, ne samo drag&drop', () => {
-  assert.match(services, /<input\s+type="file"/)
+  // Atributi između `<input` i `type="file"` su dozvoljeni (npr. `id`): tvrdnja je da
+  // native input postoji, ne da je `type` prvi atribut.
+  assert.match(services, /<input[^>]*\stype="file"/)
   assert.match(services, /svcFileRef\.current\?\.click\(\)/, 'mora postojati dugme koje okida input')
   assert.equal(
     /onDrop=/.test(services),

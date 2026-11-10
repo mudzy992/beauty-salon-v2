@@ -997,6 +997,7 @@ export default function Users() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                   <Input
                     className="pl-9"
+                    aria-label={t('users.searchClients')}
                     placeholder={t('users.searchClients')}
                     value={clientsSearch}
                     onChange={(e) => setClientsSearch(e.target.value)}
@@ -1134,8 +1135,8 @@ export default function Users() {
 
                     {mode === 'TRANSFER' ? (
                       <div className="mt-3 space-y-2">
-                        <Label>{t('users.stylistRemoval.target')}</Label>
-                        <select
+                        <Label htmlFor="users-stylist-removal-target">{t('users.stylistRemoval.target')}</Label>
+                        <select id="users-stylist-removal-target"
                           className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                           value={(removalTargets as any)[row.key] ?? ''}
                           onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
@@ -1215,8 +1216,8 @@ export default function Users() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>{t('users.username')}</Label>
-              <Input
+              <Label htmlFor="users-username">{t('users.username')}</Label>
+              <Input id="users-username"
                 value={formData.username}
                 onChange={(e) => {
                   setEditIsUsernameManuallyEdited(true)
@@ -1262,7 +1263,7 @@ export default function Users() {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label className="mb-0">{t('users.email')}</Label>
+                <Label htmlFor="users-email" className="mb-0">{t('users.email')}</Label>
                 {formData.email.trim().length > 0 ? (
                   <Badge
                     variant={formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? 'success' : 'warning'}
@@ -1272,29 +1273,29 @@ export default function Users() {
                   </Badge>
                 ) : null}
               </div>
-              <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
+              <Input id="users-email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
             </div>
 
             <div className="space-y-2">
-              <Label>{t('auth.firstName')}</Label>
-              <Input value={formData.firstName} onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))} />
+              <Label htmlFor="users-auth-first-name">{t('auth.firstName')}</Label>
+              <Input id="users-auth-first-name" value={formData.firstName} onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>{t('auth.lastName')}</Label>
-              <Input value={formData.lastName} onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('users.phone')}</Label>
-              <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+              <Label htmlFor="users-auth-last-name">{t('auth.lastName')}</Label>
+              <Input id="users-auth-last-name" value={formData.lastName} onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))} />
             </div>
 
             <div className="space-y-2">
-              <Label>
+              <Label htmlFor="users-phone">{t('users.phone')}</Label>
+              <Input id="users-phone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="users-gender">
                 {t('users.gender.label')}
                 {editUser && getUserRoles(editUser).includes('CLIENT') ? <span className="ml-1 text-rose-600">*</span> : null}
               </Label>
-              <select
+              <select id="users-gender"
                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                 value={formData.gender}
                 onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value as any }))}
@@ -1396,17 +1397,17 @@ export default function Users() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>{t('auth.firstName')}</Label>
-              <Input value={createData.firstName} onChange={(e) => setCreateData((p) => ({ ...p, firstName: e.target.value }))} />
+              <Label htmlFor="users-auth-first-name-2">{t('auth.firstName')}</Label>
+              <Input id="users-auth-first-name-2" value={createData.firstName} onChange={(e) => setCreateData((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>{t('auth.lastName')}</Label>
-              <Input value={createData.lastName} onChange={(e) => setCreateData((p) => ({ ...p, lastName: e.target.value }))} />
+              <Label htmlFor="users-auth-last-name-2">{t('auth.lastName')}</Label>
+              <Input id="users-auth-last-name-2" value={createData.lastName} onChange={(e) => setCreateData((p) => ({ ...p, lastName: e.target.value }))} />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>{t('users.username')}</Label>
-              <Input
+              <Label htmlFor="users-users-username-2">{t('users.username')}</Label>
+              <Input id="users-users-username-2"
                 value={createData.username}
                 onChange={(e) => {
                   const value = e.target.value
@@ -1447,16 +1448,16 @@ export default function Users() {
             ) : null}
 
             <div className="space-y-2 md:col-span-2">
-              <Label>{t('users.form.role')}</Label>
-              <Input value={getRoleLabel('CLIENT')} readOnly />
+              <Label htmlFor="users-form-role">{t('users.form.role')}</Label>
+              <Input id="users-form-role" value={getRoleLabel('CLIENT')} readOnly />
               <p className="text-xs text-slate-500">
                 {t('users.form.roleNote')}
               </p>
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>{t('users.gender.label')}</Label>
-              <select
+              <Label htmlFor="users-create-gender">{t('users.gender.label')}</Label>
+              <select id="users-create-gender"
                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                 value={createData.gender}
                 onChange={(e) => setCreateData((p) => ({ ...p, gender: e.target.value as any }))}

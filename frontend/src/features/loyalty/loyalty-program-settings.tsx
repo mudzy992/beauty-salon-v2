@@ -104,37 +104,37 @@ export function LoyaltyProgramSettings() {
     <Card className="mb-6 p-6 space-y-4">
       <div className="flex items-center justify-between">
         <Label>{t('loyaltyAdmin.settings.enabled')}</Label>
-        <Switch checked={enabled} onCheckedChange={setEnabled} />
+        <Switch aria-label={t('loyaltyAdmin.settings.enabled')} checked={enabled} onCheckedChange={setEnabled} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label>{t('loyaltyAdmin.settings.pointsPerKm')}</Label>
-          <Input type="number" value={pointsPer} onChange={(e) => setPointsPer(e.target.value)} />
+          <Label htmlFor="loyalty-admin-settings-points-per-km">{t('loyaltyAdmin.settings.pointsPerKm')}</Label>
+          <Input id="loyalty-admin-settings-points-per-km" type="number" value={pointsPer} onChange={(e) => setPointsPer(e.target.value)} />
         </div>
         <div>
-          <Label>{t('loyaltyAdmin.settings.minimumAmount')}</Label>
-          <Input type="number" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} />
+          <Label htmlFor="loyalty-admin-settings-minimum-amount">{t('loyaltyAdmin.settings.minimumAmount')}</Label>
+          <Input id="loyalty-admin-settings-minimum-amount" type="number" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} />
         </div>
         <div>
-          <Label>{t('loyaltyAdmin.settings.kmPerPoint')}</Label>
-          <Input type="number" value={redeemRate} onChange={(e) => setRedeemRate(e.target.value)} />
+          <Label htmlFor="loyalty-admin-settings-km-per-point">{t('loyaltyAdmin.settings.kmPerPoint')}</Label>
+          <Input id="loyalty-admin-settings-km-per-point" type="number" value={redeemRate} onChange={(e) => setRedeemRate(e.target.value)} />
         </div>
         <div>
-          <Label>{t('loyaltyAdmin.settings.minimumPoints')}</Label>
-          <Input type="number" value={minRedeem} onChange={(e) => setMinRedeem(e.target.value)} />
+          <Label htmlFor="loyalty-admin-settings-minimum-points">{t('loyaltyAdmin.settings.minimumPoints')}</Label>
+          <Input id="loyalty-admin-settings-minimum-points" type="number" value={minRedeem} onChange={(e) => setMinRedeem(e.target.value)} />
         </div>
         <div>
-          <Label>{t('loyaltyAdmin.settings.maximumDiscount')}</Label>
-          <Input type="number" value={maxPct} onChange={(e) => setMaxPct(e.target.value)} />
+          <Label htmlFor="loyalty-admin-settings-maximum-discount">{t('loyaltyAdmin.settings.maximumDiscount')}</Label>
+          <Input id="loyalty-admin-settings-maximum-discount" type="number" value={maxPct} onChange={(e) => setMaxPct(e.target.value)} />
         </div>
       </div>
       <div className="flex items-center justify-between">
         <Label>{t('loyaltyAdmin.settings.earnOnTip')}</Label>
-        <Switch checked={earnTip} onCheckedChange={setEarnTip} />
+        <Switch aria-label={t('loyaltyAdmin.settings.earnOnTip')} checked={earnTip} onCheckedChange={setEarnTip} />
       </div>
       <div className="flex items-center justify-between">
         <Label>{t('loyaltyAdmin.settings.redeemEnabled')}</Label>
-        <Switch checked={redeemOn} onCheckedChange={setRedeemOn} />
+        <Switch aria-label={t('loyaltyAdmin.settings.redeemEnabled')} checked={redeemOn} onCheckedChange={setRedeemOn} />
       </div>
       <div>
         <Label>{t('loyaltyAdmin.settings.excludedServices')}</Label>
@@ -162,10 +162,11 @@ export function LoyaltyProgramSettings() {
         <div className="space-y-2">
           {tiers.map((tier, idx) => (
             <div key={`${tier.id}-${idx}`} className="grid grid-cols-3 gap-2">
-              <Input placeholder={t('loyaltyAdmin.settings.tierId')} value={tier.id} onChange={(e) => setTiers((t) => t.map((x, i) => (i === idx ? { ...x, id: e.target.value } : x)))} />
-              <Input placeholder={t('loyaltyAdmin.settings.tierName')} value={tier.name} onChange={(e) => setTiers((t) => t.map((x, i) => (i === idx ? { ...x, name: e.target.value } : x)))} />
+              <Input aria-label={t('loyaltyAdmin.settings.tierId')} placeholder={t('loyaltyAdmin.settings.tierId')} value={tier.id} onChange={(e) => setTiers((t) => t.map((x, i) => (i === idx ? { ...x, id: e.target.value } : x)))} />
+              <Input aria-label={t('loyaltyAdmin.settings.tierName')} placeholder={t('loyaltyAdmin.settings.tierName')} value={tier.name} onChange={(e) => setTiers((t) => t.map((x, i) => (i === idx ? { ...x, name: e.target.value } : x)))} />
               <Input
                 type="number"
+                aria-label={t('loyaltyAdmin.settings.minimumTierPoints')}
                 placeholder={t('loyaltyAdmin.settings.minimumTierPoints')}
                 value={String(tier.minPoints)}
                 onChange={(e) => setTiers((t) => t.map((x, i) => (i === idx ? { ...x, minPoints: Number(e.target.value || 0) } : x)))}

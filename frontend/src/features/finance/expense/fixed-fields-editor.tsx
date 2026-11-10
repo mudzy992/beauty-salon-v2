@@ -88,6 +88,7 @@ export function FixedFieldsEditor({
                     <input
                       type="file"
                       className="max-w-full text-xs"
+                      aria-label={t('finance.expenseForm.attachmentFor', { name: field.fieldName })}
                       disabled={isUploading}
                       onChange={(e) => {
                         const file = e.target.files?.[0]

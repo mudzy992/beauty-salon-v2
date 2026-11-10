@@ -126,7 +126,7 @@ function scanTags(src) {
     }
     line += (src.slice(cursor, i).match(/\n/g) || []).length
     cursor = i
-    tags.push({ tag, attrs: src.slice(j, k), line })
+    tags.push({ tag, attrs: src.slice(j, k), line, start: i, end: k })
     i = k
   }
   return tags
@@ -139,27 +139,63 @@ const SKIP_TYPE = /type\s*=\s*["'](?:hidden|submit|button|reset)["']/
 // `type="file"`: vidljiv file input bez labele JESTE prekršaj.
 const SKIP_HIDDEN = /className\s*=\s*(?:"[^"]*\bhidden\b|'[^']*\bhidden\b)/
 
+/**
+ * Vrijednost atributa `name="x"`, `name='x'` ili `name={…}`.
+ *
+ * Zagrade se broje, pa prolazi i template-literal s interpolacijom
+ * (`id={`${editorId}-block-${block.id}`}`). Prijašnji regex `\{([^{}]*)\}` tu NIJE
+ * matchao, pa su ispravno uparene kontrole ispadale kao lažni prekršaji.
+ */
+function attrValue(attrs, name) {
+  const m = new RegExp(`(?:^|[\\s])${name}\\s*=\\s*`).exec(attrs)
+  if (!m) return null
+  const rest = attrs.slice(m.index + m[0].length)
+  if (rest[0] === '"' || rest[0] === "'") {
+    const close = rest.indexOf(rest[0], 1)
+    return close === -1 ? null : rest.slice(1, close)
+  }
+  if (rest[0] !== '{') return null
+  let depth = 0
+  for (let i = 0; i < rest.length; i++) {
+    if (rest[i] === '{') depth++
+    else if (rest[i] === '}') {
+      depth--
+      if (depth === 0) return rest.slice(1, i)
+    }
+  }
+  return null
+}
+
 function unlabeledIn(relPath, raw) {
   const src = blankComments(raw)
   const tags = scanTags(src)
   const targets = new Set()
-  let hasBareLabel = false
-  for (const { tag, attrs } of tags) {
-    if (tag !== 'Label' && tag !== 'label') continue
-    const m = /htmlFor\s*=\s*("([^"]*)"|'([^']*)'|\{([^{}]*)\})/.exec(attrs)
-    if (m) targets.add((m[2] ?? m[3] ?? m[4] ?? '').trim())
-    else hasBareLabel = true
+  // Rasponi `<Label>` … `</Label>` bez htmlFor: takva labeta daje ime SAMO kontroli koju
+  // omotava. Prijašnja verzija je imala `if (hasBareLabel) continue`, što je opravdavalo
+  // SVE kontrole u fajlu čim bi ijedna labeta bila bez htmlFor — a u `Salon.tsx`,
+  // `Services.tsx`, `Users.tsx` i `loyalty-program-settings.tsx` labele stoje PORED polja,
+  // ne oko njega. Izmjereno 2026-11-08: 79 kontrola je tako prolazilo, od toga 61 stvarno
+  // bez imena; axe ih je potvrdio na /admin/salon i /admin/loyalty.
+  const wrapSpans = []
+  for (const t of tags) {
+    if (t.tag !== 'Label' && t.tag !== 'label') continue
+    const htmlFor = attrValue(t.attrs, 'htmlFor')
+    if (htmlFor !== null && htmlFor.trim() !== '') {
+      targets.add(htmlFor.trim())
+      continue
+    }
+    const close = new RegExp(`</${t.tag}\\s*>`).exec(src.slice(t.end))
+    wrapSpans.push([t.end, close ? t.end + close.index : src.length])
   }
   const bad = []
-  for (const { tag, attrs, line } of tags) {
-    if (!CONTROLS.has(tag)) continue
-    if (SKIP_TYPE.test(attrs) || SKIP_HIDDEN.test(attrs)) continue
-    if (/aria-label\s*=|aria-labelledby\s*=|aria-hidden\s*=\s*["']true/.test(attrs)) continue
-    const idm = /\bid\s*=\s*("([^"]*)"|'([^']*)'|\{([^{}]*)\})/.exec(attrs)
-    const ident = idm ? (idm[2] ?? idm[3] ?? idm[4] ?? '').trim() : ''
+  for (const t of tags) {
+    if (!CONTROLS.has(t.tag)) continue
+    if (SKIP_TYPE.test(t.attrs) || SKIP_HIDDEN.test(t.attrs)) continue
+    if (/aria-label\s*=|aria-labelledby\s*=|aria-hidden\s*=\s*["']true/.test(t.attrs)) continue
+    const ident = (attrValue(t.attrs, 'id') ?? '').trim()
     if (ident && targets.has(ident)) continue
-    if (hasBareLabel) continue // <label> bez htmlFor omotava kontrolu
-    bad.push({ rel: relPath, line, tag })
+    if (wrapSpans.some(([a, b]) => t.start >= a && t.start <= b)) continue
+    bad.push({ rel: relPath, line: t.line, tag: t.tag })
   }
   return bad
 }
