@@ -4772,3 +4772,111 @@ build su potvrđeni; vizuelno ne.
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
 `StylistAnalytics.tsx`.
+
+---
+
+## 2026-11-09 — Kontrole bez programskog imena: 3 stvarna prekršaja (1.3.1 / 3.3.2 / 4.1.2)
+
+Nastavak istog metoda: mjerenje, ne matrica. Tražena je klasa defekta koju `jsx-a11y`
+strukturno ne vidi — `label-has-associated-control` hvata **labelu bez kontrole**, ali ne i
+**kontrolu bez labele**. Zato repo-wide sweep nad cijelim `src/**/*.tsx`.
+
+### Prije toga: dva kandidata opovrgnuta, i jedna greška mog skenera
+
+Sweep nad duplikatima `id` i visećim referencama (`aria-labelledby`/`aria-describedby`/`htmlFor`
+→ nepostojeći `id`) dao je: **0 visećih referenci** i **2 duplikata `id`**. Oba duplikata su
+**opovrgnuta** — nisu u DOM-u istovremeno:
+
+- `settings-module-page.tsx:102,113` — `id="settings-groups-list"` u dvije grane istog
+  ternary-ja (`visibleGroups.length === 0 ? … : …`);
+- `PublicReserve.tsx:189,249` — `id="public-service-search"` u `if (selected.length > 0) { return … }`
+  (124–243) i u defaultnom `return` (245).
+
+🔴 **Greška mog skenera:** prijavio je `<select>` na `manual-entry-dialog.tsx:24` — a linija 24
+je **komentar** (`// 1.4.11: okvir <select> mora imati 3:1…`). Skener nije preskakao komentare.
+Ista greška kao ranije s regex-om koji je pogodio moj komentar. U testu je riješeno
+state-machine-om koji **zakomentariše komentare bez pomjeranja offset-a** (svaki znak → razmak,
+novi red ostaje), pa brojevi linija ostaju tačni.
+
+### Tri stvarna prekršaja
+
+| Mjesto | Stanje | Zašto je prekršaj |
+|---|---|---|
+| `entry-filters.tsx:58,69,80` | dva `<Input type="date">` i `<select>` uz vidljiv `<p className="mb-1 text-xs text-content-muted">` | `<p>` nije programski povezan s poljem → 1.3.1/3.3.2. AT najavi samo „edit" bez „Od datuma" |
+| `Reservations.tsx:645` | `<Textarea>` za razlog otkazivanja; naslov i pomoć su obični `<p>` | ime polja dolazilo je **samo** iz `placeholder`, koji nestaje čim korisnik počne kucati → 3.3.2 |
+| `Reviews.tsx:122` | `<select>` filter bez **ijedne** labele | AT ga je imenovao tek po izabranoj opciji → 1.3.1/3.3.2/4.1.2 |
+
+**Konzistentnost (obaveza po odluci vlasnika):** `entry-filters.tsx` bio je **jedini** filter
+bar u dashboardu s golim `<p>` — `expense-filters.tsx`, `income-entry-filters.tsx` i
+`reservation-filters.tsx` svi koriste `<Label htmlFor>` (izmjereno: po 4 `<Label>`, 0 `<p className>`).
+Ispravka je zato istovremeno i izjednačavanje s postojećim obrascem.
+
+### Ispravke
+
+- `entry-filters.tsx` — tri `<p>` → `<Label htmlFor>` + `id` na kontroli
+  (`daily-log-from-date`, `daily-log-to-date`, `daily-log-stylist`). `Label` je već bio
+  importovan u tom fajlu (koristi se za `include-deleted`).
+  **Vizuelna promjena, namjerno:** tri labele dobijaju `font-medium` i `leading-none` iz
+  osnovnih klasa `Label` komponente — tačno kao u sva tri srodna filter bara. `text-xs` i
+  `text-content-muted` ostaju, pa veličina i boja nisu dirnuti.
+- `Reservations.tsx` — `useId()` ×2 (`cancelTitleId`, `cancelHelpId`) iznad svakog early
+  return-a, `id` na oba `<p>`, te `aria-labelledby` + `aria-describedby` na `<Textarea>`.
+  **Nula vizuelne promjene.** Bonus: polje je sada povezano i s tekstom pomoći, što samo
+  `<Label>` ne bi dalo.
+- `Reviews.tsx` — `aria-label={t('reviews.filterLabel')}`. Vidljiva labela bi bila dizajnerska
+  promjena, pa je dodata samo programska. Novi ključ `reviews.filterLabel` u oba jezika.
+
+### Šta NIJE dirnuto, i zašto
+
+- `EmailSettings.tsx:926,1089,1100` — **stvarne rupe** (926: drugi input u paru dijeli labelu
+  s prvim; 1089 i 1100: dva `<select>` bez imena). Fajl je pod odlukom vlasnika „ne dirati",
+  pa ostaje kao **zabilježen dug** u allowlist-u testa s punim razlogom.
+- `Register.tsx:239` i `blog-post-form-dialog.tsx:180` — `<input type="file" className="hidden">`.
+  **Nisu prekršaj**: `display:none` ih vadi iz pristupačnog stabla i nisu fokusabilni, a pokreće
+  ih `<Button>` s vidljivim tekstom (`blog.admin.uploadImage` / `auth.chooseAvatar`).
+- `components/ui/input.tsx`, `textarea.tsx` — primitivi koji samo prosljeđuju props.
+
+### Test i mutacije
+
+Novi `frontend/src/app/form-control-labels-a11y.test.mjs` — **5 testova**, registrovan u
+`package.json` i `.github/workflows/ci.yml` (`check_ci_index`: 362/365).
+
+1. repo-wide sweep: nijedna kontrola bez `aria-label`/`aria-labelledby`/uparenog `htmlFor`;
+   allowlist s punim relativnim putanjama + razlog; **dvije pozitivne kontrole** — da sweep
+   stvarno vidi >100 kontrola, i da allowlist ne zarđa (svaka stavka mora odgovarati stvarnom
+   pogotku)
+2. svaka allowlist stavka ima razlog duži od 20 znakova
+3. daily-log filter bar: tri `<Label htmlFor>` + tri `id`, i **nula** golih `<p>` pseudo-labela
+4. `Reservations`: oba `id`, `aria-labelledby` + `aria-describedby`, i `useId()` iznad svakog
+   early return-a unutar komponente
+5. `Reviews`: `aria-label` + ključ u oba jezika
+
+**Mutacije 8/8** (`cp` backup, vraćeno, `diff -q` identično): `<Label>` nazad u `<p>` · `id`
+skinut s `toDate` · `id` skinut sa `<select>` · `aria-describedby` skinut · `aria-labelledby`
+skinut · `aria-label` skinut s filtera · `reviews.filterLabel` obrisan iz `en.json` ·
+`useId()` deklaracije obrisane.
+
+**Tri greške u mom testu, sve uhvaćene prije commit-a:**
+- allowlist je imao **dvije zarđale stavke** (`blog-post-form-dialog.tsx`, `Register.tsx`) jer
+  sam `type="file"` stavio u preskok — uhvatila ih je **moja vlastita pozitivna kontrola**.
+  Ispravljeno: preskok je sada po `className="hidden"` (stvarni razlog), ne po `type="file"`,
+  jer vidljiv file input bez labele **jeste** prekršaj;
+- regex za `<Label>` nije imao `\)` pa je `)` ostala neuparena (`Invalid regular expression`);
+- provjera „`useId()` prije prvog `return (`" bila je **dva puta preširoka**: prvo je pogodila
+  helper definisan iznad komponente, pa `return` unutar arrow-funkcije
+  `getListStylistName` (linija 106). Konačno cilja `\n {2}return` — early return komponente po
+  uvlačenju.
+
+### Kapije
+
+`test:*` **182/182** skripti (**694** pojedinačna testa, 0 padova) · `tsc --noEmit` exit **0** ·
+lint **0 errors / 7 warnings** · build **274.3 KiB**/300 · `check_ui_contrast --strict`
+**80/80** · `check_i18n --strict` PASS (0 razlika BS↔EN) · `check_repo_hygiene` **1710** ·
+`check_doc_links` **670/202** · `check_ci_index` **362/365** · `git diff --check` čist ·
+sken ćirilice/CJK „nema".
+
+**Nije verificirano:** rendered prikaz tri promijenjene labele u daily-log filter baru
+(`font-medium` + `leading-none`). Izvor, tipovi, build i kontrast su potvrđeni; vizuelno nije.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
+`StylistAnalytics.tsx`.

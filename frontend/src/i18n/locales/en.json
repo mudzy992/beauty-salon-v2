@@ -2532,6 +2532,7 @@
     "service": "Service",
     "stylist": "Stylist",
     "details": "Review details",
+    "filterLabel": "Filter reviews by status",
     "detailsTitle": "Review details",
     "notRated": "Not rated",
     "approvedSuccess": "Review approved.",

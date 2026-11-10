@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Eye, Loader2 } from 'lucide-react'
@@ -128,6 +128,9 @@ export default function Reservations() {
   const [open, setOpen] = useState(false)
   const [detail, setDetail] = useState<Reservation | null>(null)
   const [cancelReason, setCancelReason] = useState('')
+  // 3.3.2 — hookovi moraju biti iznad svakog early return-a (React #310).
+  const cancelTitleId = useId()
+  const cancelHelpId = useId()
   const [cancelling, setCancelling] = useState(false)
   const [confirmingAttendance, setConfirmingAttendance] = useState(false)
   /** WCAG 4.1.3 — realtime osvježavanje ne smije tiho zamijeniti podatke. */
@@ -639,10 +642,16 @@ export default function Reservations() {
 
               {canAdminCancelReservation(detail.status) ? (
                 <div className="rounded-md border border-line p-3">
-                  <p className="text-sm font-medium text-content">{t('reservations.adminDetail.cancelTitle')}</p>
-                  <p className="mt-1 text-xs text-content-muted">{t('reservations.adminDetail.cancelHelp')}</p>
+                  {/* 3.3.2: naslov i pomoć bili su obični <p> — vidljivi, ali programski
+                      nepovezani s poljem, pa ih čitač ekrana nije najavio uz njega (polje je
+                      imalo samo placeholder, koji nestaje čim korisnik počne kucati).
+                      useId() + aria-labelledby/aria-describedby, bez vizuelne promjene. */}
+                  <p id={cancelTitleId} className="text-sm font-medium text-content">{t('reservations.adminDetail.cancelTitle')}</p>
+                  <p id={cancelHelpId} className="mt-1 text-xs text-content-muted">{t('reservations.adminDetail.cancelHelp')}</p>
                   <div className="mt-3 space-y-2">
                     <Textarea
+                      aria-labelledby={cancelTitleId}
+                      aria-describedby={cancelHelpId}
                       placeholder={t('reservations.adminDetail.cancelReasonPlaceholder')}
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}

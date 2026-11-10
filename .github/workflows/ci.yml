@@ -625,6 +625,11 @@ jobs:
       - name: Test generic aria-label and clickable row actions
         working-directory: frontend
         run: npm run test:generic-aria-and-row-actions
+      # Guard: jsx-a11y/label-has-associated-control vidi samo labelu BEZ kontrole,
+      # ne i kontrolu bez labele. Ovo pokriva obrnuti smjer, nad cijelim src/.
+      - name: Test form controls have programmatic labels
+        working-directory: frontend
+        run: npm run test:form-control-labels
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard

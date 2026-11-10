@@ -52,10 +52,14 @@ export const DailyLogEntryFilters = ({
   return (
     <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-4 shadow-sm">
       <div>
-        <p className="mb-1 text-xs text-content-muted">
+        {/* 1.3.1/3.3.2: labela je bila običan <p> — vidljiva, ali programski
+            nepovezana s poljem. <Label htmlFor> je i obrazac koji već koriste
+            expense-filters, income-entry-filters i reservation-filters. */}
+        <Label htmlFor="daily-log-from-date" className="mb-1 block text-xs text-content-muted">
           {t('dailyLog.list.fromDate')}
-        </p>
+        </Label>
         <Input
+          id="daily-log-from-date"
           type="date"
           className="h-9 w-[160px]"
           value={fromDate}
@@ -63,10 +67,14 @@ export const DailyLogEntryFilters = ({
         />
       </div>
       <div>
-        <p className="mb-1 text-xs text-content-muted">
+        {/* 1.3.1/3.3.2: labela je bila običan <p> — vidljiva, ali programski
+            nepovezana s poljem. <Label htmlFor> je i obrazac koji već koriste
+            expense-filters, income-entry-filters i reservation-filters. */}
+        <Label htmlFor="daily-log-to-date" className="mb-1 block text-xs text-content-muted">
           {t('dailyLog.list.toDate')}
-        </p>
+        </Label>
         <Input
+          id="daily-log-to-date"
           type="date"
           className="h-9 w-[160px]"
           value={toDate}
@@ -74,10 +82,11 @@ export const DailyLogEntryFilters = ({
         />
       </div>
       <div>
-        <p className="mb-1 text-xs text-content-muted">
+        <Label htmlFor="daily-log-stylist" className="mb-1 block text-xs text-content-muted">
           {t('dailyLog.list.stylist')}
-        </p>
+        </Label>
         <select
+          id="daily-log-stylist"
           value={stylistFilter}
           onChange={(e) => onStylistFilterChange(e.target.value)}
           className="flex h-9 w-[200px] rounded-md border border-input-border bg-surface px-3 text-sm text-content"

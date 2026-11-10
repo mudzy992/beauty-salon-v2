@@ -2529,6 +2529,7 @@
     "service": "Servis",
     "stylist": "Stilista",
     "details": "Detalji recenzije",
+    "filterLabel": "Filtriraj recenzije po statusu",
     "detailsTitle": "Detalji recenzije",
     "notRated": "Nije ocijenjen",
     "approvedSuccess": "Recenzija odobrena.",
