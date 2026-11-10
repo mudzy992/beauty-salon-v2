@@ -584,6 +584,9 @@ jobs:
       - name: Test react-big-calendar ARIA shim
         working-directory: frontend
         run: npm run test:calendar-aria-shim
+      - name: Test axe rule coverage mapping
+        working-directory: frontend
+        run: npm run test:axe-coverage
       - name: Test admin content page accessibility
         working-directory: frontend
         run: npm run test:admin-content-a11y

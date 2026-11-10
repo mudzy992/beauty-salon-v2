@@ -1,4 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
+
+import { defaultCoverageDir, recordAxeCoverage } from './axe-coverage.mjs'
 import { expect, test } from '@playwright/test'
 
 /**
@@ -34,6 +36,10 @@ for (const route of PUBLIC_ROUTES) {
       // 2.3.3 / 1.4.11 / 1.4.3 su ciljevi ovog redizajna; experimentalne axe provjere nisu dokaz
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze()
+
+    // Bilježi status svakog praćenog axe pravila PRIJE asertacije, da se zapiše i kad
+    // test padne — inače bi pad sakrio koje je pravilo bilo nepotpuno.
+    recordAxeCoverage(test.info().project.name, route.path, results, defaultCoverageDir())
 
     const blocking = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')
     expect(

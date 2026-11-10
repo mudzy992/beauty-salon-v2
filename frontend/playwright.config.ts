@@ -45,6 +45,8 @@ import { ADMIN_STATE, STYLIST_STATE } from './e2e/auth-paths'
  */
 export default defineConfig({
   testDir: './e2e',
+  // Sabere axe pokrivenost po WCAG kriteriju i iznese je u CI anotaciju (vidi fajl).
+  globalTeardown: './e2e/coverage-teardown.ts',
   timeout: 60_000,
   fullyParallel: true,
   reporter: [['list'], ['html', { open: 'never' }]],

@@ -1,4 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
+
+import { defaultCoverageDir, recordAxeCoverage } from './axe-coverage.mjs'
 import { expect, test } from '@playwright/test'
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -67,6 +69,10 @@ for (const route of STYLIST_ROUTES) {
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze()
+
+    // Bilježi status svakog praćenog axe pravila PRIJE asertacije, da se zapiše i kad
+    // test padne — inače bi pad sakrio koje je pravilo bilo nepotpuno.
+    recordAxeCoverage(test.info().project.name, route.path, results, defaultCoverageDir())
 
     const blocking = results.violations.filter(
       (v) => v.impact === 'critical' || v.impact === 'serious',

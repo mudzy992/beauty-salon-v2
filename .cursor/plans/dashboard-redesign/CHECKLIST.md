@@ -657,6 +657,39 @@ lint **0 errors / 7 warnings** · build **276.1 KiB**/300 · `check_i18n --stric
 ključeva po jeziku, 0 razlika · `check_doc_links` **670/202** · `check_ci_index` **371/374** ·
 `git diff --check` čist · CJK sken **0** · `mobile/` **0** dirnutih fajlova.
 
+### Migracija je već bila izvršena u CI + mjerenje axe pokrivenosti (2026-11-08)
+
+- [x] **Stavka 1 (`HANDOFF §4`) zatvorena:** posao `a11y-e2e` diže svjež `postgres:16` i korakom 7
+      pokreće `prisma migrate deploy` (`backend/package.json:29`). Run `42874094557`, job
+      `130032694947`: **korak 7 `success`**, bez `continue-on-error`. Nizvodno zeleni: `Seed
+      roles`, `Create disposable a11y test accounts` (upsert nad šemom — pao bi na lošoj koloni),
+      `Build backend`, `Start backend`, `/health`, axe **38 passed**.
+      *Zaključeno, ne izmjereno:* svjež kontejner = prazna baza = sve migracije idu; ispis
+      „N migrations found" nije pročitan jer logovi nisu dostupni.
+- [x] **Stavka 2 zatvorena, ali djelimično:** backend se diže u CI (koraci 10–12) i axe radi nad
+      njim. ⚠️ Baza ima uloge i testne naloge, **ne** i poslovne podatke — admin stranice su
+      mjerene u **praznom stanju**.
+- [x] **Izmjereno: `MATRIX.md` ima 23 🟡 kriterija**, ne 12 kako je stajalo u bilješkama.
+- [x] **`test:axe-coverage` 10/10** + `frontend/e2e/axe-coverage.mjs`/`.d.mts` +
+      `coverage-teardown.ts` (`globalTeardown`). 17 praćenih pravila mapiranih na kriterije,
+      **s opisom šta svako NE dokazuje**. Presude `PROLAZ`/`NEPOTPUNO`/`NIJE_SE_PRIMJENIO`/`PAD`;
+      samo `PROLAZ` smije pomjeriti kriterij na ✅. **Mutacije 5/5** (3/1/3/1/7 pada).
+      Registrovan u `package.json` i `ci.yml`.
+- [x] **Greška uhvaćena pri pisanju:** čitan `results.passed` umjesto axe-ovog **`passes`** —
+      tiho bi učinilo **svako** pravilo `absent` na svakoj ruti.
+- [ ] **16 kriterija nema axe pravilo** (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12, 2.3.1, 2.3.3, 2.4.5,
+      2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — ostaju 🟡; treba čitač ekrana ili
+      M1–M13.
+- [ ] **Nijedan 🟡 još NIJE pomjeren na ✅** — to čeka prvi CI run s anotacijom pokrivenosti.
+      Bez nje bi bilo nagađanje.
+
+### Kapije na kraju ovog poteza (izmjereno, ne prepisano)
+
+`test:*` **191/191** skripti · `tsc --noEmit` exit **0** · `typecheck:e2e` exit **0** ·
+lint **0 errors / 7 warnings** · build **276.1 KiB**/300 · `check_ci_index` **372/375** ·
+`check_doc_links` **670/202** · `check_i18n --strict` paritet **0/0** · `git diff --check`
+čist · CJK sken **0** · `mobile/` **0** dirnutih fajlova.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)

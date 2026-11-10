@@ -6221,3 +6221,78 @@ popravkom šima, a `/` **sam od sebe** — bez ijedne izmjene javnog sajta, što
 > `42872969550` bez promjene koda — **1 pad u ~5 runova**. Sada kad `continue-on-error` ne
 > štiti, takav flake **ruši CI**. Ako se ponovi, ispravna reakcija je retry koraka ili stvarna
 > popravka kontrasta, **ne** vraćanje `continue-on-error`.
+
+---
+
+## 2026-11-08 — Migracija je već bila izvršena u CI + mjerenje axe pokrivenosti po kriteriju
+
+### 1) Stavke 1 i 2 iz `HANDOFF §4` su zatvorene — dokaz je postojao, samo nije bio zabilježen
+
+Posao `a11y-e2e` diže svjež `postgres:16` service kontejner i korakom 7 pokreće
+`npm run db:migrate:deploy` = `prisma migrate deploy` (`backend/package.json:29`).
+
+Run `42874094557` (commit `22193d3`), job `130032694947` — zaključci koraka (GitHub API):
+
+| # | Korak | Zaključak |
+|---|---|---|
+| 7 | Apply migrations to disposable CI PostgreSQL | **success** |
+| 8 | Seed roles | success |
+| 9 | Create disposable a11y test accounts | success |
+| 10–12 | Build backend · Start backend na 10001 · Wait for `/health` | success |
+| 16 | Run rendered a11y (axe) suite | success — **38 passed** |
+
+Korak 7 **nema** `continue-on-error`, pa `success` stvarno znači izlaz 0. Korak 9 radi `upsert`
+nad šemom i pao bi na lošoj koloni, što je dodatna potvrda da je `language` kolona tu.
+
+- *Provjereno:* zaključci koraka, YAML posja (services/env/run), sadržaj `migration.sql`
+  (`ALTER TABLE "blog_posts" ADD COLUMN "language" VARCHAR(8) NOT NULL DEFAULT 'bs';`).
+- *Zaključeno, ne izmjereno:* svjež kontejner = prazna baza = **sve** migracije se primjenjuju.
+  Ispis `prisma migrate deploy` („N migrations found") nije pročitan — logovi nisu dostupni.
+
+⚠️ **„Stanje s podacima" je samo djelimično pokriveno:** baza ima uloge i testne naloge, **ne**
+i poslovne podatke. Admin stranice su mjerene u **praznom stanju**; axe nad popunjenim tabelama,
+kalendarom s događajima i grafikonima s podacima i dalje nije izvršen.
+
+### 2) Zašto „0 failed" NE dokazuje 23 🟡 kriterija
+
+`MATRIX.md` drži **23** kriterija na 🟡 (izmjereno parsiranjem tabele — u bilješkama se ranije
+vrtio broj 12). Zamka:
+
+> **„0 failed" znači da nijedno pravilo nije palo, ne i da se ijedno primijenilo.** Pravilo može
+> biti `inapplicable` (nema takvih čvorova) ili `incomplete` (treba raspored/AT). Proglasiti
+> kriterij ✅ na osnovu `inapplicable` = proglasiti ga dokazanim **zato što je stranica prazna**.
+
+Uvedeno:
+
+- `frontend/e2e/axe-coverage.mjs` + `.d.mts` — 17 praćenih axe pravila mapiranih na WCAG
+  kriterije, **s opisom šta svako NE dokazuje** (npr. `meta-viewport` ≠ 1.4.4 zumiranje,
+  `label` ≠ 3.3.2 uputstva). Bilježi status po pravilu i ruti; jedan JSON po testu jer
+  `playwright.config.ts` ima `fullyParallel: true`.
+- `frontend/e2e/coverage-teardown.ts` (`globalTeardown`) — sabere brojače i iznese ih u CI
+  anotaciju preko `::notice`. Ne mijenja ishod suite-a (namjerno nema `throw`).
+- Sva 3 speka bilježe pokrivenost **prije** asertacije, da pad ne sakrije nepotpuna pravila.
+- Presude: `PROLAZ` / `NEPOTPUNO` / `NIJE_SE_PRIMJENIO` / `PAD`. Samo prva smije pomjeriti
+  kriterij na ✅.
+
+**Greška uhvaćena pri pisanju:** modul je čitao `results.passed`, a axe izvještaj ima ključ
+**`passes`** (množina). Posljedica bi bila tiha i potpuna — **svako** pravilo na svakoj ruti
+postalo bi `absent`, izvještaj bi izgledao uredno, i nijedan kriterij se ne bi mogao pomjeriti.
+
+### Dokaz
+
+`test:axe-coverage` **10/10**. **Mutacije 5/5** uhvaćene: čitanje pogrešnog ključa (3 pada) ·
+`absent` ide u trag (1) · `verdictFor` proglasi PROLAZ bez prolaza (3) · `passed` ima prednost
+nad `violations` (1) · ime fajla bez saterivanja (7). Vraćeni fajl bajt-identičan, 0 pada.
+Registrovan u `frontend/package.json` **i** `.github/workflows/ci.yml`.
+
+### Šta ovo NE rješava
+
+**16 kriterija nema axe pravilo** (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12, 2.3.1, 2.3.3, 2.4.5,
+2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — za njih treba čitač ekrana ili ručna
+provjera (M1–M13). Ostaju 🟡 bez obzira na ovaj alat.
+
+### Kapije
+
+`test:*` **191/191** · `tsc --noEmit` **0** · `typecheck:e2e` **0** · lint **0 errors / 7
+warnings** · build **276.1 KiB**/300 · `check_ci_index` **372/375** · `check_doc_links`
+**670/202** · `check_i18n --strict` paritet 0/0 · `git diff --check` čist · CJK **0**.

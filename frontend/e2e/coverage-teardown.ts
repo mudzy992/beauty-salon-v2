@@ -1,0 +1,18 @@
+import { aggregateCoverage, defaultCoverageDir, formatCoverageSummary } from './axe-coverage.mjs'
+
+/**
+ * `globalTeardown` — sabere zapise pokrivenosti svih ruta i iznese ih u CI anotaciju.
+ *
+ * Zašto anotacija, a ne samo log: logovi i artefakti žive na blob storageu koji izvan
+ * GitHub-ovog sučelja nije dostižan, pa bi bez `::notice` ovaj izvještaj bio nevidljiv.
+ * GitHub prepoznaje workflow komande iz stdout-a bilo kojeg koraka, pa nije potreban
+ * zaseban CI korak.
+ *
+ * Ovo NE mijenja ishod suite-a: namjerno nema `throw`. Ako axe padne, to već ruši posao
+ * preko asertacija u specovima; ovdje se samo objašnjava šta je dokazano, a šta nije.
+ */
+export default function coverageTeardown(): void {
+  const summary = formatCoverageSummary(aggregateCoverage(defaultCoverageDir()))
+  // Anotacije ne smiju biti višelinijske u naslovu, pa tijelo ide kao jedna linija s `\n`.
+  process.stdout.write(`::notice title=axe pokrivenost pravila po WCAG kriteriju::${summary}\n`)
+}

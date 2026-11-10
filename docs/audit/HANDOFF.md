@@ -1534,6 +1534,31 @@ CI run nad renderovanim markupom. Isti razlog objašnjava zašto `color-contrast
 `label-content-name-mismatch` s `/admin/settings` **nisu** mogli biti uhvaćeni lokalno —
 `test:axe-render-a11y` ih vraća kao INCOMPLETE (§3.1b).
 
+### 3.1e Zašto „0 failed" NE dokazuje 23 🟡 kriterija — mjerenje pokrivenosti (2026-11-08)
+
+`MATRIX.md` drži **23** kriterija na 🟡 (izmjereno parsiranjem tabele, ne prepisano — ranije se
+u bilješkama vrtio broj 12). Sad kad CI pokreće pravi Chromium, dio njih **ima** rendered dokaz.
+Ali ishod suite-a to ne pokazuje, i to je zamka:
+
+> **„0 failed" znači da nijedno pravilo nije palo — ne i da se ijedno primijenilo.**
+> Axe pravilo može biti `inapplicable` (stranica nema takvih čvorova) ili `incomplete`
+> (treba raspored ili AT). Proglasiti kriterij ✅ na osnovu `inapplicable` značilo bi
+> proglasiti ga dokazanim **zato što je stranica prazna**.
+
+Zato je uveden `frontend/e2e/axe-coverage.mjs` + `coverage-teardown.ts` (`globalTeardown`):
+svaki od 3 speka bilježi **status svakog praćenog pravila po ruti** (jedan JSON po testu, jer
+`fullyParallel: true`), a teardown sabere brojače i iznese ih u CI anotaciju. Presude su
+`PROLAZ` / `NEPOTPUNO` / `NIJE_SE_PRIMJENIO` / `PAD`, i samo prva smije pomjeriti kriterij na ✅.
+
+**Greška koju je test uhvatio pri pisanju:** modul je čitao `results.passed`, a axe u izvještaju
+ima ključ **`passes`** (množina). Posljedica bi bila tiha i potpuna — **svako** pravilo na svakoj
+ruti postalo bi `absent`, izvještaj bi izgledao uredno, i nijedan kriterij se ne bi mogao
+pomjeriti. `test:axe-coverage` (10/10, mutacije 5/5) to hvata.
+
+**Šta ovo NE rješava:** 16 kriterija **nema** axe pravilo (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12,
+2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — za njih treba
+čitač ekrana ili ručna provjera (M1–M13). Oni ostaju 🟡 bez obzira na ovaj alat.
+
 ## 3. Šta NIJE dokazano — i to je preostali posao
 
 ### 3.1 `/admin/**` i `/stylist/**` — pokrivenost **napisana** (2026-11-09), ali još **neizvršena**
@@ -1790,10 +1815,25 @@ Stavke **3** i **5** iz prvobitnog spiska su **zatvorene** (§3.3), a D10 iz §3
 Ostaje samo ono što traži okruženje koje ovaj sandbox nema — bazu, preglednik i čitač ekrana.
 Ništa od navedenog nije moguće verificirati iz izvora.
 
-1. **Izvršiti migraciju `20261109220000_blog_post_language` nad bazom** i potvrditi zeleni CI.
-   Jedina izmjena u cijeloj seriji koja nije verificirana izvršavanjem (§3.3, 3.1.2).
-2. **Podignuti backend** i ponoviti `npm run test:a11y-routes` — jeftino, a pokriva stanje s
-   podacima (§3.2) i preduslov je za sljedeću stavku.
+1. ~~**Izvršiti migraciju `20261109220000_blog_post_language` nad bazom**~~ — **IZVRŠENO, i to
+   odavno; samo nije bilo zabilježeno.** Posao `a11y-e2e` diže svjež `postgres:16` service
+   kontejner (baza `beauty_salon_ci`) i korak 7 „Apply migrations to disposable CI PostgreSQL"
+   pokreće `npm run db:migrate:deploy` = `prisma migrate deploy` (`backend/package.json:29`).
+   Run `42874094557` (commit `22193d3`), job `130032694947`: **korak 7 `success`**, bez
+   `continue-on-error`. Nizvodno su svi zeleni — `Seed roles`, `Create disposable a11y test
+   accounts` (upsert nad šemom, pao bi na lošoj koloni), `Build backend`, `Start backend`,
+   `Wait for backend /health`, i axe suite **38 passed**.
+   *Provjereno:* zaključci koraka (GitHub API), YAML posla, sadržaj `migration.sql`.
+   *Zaključeno, ne izmjereno:* da svjež kontejner znači praznu bazu pa **sve** migracije idu —
+   to slijedi iz `postgres:16` + `POSTGRES_DB`, ali `prisma migrate deploy` ispis („N migrations
+   found") nije pročitan jer logovi nisu dostupni.
+2. ~~**Podignuti backend** i ponoviti `npm run test:a11y-routes`~~ — **IZVRŠENO u CI.** Koraci
+   10–12 posla `a11y-e2e` grade backend, dižu ga na portu 10001 i čekaju `/health`; korak 16
+   pokreće axe suite nad njim (**38 passed**, run `42874094557`).
+   ⚠️ **Ali „stanje s podacima" je samo djelimično pokriveno:** baza ima uloge i testne naloge
+   (`db:seed` + `e2e:users`), **ne** i poslovne podatke — rezervacije, usluge, stiliste, račune.
+   Admin stranice su dakle mjerene u **praznom stanju**. Axe nad popunjenim tabelama,
+   kalendarom s događajima i grafikona s podacima **i dalje nije izvršen**.
 3. **Pokriti `/admin/**` i `/stylist/**`** — **IZVRŠENO 2026-11-08** (run `42857076298`):
    **33 passed / 5 failed**. Nađeno **8 stvarnih prekršaja** na 4 admin stranice + 1 routing
    problem — vidi §3.1c. Svi su popravljeni (`09a275e`, §3.1d); preostala 2 pada su zatvorena
