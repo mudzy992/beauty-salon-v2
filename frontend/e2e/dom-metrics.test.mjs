@@ -456,3 +456,15 @@ test('svaka izvozna funkcija je samostalna — Playwright šalje u preglednik sa
   }
   assert.ok(Object.keys(domMetrics).length >= 10, 'čuvar mora imati šta provjeriti')
 })
+
+test('overflowingElements — element koji reže sadržaj nije krivac za širinu stranice', () => {
+  const doc = makeDom('<section class="reze" style="overflow:hidden">široko</section><div class="gura">široko</div>')
+  const [reze, gura] = doc.querySelectorAll('section, div')
+  for (const el of [reze, gura]) setBox(el, { scrollWidth: 400, clientWidth: 300 })
+  // jsdom računa `overflow` iz inline stila, pa `section` ostaje `hidden`, a `div` je `visible`.
+  assert.deepEqual(
+    overflowingElements(2).map((e) => e.element),
+    ['div.gura'],
+    'hidden/auto/scroll režu svoj sadržaj i ne prenose višak na viewport',
+  )
+})

@@ -152,6 +152,11 @@ export function overflowingElements(tolerance = 2) {
   }
   const out = []
   for (const el of document.querySelectorAll('body *')) {
+    // Samo `overflow-x: visible` gura stranicu. Element koji svoj sadržaj reže
+    // (`hidden`/`auto`/`scroll`) ne prenosi višak na viewport — pa bi `h2.sr-only` (+153px)
+    // i `section.overflow-hidden` (+64px) bili šum u nalazu. Izmjereno na runu
+    // `42911788727`: oba su se pojavila kao „krivci" iako stranica bježi samo 53px.
+    if (getComputedStyle(el).overflowX !== 'visible') continue
     const excess = el.scrollWidth - el.clientWidth
     if (excess > tolerance) {
       out.push({
