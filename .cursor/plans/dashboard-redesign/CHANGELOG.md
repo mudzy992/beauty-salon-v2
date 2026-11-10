@@ -6030,3 +6030,42 @@ Nema rendera u pravom pregledniku i nema poziva od kraja do kraja ka živom back
 zaista stiže u stvarni HTTP odgovor dokazano je **na nivou filtera** (unit test nad pravim
 `HttpExceptionFilter`), ne preko žice. Backend E2E u CI radi na jednokratnom PostgreSQL-u i
 nije pokretan ovdje.
+
+---
+
+## 2026-11-08 — Izmjeren i popravljen uzrok zašto posao `a11y-e2e` nikad nije izvršio axe suite
+
+Ovo nije bilo na spisku — našlo se provjerom CI runa poslije pusha opcije (c). Run
+`42836898825` je pao, ali **identično** kao i prethodni (`42827174248`, prije mojih izmjena):
+4 posla zelena, pada samo `Rendered a11y (axe) nad izolovanom CI bazom`. Upoređeno
+korak-po-korak: pad je na **`Build frontend`**, dva koraka prije axe suite-a, pa su
+`Install Chromium for Playwright` i `Run rendered a11y (axe) suite` bili `skipped`.
+
+### Uzrok (izmjeren, ne pretpostavljen)
+
+Posao `a11y-e2e` postavlja `NODE_ENV: test` na nivou posla jer backend to traži
+(`CORS_ALLOWED_ORIGINS` je obavezan tek izvan development/test). Taj `NODE_ENV` nasljeđuje i
+`npm run build` — a **Vite ne pregazi već postavljeni `NODE_ENV`**, pa build veže React-ov
+**razvojni** build.
+
+| `NODE_ENV` | Initial JS/CSS (gzip) | Budžet | Ishod |
+|---|---|---|---|
+| (nije postavljen) | 276.2 KiB | 300 KiB | prolaz |
+| `production` | 276.1 KiB | 300 KiB | prolaz |
+| `test` | **341.9 KiB** | 300 KiB | **`check-bundle-budget.mjs` pada** |
+
+Kontrola koja je potvrdila dijagnozu: ista komanda `npm run build` u poslu
+`Frontend typecheck and production build` **prolazi** — jer taj posao ne postavlja `NODE_ENV`.
+
+### Popravka
+
+Korak `Build frontend` u `a11y-e2e` dobio je `env: NODE_ENV: production`. Backend koraci u
+istom poslu i dalje nasljeđuju `NODE_ENV=test`. Nijedan drugi korak nije dirnut.
+
+### Šta ovo NE dokazuje
+
+Ovo **nije** dokaz da axe suite prolazi — dosad se nije izvršio nijednom, sada prvi put
+dobija priliku. Ako se Chromium ne instalira ili axe nađe prekršaje, vidjet će se iz runa.
+Korak je i dalje `continue-on-error`, pa ništa od toga ne može napraviti crven CI.
+Stavke 3 i 4 iz `HANDOFF.md` §4 (pokriti `/admin/**` i `/stylist/**`, pa skinuti
+`continue-on-error`) i dalje čekaju **zeleni** run, ne samo pokrenut.

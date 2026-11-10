@@ -865,8 +865,16 @@ jobs:
         working-directory: frontend
         run: npm ci --no-audit --no-fund
       # `run-a11y-routes.mjs` izlazi s 1 ako dist/ ne postoji (vite preview servira build).
+      #
+      # NODE_ENV MORA biti production, iako posao postavlja NODE_ENV=test (backend ga treba
+      # zbog CORS_ALLOWED_ORIGINS). Vite ne pregazi vec postavljeni NODE_ENV, pa bi build s
+      # NODE_ENV=test vezao React-ov RAZVOJNI build. Izmjereno: 276.2 KiB gzip (production)
+      # naspram 341.9 KiB gzip (test) -> `check-bundle-budget.mjs` pada na budzetu od 300 KiB
+      # i cijeli posao pukne prije nego sto axe suite uopce dobije priliku da se pokrene.
       - name: Build frontend
         working-directory: frontend
+        env:
+          NODE_ENV: production
         run: npm run build
       - name: Install Chromium for Playwright
         working-directory: frontend

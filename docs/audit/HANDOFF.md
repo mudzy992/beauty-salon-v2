@@ -1221,6 +1221,27 @@ upload `playwright-report` + `test-results` kao artefakt.
 jesu obavezni uvijek (`validateRuntimeSecrets` je `ConfigModule.validate`,
 `src/config/config.module.ts:10`) — zato su preuzeti iz postojećeg `backend` posla.
 
+**🔴 Uzrok zašto run nikad nije izvršen — izmjeren i popravljen 2026-11-08.** Posao je na
+svakom pushu padao na koraku **`Build frontend`**, dva koraka prije axe suite-a, pa se
+`Install Chromium` i `Run rendered a11y (axe) suite` nikad nisu ni pokrenuli (`skipped`).
+Uzrok je gore opisani `NODE_ENV=test`: **Vite ne pregazi već postavljeni `NODE_ENV`**, pa je
+frontend build vezao React-ov **razvojni** build. Izmjereno lokalno na istom commitu:
+
+| `NODE_ENV` | Initial JS/CSS (gzip) | Budžet | Ishod |
+|---|---|---|---|
+| (nije postavljen) | 276.2 KiB | 300 KiB | prolaz |
+| `production` | 276.1 KiB | 300 KiB | prolaz |
+| `test` | **341.9 KiB** | 300 KiB | **`check-bundle-budget.mjs` pada** |
+
+Popravka: korak `Build frontend` sada ima `env: NODE_ENV: production`. Backend koraci u istom
+poslu i dalje nasljeđuju `NODE_ENV=test` jer im treba. Isti `npm run build` u poslu
+`Frontend typecheck and production build` prolazi upravo zato što taj posao **ne** postavlja
+`NODE_ENV` — to je bila kontrola koja je potvrdila dijagnozu.
+
+⚠️ **Ovo nije dokaz da axe suite prolazi.** On se dosad nije izvršio nijednom; sada prvi put
+dobija priliku. Ako Chromium ne može da se instalira ili axe nađe prekršaje, to ćemo tek
+vidjeti iz runa — i dalje je `continue-on-error`, pa neće napraviti crven CI.
+
 🟡 **Axe korak je `continue-on-error`.** Razlog je isti kao u `playwright.config.ts`: run
 nikad nije izvršen, pa blokirajući gate ne bi bio pošten. **Nakon prvog zelenog runa
 ukloniti `continue-on-error`** iz `ci.yml` — inače test koji nikad ne pade s vremenom istrune.
