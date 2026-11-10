@@ -1250,7 +1250,33 @@ nije moguć; moj fajl ima tačno **1** grešku, istu kao `seed.ts`.
 
 ## 1. Stanje na kraju
 
-### 1a. Ponovno izmjereno 2026-11-09, poslije serije zatvaranja ❌ stavki
+### 1a. Ponovno izmjereno 2026-11-10, poslije proširenja i18n guard-a
+
+Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripti (frontend) | **183/183** skripti, 0 padova — **702** pojedinačna testa |
+| `tsc --noEmit` | exit **0** |
+| `npm run lint` | **0 errors** / 7 warnings |
+| `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
+| `check_ui_contrast.py --strict` | **80/80** |
+| `check_i18n.py --strict` | PASS — **2662** leaf ključeva po jeziku, 0 razlika BS↔EN |
+| `check_repo_hygiene.py` | PASS — **1712** putanja |
+| `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
+| `check_ci_index.py` | PASS — **363/366** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
+| **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
+| `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
+
+`test:i18n-key-resolution` sada ima **6** testova (bilo 4). Novi test 5 pokriva **2449**
+string literala s imenskim prostorom — uključujući ključeve koji stoje u **mapama**
+(`SEO_FIELD_COPY_KEYS[def.key]` → `t(copyKeys.label)`), a koje nijedan postojeći sakupljač
+nije vidio. Novi test 6 asertuje roditelja svakog dinamičkog ključa oblika
+`` t(`a.b.${x}`) `` (34 poziva, 20 roditelja). Rupa je bila dokazana mutacijom: ključ u mapi
+promijenjen u nepostojeći prolazio je kroz svih 13 settings-testova i kroz sva 4 postojeća
+testa. Detalji u `.cursor/plans/dashboard-redesign/CHANGELOG.md` (2026-11-10).
+
+### 1b. Izmjereno 2026-11-09, poslije serije zatvaranja ❌ stavki
 
 Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 
@@ -1277,7 +1303,7 @@ WCAG 2.2 matrica: **51 red** = **30 ✅** · 1 ✅/❌ · **12 🟡** · **0 ❌
 (skript-izbrojano; izvor: `MATRIX.md` §Rezime). Broj ❌ je pao s 4 na **0** kroz
 §3.3 ispod.
 
-### 1b. Snapshot na kraju faze 13 (prije serije zatvaranja)
+### 1c. Snapshot na kraju faze 13 (prije serije zatvaranja)
 
 | Provjera | Rezultat |
 |---|---|
@@ -1528,3 +1554,10 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.
+
+> **Jedina izvorska stavka koja čeka odobrenje (nije blokirana okruženjem):**
+> `pages/Settings.tsx:140` ima `if (!copyKeys) return group`, dok `SettingsOperations.tsx:38`,
+> `SettingsAppearance.tsx:32` i `SettingsSeo.tsx:43` nemaju taj štit — nova grupa bez kopirnog
+> ključa bi tamo bacila `TypeError` i oborila stranicu. Usaglašavanje znači izmjenu 4 stranice
+> i do 10 testova koji asertuju njihov doslovan izvor, pa nije urađeno tiho.
+> `test:i18n-key-resolution` test 5 CI-garanuje da do tog stanja ne može doći.
