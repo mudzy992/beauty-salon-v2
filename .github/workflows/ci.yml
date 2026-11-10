@@ -917,7 +917,9 @@ jobs:
               tail -n 80 "$RUNNER_TEMP/axe.log"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|Error|Timed out|violation' "$RUNNER_TEMP/axe.log" | head -30 | tr '\n' ' ' | tr -d '\r')
+            # `(critical)`/`(serious)` su ID-ovi axe pravila iz asertacije u specovima —
+            # bez njih znamo samo BROJ prekršaja, ne i koje pravilo, pa se ne daju popraviti.
+            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|Error|Timed out|violation|\((critical|serious)\)' "$RUNNER_TEMP/axe.log" | head -60 | tr '\n' ' ' | tr -d '\r')
             if [ -z "$msg" ]; then
               msg=$(tail -c 2000 "$RUNNER_TEMP/axe.log" | tr '\n' ' ' | tr -d '\r')
             fi
