@@ -26,6 +26,7 @@ import { buildBookableServiceWhere } from './utils/service-eligibility';
 import { acquireReservationDayLock } from './utils/booking-advisory-lock';
 import { assertStylistSlotCapacity } from './utils/assert-stylist-slot-capacity';
 import { assertReservationServiceItemLimit } from './utils/reservation-service-limits';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationDirectCreateService {
@@ -40,7 +41,7 @@ export class ReservationDirectCreateService {
   async createByAdmin(dto: AdminCreateReservationDto, userId: string) {
     const stylistProfileId = dto.stylistProfileId?.trim();
     if (!stylistProfileId) {
-      throw new BadRequestException('Stilist je obavezan za direktnu rezervaciju.');
+      throw new BadRequestException(apiError('RESERVATIONS_STYLIST_REQUIRED'));
     }
     return this.createDirectReservation({
       dto,
@@ -55,7 +56,7 @@ export class ReservationDirectCreateService {
     const stylistProfileId =
       await this.shared.getStylistProfileIdByUserId(userId);
     if (!stylistProfileId) {
-      throw new ForbiddenException('Nemate profil stilista.');
+      throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
     }
     return this.createDirectReservation({
       dto,
@@ -98,13 +99,12 @@ export class ReservationDirectCreateService {
     ];
     const primaryServiceId = serviceIds[0];
     if (!primaryServiceId) {
-      throw new BadRequestException('SERVICE_REQUIRED');
+      throw new BadRequestException(apiError('RESERVE_SERVICE_REQUIRED'));
     }
 
     const reservationDate = this.dates.parseDateOnly(dto.reservationDate);
     if (timeToMinutes(dto.endTime) <= timeToMinutes(dto.startTime)) {
-      throw new BadRequestException(
-        'Vrijeme završetka mora biti nakon početka.',
+      throw new BadRequestException(apiError('RESERVATIONS_END_BEFORE_START'),
       );
     }
     const reservationDateString =
@@ -126,17 +126,16 @@ export class ReservationDirectCreateService {
         select: { id: true, name: true, gender: true, price: true },
       });
       if (services.length !== serviceIds.length) {
-        throw new NotFoundException('Servis nije pronađen.');
+        throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
       }
       if (services.some((service) => service.gender !== client.gender)) {
-        throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+        throw new BadRequestException(apiError('RESERVE_SERVICE_GENDER_MISMATCH'));
       }
 
       const eligibleStylists =
         await this.shared.getEligibleStylistsForServices(serviceIds, tx);
       if (!eligibleStylists.includes(stylistProfileId)) {
-        throw new BadRequestException(
-          'Odabrani stilist ne može izvršiti sve odabrane usluge.',
+        throw new BadRequestException(apiError('RESERVATIONS_STYLIST_CANNOT_PERFORM_SERVICES'),
         );
       }
 

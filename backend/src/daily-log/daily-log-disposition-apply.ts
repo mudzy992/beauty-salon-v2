@@ -14,6 +14,7 @@ import {
   RESERVATION_STATUS,
   SLOT_OCCUPYING_STATUSES,
 } from '../reservations/constants';
+import { apiError } from '../common/errors/api-error-codes';
 
 type ReservationRow = {
   id: string;
@@ -176,7 +177,7 @@ export const applyStylistCancel = async (
   const r = await deps.prisma.reservation.findUnique({
     where: { id: reservationId },
   });
-  if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+  if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
   await deps.prisma.reservation.update({
     where: { id: reservationId },
     data: {
@@ -198,7 +199,7 @@ export const applyClientCancel = async (
   const r = await deps.prisma.reservation.findUnique({
     where: { id: reservationId },
   });
-  if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+  if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
   await deps.prisma.reservation.update({
     where: { id: reservationId },
     data: {
@@ -232,7 +233,7 @@ export const applyNoShow = async (
   const r = await deps.prisma.reservation.findUnique({
     where: { id: reservationId },
   });
-  if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+  if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
   await deps.prisma.reservation.update({
     where: { id: reservationId },
     data: {

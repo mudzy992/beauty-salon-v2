@@ -20,6 +20,7 @@ import { UploadsService } from './uploads.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import type { Response } from 'express';
+import { apiError } from '../common/errors/api-error-codes';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -34,7 +35,7 @@ export class UploadsController {
       limits: { fileSize: MAX_FILE_SIZE },
       fileFilter: (_req, file, cb) => {
         if (!file?.originalname) {
-          cb(new BadRequestException('Nijedna datoteka nije poslata.'), false);
+          cb(new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED')), false);
           return;
         }
         cb(null, true);
@@ -46,7 +47,7 @@ export class UploadsController {
     @CurrentUser() user: CurrentUserPayload,
     @Body('entity') entity?: string,
   ) {
-    if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
+    if (!file) throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     const folder = entity && /^[a-z0-9_-]+$/.test(entity) ? entity : 'uploads';
     return this.uploadsService.saveFile(file, folder, user.sub);
   }
@@ -59,7 +60,7 @@ export class UploadsController {
       limits: { fileSize: MAX_FILE_SIZE },
       fileFilter: (_req, file, cb) => {
         if (!file?.originalname) {
-          cb(new BadRequestException('Nijedna datoteka nije poslata.'), false);
+          cb(new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED')), false);
           return;
         }
         cb(null, true);
@@ -71,7 +72,7 @@ export class UploadsController {
     @CurrentUser() user: CurrentUserPayload,
     @Body('assetKind') assetKind?: string,
   ) {
-    if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
+    if (!file) throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     return this.uploadsService.savePublicAsset(file, assetKind ?? '', user.sub);
   }
 

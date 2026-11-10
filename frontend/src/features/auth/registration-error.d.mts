@@ -4,4 +4,7 @@ export type RegistrationErrorKey =
   | 'auth.passwordMinLength'
   | 'auth.registrationError'
 
-export function getRegistrationErrorKey(message: unknown): RegistrationErrorKey
+export function getRegistrationErrorKey(
+  message: unknown,
+  code?: unknown,
+): RegistrationErrorKey

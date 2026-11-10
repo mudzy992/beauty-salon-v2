@@ -13,6 +13,7 @@ import * as path from 'path';
 import sharp from 'sharp';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UploadsRepository } from './uploads.repository';
+import { apiError } from '../common/errors/api-error-codes';
 
 const IMAGE_SIZES = {
   thumb: { width: 150, height: 150 },
@@ -554,7 +555,7 @@ export class UploadsService {
     isImage: boolean;
   }> {
     if (!file?.buffer?.length) {
-      throw new BadRequestException('Nijedna datoteka nije poslata.');
+      throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     }
     const mimeType = String(file.mimetype ?? '').toLowerCase();
     if (IMAGE_MIMES.has(mimeType)) {

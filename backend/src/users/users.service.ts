@@ -28,6 +28,7 @@ import {
   MAX_API_PAGE_LIMIT,
   MAX_API_PAGE_OFFSET,
 } from '../common/pagination.constants';
+import { apiError } from '../common/errors/api-error-codes';
 
 const AVATAR_SOURCE_MIMES = new Set([
   'image/jpeg',
@@ -142,7 +143,7 @@ export class UsersService {
     q?: string,
   ) {
     if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     }
 
     const where = this.strictClientWhere(q, false, {
@@ -260,7 +261,7 @@ export class UsersService {
     q?: string,
   ) {
     if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     }
     const where = this.strictClientWhere(q);
     const { requestedPage, pageSize } =
@@ -364,8 +365,7 @@ export class UsersService {
     const hasPage = pagination?.page !== undefined;
     const hasPageSize = pagination?.pageSize !== undefined;
     if (hasPage !== hasPageSize) {
-      throw new BadRequestException(
-        'page i pageSize moraju biti navedeni zajedno.',
+      throw new BadRequestException(apiError('RESERVATIONS_PAGINATION_PAIR_REQUIRED'),
       );
     }
     if (!hasPage) return null;
@@ -380,7 +380,7 @@ export class UsersService {
       pageSize < 1 ||
       pageSize > MAX_API_PAGE_LIMIT
     ) {
-      throw new BadRequestException('Parametri paginacije nisu validni.');
+      throw new BadRequestException(apiError('RESERVATIONS_INVALID_PAGINATION'));
     }
     return { page, pageSize };
   }
@@ -415,13 +415,13 @@ export class UsersService {
 
   async findOne(id: string, currentUser: CurrentUserPayload) {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
-      throw new ForbiddenException('Nemate dozvolu za pregled ovog korisnika.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_3'));
     }
     const user = await this.repo.user.findUnique({
       where: { id },
       select: USER_DETAIL_SELECT,
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     return user;
   }
 
@@ -448,7 +448,7 @@ export class UsersService {
         stylistProfile: true,
       },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     return { ...user, roles: user.userRoles.map((ur) => ur.role.name) };
   }
 
@@ -471,7 +471,7 @@ export class UsersService {
       select: { id: true },
     });
     if (existingUsername) {
-      throw new ConflictException('Korisničko ime je već u upotrebi.');
+      throw new ConflictException(apiError('USERS_USERNAME_TAKEN'));
     }
     const [requestedRole, clientRole] = await Promise.all([
       this.repo.role.findUnique({ where: { name: requestedRoleName } }),
@@ -484,7 +484,7 @@ export class UsersService {
     if (!requestedRole)
       throw new NotFoundException(`Rola ${requestedRoleName} nije pronađena.`);
     if (!dto.gender) {
-      throw new BadRequestException('Spol je obavezan.');
+      throw new BadRequestException(apiError('USERS_GENDER_REQUIRED'));
     }
     const initialPassword =
       dto.password?.trim() || randomBytes(24).toString('base64url');
@@ -520,7 +520,7 @@ export class UsersService {
       where: { id: user.id },
       select: USER_DETAIL_SELECT,
     });
-    if (!fullUser) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!fullUser) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     return {
       ...fullUser,
       initialPasswordShownOnce: true,
@@ -532,7 +532,7 @@ export class UsersService {
     this.requireAdminOrOwner(roles);
     const normalized = this.normalizeUsername(username);
     if (!normalized) {
-      throw new BadRequestException('Korisničko ime nije validno.');
+      throw new BadRequestException(apiError('USERS_USERNAME_INVALID'));
     }
     const existing = await this.repo.user.findUnique({
       where: { username: normalized },
@@ -549,7 +549,7 @@ export class UsersService {
   async getProfileUsernameAvailability(userId: string, username: string) {
     const normalized = this.normalizeUsername(username);
     if (!normalized) {
-      throw new BadRequestException('Korisničko ime nije validno.');
+      throw new BadRequestException(apiError('USERS_USERNAME_INVALID'));
     }
     const existing = await this.repo.user.findUnique({
       where: { username: normalized },
@@ -580,25 +580,23 @@ export class UsersService {
     currentUser: CurrentUserPayload,
   ) {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
-      throw new ForbiddenException('Nemate dozvolu za izmjenu ovog korisnika.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_4'));
     }
     if (
       currentUser.sub !== id &&
       (dto.avatar !== undefined || dto.isAvatarPublic !== undefined)
     ) {
-      throw new ForbiddenException(
-        'Samo korisnik može postaviti avatar ili mijenjati njegovu javnost.',
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_7'),
       );
     }
     const user = await this.repo.user.findUnique({ where: { id } });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (dto.avatar !== undefined && dto.avatar !== null) {
       await this.assertOwnedAvatar(id, dto.avatar);
     }
     const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
     if (dto.isAvatarPublic === true && !nextAvatar) {
-      throw new BadRequestException(
-        'Prvo postavite avatar pa ga zatim učinite javnim.',
+      throw new BadRequestException(apiError('PROFILE_AVATAR_REQUIRED_FOR_PUBLIC'),
       );
     }
     if (dto.isAvatarPublic === true)
@@ -607,27 +605,27 @@ export class UsersService {
       where: { id },
       include: { userRoles: { include: { role: true } } },
     });
-    if (!userWithRoles) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!userWithRoles) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     const isClient = userWithRoles.userRoles.some(
       (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
     );
     const nextGender =
       dto.gender !== undefined ? dto.gender : (user.gender ?? null);
     if (isClient && !nextGender) {
-      throw new BadRequestException('Spol je obavezan za klijente.');
+      throw new BadRequestException(apiError('USERS_GENDER_REQUIRED_FOR_CLIENTS'));
     }
     if (dto.email && dto.email !== user.email) {
       const taken = await this.repo.user.findUnique({
         where: { email: dto.email },
       });
-      if (taken) throw new ConflictException('Email je već u upotrebi.');
+      if (taken) throw new ConflictException(apiError('USERS_EMAIL_TAKEN'));
     }
     if (dto.username && dto.username !== user.username) {
       const taken = await this.repo.user.findUnique({
         where: { username: dto.username },
       });
       if (taken)
-        throw new ConflictException('Korisničko ime je već u upotrebi.');
+        throw new ConflictException(apiError('USERS_USERNAME_TAKEN'));
     }
     const nextEmail = dto.email?.trim() ?? null;
     const shouldResetEmailVerification =
@@ -692,14 +690,13 @@ export class UsersService {
       where: { id: userId },
       include: { userRoles: { include: { role: true } } },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (dto.avatar !== undefined && dto.avatar !== null) {
       await this.assertOwnedAvatar(userId, dto.avatar);
     }
     const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
     if (dto.isAvatarPublic === true && !nextAvatar) {
-      throw new BadRequestException(
-        'Prvo postavite avatar pa ga zatim učinite javnim.',
+      throw new BadRequestException(apiError('PROFILE_AVATAR_REQUIRED_FOR_PUBLIC'),
       );
     }
     if (dto.isAvatarPublic === true)
@@ -710,17 +707,17 @@ export class UsersService {
     const nextGender =
       dto.gender !== undefined ? dto.gender : (user.gender ?? null);
     if (isClient && !nextGender) {
-      throw new BadRequestException('Spol je obavezan za klijente.');
+      throw new BadRequestException(apiError('USERS_GENDER_REQUIRED_FOR_CLIENTS'));
     }
     if (dto.email !== undefined) {
       const nextEmail = dto.email?.trim();
-      if (!nextEmail) throw new BadRequestException('Email je obavezan.');
+      if (!nextEmail) throw new BadRequestException(apiError('PROFILE_EMAIL_REQUIRED'));
       if (nextEmail !== user.email) {
         const taken = await this.repo.user.findUnique({
           where: { email: nextEmail },
           select: { id: true },
         });
-        if (taken) throw new ConflictException('Email je već u upotrebi.');
+        if (taken) throw new ConflictException(apiError('USERS_EMAIL_TAKEN'));
       }
     }
     const updateArgs = {
@@ -776,10 +773,9 @@ export class UsersService {
       where: { id: userId },
       select: { avatar: true },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (isAvatarPublic && !user.avatar) {
-      throw new BadRequestException(
-        'Prvo postavite avatar pa ga zatim učinite javnim.',
+      throw new BadRequestException(apiError('PROFILE_AVATAR_REQUIRED_FOR_PUBLIC'),
       );
     }
     if (isAvatarPublic && user.avatar) {
@@ -794,7 +790,7 @@ export class UsersService {
 
   private async assertOwnedAvatar(userId: string, avatarPath: string) {
     if (!avatarPath.startsWith('private/avatars/')) {
-      throw new BadRequestException('Avatar mora biti uploadan u vaš profil.');
+      throw new BadRequestException(apiError('PROFILE_AVATAR_UPLOAD_FAILED'));
     }
     const upload = await this.repo.findOwnedAvatarUpload(userId, avatarPath);
     if (
@@ -804,8 +800,7 @@ export class UsersService {
       ) ||
       !AVATAR_SOURCE_MIMES.has(upload.mimeType.toLowerCase())
     ) {
-      throw new BadRequestException(
-        'Avatar mora biti validna slika koju ste uploadali na svoj profil.',
+      throw new BadRequestException(apiError('PROFILE_AVATAR_UPLOAD_FAILED_2'),
       );
     }
   }
@@ -814,13 +809,13 @@ export class UsersService {
     this.requireAdminOrOwner(roles);
     const requestedRoleName = dto.role?.trim();
     if (!requestedRoleName) {
-      throw new BadRequestException('Rola je obavezna.');
+      throw new BadRequestException(apiError('USERS_ROLE_REQUIRED'));
     }
     const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } } },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     const role = await this.repo.role.findUnique({
       where: { name: requestedRoleName },
     });
@@ -861,20 +856,19 @@ export class UsersService {
   async removeRole(userId: string, roleName: string, roles: string[]) {
     this.requireAdminOrOwner(roles);
     if (roleName === UsersService.CLIENT_ROLE) {
-      throw new BadRequestException('Rolu Client nije moguće ukloniti.');
+      throw new BadRequestException(apiError('USERS_CLIENT_ROLE_CANNOT_REMOVE'));
     }
     if (roleName === 'STYLIST') {
-      throw new BadRequestException(
-        'Rolu Stilist uklanjate kroz posebnu akciju (remove-stylist-role) zbog vezanih podataka.',
+      throw new BadRequestException(apiError('USERS_STYLIST_USE_REMOVAL_FLOW'),
       );
     }
     const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } } },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     const userRole = user.userRoles.find((ur) => ur.role.name === roleName);
-    if (!userRole) throw new NotFoundException('Korisnik nema tu rol u.');
+    if (!userRole) throw new NotFoundException(apiError('USERS_ROLE_NOT_ASSIGNED'));
     await this.repo.userRole.delete({ where: { id: userRole.id } });
     this.events.disconnectUserSockets(userId);
     return this.repo.user.findUnique({
@@ -889,10 +883,10 @@ export class UsersService {
       where: { id: userId },
       include: { stylistProfile: { select: { id: true } } },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     const stylistProfileId = user.stylistProfile?.id;
     if (!stylistProfileId)
-      throw new NotFoundException('Korisnik nema profil stiliste.');
+      throw new NotFoundException(apiError('USERS_NO_STYLIST_PROFILE'));
     const [
       dailyLogEntriesCount,
       confirmedReservationsCount,
@@ -934,10 +928,10 @@ export class UsersService {
         userRoles: { include: { role: true } },
       },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     const stylistProfileId = user.stylistProfile?.id;
     if (!stylistProfileId)
-      throw new NotFoundException('Korisnik nema profil stiliste.');
+      throw new NotFoundException(apiError('USERS_NO_STYLIST_PROFILE'));
 
     const validateTransferTarget = async (category: {
       mode: string;
@@ -946,17 +940,16 @@ export class UsersService {
       if (category.mode !== 'TRANSFER') return null;
       const targetId = category.targetStylistProfileId?.trim();
       if (!targetId)
-        throw new BadRequestException('Nedostaje targetStylistProfileId.');
+        throw new BadRequestException(apiError('USERS_TARGET_REQUIRED'));
       if (targetId === stylistProfileId) {
-        throw new BadRequestException(
-          'Target stilist ne može biti isti stilist.',
+        throw new BadRequestException(apiError('USERS_TARGET_SAME'),
         );
       }
       const target = await this.repo.stylistProfile.findUnique({
         where: { id: targetId },
         select: { id: true },
       });
-      if (!target) throw new NotFoundException('Target stilist nije pronađen.');
+      if (!target) throw new NotFoundException(apiError('USERS_TARGET_NOT_FOUND'));
       return targetId;
     };
 
@@ -1077,7 +1070,7 @@ export class UsersService {
         userRoles: { include: { role: true } },
       },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
 
     const dateFilter = { reservationDate: dateBounds };
     const dailyLogDateFilter = { date: dateBounds };
@@ -1262,7 +1255,7 @@ export class UsersService {
 
   private requireAdminOrOwner(roles: string[]) {
     if (!this.isAdminOrOwner(roles))
-      throw new ForbiddenException('Samo administrator ili vlasnik.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_5'));
   }
 
   private normalizeUsername(input: string): string {

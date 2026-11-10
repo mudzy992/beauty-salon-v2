@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 
 import api from '../api/client'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiError } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
@@ -80,7 +80,7 @@ export default function AppReleases() {
       setUploadMeta(data)
       success(t('appReleases.uploadOk'))
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'appReleases.uploadFail')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'appReleases.uploadFail', getErrorCode(err))
       error(t(apiErr.key, apiErr.values))
     } finally {
       setSaving(false)
@@ -112,7 +112,7 @@ export default function AppReleases() {
       setNotes('')
       load()
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'appReleases.createFail')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'appReleases.createFail', getErrorCode(err))
       error(t(apiErr.key, apiErr.values))
     } finally {
       setSaving(false)
@@ -126,7 +126,7 @@ export default function AppReleases() {
       success(t('appReleases.publishOk'))
       load()
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'appReleases.createFail')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'appReleases.createFail', getErrorCode(err))
       error(t(apiErr.key, apiErr.values))
     } finally {
       setSaving(false)

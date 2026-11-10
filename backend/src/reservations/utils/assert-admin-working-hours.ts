@@ -5,6 +5,7 @@ import {
   toDateOnlyString,
 } from '../../common/utils/date-only'
 import { timeToMinutes } from './time-slot.utils'
+import { apiError } from '../../common/errors/api-error-codes';
 
 type AssertAdminWorkingHoursInput = {
   prisma: Pick<
@@ -27,7 +28,7 @@ export async function assertAdminSlotWithinWorkingHours(
   const { prisma, reservationDate, startTime, endTime, confirmedStylistId } =
     input
   const salon = await prisma.salonSettings.findFirst()
-  if (!salon) throw new BadRequestException('Salon nije konfigurisan.')
+  if (!salon) throw new BadRequestException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'))
 
   const dateStr = toDateOnlyString(reservationDate)
   const dayOfWeek = reservationDate.getUTCDay()

@@ -12,6 +12,7 @@ import { AppReleasePlatform, AppReleaseStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAppReleaseDto } from './dto/create-app-release.dto';
 import { UpdateAppReleaseDto } from './dto/update-app-release.dto';
+import { apiError } from '../common/errors/api-error-codes';
 
 const APK_MIMES = new Set([
   'application/vnd.android.package-archive',
@@ -118,7 +119,7 @@ export class AppReleasesService {
 
   async publish(id: string, patch?: UpdateAppReleaseDto) {
     const existing = await this.prisma.appRelease.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException('Release nije pronađen.');
+    if (!existing) throw new NotFoundException(apiError('APP_RELEASES_NOT_FOUND'));
 
     let publicApkPath = existing.apkPath;
     let copiedPublicPath: string | null = null;
@@ -128,21 +129,20 @@ export class AppReleasesService {
       try {
         buffer = await fs.readFile(sourcePath);
       } catch {
-        throw new NotFoundException('Privatni APK fajl nije pronađen.');
+        throw new NotFoundException(apiError('APP_RELEASES_PRIVATE_APK_NOT_FOUND'));
       }
       if (
         buffer.length < 4 ||
         !buffer.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]))
       ) {
-        throw new BadRequestException('Privatna datoteka nije validan APK.');
+        throw new BadRequestException(apiError('APP_RELEASES_PRIVATE_NOT_APK'));
       }
       const checksum = createHash('sha256').update(buffer).digest('hex');
       if (
         checksum !== existing.apkSha256 ||
         buffer.length !== existing.apkSizeBytes
       ) {
-        throw new BadRequestException(
-          'Kontrolni zbir privatnog APK fajla nije ispravan.',
+        throw new BadRequestException(apiError('APP_RELEASES_PRIVATE_CHECKSUM_MISMATCH'),
         );
       }
 
@@ -171,21 +171,20 @@ export class AppReleasesService {
       try {
         buffer = await fs.readFile(existingPublicPath);
       } catch {
-        throw new NotFoundException('Javni APK fajl nije pronađen.');
+        throw new NotFoundException(apiError('APP_RELEASES_PUBLIC_APK_NOT_FOUND'));
       }
       if (
         buffer.length < 4 ||
         !buffer.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]))
       ) {
-        throw new BadRequestException('Javna datoteka nije validan APK.');
+        throw new BadRequestException(apiError('APP_RELEASES_PUBLIC_NOT_APK'));
       }
       const checksum = createHash('sha256').update(buffer).digest('hex');
       if (
         checksum !== existing.apkSha256 ||
         buffer.length !== existing.apkSizeBytes
       ) {
-        throw new BadRequestException(
-          'Kontrolni zbir javnog APK fajla nije ispravan.',
+        throw new BadRequestException(apiError('APP_RELEASES_PUBLIC_CHECKSUM_MISMATCH'),
         );
       }
       await fs.chmod(path.dirname(existingPublicPath), 0o755);
@@ -195,10 +194,9 @@ export class AppReleasesService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const current = await tx.appRelease.findUnique({ where: { id } });
-        if (!current) throw new NotFoundException('Release nije pronađen.');
+        if (!current) throw new NotFoundException(apiError('APP_RELEASES_NOT_FOUND'));
         if (current.apkPath !== existing.apkPath) {
-          throw new ConflictException(
-            'APK putanja je promijenjena tokom objave.',
+          throw new ConflictException(apiError('APP_RELEASES_APK_PATH_CHANGED'),
           );
         }
         await tx.appRelease.updateMany({
@@ -257,7 +255,7 @@ export class AppReleasesService {
   private resolveWithinPrivateRoot(relativePath: string): string {
     const normalized = String(relativePath ?? '').replace(/\\/g, '/');
     if (!normalized.startsWith('private/')) {
-      throw new BadRequestException('Privatna APK putanja nije validna.');
+      throw new BadRequestException(apiError('APP_RELEASES_PRIVATE_APK_PATH_INVALID'));
     }
     return this.resolveWithin(
       this.privateUploadRoot,
@@ -267,7 +265,7 @@ export class AppReleasesService {
 
   private resolveWithinPublicRoot(relativePath: string): string {
     if (relativePath.startsWith('private/')) {
-      throw new BadRequestException('Javna APK putanja nije validna.');
+      throw new BadRequestException(apiError('APP_RELEASES_PUBLIC_APK_PATH_INVALID'));
     }
     return this.resolveWithin(this.publicUploadRoot, relativePath);
   }
@@ -280,20 +278,20 @@ export class AppReleasesService {
       absolutePath === root ||
       !absolutePath.startsWith(`${root}${path.sep}`)
     ) {
-      throw new BadRequestException('APK putanja nije validna.');
+      throw new BadRequestException(apiError('APP_RELEASES_APK_PATH_INVALID'));
     }
     return absolutePath;
   }
 
   private async requireById(id: string) {
     const row = await this.prisma.appRelease.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException('Release nije pronađen.');
+    if (!row) throw new NotFoundException(apiError('APP_RELEASES_NOT_FOUND'));
     return row;
   }
 
   private assertApkFile(file: Express.Multer.File): void {
     if (!file?.buffer?.length) {
-      throw new BadRequestException('Nijedna datoteka nije poslata.');
+      throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     }
     const name = (file.originalname || '').toLowerCase();
     const zipSignature = file.buffer
@@ -304,7 +302,7 @@ export class AppReleasesService {
       !APK_MIMES.has(file.mimetype) ||
       !zipSignature
     ) {
-      throw new BadRequestException('Dozvoljen je samo validan APK fajl.');
+      throw new BadRequestException(apiError('APP_RELEASES_ONLY_APK_ALLOWED'));
     }
   }
 }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 import api from '../api/client'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
@@ -50,7 +50,7 @@ export default function Profile() {
   const avatarUploadInFlight = useRef(false)
   const showApiError = (error: unknown, fallbackKey: string) => {
     const message = getErrorMessage(error, '')
-    toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
+    toast.error(t(resolveProfileApiErrorKey(message, fallbackKey, getErrorCode(error))))
   }
 
   const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -108,7 +108,7 @@ export default function Profile() {
     } catch (error) {
       setProfile(null)
       setProfileLoadErrorKey(
-        resolveProfileApiErrorKey(getErrorMessage(error, ''), 'profile.errors.loadFailed'),
+        resolveProfileApiErrorKey(getErrorMessage(error, ''), 'profile.errors.loadFailed', getErrorCode(error)),
       )
     } finally {
       setLoading(false)

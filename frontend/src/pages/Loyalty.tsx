@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 
 import api from '../api/client'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiError } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 
@@ -120,7 +120,7 @@ export default function Loyalty() {
         setRedeemTarget(null)
       })
       .catch((err) => {
-        const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'loyaltyAdmin.updateFailed')
+        const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'loyaltyAdmin.updateFailed', getErrorCode(err))
         error(t(apiErr.key, apiErr.values))
       })
       .finally(() => setUpdating(null))
@@ -141,7 +141,7 @@ export default function Loyalty() {
         setAdjustTarget(null)
       })
       .catch((err) => {
-        const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'loyaltyAdmin.updateFailed')
+        const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'loyaltyAdmin.updateFailed', getErrorCode(err))
         error(t(apiErr.key, apiErr.values))
       })
       .finally(() => setUpdating(null))

@@ -1,3 +1,5 @@
+import { resolveApiErrorCodeKey } from '../api-errors/api-error-code-map.mjs'
+
 const SIMPLE_ERRORS = new Map([
   ['Korisnik nije pronađen.', 'users.errors.notFound'],
   ['Korisničko ime je već u upotrebi.', 'users.errors.usernameTaken'],
@@ -102,7 +104,10 @@ const DEADLINE_RE = /^Rok za potvrdu dolaska je istekao \(najkasnije (\d+)h prij
  * pa sâm ključ nije dovoljan: pozivatelj mora proslijediti `values` u `t()`, inače se
  * `{{start}}`/`{{end}}`/`{{hours}}` prikažu doslovno.
  */
-export const resolveAdminApiError = (message, fallbackKey) => {
+export const resolveAdminApiError = (message, fallbackKey, code) => {
+  // Kod ima prednost: stabilan je i ne ovisi o formulaciji bosanske poruke.
+  const byCode = resolveApiErrorCodeKey(code)
+  if (byCode) return { key: byCode, values: undefined }
   if (typeof message !== 'string') return { key: fallbackKey, values: undefined }
   const normalized = message.trim()
   const knownKey = SIMPLE_ERRORS.get(normalized)
@@ -124,5 +129,5 @@ export const resolveAdminApiError = (message, fallbackKey) => {
   return { key: fallbackKey, values: undefined }
 }
 
-export const resolveAdminApiErrorKey = (message, fallbackKey) =>
-  resolveAdminApiError(message, fallbackKey).key
+export const resolveAdminApiErrorKey = (message, fallbackKey, code) =>
+  resolveAdminApiError(message, fallbackKey, code).key

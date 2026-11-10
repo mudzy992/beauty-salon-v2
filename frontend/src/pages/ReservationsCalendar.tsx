@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 
 import api from '../api/client'
 import { fetchAllPublicStylists } from '../api/catalog'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiError } from '../features/admin/admin-api-error.mjs'
 import { Button } from '../components/ui/button'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -80,7 +80,7 @@ export default function ReservationsCalendar() {
       setReservations(items)
     } catch (err) {
       setReservationLoadError(true)
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'common.error')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'common.error', getErrorCode(err))
       toast.error(t(apiErr.key, apiErr.values))
     } finally {
       if (!silent) setLoading(false)
@@ -124,7 +124,7 @@ export default function ReservationsCalendar() {
       toast.success(t('reservations.calendar.created'))
       await loadReservations()
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.createError')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.createError', getErrorCode(err))
       toast.error(t(apiErr.key, apiErr.values))
       throw err
     }
@@ -147,7 +147,7 @@ export default function ReservationsCalendar() {
       )
       await loadReservations()
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.moveError')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.moveError', getErrorCode(err))
       toast.error(t(apiErr.key, apiErr.values))
       throw err
     }
@@ -165,7 +165,7 @@ export default function ReservationsCalendar() {
       toast.success(t('reservations.calendar.cancelled'))
       await loadReservations()
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.cancelError')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.cancelError', getErrorCode(err))
       toast.error(t(apiErr.key, apiErr.values))
       throw err
     }

@@ -1,3 +1,5 @@
+import { resolveApiErrorCodeKey } from '../api-errors/api-error-code-map.mjs'
+
 const SIMPLE_ERRORS = new Map([
   ['SERVICE_REQUIRED', 'errorServiceRequired'],
   ['SERVICE_GENDER_MISMATCH', 'errorServiceGenderMismatch'],
@@ -11,7 +13,13 @@ const SIMPLE_ERRORS = new Map([
   ['Datum rezervacije nije validan.', 'errorInvalidDate'],
 ])
 
-export const resolvePublicReservationError = (message) => {
+const KEY_PREFIX = 'public.reserve.'
+
+export const resolvePublicReservationError = (message, code) => {
+  const byCode = resolveApiErrorCodeKey(code)
+  if (byCode && byCode.startsWith(KEY_PREFIX)) {
+    return { key: byCode.slice(KEY_PREFIX.length) }
+  }
   if (typeof message !== 'string') return null
   const normalized = message.trim()
   const simpleKey = SIMPLE_ERRORS.get(normalized)

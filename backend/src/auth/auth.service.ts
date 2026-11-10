@@ -20,6 +20,7 @@ import {
   lockUploadPathReferences,
   uploadPathsInReferences,
 } from '../uploads/upload-reference-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 const SALT_ROUNDS = 10;
 const EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
@@ -47,9 +48,9 @@ export class AuthService {
     });
     if (existingUser) {
       if (existingUser.email === dto.email) {
-        throw new ConflictException('Email je već u upotrebi.');
+        throw new ConflictException(apiError('USERS_EMAIL_TAKEN'));
       }
-      throw new ConflictException('Korisničko ime je već u upotrebi.');
+      throw new ConflictException(apiError('USERS_USERNAME_TAKEN'));
     }
 
     const clientRole = await this.prisma.role.findUnique({
@@ -206,7 +207,7 @@ export class AuthService {
         userRoles: { select: { role: { select: { name: true } } } },
       },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (!user.passwordHash) {
       throw new BadRequestException(
         'Promjena lozinke nije moguća za ovaj nalog (prijava putem društvene mreže).',
@@ -269,7 +270,7 @@ export class AuthService {
         passwordChangedAt: true,
       },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (!user.mustChangePassword) {
       throw new BadRequestException(
         'Nalog nema početnu lozinku na čekanju za reset.',
@@ -403,12 +404,12 @@ export class AuthService {
       where: { id: userId },
       select: { id: true, email: true, isEmailVerified: true },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (!user.email) {
-      throw new BadRequestException('Prvo unesite email adresu u profilu.');
+      throw new BadRequestException(apiError('PROFILE_EMAIL_REQUIRED_2'));
     }
     if (user.isEmailVerified) {
-      throw new BadRequestException('Email adresa je već potvrđena.');
+      throw new BadRequestException(apiError('PROFILE_EMAIL_ALREADY_VERIFIED'));
     }
     const code = crypto
       .randomInt(0, 10 ** VERIFICATION_CODE_LENGTH)
@@ -439,8 +440,7 @@ export class AuthService {
     token: string,
   ): Promise<{ message: string }> {
     if (!/^\d{6}$/.test(token)) {
-      throw new BadRequestException(
-        'Kod nije ispravan ili je istekao. Zatražite novi kod.',
+      throw new BadRequestException(apiError('PROFILE_INVALID_VERIFICATION_CODE'),
       );
     }
     const now = new Date();
@@ -461,8 +461,7 @@ export class AuthService {
       !user.emailVerificationExpiresAt ||
       user.emailVerificationExpiresAt.getTime() > maximumExpiry
     ) {
-      throw new BadRequestException(
-        'Kod nije ispravan ili je istekao. Zatražite novi kod.',
+      throw new BadRequestException(apiError('PROFILE_INVALID_VERIFICATION_CODE'),
       );
     }
     const consumed = await this.prisma.user.updateMany({
@@ -479,8 +478,7 @@ export class AuthService {
       },
     });
     if (consumed.count !== 1) {
-      throw new BadRequestException(
-        'Kod nije ispravan ili je istekao. Zatražite novi kod.',
+      throw new BadRequestException(apiError('PROFILE_INVALID_VERIFICATION_CODE'),
       );
     }
     return { message: 'Email adresa je uspješno potvrđena.' };

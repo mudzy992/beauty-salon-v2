@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { DailyLogServiceItemDto } from './dto/daily-log-service-item.dto';
+import { apiError } from '../common/errors/api-error-codes';
 
 export type ResolvedServiceItem = {
   serviceId: string;
@@ -29,7 +30,7 @@ export const resolveServiceItems = (opts: {
       }
       resolved.push({ serviceId: sid, unitPrice });
     }
-    if (resolved.length === 0) throw new BadRequestException('SERVICE_REQUIRED');
+    if (resolved.length === 0) throw new BadRequestException(apiError('RESERVE_SERVICE_REQUIRED'));
     return resolved;
   }
   const raw =
@@ -39,11 +40,11 @@ export const resolveServiceItems = (opts: {
         ? [opts.serviceId]
         : [];
   const ids = [...new Set(raw.map((x) => x.trim()).filter(Boolean))];
-  if (ids.length === 0) throw new BadRequestException('SERVICE_REQUIRED');
+  if (ids.length === 0) throw new BadRequestException(apiError('RESERVE_SERVICE_REQUIRED'));
   return ids.map((serviceId) => {
     const catalog = opts.catalogPrices.get(serviceId);
     if (catalog == null || !Number.isFinite(catalog)) {
-      throw new BadRequestException('Servis nije pronađen.');
+      throw new BadRequestException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     }
     return { serviceId, unitPrice: catalog };
   });

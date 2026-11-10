@@ -19,6 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { apiError } from '../common/errors/api-error-codes';
 
 const MAX_APK_SIZE = 100 * 1024 * 1024;
 
@@ -35,7 +36,7 @@ export class AppReleasesController {
     }),
   )
   upload(@UploadedFile() file: Express.Multer.File) {
-    if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
+    if (!file) throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     return this.appReleases.saveApk(file);
   }
 

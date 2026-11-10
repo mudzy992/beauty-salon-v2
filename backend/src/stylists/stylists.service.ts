@@ -20,12 +20,13 @@ import { StylistWorkingHoursDto } from './dto/stylist-working-hours.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { EventsGateway } from '../events/events.gateway';
 import { parseDateOnlyString } from '../common/utils/date-only';
+import { apiError } from '../common/errors/api-error-codes';
 
 const parseDateOnlyInput = (value: string): Date => {
   try {
     return parseDateOnlyString(value);
   } catch {
-    throw new BadRequestException('Datum mora biti validan YYYY-MM-DD.');
+    throw new BadRequestException(apiError('STYLISTS_INVALID_HIRE_DATE'));
   }
 };
 
@@ -68,8 +69,7 @@ export class StylistsService {
       !Number.isSafeInteger(offset) ||
       offset > MAX_API_PAGE_OFFSET
     ) {
-      throw new BadRequestException(
-        'Raspon kataloga stilista prelazi dozvoljeni limit.',
+      throw new BadRequestException(apiError('STYLISTS_CATALOG_RANGE_LIMIT'),
       );
     }
     const [items, total] = await Promise.all([
@@ -168,7 +168,7 @@ export class StylistsService {
         },
       },
     });
-    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    if (!stylist) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
     return this.toPublicStylist(this.withPublicAvatar(stylist));
   }
 
@@ -200,7 +200,7 @@ export class StylistsService {
         },
       },
     });
-    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    if (!stylist) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
     return this.withPublicAvatar(stylist);
   }
 
@@ -222,7 +222,7 @@ export class StylistsService {
         stylistServices: { include: { service: true } },
       },
     });
-    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    if (!stylist) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
     return stylist;
   }
 
@@ -231,12 +231,12 @@ export class StylistsService {
     const user = await this.prisma.user.findUnique({
       where: { id: dto.userId },
     });
-    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     const existing = await this.prisma.stylistProfile.findUnique({
       where: { userId: dto.userId },
     });
     if (existing)
-      throw new ForbiddenException('Korisnik već ima profil stilista.');
+      throw new ForbiddenException(apiError('STYLISTS_ALREADY_EXISTS'));
     const stylist = await this.prisma.stylistProfile.create({
       data: {
         userId: dto.userId,
@@ -284,12 +284,12 @@ export class StylistsService {
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id },
     });
-    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    if (!stylist) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
     if (
       currentUser.sub !== stylist.userId &&
       !this.isAdminOrOwner(currentUser.roles)
     ) {
-      throw new ForbiddenException('Nemate dozvolu za izmjenu ovog profila.');
+      throw new ForbiddenException(apiError('STYLISTS_PERMISSION_DENIED'));
     }
     const shouldAllowAdminFields = this.isAdminOrOwner(currentUser.roles);
     const nextIsActive =
@@ -342,7 +342,7 @@ export class StylistsService {
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id },
     });
-    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    if (!stylist) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
     const userId = stylist.userId;
     await this.prisma.stylistProfile.delete({ where: { id } });
     this.events.disconnectUserSockets(userId);
@@ -429,8 +429,7 @@ export class StylistsService {
       !Number.isSafeInteger(offset) ||
       offset > MAX_API_PAGE_OFFSET
     ) {
-      throw new BadRequestException(
-        'Raspon servisa stiliste prelazi dozvoljeni limit.',
+      throw new BadRequestException(apiError('STYLISTS_SERVICE_RANGE_LIMIT'),
       );
     }
 
@@ -441,7 +440,7 @@ export class StylistsService {
       },
       select: { id: true },
     });
-    if (!profile) throw new NotFoundException('Stilist nije pronađen.');
+    if (!profile) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
 
     const where = {
       stylistProfileId,
@@ -507,7 +506,7 @@ export class StylistsService {
         },
       },
     });
-    if (!profile) throw new NotFoundException('Stilist nije pronađen.');
+    if (!profile) throw new NotFoundException(apiError('STYLISTS_NOT_FOUND'));
 
     const [fromReservations, fromDailyLog, fromManualIncome] =
       await Promise.all([
@@ -686,6 +685,6 @@ export class StylistsService {
 
   private requireAdminOrOwner(roles: string[]) {
     if (!this.isAdminOrOwner(roles))
-      throw new ForbiddenException('Samo administrator ili vlasnik.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_5'));
   }
 }

@@ -13,6 +13,7 @@ import {
   getStylistIdsForServices,
   type StylistServiceReader,
 } from './utils/service-eligibility';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationSharedService {
@@ -85,7 +86,7 @@ export class ReservationSharedService {
         mustChangePassword: true,
       },
     });
-    if (!client) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!client) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (client.mustChangePassword && !opts?.ignoreMustChangePassword)
       throw new BadRequestException('MUST_CHANGE_PASSWORD');
     if (!opts?.relaxContactRequirements) {

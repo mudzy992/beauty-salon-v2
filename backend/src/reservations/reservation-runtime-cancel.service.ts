@@ -15,6 +15,7 @@ import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import type { StylistNoShowDto } from './dto/stylist-no-show.dto';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationRuntimeCancelService {
@@ -34,11 +35,11 @@ export class ReservationRuntimeCancelService {
     const stylistProfileId =
       await this.shared.getStylistProfileIdByUserId(userId);
     if (!stylistProfileId)
-      throw new ForbiddenException('Nemate profil stilista.');
+      throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
     const r = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (r.confirmedStylistId !== stylistProfileId) {
       throw new ForbiddenException(
         'Samo potvrđeni stilist može otkazati ovu rezervaciju.',
@@ -132,7 +133,7 @@ export class ReservationRuntimeCancelService {
     const stylistProfileId =
       await this.shared.getStylistProfileIdByUserId(userId);
     if (!stylistProfileId)
-      throw new ForbiddenException('Nemate profil stilista.');
+      throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
     const r = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
       select: {
@@ -144,7 +145,7 @@ export class ReservationRuntimeCancelService {
         status: true,
       },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (r.confirmedStylistId !== stylistProfileId)
       throw new ForbiddenException(
         'Samo potvrđeni stilist može označiti no-show.',

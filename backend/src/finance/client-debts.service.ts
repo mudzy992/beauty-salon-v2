@@ -25,6 +25,7 @@ import { allocateDailyLogReferenceCode } from '../daily-log/daily-log.reference'
 import type { RepayClientDebtDto } from './dto/repay-client-debt.dto';
 import type { SettleClientDebtDto } from './dto/settle-client-debt.dto';
 import { claimOpenClientDebt } from './utils/claim-open-client-debt';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ClientDebtsService {
@@ -48,14 +49,14 @@ export class ClientDebtsService {
     const isStylist = currentUser.roles.includes('STYLIST');
     const isSelf = currentUser.sub === clientId;
     if (!isAdminOrOwner && !isStylist && !isSelf) {
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     }
 
     let stylistScopeId: string | undefined;
     if (isStylist && !isAdminOrOwner && !isSelf) {
       stylistScopeId =
         (await this.getStylistProfileIdByUserId(currentUser.sub)) ?? undefined;
-      if (!stylistScopeId) throw new ForbiddenException('Nemate profil stilista.');
+      if (!stylistScopeId) throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
     }
 
     const debts = await this.prisma.clientDebt.findMany({
@@ -96,9 +97,9 @@ export class ClientDebtsService {
   }
 
   async listForStylistMe(currentUser: { sub: string; roles: string[] }) {
-    if (!currentUser.roles.includes('STYLIST')) throw new ForbiddenException('Nemate dozvolu.');
+    if (!currentUser.roles.includes('STYLIST')) throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     const stylistProfileId = await this.getStylistProfileIdByUserId(currentUser.sub);
-    if (!stylistProfileId) throw new ForbiddenException('Nemate profil stilista.');
+    if (!stylistProfileId) throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
 
     return this.prisma.clientDebt.findMany({
       where: { stylistProfileId, status: 'OPEN' },
@@ -139,7 +140,7 @@ export class ClientDebtsService {
       pageSize < 1 ||
       pageSize > MAX_API_PAGE_LIMIT
     ) {
-      throw new BadRequestException('Parametri paginacije nisu validni.');
+      throw new BadRequestException(apiError('RESERVATIONS_INVALID_PAGINATION'));
     }
     if (search && search.length > 100) {
       throw new BadRequestException('Pretraga je preduga.');
@@ -240,18 +241,18 @@ export class ClientDebtsService {
   ) {
     const reason = dto.note?.trim();
     if (!reason || reason.length < 3) {
-      throw new BadRequestException('Morate unijeti razlog otpisa duga.');
+      throw new BadRequestException(apiError('USERS_WRITE_OFF_REASON_REQUIRED'));
     }
     const debt = await this.prisma.clientDebt.findUnique({ where: { id: debtId } });
-    if (!debt) throw new NotFoundException('Dug nije pronađen.');
+    if (!debt) throw new NotFoundException(apiError('USERS_DEBT_NOT_FOUND'));
     if (debt.status !== ClientDebtStatus.OPEN) {
-      throw new BadRequestException('Dug je već zatvoren.');
+      throw new BadRequestException(apiError('USERS_DEBT_CLOSED'));
     }
     // Otpis je finansijska odluka – stilista ne smije sam otpisati potraživanje.
     const isAdminOrOwner =
       currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
     if (!isAdminOrOwner) {
-      throw new ForbiddenException('Otpis duga može izvršiti samo vlasnik ili administrator.');
+      throw new ForbiddenException(apiError('USERS_WRITE_OFF_PERMISSION'));
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -261,11 +262,11 @@ export class ClientDebtsService {
         note: `[OTPIS] ${reason}`,
       });
       if (!claimed) {
-        throw new ConflictException('Dug je u međuvremenu zatvoren.');
+        throw new ConflictException(apiError('USERS_DEBT_CLOSED_2'));
       }
 
       const settled = await tx.clientDebt.findUnique({ where: { id: debtId } });
-      if (!settled) throw new NotFoundException('Dug nije pronađen.');
+      if (!settled) throw new NotFoundException(apiError('USERS_DEBT_NOT_FOUND'));
       return settled;
     });
   }
@@ -278,16 +279,16 @@ export class ClientDebtsService {
         dailyLogEntry: { select: { id: true, date: true, serviceId: true } },
       },
     });
-    if (!debt) throw new NotFoundException('Dug nije pronađen.');
+    if (!debt) throw new NotFoundException(apiError('USERS_DEBT_NOT_FOUND'));
 
     const isAdminOrOwner =
       currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
     let authorizedStylistProfileId: string | undefined;
     if (!isAdminOrOwner) {
-      if (!currentUser.roles.includes('STYLIST')) throw new ForbiddenException('Nemate dozvolu.');
+      if (!currentUser.roles.includes('STYLIST')) throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
       const myStylistProfileId = await this.getStylistProfileIdByUserId(currentUser.sub);
       if (!myStylistProfileId || myStylistProfileId !== debt.stylistProfileId) {
-        throw new ForbiddenException('Nemate dozvolu.');
+        throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
       }
       authorizedStylistProfileId = myStylistProfileId;
     }
@@ -309,13 +310,13 @@ export class ClientDebtsService {
         const settled = await this.prisma.clientDebt.findUnique({
           where: { id: debtId },
         });
-        if (!settled) throw new NotFoundException('Dug nije pronađen.');
+        if (!settled) throw new NotFoundException(apiError('USERS_DEBT_NOT_FOUND'));
         return {
           settled,
           debtPaymentDailyLogId: existingPayment.id,
         };
       }
-      throw new BadRequestException('Dug je već zatvoren.');
+      throw new BadRequestException(apiError('USERS_DEBT_CLOSED'));
     }
 
     const date = dto.date
@@ -353,7 +354,7 @@ export class ClientDebtsService {
       }
 
       const settled = await tx.clientDebt.findUnique({ where: { id: debtId } });
-      if (!settled) throw new NotFoundException('Dug nije pronađen.');
+      if (!settled) throw new NotFoundException(apiError('USERS_DEBT_NOT_FOUND'));
 
       let serviceId = settled.serviceId;
       if (!serviceId && settled.dailyLogEntryId) {

@@ -5,4 +5,5 @@ export interface ClientReservationError {
 
 export function resolveClientReservationError(
   message: unknown,
+  code?: unknown,
 ): ClientReservationError | null

@@ -18,6 +18,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import { canConfirmAttendance } from './reservation-policy';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationClientActionsService {
@@ -36,9 +37,9 @@ export class ReservationClientActionsService {
     dto?: CancelReservationDto,
   ) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (r.clientId !== clientId)
-      throw new ForbiddenException('Samo klijent može otkazati rezervaciju.');
+      throw new ForbiddenException(apiError('MY_RESERVATIONS_NOT_AUTHORIZED'));
     const cancellableStatuses: string[] = [
       RESERVATION_STATUS.PENDING,
       RESERVATION_STATUS.STYLIST_REVIEW,
@@ -46,9 +47,9 @@ export class ReservationClientActionsService {
       RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
     ];
     if (!cancellableStatuses.includes(r.status))
-      throw new BadRequestException('Rezervacija se više ne može otkazati.');
+      throw new BadRequestException(apiError('MY_RESERVATIONS_CANNOT_CANCEL'));
     const salon = await this.prisma.salonSettings.findFirst();
-    if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
+    if (!salon) throw new NotFoundException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'));
     const reservationStartAt = this.dates.combineDateAndTime(
       r.reservationDate,
       r.startTime,
@@ -58,7 +59,7 @@ export class ReservationClientActionsService {
         salon.cancellationDeadlineHours * 60 * 60 * 1000,
     );
     if (new Date() > deadline)
-      throw new BadRequestException('Rok za otkazivanje je istekao.');
+      throw new BadRequestException(apiError('MY_RESERVATIONS_CANCEL_DEADLINE'));
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.reservation.updateMany({
         where: { id, clientId, status: r.status },
@@ -72,8 +73,7 @@ export class ReservationClientActionsService {
         },
       });
       if (updated.count !== 1) {
-        throw new ConflictException(
-          'Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.',
+        throw new ConflictException(apiError('RESERVATIONS_CONCURRENT_CHANGE'),
         );
       }
       await this.shared.incrementCancellationCountInTransaction(
@@ -125,7 +125,7 @@ export class ReservationClientActionsService {
 
   async cancelByAdmin(id: string, dto?: CancelReservationDto) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     const nextStatus = this.shared.transitionTo(
       r.status,
       RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
@@ -139,8 +139,7 @@ export class ReservationClientActionsService {
       },
     });
     if (updated.count !== 1) {
-      throw new ConflictException(
-        'Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.',
+      throw new ConflictException(apiError('RESERVATIONS_CONCURRENT_CHANGE'),
       );
     }
     const cancelled = await this.queries.findOne(id, {
@@ -187,16 +186,15 @@ export class ReservationClientActionsService {
 
   async confirmAttendance(id: string, clientId: string) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (r.clientId !== clientId)
-      throw new ForbiddenException('Samo klijent može potvrditi dolazak.');
+      throw new ForbiddenException(apiError('MY_RESERVATIONS_NOT_AUTHORIZED_2'));
     if (!canConfirmAttendance(r)) {
-      throw new BadRequestException(
-        'Rezervacija mora biti potvrđena od strane stilista.',
+      throw new BadRequestException(apiError('MY_RESERVATIONS_AWAITING_STYLIST'),
       );
     }
     const salon = await this.prisma.salonSettings.findFirst();
-    if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
+    if (!salon) throw new NotFoundException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'));
     const reservationStartAt = this.dates.combineDateAndTime(
       r.reservationDate,
       r.startTime,
@@ -223,8 +221,7 @@ export class ReservationClientActionsService {
       },
     });
     if (updated.count !== 1) {
-      throw new ConflictException(
-        'Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.',
+      throw new ConflictException(apiError('RESERVATIONS_CONCURRENT_CHANGE'),
       );
     }
     const confirmed = await this.queries.findOne(id, {

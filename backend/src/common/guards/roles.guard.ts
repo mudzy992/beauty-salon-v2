@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import { apiError } from '../errors/api-error-codes';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -29,10 +30,10 @@ export class RolesGuard implements CanActivate {
     const { user } = context
       .switchToHttp()
       .getRequest<{ user: CurrentUserPayload }>();
-    if (!user?.roles?.length) throw new ForbiddenException('Nemate dozvolu.');
+    if (!user?.roles?.length) throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
 
     const hasRole = requiredRoles.some((role) => user.roles.includes(role));
-    if (!hasRole) throw new ForbiddenException('Nemate dozvolu za ovu radnju.');
+    if (!hasRole) throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_2'));
     return true;
   }
 }

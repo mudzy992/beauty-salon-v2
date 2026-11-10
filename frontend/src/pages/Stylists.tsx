@@ -8,7 +8,7 @@ import {
   fetchAllAdminServices,
   fetchAllAdminStylistServices,
 } from '../api/catalog'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { getIntlLocale, formatWeekday } from '../i18n/locale-utils.mjs'
 import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
@@ -186,7 +186,7 @@ export default function Stylists() {
       loadData()
       setOpen(false)
     } catch (err) {
-      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), 'stylists.errors.saveFailed')))
+      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), 'stylists.errors.saveFailed', getErrorCode(err))))
     } finally {
       setSaving(false)
     }

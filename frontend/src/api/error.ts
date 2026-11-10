@@ -12,3 +12,12 @@ export const getErrorMessage = (err: unknown, fallback = 'Greška'): string => {
   return fallback
 }
 
+/**
+ * Stabilni kod greske koji backend vraca uz poruku (`apiError(KOD)` u
+ * `backend/src/common/errors/api-error-codes.ts`, proslijedjen kroz
+ * `HttpExceptionFilter`). `undefined` za stariji backend ili greske bez koda.
+ */
+export const getErrorCode = (err: unknown): string | undefined => {
+  const code = (err as { response?: { data?: { code?: unknown } } })?.response?.data?.code
+  return typeof code === 'string' && code ? code : undefined
+}

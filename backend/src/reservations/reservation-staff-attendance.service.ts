@@ -16,6 +16,7 @@ import {
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { canStaffConfirmAttendance } from './reservation-policy';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationStaffAttendanceService {
@@ -29,10 +30,9 @@ export class ReservationStaffAttendanceService {
 
   async confirmAttendanceByStaff(id: string, user: CurrentUserPayload) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (!canStaffConfirmAttendance(r)) {
-      throw new BadRequestException(
-        'Rezervacija mora biti potvrđena i zahtijevati potvrdu dolaska klijenta.',
+      throw new BadRequestException(apiError('RESERVATIONS_ATTENDANCE_REQUIRES_CONFIRMATION'),
       );
     }
     const isAdmin =
@@ -40,8 +40,7 @@ export class ReservationStaffAttendanceService {
     if (!isAdmin) {
       const profileId = await this.shared.getStylistProfileIdByUserId(user.sub);
       if (!profileId || profileId !== r.confirmedStylistId) {
-        throw new ForbiddenException(
-          'Samo dodijeljeni stilist ili admin može potvrditi dolazak.',
+        throw new ForbiddenException(apiError('RESERVATIONS_ATTENDANCE_PERMISSION'),
         );
       }
     }
@@ -51,8 +50,7 @@ export class ReservationStaffAttendanceService {
     );
     const now = new Date();
     if (now.getTime() >= startAt.getTime()) {
-      throw new BadRequestException(
-        'Rok za staff potvrdu dolaska je početak termina.',
+      throw new BadRequestException(apiError('RESERVATIONS_STAFF_ATTENDANCE_DEADLINE'),
       );
     }
     await this.prisma.reservation.update({

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { CalendarDays, Eye, Loader2 } from 'lucide-react'
 
 import api from '../api/client'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiError } from '../features/admin/admin-api-error.mjs'
 import { useReservationSocketRefresh } from '../features/reservations/use-reservation-socket-refresh'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -217,7 +217,7 @@ export default function Reservations() {
       const { data } = await api.get<Reservation>(`/api/reservations/${detail.id}`)
       setDetail(data)
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.adminDetail.attendanceConfirmError')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.adminDetail.attendanceConfirmError', getErrorCode(err))
       error(t(apiErr.key, apiErr.values))
     } finally {
       setConfirmingAttendance(false)
@@ -233,7 +233,7 @@ export default function Reservations() {
       loadData()
       setOpen(false)
     } catch (err) {
-      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.adminDetail.cancelError')
+      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.adminDetail.cancelError', getErrorCode(err))
       error(t(apiErr.key, apiErr.values))
     } finally {
       setCancelling(false)

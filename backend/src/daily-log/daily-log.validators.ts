@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseDateOnlyString } from '../common/utils/date-only';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class DailyLogValidators {
@@ -19,7 +20,7 @@ export class DailyLogValidators {
           : [];
     const ids = [...new Set(raw.map((x) => x.trim()).filter(Boolean))];
     if (ids.length === 0) {
-      throw new BadRequestException('SERVICE_REQUIRED');
+      throw new BadRequestException(apiError('RESERVE_SERVICE_REQUIRED'));
     }
     return ids;
   }
@@ -39,13 +40,13 @@ export class DailyLogValidators {
         select: { id: true, gender: true },
       }),
     ]);
-    if (!client) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!client) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
     if (!client.gender) throw new BadRequestException('GENDER_REQUIRED');
     if (services.length !== serviceIds.length) {
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     }
     if (services.some((s) => s.gender !== client.gender)) {
-      throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+      throw new BadRequestException(apiError('RESERVE_SERVICE_GENDER_MISMATCH'));
     }
   }
 

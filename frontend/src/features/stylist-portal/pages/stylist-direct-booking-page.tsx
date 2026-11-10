@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import api from '../../../api/client'
 import { fetchAllPublicServices } from '../../../api/catalog'
-import { getErrorMessage } from '../../../api/error'
+import { getErrorMessage, getErrorCode } from '../../../api/error'
 import { resolveAdminApiError } from '../../admin/admin-api-error.mjs'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
@@ -187,7 +187,7 @@ export const StylistDirectBookingPage = () => {
       toast.success(t('stylistPortal.directBooking.created'))
       navigate('/stylist/schedule')
     } catch (error) {
-      const apiErr = resolveAdminApiError(getErrorMessage(error, ''), 'stylistPortal.directBooking.createFailed')
+      const apiErr = resolveAdminApiError(getErrorMessage(error, ''), 'stylistPortal.directBooking.createFailed', getErrorCode(error))
       toast.error(t(apiErr.key, apiErr.values))
     } finally {
       setSaving(false)

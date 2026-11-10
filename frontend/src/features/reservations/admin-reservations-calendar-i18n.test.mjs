@@ -7,13 +7,14 @@ const locales = ['bs', 'en'].map((language) =>
 )
 const source = readFileSync(new URL('../../pages/ReservationsCalendar.tsx', import.meta.url), 'utf8')
 const scheduler = readFileSync(new URL('./components/ReservationScheduler.tsx', import.meta.url), 'utf8')
-// Ključ se koristi i kao fallback u `resolveAdminApiError(getErrorMessage(err, ''), 'ključ')`:
+// Ključ se koristi i kao fallback u
+// `resolveAdminApiError(getErrorMessage(err, ''), 'ključ', getErrorCode(err))`:
 // serverska poruka se tada prevodi kroz mapu, a ovaj ključ ostaje jedini izvor teksta kad
 // backend ne vrati poruku. Bez ove grane sakupljač bi mislio da je ključ ispao iz upotrebe.
 const usedKeys = (src) =>
   [
     ...src.matchAll(/\bt\('([^']+)'/g),
-    ...src.matchAll(/resolveAdminApiError\(.*, '([^']+)'\)/g),
+    ...src.matchAll(/resolveAdminApiError\(.*, '([^']+)', getErrorCode\(\w+\)\)/g),
   ].map(([, key]) => key)
 const pageKeys = usedKeys(source)
 const hasLocaleKey = (resource, key) =>

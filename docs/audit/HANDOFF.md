@@ -1679,8 +1679,26 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    **2026-11-10: vlasnik izabrao (a) i ono je urađeno** — inventar sirovih naslova je sada
    **0** (bilo 16), mapiranih mjesta **24**. Isti princip je zatim primijenjen i na **37**
    opisa (`lib/toast/api-error-description.mjs`): prevedeno kad je mapirano, sirovo samo na
-   bosanskom, izostavljeno na engleskom. **Preostaje samo (c)** — kodovi grešaka u backendu,
-   jer backend i dalje nema i18n sloj, pa mapiranje ostaje krhko na promjenu teksta.
+   bosanskom, izostavljeno na engleskom.
+   **2026-11-08: vlasnik odobrio i (c) i ono je urađeno** — backend ima registar
+   `common/errors/api-error-codes.ts` sa **101** kodom (1:1 s porukom) i `apiError(KOD)`;
+   `HttpExceptionFilter` sada propušta `code` u tijelu odgovora (prije ga je odbacivao), a
+   **260** poziva u **44** fajla prebačeno je na kodove. Frontend prevodi po **kodu**
+   (`api-error-code-map.mjs` + `getErrorCode(err)`), kod ima prednost nad tekstom u svih 5
+   resolvera; mapiranje po tačnom tekstu ostaje kao fallback za stare odgovore.
+   **24 od 27** pozivnih mjesta spojeno je na `getErrorCode` — preostala **3** su na vlasnikovoj
+   trajnoj listi „ne dirati" (`features/blog/blog-post-form-dialog.tsx`,
+   `pages/public/MyReservations.tsx`, `pages/public/PublicReserve.tsx`), pa javni tokovi
+   rezervacija i dalje idu po tekstu; to je **javno naznačeno, ne tiho odlučeno**.
+   Nove kapije: `test:api-error-code-parity` (5), `test:api-error-code-resolution` (6),
+   `test:api-error-codes` backend (7); mutacije **10/10** + 1 koja je uhvatila **stvarnu rupu**
+   (omotač `resolveAdminApiErrorKey` je tiho odbacivao treći argument na 6 mjesta).
+   **Šta (c) NE pokriva, izmjereno:** u `backend/src` i dalje ima **439** hardkodiranih poruka
+   bez koda (277 u migriranih 44 fajla, 162 van njih) — migrirano je onih **101** koje je
+   frontend već prevodio, ne sve. Brava `<= 439` u `test:api-error-codes` sprječava tiho
+   dodavanje novih literala. Backend `tsc` nepromijenjen (**1508** = baseline). **Opcija (b)
+   (backend i18n sloj) i dalje NIJE odobrena.** Nije verificirano preko žice: da `code` zaista
+   stiže u stvarni HTTP odgovor dokazano je na nivou filtera, ne od kraja do kraja.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,

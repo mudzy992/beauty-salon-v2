@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogCommentDto } from './dto/create-blog-comment.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { SettingsService } from '../settings/settings.service';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class BlogCommentsService {
@@ -147,7 +148,7 @@ export class BlogCommentsService {
     });
     if (!c) throw new NotFoundException('Komentar nije pronađen.');
     if (c.userId !== user.sub && !this.isAdminOrOwner(user))
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     await this.prisma.blogComment.delete({ where: { id: commentId } });
     return { deleted: true };
   }
@@ -166,6 +167,6 @@ export class BlogCommentsService {
 
   private requireAdminOrOwner(user: CurrentUserPayload) {
     if (!this.isAdminOrOwner(user))
-      throw new ForbiddenException('Samo administrator ili vlasnik.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_5'));
   }
 }

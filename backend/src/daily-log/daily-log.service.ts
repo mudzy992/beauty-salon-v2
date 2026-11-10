@@ -34,6 +34,7 @@ import {
 import { allocateDailyLogReferenceCode } from './daily-log.reference';
 import { DailyLogCompletionOutboxService } from './daily-log-completion-outbox.service';
 import { claimOpenClientDebt } from '../finance/utils/claim-open-client-debt';
+import { apiError } from '../common/errors/api-error-codes';
 
 const DAILY_LOG_LIST_MAX_RANGE_DAYS = 62;
 const DAILY_LOG_LIST_MAX_RESULTS = 500;
@@ -141,7 +142,7 @@ export class DailyLogService {
         where: { id: dto.reservationId },
         include: { items: true },
       });
-      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (!res) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       const resServiceIds = res.items?.length
         ? res.items.map((i) => i.serviceId)
         : [res.serviceId];
@@ -171,13 +172,13 @@ export class DailyLogService {
         where: { id: dto.clientId },
         select: { id: true, gender: true },
       });
-      if (!client) throw new NotFoundException('Korisnik nije pronađen.');
+      if (!client) throw new NotFoundException(apiError('USERS_NOT_FOUND'));
       if (!client.gender) throw new BadRequestException('GENDER_REQUIRED');
       if (catalogRows.length !== serviceIds.length) {
-        throw new NotFoundException('Servis nije pronađen.');
+        throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
       }
       if (catalogRows.some((s) => s.gender !== client.gender)) {
-        throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+        throw new BadRequestException(apiError('RESERVE_SERVICE_GENDER_MISMATCH'));
       }
     }
     const date = parseDateOnlyInput(dto.date);
@@ -362,7 +363,7 @@ export class DailyLogService {
         confirmedStylist: true,
       },
     });
-    if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!res) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (
       res.status !== 'COMPLETED' &&
       res.status !== 'ATTENDANCE_CONFIRMED' &&
@@ -846,7 +847,7 @@ export class DailyLogService {
         });
         if (!reservation) {
           if (isNewCompletion) {
-            throw new NotFoundException('Rezervacija nije pronađena.');
+            throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
           }
         } else if (reservation.confirmedStylistId !== entry.stylistProfileId) {
           if (isNewCompletion) {

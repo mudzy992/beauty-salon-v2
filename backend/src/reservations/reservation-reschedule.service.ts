@@ -9,6 +9,7 @@ import { getDateOnlyDayBounds } from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { RESERVATION_STATUS } from './constants';
 import { minutesToTime, timeToMinutes } from './utils/time-slot.utils';
+import { apiError } from '../common/errors/api-error-codes';
 
 export type RescheduleMode =
   | 'actual_overrun'
@@ -35,9 +36,9 @@ export class ReservationRescheduleService {
     const stylistProfileId =
       await this.shared.getStylistProfileIdByUserId(userId);
     if (!stylistProfileId)
-      throw new ForbiddenException('Nemate profil stilista.');
+      throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
     const salon = await this.prisma.salonSettings.findFirst();
-    if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
+    if (!salon) throw new NotFoundException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'));
     const r = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
       select: {
@@ -52,7 +53,7 @@ export class ReservationRescheduleService {
         status: true,
       },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (r.confirmedStylistId !== stylistProfileId) {
       throw new ForbiddenException(
         'Samo potvrđeni stilist može raditi rekalkulaciju termina.',

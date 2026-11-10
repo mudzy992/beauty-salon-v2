@@ -16,6 +16,7 @@ import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { isDirectStaffWaived } from './reservation-policy';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationReorderService {
@@ -35,7 +36,7 @@ export class ReservationReorderService {
     const stylistProfileId =
       await this.shared.getStylistProfileIdByUserId(userId);
     if (!stylistProfileId)
-      throw new ForbiddenException('Nemate profil stilista.');
+      throw new ForbiddenException(apiError('RESERVATIONS_NO_STYLIST_PROFILE'));
     const reservation = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
       select: {
@@ -56,7 +57,7 @@ export class ReservationReorderService {
       },
     });
     if (!reservation)
-      throw new NotFoundException('Rezervacija nije pronađena.');
+      throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (isDirectStaffWaived(reservation)) {
       throw new BadRequestException(
         'Direktna rezervacija se ne šalje klijentu na potvrdu. Pomjerite termin iz dnevne knjige (disposition) ili ažurirajte termin direktno.',

@@ -1,3 +1,5 @@
+import { resolveApiErrorCodeKey } from '../api-errors/api-error-code-map.mjs'
+
 const PROFILE_ERRORS = new Map([
   ['Korisnik nije pronađen.', 'users.errors.notFound'],
   ['Korisničko ime je već u upotrebi.', 'users.errors.usernameTaken'],
@@ -21,7 +23,9 @@ const PROFILE_ERRORS = new Map([
   ],
 ])
 
-export const resolveProfileApiErrorKey = (message, fallbackKey) => {
+export const resolveProfileApiErrorKey = (message, fallbackKey, code) => {
+  const byCode = resolveApiErrorCodeKey(code)
+  if (byCode) return byCode
   if (typeof message !== 'string') return fallbackKey
   return PROFILE_ERRORS.get(message.trim()) ?? fallbackKey
 }

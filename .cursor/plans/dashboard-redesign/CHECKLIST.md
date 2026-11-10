@@ -532,9 +532,27 @@ korak u `ci.yml` odmah poslije `test:i18n-key-resolution`.
       prevedeno kad je poruka mapirana, sirovo **samo** na bosanskom, izostavljeno na
       engleskom. Čist modul `lib/toast/api-error-description.mjs` + bihevioralni test s
       pravim `i18next`. Mutacije 6/6.
-- [ ] **Ostaje samo opcija (c):** backend i dalje nema i18n sloj ni kodove grešaka, pa
-      mapiranje ostaje krhko na promjenu teksta (zaključano testom, ali krhko). Kodovi
-      grešaka u backendu jedina su trajna popravka i traže odluku vlasnika.
+- [x] **Opcija (c) odobrena i urađena 2026-11-08** — backend registar
+      `common/errors/api-error-codes.ts` (**101** kod, 1:1 s porukom) + `apiError(KOD)`;
+      `HttpExceptionFilter` propušta `code` u tijelu (prije ga je **odbacivao**); **260**
+      poziva u **44** fajla prebačeno. Frontend prevodi po kodu
+      (`api-error-code-map.mjs` + `getErrorCode(err)`), kod ima prednost nad tekstom u svih
+      5 resolvera i u omotaču; mapiranje po tekstu ostaje kao fallback.
+- [x] **Tri nove kapije:** `test:api-error-code-parity` (5), `test:api-error-code-resolution`
+      (6), backend `test:api-error-codes` (7, bihevioralno nad pravim filterom). Registrovane
+      u `package.json` i `ci.yml`. **Mutacije 10/10** + 1 ciljana koja je uhvatila **stvarnu
+      rupu**: omotač `resolveAdminApiErrorKey` tiho je odbacivao treći argument na 6 mjesta.
+- [x] **24 od 27** pozivnih mjesta spojeno na `getErrorCode`. Preostala **3** su na trajnoj
+      listi „ne dirati" (`features/blog/blog-post-form-dialog.tsx`,
+      `pages/public/MyReservations.tsx`, `pages/public/PublicReserve.tsx`) — javno naznačeno,
+      ne tiho odlučeno.
+- [ ] **Šta (c) NE pokriva, izmjereno:** u `backend/src` i dalje **439** hardkodiranih poruka
+      bez koda (277 u migriranih 44 fajla, 162 van njih). Migrirano je onih **101** koje je
+      frontend već prevodio. Brava `<= 439` u `test:api-error-codes` sprječava tiho dodavanje
+      novih literala; smanjenje je dozvoljeno.
+- [ ] **Opcija (b) — backend i18n sloj — i dalje NIJE odobrena.** Nije verificirano preko
+      žice: da `code` zaista stiže u stvarni HTTP odgovor dokazano je na nivou filtera, ne od
+      kraja do kraja.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

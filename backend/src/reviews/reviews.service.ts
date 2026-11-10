@@ -12,6 +12,7 @@ import {
   MAX_PUBLIC_REVIEW_OFFSET,
 } from './reviews.constants';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { apiError } from '../common/errors/api-error-codes';
 
 const REVIEW_DISPLAY_SELECT = {
   id: true,
@@ -84,7 +85,7 @@ export class ReviewsService {
       },
     });
     if (!reservation)
-      throw new NotFoundException('Rezervacija nije pronađena.');
+      throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (reservation.clientId !== userId)
       throw new ForbiddenException(
         'Samo klijent rezervacije može ostaviti recenziju.',
@@ -261,7 +262,7 @@ export class ReviewsService {
 
   async approve(id: string, user: CurrentUserPayload) {
     if (!user.roles.includes('SYSTEM_ADMIN') && !user.roles.includes('OWNER')) {
-      throw new ForbiddenException('Samo administrator ili vlasnik.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED_5'));
     }
     const r = await this.prisma.review.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Recenzija nije pronađena.');

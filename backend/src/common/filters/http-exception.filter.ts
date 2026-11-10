@@ -33,6 +33,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
         : { message: String(message) };
     const msg = Array.isArray(body.message) ? body.message[0] : body.message;
 
+    // Kod greške dolazi iz `apiError(KOD)` (common/errors/api-error-codes.ts). Bez ovog
+    // polja filter bi ga odbacio, a frontend prevodi po kodu — ne po bosanskom tekstu.
+    const rawCode =
+      typeof message === 'object' && message !== null
+        ? (message as { code?: unknown }).code
+        : undefined;
+    const code = typeof rawCode === 'string' && rawCode ? rawCode : undefined;
+
     if (status >= 500) {
       this.logger.error(
         `${request.method} ${request.url} ${status}`,
@@ -42,6 +50,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
+      ...(code ? { code } : {}),
       message: msg || (status === 404 ? 'Not Found' : 'Internal server error'),
       error:
         status === 404

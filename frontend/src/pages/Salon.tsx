@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Plus, Send, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { formatLocalizedDateTime, formatWeekday, getIntlLocale } from '../i18n/locale-utils.mjs'
 import { useSocketEvent } from '../context/SocketContext'
@@ -64,7 +64,7 @@ export default function Salon() {
   const { success, error, warning } = useAppToast()
   const showApiError = useCallback(
     (err: unknown, fallbackKey: string) => {
-      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), fallbackKey)))
+      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), fallbackKey, getErrorCode(err))))
     },
     [error, t],
   )

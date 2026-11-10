@@ -19,6 +19,7 @@ import {
   acquireReservationDayLock,
   reservationDayKey,
 } from './utils/booking-advisory-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationRescheduleClientService {
@@ -35,9 +36,9 @@ export class ReservationRescheduleClientService {
       where: { id: reservationId },
       include: { items: { select: { serviceId: true } } },
     });
-    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!snapshot) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (snapshot.clientId !== userId)
-      throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+      throw new ForbiddenException(apiError('MY_RESERVATIONS_NOT_AUTHORIZED_3'));
     if (
       snapshot.status !== RESERVATION_STATUS.CONFIRMED &&
       snapshot.status !== RESERVATION_STATUS.ATTENDANCE_CONFIRMED
@@ -47,15 +48,13 @@ export class ReservationRescheduleClientService {
       );
     }
     if (snapshot.rescheduleStatus !== 'PENDING')
-      throw new BadRequestException(
-        'Nema aktivnog zahtjeva za potvrdu termina.',
+      throw new BadRequestException(apiError('MY_RESERVATIONS_NO_RESCHEDULE_REQUEST'),
       );
     if (
       !snapshot.rescheduleProposedStartTime ||
       !snapshot.rescheduleProposedEndTime
     ) {
-      throw new BadRequestException(
-        'Nedostaju predloženi podaci za novi termin.',
+      throw new BadRequestException(apiError('MY_RESERVATIONS_INCOMPLETE_RESCHEDULE'),
       );
     }
 
@@ -65,9 +64,9 @@ export class ReservationRescheduleClientService {
         where: { id: reservationId },
         include: { items: { select: { serviceId: true } } },
       });
-      if (!current) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (!current) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       if (current.clientId !== userId)
-        throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+        throw new ForbiddenException(apiError('MY_RESERVATIONS_NOT_AUTHORIZED_3'));
       if (current.status !== snapshot.status) {
         throw new ConflictException(
           'Status rezervacije je istovremeno promijenjen. Osvježite podatke i pokušajte ponovo.',
@@ -89,14 +88,12 @@ export class ReservationRescheduleClientService {
         );
       }
       if (current.rescheduleStatus !== 'PENDING')
-        throw new BadRequestException(
-          'Nema aktivnog zahtjeva za potvrdu termina.',
+        throw new BadRequestException(apiError('MY_RESERVATIONS_NO_RESCHEDULE_REQUEST'),
         );
       const nextStart = current.rescheduleProposedStartTime;
       const nextEnd = current.rescheduleProposedEndTime;
       if (!nextStart || !nextEnd) {
-        throw new BadRequestException(
-          'Nedostaju predloženi podaci za novi termin.',
+        throw new BadRequestException(apiError('MY_RESERVATIONS_INCOMPLETE_RESCHEDULE'),
         );
       }
 
@@ -163,12 +160,11 @@ export class ReservationRescheduleClientService {
     const r = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     if (r.clientId !== userId)
-      throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+      throw new ForbiddenException(apiError('MY_RESERVATIONS_NOT_AUTHORIZED_3'));
     if (r.rescheduleStatus !== 'PENDING')
-      throw new BadRequestException(
-        'Nema aktivnog zahtjeva za potvrdu termina.',
+      throw new BadRequestException(apiError('MY_RESERVATIONS_NO_RESCHEDULE_REQUEST'),
       );
     const pendingKind =
       await this.notify.getPendingRescheduleKind(reservationId);

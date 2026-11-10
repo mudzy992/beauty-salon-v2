@@ -20,7 +20,7 @@ import {
   fetchAllAdminStylists,
   fetchAllAdminUserRoleList,
 } from '../api/catalog'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -144,7 +144,7 @@ export default function Users() {
   const { success, error, warning } = useAppToast()
   const showApiError = (err: unknown, fallbackKey: string) => {
     const message = getErrorMessage(err, '')
-    error(t(resolveAdminApiErrorKey(message, fallbackKey)))
+    error(t(resolveAdminApiErrorKey(message, fallbackKey, getErrorCode(err))))
   }
   const getRoleLabel = (roleName: string) =>
     t(`users.roleNames.${roleName}`, { defaultValue: roleName })

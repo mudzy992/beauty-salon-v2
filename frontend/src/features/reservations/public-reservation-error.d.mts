@@ -5,4 +5,5 @@ export interface PublicReservationError {
 
 export function resolvePublicReservationError(
   message: unknown,
+  code?: unknown,
 ): PublicReservationError | null

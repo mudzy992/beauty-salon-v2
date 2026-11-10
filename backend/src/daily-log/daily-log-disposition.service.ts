@@ -31,6 +31,7 @@ import {
 } from './daily-log-disposition-apply';
 import { assertClientDayBookingAllowed } from '../reservations/utils/assert-client-day-booking';
 import { acquireReservationDayLocks } from '../reservations/utils/booking-advisory-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class DailyLogDispositionService {
@@ -68,7 +69,7 @@ export class DailyLogDispositionService {
       include: { items: { select: { serviceId: true } } },
     });
     if (!reservation) {
-      throw new NotFoundException('Rezervacija nije pronađena.');
+      throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     }
     if (reservation.status !== RESERVATION_STATUS.AWAITING_DAILY_LOG) {
       throw new BadRequestException(
@@ -104,8 +105,7 @@ export class DailyLogDispositionService {
       if (
         timeToMinutes(dto.targetEndTime) <= timeToMinutes(dto.targetStartTime)
       ) {
-        throw new BadRequestException(
-          'Vrijeme završetka mora biti nakon početka.',
+        throw new BadRequestException(apiError('RESERVATIONS_END_BEFORE_START'),
         );
       }
     }
@@ -158,7 +158,7 @@ export class DailyLogDispositionService {
         include: { items: { select: { serviceId: true } } },
       });
       if (!currentReservation) {
-        throw new NotFoundException('Rezervacija nije pronađena.');
+        throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       }
       if (currentReservation.status !== RESERVATION_STATUS.AWAITING_DAILY_LOG) {
         throw new BadRequestException(

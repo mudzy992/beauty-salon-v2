@@ -22,6 +22,7 @@ import {
 } from '../common/utils/book-period'
 import type { CreateIncomeBookManualEntryDto } from './dto/create-income-book-manual-entry.dto'
 import type { UpdateIncomeBookManualEntryDto } from './dto/update-income-book-manual-entry.dto'
+import { apiError } from '../common/errors/api-error-codes';
 
 const toSnapshot = (entry: {
   id: string
@@ -296,7 +297,7 @@ export class IncomeManualEntriesService {
       where: { id: serviceId },
       select: { price: true },
     })
-    if (!service) throw new NotFoundException('Servis nije pronađen.')
+    if (!service) throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'))
     return Number(service.price)
   }
 

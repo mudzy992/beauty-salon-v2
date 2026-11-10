@@ -24,6 +24,7 @@ import {
   acquireReservationDayLock,
   acquireReservationIdempotencyLock,
 } from './utils/booking-advisory-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationCreateService {
@@ -64,7 +65,7 @@ export class ReservationCreateService {
   ) {
     const idempotencyKey = opts?.idempotencyKey?.trim();
     if (idempotencyKey && !isUUID(idempotencyKey)) {
-      throw new BadRequestException('Idempotency-Key mora biti validan UUID.');
+      throw new BadRequestException(apiError('RESERVE_INVALID_REQUEST'));
     }
 
     const serviceIdsRaw =
@@ -96,8 +97,7 @@ export class ReservationCreateService {
         });
         if (previous) {
           if (previous.idempotencyRequestHash !== idempotencyRequestHash) {
-            throw new ConflictException(
-              'Idempotency-Key je već korišten za drugačiji zahtjev.',
+            throw new ConflictException(apiError('RESERVE_REQUEST_KEY_CONFLICT'),
             );
           }
           const pendingEvent = await tx.outboxEvent.findUnique({
@@ -114,7 +114,7 @@ export class ReservationCreateService {
       }
 
       if (!primaryServiceId) {
-        throw new BadRequestException('SERVICE_REQUIRED');
+        throw new BadRequestException(apiError('RESERVE_SERVICE_REQUIRED'));
       }
 
       await acquireReservationDayLock(tx, reservationDate);
@@ -136,10 +136,10 @@ export class ReservationCreateService {
         },
       });
       if (services.length !== serviceIds.length) {
-        throw new NotFoundException('Servis nije pronađen.');
+        throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
       }
       if (services.some((service) => service.gender !== client.gender)) {
-        throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+        throw new BadRequestException(apiError('RESERVE_SERVICE_GENDER_MISMATCH'));
       }
 
       await this.shared.checkClientPenalty(clientId, tx);
@@ -154,7 +154,7 @@ export class ReservationCreateService {
           slot.startTime === dto.startTime && slot.endTime === dto.endTime,
       );
       if (!match || match.availableStylistCount === 0) {
-        throw new BadRequestException('Odabrani termin nije dostupan.');
+        throw new BadRequestException(apiError('MY_RESERVATIONS_SLOT_UNAVAILABLE'));
       }
 
       await assertClientDayBookingAllowed({
@@ -171,7 +171,7 @@ export class ReservationCreateService {
         tx,
       );
       if (stylistIds.length === 0) {
-        throw new BadRequestException('Odabrani termin nije dostupan.');
+        throw new BadRequestException(apiError('MY_RESERVATIONS_SLOT_UNAVAILABLE'));
       }
       const stylistUsers = await tx.stylistProfile.findMany({
         where: { id: { in: stylistIds } },

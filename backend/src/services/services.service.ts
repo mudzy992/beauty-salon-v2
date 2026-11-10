@@ -21,6 +21,7 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 import { Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { DeleteServiceDto } from './dto/delete-service.dto';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ServicesService {
@@ -505,7 +506,7 @@ export class ServicesService {
       },
       include: { subcategory: { include: { category: true } } },
     });
-    if (!service) throw new NotFoundException('Servis nije pronađen.');
+    if (!service) throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     return this.toPublicService(service);
   }
 
@@ -516,7 +517,7 @@ export class ServicesService {
         subcategory: { include: { category: true } },
       },
     });
-    if (!svc) throw new NotFoundException('Servis nije pronađen.');
+    if (!svc) throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     return svc;
   }
 

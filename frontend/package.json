@@ -183,6 +183,8 @@
     "test:api-error-keys-i18n": "node --test src/app/api-error-keys-i18n.test.mjs",
     "test:raw-api-error-exposure": "node --test src/app/raw-api-error-exposure.test.mjs",
     "test:api-error-description": "node --test src/lib/toast/api-error-description.test.mjs",
+    "test:api-error-code-parity": "node --test src/features/api-errors/api-error-code-parity.test.mjs",
+    "test:api-error-code-resolution": "node --test src/features/api-errors/api-error-code-resolution.test.mjs",
     "test:eslint-a11y-severity": "node --test src/app/eslint-a11y-severity.test.mjs",
     "test:a11y-routes": "node scripts/run-a11y-routes.mjs",
     "typecheck:e2e": "tsc -p tsconfig.e2e.json",

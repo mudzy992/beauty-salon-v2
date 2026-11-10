@@ -17,6 +17,7 @@ import { buildBookableServiceWhere } from './utils/service-eligibility';
 import { AvailabilitySlotsService } from './availability-slots.service';
 import { normalizeReservationServiceIds } from './utils/reservation-service-limits';
 import type { AvailableDateDto } from './availability.types';
+import { apiError } from '../common/errors/api-error-codes';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_AVAILABILITY_RANGE_DAYS = 90;
@@ -44,15 +45,15 @@ export class AvailabilityDatesService {
 
     const normalized = normalizeReservationServiceIds(serviceIdsInput);
     const salon = await this.prisma.salonSettings.findFirst();
-    if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
+    if (!salon) throw new NotFoundException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'));
     if (normalized.length === 0)
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     const services = await this.prisma.service.findMany({
       where: buildBookableServiceWhere(normalized),
       select: { id: true },
     });
     if (services.length !== normalized.length)
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
 
     const stylistIds = await getStylistIdsForServices(this.prisma, normalized);
     const { gte, lt } = getDateOnlyRangeBounds(fromDate, toDate);

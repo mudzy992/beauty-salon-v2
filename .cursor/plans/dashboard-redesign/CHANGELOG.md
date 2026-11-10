@@ -5911,3 +5911,122 @@ Registracija: `frontend/package.json` (**187** `test:*` skripti) + `ci.yml`.
   teksta, ali zaključano testom `test:api-error-keys-i18n` (drift pada)
 - **Opcija (c)** — kodovi grešaka u backendu — i dalje je jedina trajna popravka i i dalje
   traži odluku vlasnika.
+
+---
+
+## 2026-11-08 — I18N-01 opcija (c): stabilni kodovi grešaka u backendu, frontend prevodi po kodu
+
+Vlasnik je izričito odobrio opciju **(c)**. Opcija **(b)** (backend i18n sloj) **nije**
+odobrena i nije rađena. Ovim je zatvorena zadnja stavka iz `HANDOFF.md` §4 pod 8.
+
+### Zašto je mapiranje po tekstu bilo krhko
+
+Pet frontend modula prevodilo je serversku grešku tako što bi **tačan bosanski tekst**
+potražilo u `Map`. Promjena jednog znaka u backendu — čak i razmak — vratila bi generički
+fallback, i to **tiho**. Test `test:api-error-keys-i18n` je to zaključao, ali zaključan
+ugovor o tačnom tekstu i dalje znači da se formulacija poruke ne smije dirati.
+
+### Backend: registar kodova
+
+`backend/src/common/errors/api-error-codes.ts` (novi fajl) — **jedino** mjesto gdje sada
+živi tekst tih poruka:
+
+```ts
+export const API_ERROR_CODES = {
+  USERS_NOT_FOUND: 'Korisnik nije pronađen.',
+  // … 101 ukupno
+} as const
+
+export const apiError = (code: ApiErrorCode): { code: ApiErrorCode; message: string } => ({
+  code,
+  message: API_ERROR_CODES[code],
+})
+```
+
+Kod i poruka su **1:1 namjerno**: šest varijanti poruke o nedostatku dozvole dijeli isti
+i18n ključ, ali svaka ima svoj kod, da bosanski korisnik zadrži konkretan razlog u `message`.
+
+**`HttpExceptionFilter` je odbacivao `code`.** Čitao je samo `message`/`error` iz
+`exception.getResponse()` i gradio novo tijelo — sve ostalo je nestajalo. Proširen je da
+izvuče `code` i proslijedi ga uz `statusCode`, i da **ne izmišlja** polje `code` kad ga
+izuzetak ne nosi.
+
+**260** poziva u **44** backend fajla prebačeno je na `apiError('KOD')`. Kodovi su izvedeni
+iz postojećih i18n ključeva (segmenti `errors`/`error`/`validation`/`public` skinuti,
+camelCase→SNAKE_CASE, sufiksi `_2`/`_3` za poruke koje dijele ključ).
+
+Dva unosa nose nebosanski payload — `RESERVE_SERVICE_REQUIRED` i
+`RESERVE_SERVICE_GENDER_MISMATCH` — jer su originalni pozivi bili **literalne konstante**, ne
+rečenice. Provjereno nad `HEAD`: `daily-log.pricing.ts:32`, `daily-log.service.ts:180`.
+
+### Frontend: prijevod po kodu
+
+- `features/api-errors/api-error-code-map.mjs` — svih **101** kod → puni i18n ključ, plus
+  `resolveApiErrorCodeKey(code)`.
+- `api/error.ts` — novi `getErrorCode(err)` čita `err.response.data.code`.
+- Svih **5** resolvera i omotač `resolveAdminApiErrorKey` primaju opciono `code`; **kod ima
+  prednost nad tekstom**. Client/public prihvataju samo kod svog imenskog prostora i skidaju
+  prefiks.
+- **24 od 27** pozivnih mjesta spojeno je na `getErrorCode(err)`.
+
+Mapiranje po tačnom tekstu **ostaje** kao fallback — za stare klijente i za poruke koje još
+nemaju kod.
+
+### Stvarna rupa koju je uhvatio novi test
+
+`resolveAdminApiErrorKey` je bio spojen kao `(message, fallbackKey)` — **bez trećeg
+parametra** — dok je 6 pozivnih mjesta već slalo `getErrorCode(err)`. Argument je padao na
+pod i nijedan od tih 6 nije dobijao prijevod po kodu. Test
+`test:api-error-code-resolution` #4 to hvata; mutacijom je potvrđeno (vraćen stari oblik →
+test pada, ispravljen → prolazi).
+
+### Šta opcija (c) NE pokriva — izmjereno
+
+U `backend/src` i dalje ima **439** hardkodiranih poruka bez koda: **277** unutar migriranih
+44 fajla i **162** van njih. Migrirano je onih **101** koje je frontend već prevodio, ne sve.
+Ovo je rečeno otvoreno umjesto da se prećuti iza broja 260. Brava `<= 439` u
+`test:api-error-codes` sprječava da se nove poruke tiho dodaju kao literali; smanjenje je
+dozvoljeno.
+
+**3 pozivna mjesta nisu spojena** jer su na vlasnikovoj trajnoj listi „ne dirati":
+`features/blog/blog-post-form-dialog.tsx`, `pages/public/MyReservations.tsx`,
+`pages/public/PublicReserve.tsx`. Javni tokovi rezervacija zato i dalje idu po tekstu.
+Odluka je vraćena vlasniku, nije donesena tiho.
+
+### Nove kapije
+
+| Test | Gdje | Testova | Šta čuva |
+|---|---|---|---|
+| `test:api-error-code-parity` | frontend | 5 | identičan skup kodova u oba registra (≥100 kao pozitivna kontrola), svaki ključ u **oba** jezika, nijedan tekst ne dijele dva koda, nepoznat kod → `undefined`, nijedan `apiError('X')` van registra |
+| `test:api-error-code-resolution` | frontend | 6 | kod pobjeđuje tekst u svih 5 resolvera **i** u omotaču, put bez koda nepromijenjen, tuđi imenski prostor se ignoriše |
+| `test:api-error-codes` | backend | 7 | bihevioralno nad `apiError()` i nad **pravim** `HttpExceptionFilter`, jedinstvenost, brava `<= 439` |
+
+Sva tri su registrovana u `package.json` i u `.github/workflows/ci.yml`.
+
+### Mutacije: 10/10 + 1
+
+F1 obriši kod iz mape · F3 obriši kod iz registra · F4 dva koda dijele poruku · F5
+`apiError()` s nepoznatim kodom · B1 duplirana poruka · B2 `apiError()` vrati fiksni tekst ·
+B3 filter odbaci `code` · B4 filter izmisli `code` · B5 nepoznat kod · B6 prazna poruka —
+**svih 10 uhvaćeno**, `filecmp` čist za sve povrate. Plus jedna ciljana: stari omotač →
+`test:api-error-code-resolution` #4 pada.
+
+### Verifikacija
+
+- Frontend: **189/189** `test:*` skripti, `tsc --noEmit` **0**, lint **0 errors / 7 warnings**
+  (postojeće), build **276.2 KiB**/300, `check_i18n --strict` **2710/2710**, hygiene **1719**
+  putanja, doc links **670/202**, CI indeks **370/373**, `git diff --check` čist, CJK sken **0**.
+- Backend: `tsc --noEmit` **1508 = 1508** baseline (normalizovano fajl+kod+poruka **537 = 537**;
+  jedina razlika je poznati prepostojeći pokvareni `Prisma` tip na
+  `availability-slots.service.ts`, determinističan između runova). Novi test fajl nije uveo
+  nijednu grešku.
+- Backend `jest src/common`: **61/61 testova**, 2 suite-a ne mogu da se pokrenu zbog
+  `Cannot find module '.prisma/client/default'` — `prisma generate` ne radi u sandboxu,
+  pad je **prepostojići i infrastrukturni**; nijedan od ta dva fajla nije dirnut.
+
+### Nije verificirano
+
+Nema rendera u pravom pregledniku i nema poziva od kraja do kraja ka živom backendu: da polje `code`
+zaista stiže u stvarni HTTP odgovor dokazano je **na nivou filtera** (unit test nad pravim
+`HttpExceptionFilter`), ne preko žice. Backend E2E u CI radi na jednokratnom PostgreSQL-u i
+nije pokretan ovdje.

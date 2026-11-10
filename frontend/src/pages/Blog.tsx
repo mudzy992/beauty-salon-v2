@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Plus } from 'lucide-react'
 
 import api from '../api/client'
-import { getErrorMessage } from '../api/error'
+import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { Button } from '../components/ui/button'
@@ -33,7 +33,7 @@ export default function Blog() {
 
   const reportApiError = (err: unknown, fallbackKey: string) => {
     const message = getErrorMessage(err, '')
-    error(t(resolveAdminApiErrorKey(message, fallbackKey)))
+    error(t(resolveAdminApiErrorKey(message, fallbackKey, getErrorCode(err))))
   }
 
   const loadData = useCallback(() => {

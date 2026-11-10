@@ -16,6 +16,7 @@ import { computeSlotCapacity } from './utils/slot-hold.utils';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
 import type { AvailableSlotDto } from './availability.types';
 import { normalizeReservationServiceIds } from './utils/reservation-service-limits';
+import { apiError } from '../common/errors/api-error-codes';
 
 type AvailabilityReader = Pick<
   Prisma.TransactionClient,
@@ -42,16 +43,16 @@ export class AvailabilitySlotsService {
   ): Promise<AvailableSlotDto[]> {
     const normalized = normalizeReservationServiceIds(serviceIdsInput);
     const salon = await db.salonSettings.findFirst();
-    if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
+    if (!salon) throw new NotFoundException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'));
 
     if (normalized.length === 0)
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     const services = await db.service.findMany({
       where: buildBookableServiceWhere(normalized),
       select: { id: true, durationMinutes: true },
     });
     if (services.length !== normalized.length)
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     const totalDurationMinutes = services.reduce(
       (acc, s) => acc + (s.durationMinutes ?? 0),
       0,

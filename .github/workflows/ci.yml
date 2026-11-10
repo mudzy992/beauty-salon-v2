@@ -111,6 +111,13 @@ jobs:
       - name: Run campaign delivery against fake SMTP
         working-directory: backend
         run: npm run test:campaign-smtp
+      # Guard (I18N-01 opcija c): backend registar kodova gresaka je jedino mjesto gdje
+      # zivi tekst poruke. Test je bihevioralan nad apiError() i nad HttpExceptionFilter
+      # (code mora stici u tijelo odgovora), plus brava da svaki apiError('KOD') koristi
+      # kod iz registra i da broj hardkodiranih poruka bez koda ne raste (439).
+      - name: Test API error code registry and filter contract
+        working-directory: backend
+        run: npm run test:api-error-codes
       - name: Run DB-backed security HTTP tests
         id: backend-e2e
         continue-on-error: true
@@ -657,6 +664,20 @@ jobs:
       - name: Test API-error toast description is localized
         working-directory: frontend
         run: npm run test:api-error-description
+      # Guard (I18N-01 opcija c): frontend API_ERROR_CODE_TO_KEY mora imati IDENTICAN
+      # skup kodova kao backend API_ERROR_CODES, a svaki ključ mora postojati u bs.json i
+      # en.json. Pada i ako backend doda kod bez frontend prijevoda i obrnuto — prijevod
+      # po kodu bi tada tiho pao na generički fallback.
+      - name: Test API error codes match between backend registry and frontend map
+        working-directory: frontend
+        run: npm run test:api-error-code-parity
+      # Guard (I18N-01 opcija c): svih 5 resolvera mora dati prednost kodu nad tekstom,
+      # a client/public samo kodu svog imenskog prostora. Uhvatio je stvarnu rupu: omotač
+      # resolveAdminApiErrorKey je odbacivao treci argument, pa 6 pozivnih mjesta nije
+      # dobijalo prijevod po kodu iako je bio spojen.
+      - name: Test API error codes take precedence in all five resolvers
+        working-directory: frontend
+        run: npm run test:api-error-code-resolution
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard

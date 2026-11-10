@@ -31,6 +31,7 @@ import {
   reservationDayKey,
 } from './utils/booking-advisory-lock';
 import { closePendingDailyLogForReorder } from './utils/close-pending-daily-log';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationUpdateService {
@@ -60,7 +61,7 @@ export class ReservationUpdateService {
       },
     });
     if (!snapshot) {
-      throw new NotFoundException('Rezervacija nije pronađena.');
+      throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     }
 
     const requestedDate = dto.reservationDate
@@ -88,7 +89,7 @@ export class ReservationUpdateService {
         },
       });
       if (!current) {
-        throw new NotFoundException('Rezervacija nije pronađena.');
+        throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       }
       if (
         current.reservationDate.getTime() !==
@@ -98,8 +99,7 @@ export class ReservationUpdateService {
         current.status !== snapshot.status ||
         current.confirmedStylistId !== snapshot.confirmedStylistId
       ) {
-        throw new ConflictException(
-          'Termin je istovremeno promijenjen. Osvježite rezervaciju i pokušajte ponovo.',
+        throw new ConflictException(apiError('RESERVATIONS_SLOT_CONCURRENT_CHANGE'),
         );
       }
 
@@ -111,11 +111,10 @@ export class ReservationUpdateService {
       const nextStartTime = (dto.startTime ?? current.startTime).trim();
       const nextEndTime = (dto.endTime ?? current.endTime).trim();
       if (!nextStartTime || !nextEndTime) {
-        throw new BadRequestException('Neispravno vrijeme termina.');
+        throw new BadRequestException(apiError('RESERVATIONS_INVALID_TIME'));
       }
       if (timeToMinutes(nextEndTime) <= timeToMinutes(nextStartTime)) {
-        throw new BadRequestException(
-          'Vrijeme završetka mora biti nakon početka.',
+        throw new BadRequestException(apiError('RESERVATIONS_END_BEFORE_START'),
         );
       }
 
@@ -225,8 +224,7 @@ export class ReservationUpdateService {
         data,
       });
       if (result.count !== 1) {
-        throw new ConflictException(
-          'Termin je istovremeno promijenjen. Osvježite rezervaciju i pokušajte ponovo.',
+        throw new ConflictException(apiError('RESERVATIONS_SLOT_CONCURRENT_CHANGE'),
         );
       }
       if (leaveDailyLog) {

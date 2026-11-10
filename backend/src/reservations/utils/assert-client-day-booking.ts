@@ -9,6 +9,7 @@ import {
   toDateOnlyString,
 } from '../../common/utils/date-only'
 import { intervalsOverlap, timeToMinutes } from './time-slot.utils'
+import { apiError } from '../../common/errors/api-error-codes';
 
 type AssertClientDayBookingInput = {
   prisma: Pick<Prisma.TransactionClient, 'reservation'>
@@ -53,7 +54,7 @@ export const assertClientDayBookingAllowed = async (
   try {
     dayBounds = getReservationDayBounds(input.reservationDate)
   } catch {
-    throw new BadRequestException('Datum rezervacije nije validan.')
+    throw new BadRequestException(apiError('RESERVE_INVALID_DATE'))
   }
   const requested = new Set(input.serviceIds.filter(Boolean))
   const others = (await input.prisma.reservation.findMany({

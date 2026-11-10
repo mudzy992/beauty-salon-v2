@@ -15,6 +15,7 @@ import type { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import type { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { resolveServiceItems } from './daily-log.pricing';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class DailyLogAdminService {
@@ -52,7 +53,7 @@ export class DailyLogAdminService {
       return this.dailyLog.complete(id, user);
     }
     if (dto.status === 'PENDING' && entry.status === 'COMPLETED') {
-      if (!isAdmin) throw new ForbiddenException('Nemate dozvolu.');
+      if (!isAdmin) throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
       await this.revertToPending(id, user);
       return this.applyFieldUpdates(id, dto, user, {
         ...entry,
@@ -76,7 +77,7 @@ export class DailyLogAdminService {
 
   async revertToPending(id: string, user: CurrentUserPayload) {
     if (!this.dailyLog.isAdminOrOwner(user)) {
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     }
     const entry = await this.dailyLog.findOne(id, user, { includeDeleted: false });
     if (entry.status !== 'COMPLETED') {
@@ -258,7 +259,7 @@ export class DailyLogAdminService {
 
   async removeImage(entryId: string, imageId: string, user: CurrentUserPayload) {
     if (!this.dailyLog.isAdminOrOwner(user)) {
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     }
     await this.dailyLog.findOne(entryId, user);
     const image = await this.prisma.dailyLogImage.findFirst({

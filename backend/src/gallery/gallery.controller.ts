@@ -26,6 +26,7 @@ import {
 } from '../common/rate-limiting/http-rate-limit.constants';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { apiError } from '../common/errors/api-error-codes';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -96,7 +97,7 @@ export class GalleryController {
       limits: { fileSize: MAX_FILE_SIZE },
       fileFilter: (_req, file, cb) => {
         if (!file?.originalname) {
-          cb(new BadRequestException('Nijedna datoteka nije poslata.'), false);
+          cb(new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED')), false);
           return;
         }
         cb(null, true);
@@ -109,7 +110,7 @@ export class GalleryController {
     @Body() dto: UploadGalleryImageDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
+    if (!file) throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     const sortOrder = dto.sortOrder === undefined ? undefined : Number(dto.sortOrder);
     if (sortOrder !== undefined && !Number.isSafeInteger(sortOrder)) {
       throw new BadRequestException('Redoslijed fotografije nije validan.');

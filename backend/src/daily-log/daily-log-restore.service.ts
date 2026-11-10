@@ -24,6 +24,7 @@ import {
 } from '../common/utils/date-only';
 import { assertClientDayBookingAllowed } from '../reservations/utils/assert-client-day-booking';
 import { acquireReservationDayLock } from '../reservations/utils/booking-advisory-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 interface EntryReservationSnapshot {
   id: string;
@@ -65,7 +66,7 @@ export class DailyLogRestoreService {
     user: CurrentUserPayload,
   ) {
     if (!this.dailyLog.isAdminOrOwner(user)) {
-      throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException(apiError('USERS_PERMISSION_DENIED'));
     }
     const entry = (await this.prisma.dailyLogEntry.findUnique({
       where: { id },

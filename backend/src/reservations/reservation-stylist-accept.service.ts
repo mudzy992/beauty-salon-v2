@@ -21,6 +21,7 @@ import {
   acquireReservationDayLock,
   reservationDayKey,
 } from './utils/booking-advisory-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationStylistAcceptService {
@@ -51,7 +52,7 @@ export class ReservationStylistAcceptService {
       where: { id: reservationId },
       select: { reservationDate: true },
     });
-    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!snapshot) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
 
     await this.prisma.$transaction(async (tx) => {
       await acquireReservationDayLock(tx, snapshot.reservationDate);
@@ -62,7 +63,7 @@ export class ReservationStylistAcceptService {
           items: { select: { serviceId: true } },
         },
       });
-      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (!res) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       if (
         res.reservationDate.getTime() !== snapshot.reservationDate.getTime()
       ) {

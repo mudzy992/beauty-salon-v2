@@ -41,6 +41,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { UploadsService } from '../uploads/uploads.service';
 import { UpdateAvatarVisibilityDto } from './dto/update-avatar-visibility.dto';
+import { apiError } from '../common/errors/api-error-codes';
 const MAX_AVATAR_SIZE = 10 * 1024 * 1024;
 
 @Controller('api/users')
@@ -155,7 +156,7 @@ export class UsersController {
       limits: { fileSize: MAX_AVATAR_SIZE },
       fileFilter: (_req, file, cb) => {
         if (!file?.originalname) {
-          cb(new BadRequestException('Nijedna datoteka nije poslata.'), false);
+          cb(new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED')), false);
           return;
         }
         cb(null, true);
@@ -166,7 +167,7 @@ export class UsersController {
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
+    if (!file) throw new BadRequestException(apiError('APP_RELEASES_NO_FILE_UPLOADED'));
     const uploaded = await this.uploadsService.saveAvatar(file, user.sub);
     const avatarPath = uploaded.pathThumb ?? uploaded.pathSmall ?? uploaded.pathMedium;
     if (!avatarPath) {

@@ -11,6 +11,7 @@ import type { PublicReservationViewDto } from './dto/public-reservation-view.dto
 import { formatReservationServicesLabel } from './utils/reservation-services-label';
 import { mapReservationPaymentSummary } from './reservation-payment-summary';
 import { resolveAttendanceClientDeadlineAt } from './utils/attendance-client-deadline';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationQueriesService {
@@ -25,7 +26,7 @@ export class ReservationQueriesService {
   ): Promise<PublicReservationViewDto> {
     const token = rawToken?.trim().toLowerCase();
     if (!token || token.length < 32 || !/^[a-f0-9]+$/.test(token)) {
-      throw new NotFoundException('Rezervacija nije pronađena.');
+      throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     }
     const r = await this.prisma.reservation.findUnique({
       where: { clientViewToken: token },
@@ -42,7 +43,7 @@ export class ReservationQueriesService {
         },
       },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     const u = r.confirmedStylist?.user;
     const stylistName = u
       ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || null
@@ -116,7 +117,7 @@ export class ReservationQueriesService {
         },
       },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!r) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
     const stylistProfileId = await this.shared.getStylistProfileIdByUserId(
       user.sub,
     );
@@ -128,7 +129,7 @@ export class ReservationQueriesService {
       user.roles.includes('SYSTEM_ADMIN') ||
       user.roles.includes('OWNER');
     if (!canAccess)
-      throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+      throw new ForbiddenException(apiError('MY_RESERVATIONS_NOT_AUTHORIZED_3'));
     const paymentEntry = await this.prisma.dailyLogEntry.findFirst({
       where: {
         reservationId: id,

@@ -18,6 +18,7 @@ import {
   acquireReservationDayLock,
   reservationDayKey,
 } from './utils/booking-advisory-lock';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationStylistLockService {
@@ -34,7 +35,7 @@ export class ReservationStylistLockService {
     userId: string,
   ) {
     const salon = await this.prisma.salonSettings.findFirst();
-    if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
+    if (!salon) throw new NotFoundException(apiError('RESERVATIONS_SALON_NOT_CONFIGURED'));
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       select: { userId: true },
@@ -48,7 +49,7 @@ export class ReservationStylistLockService {
       where: { id: reservationId },
       select: { reservationDate: true },
     });
-    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!snapshot) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
 
     const didLock = await this.prisma.$transaction(async (tx) => {
       await acquireReservationDayLock(tx, snapshot.reservationDate);
@@ -59,7 +60,7 @@ export class ReservationStylistLockService {
           items: { select: { serviceId: true } },
         },
       });
-      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (!res) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       if (
         res.reservationDate.getTime() !== snapshot.reservationDate.getTime()
       ) {
@@ -204,7 +205,7 @@ export class ReservationStylistLockService {
       where: { id: reservationId },
       select: { reservationDate: true },
     });
-    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (!snapshot) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
 
     const clientId = await this.prisma.$transaction(async (tx) => {
       await acquireReservationDayLock(tx, snapshot.reservationDate);
@@ -212,7 +213,7 @@ export class ReservationStylistLockService {
         where: { id: reservationId },
         include: { stylistResponses: true },
       });
-      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (!res) throw new NotFoundException(apiError('MY_RESERVATIONS_NOT_FOUND'));
       if (
         res.reservationDate.getTime() !== snapshot.reservationDate.getTime()
       ) {

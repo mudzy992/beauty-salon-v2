@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 
 import { MediaImage } from '../components/media-image'
 import api from '../api/client'
+import { getErrorCode } from '../api/error'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -90,7 +91,7 @@ export default function Register() {
           : undefined
       const responseMessage =
         typeof response?.data?.message === 'string' ? response.data.message : null
-      toast.error(t(getRegistrationErrorKey(responseMessage)))
+      toast.error(t(getRegistrationErrorKey(responseMessage, getErrorCode(err))))
     } finally {
       if (generation === registrationRequestGeneration.current) {
         registrationRequestInFlight.current = false

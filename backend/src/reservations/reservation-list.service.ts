@@ -18,6 +18,7 @@ import {
   MAX_API_PAGE_LIMIT,
   MAX_API_PAGE_OFFSET,
 } from '../common/pagination.constants';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class ReservationListService {
@@ -64,20 +65,18 @@ export class ReservationListService {
       !user.roles.includes('SYSTEM_ADMIN') &&
       !user.roles.includes('OWNER')
     ) {
-      throw new ForbiddenException(
-        'Samo admin ili vlasnik mogu pristupiti sažetku rezervacija.',
+      throw new ForbiddenException(apiError('RESERVATIONS_SUMMARY_ACCESS_DENIED'),
       );
     }
     if (!query.fromDate || !query.toDate) {
-      throw new BadRequestException('fromDate i toDate su obavezni.');
+      throw new BadRequestException(apiError('RESERVATIONS_DATE_RANGE_REQUIRED'));
     }
 
     let reservationDate: { gte: Date; lt: Date };
     try {
       reservationDate = getDateOnlyRangeBounds(query.fromDate, query.toDate);
     } catch {
-      throw new BadRequestException(
-        'fromDate i toDate moraju biti važeći datumi u formatu YYYY-MM-DD.',
+      throw new BadRequestException(apiError('RESERVATIONS_INVALID_DATE_RANGE'),
       );
     }
 
@@ -140,7 +139,7 @@ export class ReservationListService {
     const canListAllReservations =
       user.roles.includes('SYSTEM_ADMIN') || user.roles.includes('OWNER');
     if (!query.asClient && !query.asStylist && !canListAllReservations) {
-      throw new ForbiddenException('Nemate pristup listi svih rezervacija.');
+      throw new ForbiddenException(apiError('RESERVATIONS_LIST_ACCESS_DENIED'));
     }
 
     const where: {
@@ -169,8 +168,7 @@ export class ReservationListService {
           where.reservationDate = { lt };
         }
       } catch {
-        throw new BadRequestException(
-          'fromDate i toDate moraju biti važeći datumi u formatu YYYY-MM-DD.',
+        throw new BadRequestException(apiError('RESERVATIONS_INVALID_DATE_RANGE'),
         );
       }
     }
@@ -184,14 +182,13 @@ export class ReservationListService {
       const canListAsStylist =
         user.roles.includes('STYLIST') || canListAllReservations;
       if (!canListAsStylist) {
-        throw new ForbiddenException('Nemate pristup rezervacijama stiliste.');
+        throw new ForbiddenException(apiError('RESERVATIONS_STYLIST_LIST_ACCESS_DENIED'));
       }
       const stylistProfileId = await this.shared.getStylistProfileIdByUserId(
         user.sub,
       );
       if (!stylistProfileId) {
-        throw new ForbiddenException(
-          'Stilist profil nije dostupan za ovaj račun.',
+        throw new ForbiddenException(apiError('RESERVATIONS_STYLIST_PROFILE_UNAVAILABLE'),
         );
       }
       where.OR = [
@@ -272,8 +269,7 @@ export class ReservationListService {
     const hasPage = query.page != null;
     const hasPageSize = query.pageSize != null;
     if (hasPage !== hasPageSize) {
-      throw new BadRequestException(
-        'page i pageSize moraju biti navedeni zajedno.',
+      throw new BadRequestException(apiError('RESERVATIONS_PAGINATION_PAIR_REQUIRED'),
       );
     }
     const orderBy = [
@@ -315,7 +311,7 @@ export class ReservationListService {
       !Number.isSafeInteger(offset) ||
       offset > MAX_API_PAGE_OFFSET
     ) {
-      throw new BadRequestException('Parametri paginacije nisu validni.');
+      throw new BadRequestException(apiError('RESERVATIONS_INVALID_PAGINATION'));
     }
     const [items, total] = await Promise.all([
       this.prisma.reservation.findMany({

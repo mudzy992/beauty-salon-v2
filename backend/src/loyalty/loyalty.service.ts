@@ -7,6 +7,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
+import { apiError } from '../common/errors/api-error-codes';
 
 type LoyaltyTier = {
   id: string;
@@ -140,15 +141,14 @@ export class LoyaltyService {
       existing.source !== mutation.source ||
       !pointsMatch
     ) {
-      throw new ConflictException(
-        'Idempotency key je već korišten za drugačiju loyalty transakciju.',
+      throw new ConflictException(apiError('LOYALTY_ADMIN_IDEMPOTENCY_CONFLICT'),
       );
     }
 
     const account = await tx.loyaltyAccount.findUnique({
       where: { id: mutation.accountId },
     });
-    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    if (!account) throw new NotFoundException(apiError('LOYALTY_ADMIN_ACCOUNT_NOT_FOUND'));
     return account;
   }
 
@@ -157,16 +157,16 @@ export class LoyaltyService {
     mutation: LoyaltyMutation,
   ) {
     if (!mutation.idempotencyKey.trim()) {
-      throw new BadRequestException('Loyalty idempotency key je obavezan.');
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_IDEMPOTENCY_REQUIRED'));
     }
     if (!Number.isSafeInteger(mutation.balanceDelta)) {
-      throw new BadRequestException('Promjena bodova mora biti cijeli broj.');
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_DELTA_INTEGER'));
     }
     if (
       mutation.ledgerPoints !== 'applied-delta' &&
       !Number.isSafeInteger(mutation.ledgerPoints)
     ) {
-      throw new BadRequestException('Ledger bodovi moraju biti cijeli broj.');
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_LEDGER_POINTS_INTEGER'));
     }
 
     await this.lockLoyaltyAccount(tx, mutation.accountId);
@@ -176,13 +176,12 @@ export class LoyaltyService {
     const account = await tx.loyaltyAccount.findUnique({
       where: { id: mutation.accountId },
     });
-    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    if (!account) throw new NotFoundException(apiError('LOYALTY_ADMIN_ACCOUNT_NOT_FOUND'));
     if (mutation.type === 'REDEEM' && !account.isActive) {
-      throw new BadRequestException('Loyalty račun nije aktivan.');
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_ACCOUNT_INACTIVE'));
     }
     if (mutation.balanceDelta === 0 && !mutation.allowZeroLedgerEntry) {
-      throw new BadRequestException(
-        'Promjena bodova mora biti različita od nule.',
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_DELTA_NON_ZERO'),
       );
     }
 
@@ -191,10 +190,10 @@ export class LoyaltyService {
       ? Math.max(0, proposed)
       : proposed;
     if (nextPoints < 0) {
-      throw new BadRequestException('Nedovoljno bodova.');
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_INSUFFICIENT_POINTS'));
     }
     if (!Number.isSafeInteger(nextPoints) || nextPoints > MAX_LOYALTY_POINTS) {
-      throw new BadRequestException('Saldo prelazi dozvoljeni broj bodova.');
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_BALANCE_CAP_EXCEEDED'));
     }
 
     const appliedDelta = nextPoints - account.points;
@@ -203,8 +202,7 @@ export class LoyaltyService {
         ? appliedDelta
         : mutation.ledgerPoints;
     if (ledgerPoints === 0 && !mutation.allowZeroLedgerEntry) {
-      throw new BadRequestException(
-        'Promjena bodova mora biti različita od nule.',
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_DELTA_NON_ZERO'),
       );
     }
 
@@ -214,8 +212,7 @@ export class LoyaltyService {
         data: { points: { set: nextPoints } },
       });
       if (updated.count !== 1) {
-        throw new ConflictException(
-          'Loyalty saldo je promijenjen tokom obrade; pokušajte ponovo.',
+        throw new ConflictException(apiError('LOYALTY_ADMIN_BALANCE_CONCURRENT_CHANGE'),
         );
       }
     }
@@ -235,7 +232,7 @@ export class LoyaltyService {
       where: { id: account.id },
     });
     if (!updatedAccount) {
-      throw new NotFoundException('Loyalty račun nije pronađen.');
+      throw new NotFoundException(apiError('LOYALTY_ADMIN_ACCOUNT_NOT_FOUND'));
     }
     return updatedAccount;
   }
@@ -330,7 +327,7 @@ export class LoyaltyService {
         transactions: { orderBy: { createdAt: 'desc' }, take: 50 },
       },
     });
-    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    if (!account) throw new NotFoundException(apiError('LOYALTY_ADMIN_ACCOUNT_NOT_FOUND'));
     return account;
   }
 
@@ -338,7 +335,7 @@ export class LoyaltyService {
     const account = await this.prisma.loyaltyAccount.findUnique({
       where: { id },
     });
-    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    if (!account) throw new NotFoundException(apiError('LOYALTY_ADMIN_ACCOUNT_NOT_FOUND'));
     return this.prisma.loyaltyAccount.update({
       where: { id },
       data: { isActive },
@@ -767,8 +764,7 @@ export class LoyaltyService {
       points <= 0 ||
       points > MAX_LOYALTY_POINTS
     ) {
-      throw new BadRequestException(
-        'Broj bodova mora biti pozitivan cijeli broj.',
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_POINTS_POSITIVE_INTEGER'),
       );
     }
     const source = reason?.trim() || 'Manual redeem';
@@ -791,15 +787,14 @@ export class LoyaltyService {
         false,
       );
       if (!enabled) {
-        throw new BadRequestException('Redeem je trenutno onemogućen.');
+        throw new BadRequestException(apiError('LOYALTY_ADMIN_REDEEM_DISABLED'));
       }
       const minPoints = this.parseNumber(
         await this.settings.getValue('loyalty_min_points_to_redeem'),
         0,
       );
       if (points < minPoints) {
-        throw new BadRequestException(
-          'Broj bodova je ispod minimalnog za korištenje.',
+        throw new BadRequestException(apiError('LOYALTY_ADMIN_BELOW_MINIMUM'),
         );
       }
 
@@ -842,7 +837,7 @@ export class LoyaltyService {
     }
     if (desiredPercent <= 0) return null;
     if (serviceIds.length === 0) {
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     }
 
     const source = `Reservation ${reservationId} (${desiredPercent}%)`;
@@ -933,7 +928,7 @@ export class LoyaltyService {
       },
     });
     if (services.length !== serviceIds.length) {
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     }
     if (services.some((s) => !s.loyaltyEnabled)) {
       throw new BadRequestException(
@@ -1098,7 +1093,7 @@ export class LoyaltyService {
       ...new Set(idsRaw.map((x) => x.trim()).filter(Boolean)),
     ];
     if (serviceIds.length === 0) {
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     }
 
     await tx.$queryRaw(
@@ -1202,7 +1197,7 @@ export class LoyaltyService {
       },
     });
     if (services.length !== serviceIds.length) {
-      throw new NotFoundException('Servis nije pronađen.');
+      throw new NotFoundException(apiError('RESERVE_SERVICE_UNAVAILABLE'));
     }
     if (services.some((s) => !s.loyaltyEnabled)) {
       throw new BadRequestException(
@@ -1348,8 +1343,7 @@ export class LoyaltyService {
       pointsDelta === 0 ||
       Math.abs(pointsDelta) > MAX_LOYALTY_POINTS
     ) {
-      throw new BadRequestException(
-        'Promjena bodova mora biti različit od nule i cijeli broj.',
+      throw new BadRequestException(apiError('LOYALTY_ADMIN_DELTA_NON_ZERO_INTEGER'),
       );
     }
     const source = note?.trim() || 'Admin adjust';
