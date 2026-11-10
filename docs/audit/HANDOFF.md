@@ -1403,6 +1403,56 @@ Dvije namjerne odlike koje sprječavaju lažni prolaz:
    **dvaput** — jednom bez `storageState` (gdje bi svi pali). Izmjereno: bez `testIgnore`
    `--project=chromium` nabroji 26 testova (11 javnih + 15 admin).
 
+### 3.1b Izmjereno 2026-11-10: pravi preglednik je **nemoguć**, ali djelimični rendered dokaz **jeste moguć**
+
+Dosad je „nema preglednika" bila pretpostavka. Sada je izmjereno.
+
+**Pravi preglednik — nemoguć, trajno.** Nijedan browser binary ne postoji (provjereno
+`command -v` za 8 imena i `/usr/bin`, `/usr/lib`, `/opt/google`, `/snap/bin`). Odlučujući
+nalaz: **svih 15** dijeljenih biblioteka koje Chromium traži **nedostaje** — `libnss3`,
+`libnspr4`, `libatk-1.0`, `libatk-bridge-2.0`, `libcups`, `libdrm`, `libgbm`, `libasound`,
+`libpango`, `libcairo`, `libxkbcommon`, `libXcomposite`, `libXdamage`, `libXrandr`,
+`libgtk-3`. Zato `npx playwright install --with-deps chromium` ne može uspjeti ni s
+dozvoljenim mrežnim pristupom: treba i CDN za binary i `apt` za biblioteke.
+
+**Ali axe JE moguće pokrenuti nad pravim renderom.** Dva preduslova već postoje u repou:
+
+- `render-smoke.test.mjs` radi **pravi** render (esbuild bundle + `renderToStaticMarkup`),
+  ne regex nad izvorom;
+- `axe-core@4.14.0` je instaliran (odobren kroz Q4).
+
+Ubacivanjem tog markupa u `jsdom` i izvršavanjem `axe.run()` nad njim dobije se stvaran axe
+run. **Izmjereno probom (nije commitovana, repo ostao čist):**
+
+| Metrika | Vrijednost |
+|---|---|
+| Renderovanih scenarija | **35** |
+| Pravila koja su **prošla** | **31** |
+| **Violation-a** | **1** — i to je artefakt fixture-a |
+| **INCOMPLETE** (treba pravi render) | **3**: `color-contrast`, `label-content-name-mismatch` (2.5.3), `th-has-data-cells` |
+| INAPPLICABLE | 84 |
+
+Jedini violation je `label` (critical) u scenariju `FormSection`, i **nije proizvodni
+defekt**: `render-smoke.test.mjs:180` doslovno renderuje `<FormSection title="t"
+description="d"><input /></FormSection>` — golo `<input>` je napisan kao fixture, a
+`FormSection` je samo omotač. Dakle **0 stvarnih nalaza** na 35 renderovanih scenarija.
+
+**Šta ovo pokriva, a šta ne — bez uljepšavanja:**
+
+- ✅ strukturna pravila: `aria-*` validnost, `button-name`, `image-alt`, `label`, `link-name`,
+  `heading-order`, landmark/region, `duplicate-id`, `nested-interactive`, `role-has-required-*`;
+- ❌ sve što treba raspored: **1.4.3/1.4.6 kontrast** (ostaje na `check_ui_contrast.py
+  --strict`), **2.5.3 Label in Name**, **2.5.8 Target Size**, **1.4.10 Reflow**,
+  **1.4.12 Text Spacing**, **2.4.3 Focus Order**;
+- ❌ stanje s podacima i `/admin/**` rute — `render-smoke` pokriva šablone i dashboard, ne
+  cijele stranice s ruterom i API-jem.
+
+**Preduslov koji čeka odobrenje:** `jsdom` kao devDependency. **Nije** na Q4 listi
+(`@axe-core/playwright`, `@playwright/test`, `eslint-plugin-jsx-a11y`), pa **nije dodan bez
+odobrenja**. Instalacija radi: `jsdom@31.0.0` s `registry.npmjs.org`, 28 paketa, ~2 s.
+Mjerenje je izvedeno instalacijom u `/tmp/axe-probe`, tako da repo i `package-lock.json`
+nisu dirnuti.
+
 ### 3.2 Backend nije bio podignut ni u javnom runu
 
 Log je bio pun `ECONNREFUSED 127.0.0.1:10001`, pa su stranice renderovane u **praznom /
@@ -1555,6 +1605,11 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 5. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije, plus ručna stavka **M13**
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.
+7. **Djelimični rendered dokaz bez preglednika — čeka odobrenje za `jsdom`.** Izmjereno
+   (§3.1b): axe nad `renderToStaticMarkup` markupom u `jsdom` daje **31** prolaznih
+   strukturnih pravila na **35** scenarija, uz **0 stvarnih nalaza**. Ne pokriva kontrast,
+   2.5.3, veličinu mete, reflow ni stanje s podacima — ali pokriva sve ono što dosad nije
+   imalo **nikakav** rendered dokaz.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,

@@ -5345,3 +5345,78 @@ izmjereno direktno nad instaliranim `i18next@23.16.8` u Node-u, ali nije viđeno
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
 `groups-*.ts` (izvori postavki ostaju netaknuti — mijenjan je samo sloj koji ih prevodi).
+
+---
+
+## 2026-11-10 — Izmjereno: pravi preglednik je nemoguć, ali axe nad pravim renderom **jeste** moguć (čeka odobrenje za `jsdom`)
+
+Nijedan produkcijski fajl nije dirnut. Ovo je mjerenje koje mijenja dva duga „blokirano"
+zapisa u `HANDOFF.md`.
+
+### 1. Pravi preglednik — nemoguć, i to je sada dokaz a ne pretpostavka
+
+Dosad je „nema preglednika" bila naslijeđena tvrdnja. Izmjereno:
+
+- nijedan browser binary (`command -v` za 8 imena + `/usr/bin`, `/usr/lib`, `/opt/google`,
+  `/snap/bin`);
+- **svih 15** dijeljenih biblioteka koje Chromium traži **nedostaje**: `libnss3`, `libnspr4`,
+  `libatk-1.0`, `libatk-bridge-2.0`, `libcups`, `libdrm`, `libgbm`, `libasound`, `libpango`,
+  `libcairo`, `libxkbcommon`, `libXcomposite`, `libXdamage`, `libXrandr`, `libgtk-3`.
+
+Zato `npx playwright install --with-deps chromium` ne može uspjeti ni uz dozvoljeni mrežni
+pristup — treba i CDN za binary i `apt` za biblioteke. Ovo trajno objašnjava zašto je 12
+kriterija ostalo 🟡.
+
+### 2. Ali rendered axe djelimično **radi** bez preglednika
+
+Dva preduslova su već u repou: `render-smoke.test.mjs` radi **pravi** render (esbuild +
+`renderToStaticMarkup`), a `axe-core@4.14.0` je instaliran kroz Q4. Ubacivanjem markupa u
+`jsdom` i pokretanjem `axe.run()` dobije se stvaran axe run.
+
+Proba (privremeni fajl, obrisan; mjerenje izvedeno instalacijom u `/tmp/axe-probe` pa su repo
+i `package-lock.json` ostali netaknuti):
+
+| Metrika | Vrijednost |
+|---|---|
+| Renderovanih scenarija | **35** |
+| Pravila koja su prošla | **31** |
+| Violation-a | **1** — artefakt fixture-a, ne proizvodni defekt |
+| INCOMPLETE (treba raspored) | **3** — `color-contrast`, `label-content-name-mismatch`, `th-has-data-cells` |
+| INAPPLICABLE | 84 |
+
+Jedini violation (`label`, critical) dolazi iz `render-smoke.test.mjs:180`, koji doslovno
+renderuje `<FormSection title="t" description="d"><input /></FormSection>` — golo `<input>`
+je fixture, `FormSection` je omotač. **0 stvarnih nalaza na 35 scenarija.**
+
+Pozitivna kontrola da axe nije radio prazno: 31 pravilo je **prošlo**, 84 je označeno
+inaplicable — da je evaluacija prazna, oba broja bi bila 0.
+
+### 3. Šta ovo NE pokriva
+
+Kontrast (1.4.3/1.4.6 — ostaje na `check_ui_contrast.py --strict`), 2.5.3 Label in Name,
+2.5.8 Target Size, 1.4.10 Reflow, 1.4.12 Text Spacing, 2.4.3 Focus Order — sve treba raspored.
+Također ne pokriva `/admin/**` rute ni stanje s podacima: `render-smoke` renderuje šablone i
+dashboard, ne stranice s ruterom i API-jem.
+
+### 4. Zašto ništa nije commitovano
+
+Trajni test bi zahtijevao `jsdom` kao devDependency. Q4 (`00_overview.md` §7) odobrava
+tačno tri paketa — `@axe-core/playwright`, `@playwright/test`, `eslint-plugin-jsx-a11y` — i
+`jsdom` nije među njima, pa odluka nije donesena tiho. Instalacija inače radi:
+`jsdom@31.0.0` s `registry.npmjs.org`, 28 paketa, ~2 s.
+
+### Ostalo izmjereno usput (sve čisto)
+
+- `toLocale*` pozivi u `src/`: **2**, oba s eksplicitnim lokalom (`finance.utils.ts:36`
+  `'bs-BA'`, `Reservations.tsx:191` `i18n.language`) — nema formatiranja po uređaju;
+- **2.4.3**: 0 pozitivnih `tabIndex`; **1.3.4**: 0 `@media (orientation: …)`;
+- **2.5.7**: oba drag mjesta već imaju alternativu — `BeforeAfterSlider.tsx` ima
+  `role="slider"` + `tabIndex={0}` + ArrowLeft/Right/Home/End, a `email-visual-editor.tsx`
+  ima `moveUp`/`moveDown` dugmad s `aria-label`;
+- **2.5.1**: 0 `onTouchEnd`/`onDoubleClick`/`onContextMenu`;
+- preostali `onMouseDown` su ili `preventDefault()` na combobox dugmetu (sprječava gubitak
+  fokusa) ili document-level click-outside — nisu 2.5.2 prekršaj;
+- `flex-col-reverse` na 2 mjesta (`dialog.tsx:75`, `setting-editor-form.tsx:234`) je
+  mobilni raspored dugmadi koji se na `sm:` vraća u DOM redoslijed — nije 1.3.2 prekršaj.
+
+Zabilježeno u `docs/audit/HANDOFF.md` §3.1b (novo) i §4 stavka 7.
