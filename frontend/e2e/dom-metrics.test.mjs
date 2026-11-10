@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import test from 'node:test'
 
+import * as domMetrics from './dom-metrics.mjs'
 import {
   activeElementLabel,
   overflowingElements,
@@ -431,4 +433,26 @@ test('requiredNotMarked — riječ „obavezno" bez oznake je prekršaj', () => 
     ['input#p', 'input#e'],
     'oba jezika, nijedno programski označeno',
   )
+})
+
+test('svaka izvozna funkcija je samostalna — Playwright šalje u preglednik samo njen izvor', () => {
+  // Ovo je čuvar za grešku koju jsdom NE MOŽE uhvatiti: `page.evaluate(fn)` šalje
+  // `fn.toString()` bez opsega modula, pa poziv modula-vanjskog pomoćnika postaje
+  // `ReferenceError` u pregledniku — a ovdje, u Node-u, modul postoji i test prolazi.
+  // Izmjereno na runu `42904859111`: 3.3.1 i 3.3.2 pali su na SVIM rutama odjednom.
+  const src = readFileSync(new URL('./dom-metrics.mjs', import.meta.url), 'utf8')
+  const moduleScope = [...src.matchAll(/^(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/gm)].map(
+    (m) => m[1],
+  )
+  for (const [name, fn] of Object.entries(domMetrics)) {
+    if (typeof fn !== 'function') continue
+    const body = fn.toString()
+    for (const dep of moduleScope) {
+      assert.ok(
+        !new RegExp(`\\b${dep}\\b`).test(body),
+        `${name}() referencira „${dep}" iz opsega modula — u pregledniku bi to bio ReferenceError`,
+      )
+    }
+  }
+  assert.ok(Object.keys(domMetrics).length >= 10, 'čuvar mora imati šta provjeriti')
 })

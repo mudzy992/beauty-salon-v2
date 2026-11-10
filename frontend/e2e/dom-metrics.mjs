@@ -234,57 +234,43 @@ export function labelInNameViolations() {
 }
 
 /**
- * Dijelovi selektora za kontrole koje korisnik može popuniti.
- *
- * 🔴 MORA biti niz, ne jedan string s zarezima. Nadovezivanje sufiksa na cijelu listu važi
- * samo za posljednji dio: `input, select, textarea[aria-invalid="true"]` znači „svaki input
- * ILI svaki select ILI textarea s aria-invalid". Ista greška je već jednom prošla u
- * `labelInNameViolations` (run `42896831615`), pa je ovdje spriječena konstrukcijom — i
- * uhvaćena testom u kojem `<input>` BEZ atributa dijeli dokument s onim koji ga ima.
- */
-const FORM_CONTROL_PARTS = [
-  'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])',
-  'select',
-  'textarea',
-]
-
-/** Selektor za kontrole, uz sufiks dodan SVAKOM dijelu. */
-function formControls(suffix = '') {
-  return FORM_CONTROL_PARTS.map((part) => `${part}${suffix}`).join(', ')
-}
-
-/** Riješi `aria-describedby` u tekst; vraća '' ako meta ne postoji ili je prazna. */
-function describedByText(el) {
-  const ids = String(el.getAttribute('aria-describedby') ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-  return ids
-    .map((id) => (document.getElementById(id)?.textContent ?? '').replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join(' ')
-}
-
-/**
  * 3.3.1 Error identification — svaka kontrola označena kao neispravna mora imati tekst.
  *
- * Mjeri se VEZA, ne postojanje teksta negdje na stranici: `aria-describedby` mora
- * razriješiti u element koji stvarno ima sadržaj. Bez toga bi `<p>` bez `id`-a ili pogrešan
- * `id` prošao neopaženo, a korisnik čitača ekrana ne bi čuo zašto je polje neispravno.
+ * Mjeri se VEZA, ne postojanje teksta negdje na stranici: `aria-describedby` mora razriješiti
+ * u element koji stvarno ima sadržaj. Pogrešan `id` i prazan `<p>` su prekršaj, i nalaz ih
+ * imenuje — inače bi korisnik čitača ekrana šutio o tome zašto je polje neispravno.
+ *
+ * 🔴 Sve je namjerno UNUTAR funkcije. Playwright šalje u preglednik samo `fn.toString()`,
+ * bez opsega modula, pa bi poziv pomoćnika izvana bio `ReferenceError` na svakoj ruti.
+ * Izmjereno na runu `42904859111`: 3.3.1 i 3.3.2 pali su na SVIM rutama odjednom — potpis
+ * ove greške — a jsdom testovi to nisu mogli uhvatiti jer tamo modul stvarno postoji.
  *
  * @returns {{element: string, describedby: string}[]}
  */
 export function invalidWithoutDescription() {
-  const describe = (el) => {
-    const tag = el.tagName.toLowerCase()
-    const id = el.id ? `#${el.id}` : ''
-    const name = el.getAttribute('name') ? `[name=${el.getAttribute('name')}]` : ''
-    return `${tag}${id}${name}`
-  }
+  // 🔴 Niz, ne jedan string s zarezima: sufiks nadovezan na cijelu listu važi samo za
+  // posljednji dio (`input, select, textarea[aria-invalid="true"]`).
+  const selector = [
+    'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])',
+    'select',
+    'textarea',
+  ]
+    .map((part) => `${part}[aria-invalid="true"]`)
+    .join(', ')
+
   const out = []
-  for (const el of document.querySelectorAll(formControls('[aria-invalid="true"]'))) {
-    if (describedByText(el)) continue
+  for (const el of document.querySelectorAll(selector)) {
+    const text = String(el.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((id) => (document.getElementById(id)?.textContent ?? '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .join(' ')
+    if (text) continue
     out.push({
-      element: describe(el),
+      element: `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${
+        el.getAttribute('name') ? `[name=${el.getAttribute('name')}]` : ''
+      }`,
       describedby: String(el.getAttribute('aria-describedby') ?? '(nema)'),
     })
   }
@@ -294,35 +280,27 @@ export function invalidWithoutDescription() {
 /**
  * 3.3.2 Labels or instructions — vidljiva oznaka „obavezno" mora biti i programski vidljiva.
  *
- * Ako oko labele stoji `*` ili riječ „obavezno", a kontrola nema `required` ni
- * `aria-required`, čitač ekrana to NEĆE najaviti: korisnik sazna tek kad forma odbije
- * unos. Obrnut smjer (označeno u kodu, bez vidljive oznake) nije prekršaj — AT to čuje.
+ * Ako labeta nosi `*` ili riječ „obavezno"/„required", a kontrola nema `required` ni
+ * `aria-required`, čitač ekrana to NEĆE najaviti: korisnik sazna tek kad forma odbije unos.
+ * Obrnut smjer (označeno u kodu, bez vidljive oznake) nije prekršaj — AT to čuje.
  *
  * @returns {{element: string, label: string}[]}
  */
 export function requiredNotMarked() {
-  const describe = (el) => {
-    const tag = el.tagName.toLowerCase()
-    const id = el.id ? `#${el.id}` : ''
-    return `${tag}${id}`
-  }
-  const visibleLabel = (el) => {
-    if (el.id) {
-      const byFor = document.querySelector(`label[for="${el.id}"]`)
-      if (byFor) return (byFor.textContent ?? '').replace(/\s+/g, ' ').trim()
-    }
-    const wrapping = el.closest('label')
-    return wrapping ? (wrapping.textContent ?? '').replace(/\s+/g, ' ').trim() : ''
-  }
-  // Zvjezdica je najčešći marker; riječi su jezički ovisne pa se traže obje varijante.
+  const selector = [
+    'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])',
+    'select',
+    'textarea',
+  ].join(', ')
   const REQUIRED_HINT = /\*|\bobavezno\b|\brequired\b/i
 
   const out = []
-  for (const el of document.querySelectorAll(formControls())) {
-    const label = visibleLabel(el)
+  for (const el of document.querySelectorAll(selector)) {
+    const labelEl = (el.id && document.querySelector(`label[for="${el.id}"]`)) || el.closest('label')
+    const label = (labelEl?.textContent ?? '').replace(/\s+/g, ' ').trim()
     if (!label || !REQUIRED_HINT.test(label)) continue
     if (el.required || el.getAttribute('aria-required') === 'true') continue
-    out.push({ element: describe(el), label: label.slice(0, 60) })
+    out.push({ element: `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}`, label: label.slice(0, 60) })
   }
   return out
 }
