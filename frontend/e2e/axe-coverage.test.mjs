@@ -16,9 +16,11 @@ import {
   chunkWorkflowMessage,
   coverageFileName,
   describeIncompleteNodes,
+  describeViolationNodes,
   encodeWorkflowMessage,
   formatCoverageSummary,
   formatIncompleteDetails,
+  formatViolationDetails,
   recordAxeCoverage,
   verdictFor,
 } from './axe-coverage.mjs'
@@ -214,11 +216,17 @@ test('teardown kodira poruku, a naslov nema separatora svojstava', () => {
   const source = readFile(new URL('./coverage-teardown.ts', import.meta.url), 'utf8')
   // Poruka se dijeli na više anotacija, pa se kodira svaki DIO, ne cijeli sažetak: jedna
   // anotacija bi bila odsječena na ~2000 znakova i pola izvještaja bi se tiho izgubilo.
-  assert.match(source, /chunkWorkflowMessage\(summary\)/)
-  assert.match(source, /encodeWorkflowMessage\(part\)/)
-  const title = source.match(/::notice title=([^:]*)::/)
-  assert.ok(title, 'teardown mora imati ::notice title=...')
-  assert.equal(title[1].includes(','), false, 'zarez razdvaja svojstva u workflow komandi')
+  assert.match(source, /chunkWorkflowMessage\(text\)/, 'svaka poruka se dijeli prije ispisa')
+  assert.match(source, /encodeWorkflowMessage\(part\)/, 'kodira se dio, ne cijeli tekst')
+
+  // Naslovi svih anotacija, ne samo prve: `:` i `,` razdvajaju svojstva u workflow komandi,
+  // pa bi naslov sa zarezom tiho proizveo neispravnu komandu.
+  const titles = [...source.matchAll(/emit\(\s*'(?:notice|warning)',\s*'([^']*)'/g)].map((m) => m[1])
+  assert.ok(titles.length >= 3, `očekivane su barem 3 anotacije, nađeno ${titles.length}`)
+  for (const title of titles) {
+    assert.equal(title.includes(','), false, `naslov ne smije imati zarez: ${title}`)
+    assert.equal(title.includes(':'), false, `naslov ne smije imati dvotačku: ${title}`)
+  }
   assert.equal(/globalTeardown/.test(readFile(new URL('./../playwright.config.ts', import.meta.url), 'utf8')), true)
 })
 
@@ -422,3 +430,115 @@ test('svi axe spekovi pokreću iste tagove i presuđuju preko assertableViolatio
     );
   }
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Lokacija pada: `violations 1` bez rute nije upotrebljiv nalaz              */
+/* -------------------------------------------------------------------------- */
+
+/** axe izvještaj s čvorovima koji su PALI (ne nepotpuni). */
+function axeReportWithViolations(rule, nodes) {
+  return { passed: [], violations: [{ id: rule, nodes }], incomplete: [], inapplicable: [] }
+}
+
+const VIOLATION = (target, message) => ({
+  html: `<h3>   Naslov</h3>`,
+  target,
+  any: [{ id: 'x', message }],
+})
+
+test('describeViolationNodes imenuje čvor koji je pao', () => {
+  const out = describeViolationNodes(
+    axeReportWithViolations('heading-order', [VIOLATION(['main', 'h3'], 'Naslov mora biti h2')]),
+    'heading-order',
+  )
+  assert.equal(out.length, 1)
+  assert.equal(out[0].target, 'main h3')
+  assert.equal(out[0].html, '<h3> Naslov</h3>', 'višestruki razmaci se sažimaju')
+  assert.equal(out[0].message, 'Naslov mora biti h2')
+})
+
+test('describeViolationNodes — pravilo bez pada daje prazan spisak', () => {
+  assert.deepEqual(describeViolationNodes(axeReport({ passed: ['heading-order'] }), 'heading-order'), [])
+  assert.deepEqual(describeViolationNodes(undefined, 'heading-order'), [], 'nema izvještaja → prazno, ne pad')
+  assert.deepEqual(
+    describeViolationNodes(axeReportWithViolations('heading-order', []), 'heading-order'),
+    [],
+  )
+})
+
+test('zapis i zbir nose pale čvorove do anotacije, s rutom', () => {
+  const dir = tempDir()
+  try {
+    recordAxeCoverage(
+      'chromium',
+      '/admin/analitika',
+      axeReportWithViolations('heading-order', [VIOLATION(['main', 'h3'], 'Preskočen nivo')]),
+      dir,
+    )
+    const raw = JSON.parse(readFileSync(join(dir, readdirSync(dir)[0]), 'utf8'))
+    assert.equal(raw.violationNodes['heading-order'].length, 1)
+
+    const agg = aggregateCoverage(dir)
+    assert.equal(agg.totals['heading-order'].violationNodes.length, 1)
+    assert.equal(agg.totals['heading-order'].violationNodes[0].route, '/admin/analitika')
+
+    const details = formatViolationDetails(agg)
+    assert.match(details, /2\.4\.6 heading-order — 1 čvorova koji su pali:/)
+    assert.match(details, /\/admin\/analitika/, 'ruta mora stići do anotacije')
+    assert.match(details, /main h3/, 'selektor mora stići do anotacije')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('formatViolationDetails je prazan kad ništa nije palo', () => {
+  const dir = tempDir()
+  try {
+    recordAxeCoverage('chromium', '/', axeReport({ passed: ['button-name'] }), dir)
+    assert.equal(formatViolationDetails(aggregateCoverage(dir)), '')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('coverage-teardown iznosi i pale čvorove u zasebnu anotaciju', () => {
+  const src = readFile(new URL('./coverage-teardown.ts', import.meta.url), 'utf8')
+  assert.match(src, /formatViolationDetails\(agg\)/, 'teardown mora zvati formatViolationDetails')
+  assert.match(
+    src,
+    /::\$\{level\} title=|::warning title=|::notice title=/,
+    'teardown mora ispisivati workflow komandu',
+  )
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Čuvar mapiranja: koje pravilo dokazuje koji kriterij                       */
+/* -------------------------------------------------------------------------- */
+
+test('identical-links-same-purpose je 2.4.9 (AAA), ne 2.4.4', () => {
+  // axe 4.14.0 tagira ovo pravilo `wcag2aaa, wcag249`. Mapirati ga na 2.4.4 značilo bi
+  // tvrditi da mjerimo „Link Purpose (In Context)" dok mjerimo „(Link Only)".
+  const entry = TRACKED_RULES.find((r) => r.rule === 'identical-links-same-purpose')
+  assert.ok(entry, 'pravilo mora biti praćeno')
+  assert.deepEqual(entry.criteria, ['2.4.9'])
+  assert.ok(
+    !TRACKED_RULES.some((r) => r.criteria.includes('2.4.4')),
+    'nijedno axe pravilo ne pokriva 2.4.4 — taj kriterij ostaje nemjerljiv',
+  )
+})
+
+test('AAA pravila koja axe ima su praćena, a AAA tag ne presuđuje', () => {
+  // axe 4.14.0 ima tačno tri AAA pravila; ostale AAA kriterije iz matrice (2.5.5, 2.4.13)
+  // nema čime izmjeriti i to mora ostati vidljivo, ne prećutano.
+  assert.ok(TRACKED_RULES.some((r) => r.rule === 'color-contrast-enhanced'), '1.4.6')
+  assert.ok(TRACKED_RULES.some((r) => r.rule === 'meta-refresh-no-exceptions'), '2.2.4')
+  assert.ok(AXE_RULE_TAGS.includes('wcag2aaa'), 'AAA pravila se moraju pokrenuti da se izmjere')
+  assert.ok(!WCAG_TAGS.includes('wcag2aaa'), 'AAA nalaz ne smije rušiti CI za A/AA')
+})
+
+test('AAA prekršaj se mjeri ali ne presuđuje', () => {
+  const out = assertableViolations([
+    { id: 'color-contrast-enhanced', tags: ['wcag2aaa', 'wcag146'], impact: 'serious' },
+  ])
+  assert.deepEqual(out, [], 'AAA nije nivo usaglašenosti koji ovaj repo presuđuje')
+})

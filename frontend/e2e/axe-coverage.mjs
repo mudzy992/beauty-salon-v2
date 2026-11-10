@@ -54,7 +54,13 @@ export const TRACKED_RULES = [
   { rule: 'document-title', criteria: ['2.4.2'], note: '<title> mora postojati i biti prazan' },
   { rule: 'page-has-heading-one', criteria: ['2.4.6'], note: 'stranica mora imati <h1>' },
   { rule: 'heading-order', criteria: ['2.4.6'], note: 'naslovi ne smiju preskakati nivoe' },
-  { rule: 'identical-links-same-purpose', criteria: ['2.4.4'], note: 'AAA — isti link, ista svrha' },
+  // 2.4.9 (AAA), NE 2.4.4: axe ovo pravilo tagira `wcag2aaa, wcag249`. Mapirati ga na 2.4.4
+  // značilo bi tvrditi da mjerimo „Link Purpose (In Context)" dok mjerimo „(Link Only)".
+  { rule: 'identical-links-same-purpose', criteria: ['2.4.9'], note: 'AAA — isti link, ista svrha' },
+  // Od AAA kriterija axe 4.14.0 ima samo tri pravila; ostale (2.5.5 Target Size Enhanced,
+  // 2.4.13 Focus Appearance) nema čime izmjeriti.
+  { rule: 'color-contrast-enhanced', criteria: ['1.4.6'], note: 'AAA — kontrast 7:1 / 4.5:1' },
+  { rule: 'meta-refresh-no-exceptions', criteria: ['2.2.4'], note: 'AAA — meta refresh bez izuzetka' },
   { rule: 'aria-valid-attr', criteria: ['4.1.2'], note: 'nepostojeći aria atribut' },
   { rule: 'aria-valid-attr-value', criteria: ['4.1.2'], note: 'neispravna vrijednost aria atributa' },
   { rule: 'aria-allowed-attr', criteria: ['4.1.2'], note: 'aria atribut nije dopušten na ulozi' },
@@ -72,8 +78,8 @@ export const STATUSES = ['passed', 'violations', 'incomplete', 'inapplicable', '
 /**
  * Tagovi kojima se axe pokreće.
  *
- * `best-practice` je dodan namjerno. `page-has-heading-one`, `heading-order` i
- * `identical-links-same-purpose` su jedine mjere koje imamo za 2.4.6 i 2.4.4, a nijedno od
+ * `best-practice` je dodan namjerno. `page-has-heading-one` i `heading-order` su jedine
+ * mjere koje imamo za 2.4.6, a nijedno od
  * njih nije u WCAG tagovima. Bez ovog taga ta pravila se **uopće ne pokrenu**, pa izvještaj
  * kaže `absent` — a `absent` se lako pročita kao „nema takvih elemenata na stranici", što
  * ovdje nije tačno. Izmjereno na runu `42921090665`: sva tri pravila `absent 32`.
@@ -85,6 +91,10 @@ export const AXE_RULE_TAGS = [
   'wcag21aa',
   'wcag22aa',
   'best-practice',
+  // AAA nije nivo usaglašenosti koji ovaj repo cilja, ali `color-contrast-enhanced` je
+  // jedina mjera koju imamo za 1.4.6. Pokreće se da se IZMJERI, a presuđuje se samo po
+  // A/AA (vidi `WCAG_TAGS`) — AAA nalaz ne znači da aplikacija ne zadovoljava AA.
+  'wcag2aaa',
 ];
 
 /**
@@ -169,6 +179,24 @@ export function describeIncompleteNodes(results, rule, limit = MAX_INCOMPLETE_NO
 }
 
 /**
+ * Koji čvorovi su **pali** na pravilu, i zašto.
+ *
+ * Bez ovoga `heading-order: PAD (violations 1)` kaže da nešto nije u redu, ali ne i gdje —
+ * a nalaz bez lokacije se ne može ni potvrditi ni popraviti. Isto vrijedi obrnuto: kad
+ * pravilo padne na jednoj od 32 rute, bez rute se ne zna je li zajednički uzrok ili jedan
+ * ekran (a identičan broj na svim rutama je dosad svaki put značio jedan zajednički uzrok).
+ */
+export function describeViolationNodes(results, rule, limit = MAX_INCOMPLETE_NODES_PER_RULE) {
+  const entry = (results?.violations ?? []).find((e) => e.id === rule)
+  if (!entry) return []
+  return (entry.nodes ?? []).slice(0, limit).map((n) => ({
+    target: String(Array.isArray(n.target) ? n.target.join(' ') : (n.target ?? '')).slice(0, 120),
+    html: String(n.html ?? '').replace(/\s+/g, ' ').trim().slice(0, 80),
+    message: String(n.any?.[0]?.message ?? n.all?.[0]?.message ?? n.none?.[0]?.message ?? '').slice(0, 140),
+  }))
+}
+
+/**
  * Zapiše status svakog praćenog pravila za jednu rutu. Jedan fajl po testu jer
  * `playwright.config.ts` ima `fullyParallel: true` — dijeljeni fajl bi se prepisivao.
  */
@@ -179,9 +207,12 @@ export function recordAxeCoverage(project, route, results, dir) {
   }
 
   const incompleteNodes = {}
+  const violationNodes = {}
   for (const { rule } of TRACKED_RULES) {
     const samples = describeIncompleteNodes(results, rule)
     if (samples.length) incompleteNodes[rule] = samples
+    const failed = describeViolationNodes(results, rule)
+    if (failed.length) violationNodes[rule] = failed
   }
 
   const perRule = {}
@@ -201,7 +232,7 @@ export function recordAxeCoverage(project, route, results, dir) {
   const file = join(dir, coverageFileName(project, route))
   writeFileSync(
     file,
-    `${JSON.stringify({ project, route, rules: perRule, incompleteNodes }, null, 2)}\n`,
+    `${JSON.stringify({ project, route, rules: perRule, incompleteNodes, violationNodes }, null, 2)}\n`,
     'utf8',
   )
   return file
@@ -217,6 +248,7 @@ export function aggregateCoverage(dir) {
         ['routes', []],
         ['nodes', 0],
         ['incompleteNodes', []],
+        ['violationNodes', []],
       ]),
     ]),
   )
@@ -240,6 +272,9 @@ export function aggregateCoverage(dir) {
       if (entry.status !== 'absent') totals[rule].routes.push(`${record.route}:${entry.status}`)
       for (const sample of record.incompleteNodes?.[rule] ?? []) {
         totals[rule].incompleteNodes.push({ ...sample, route: record.route })
+      }
+      for (const sample of record.violationNodes?.[rule] ?? []) {
+        totals[rule].violationNodes.push({ ...sample, route: record.route })
       }
     }
   }
@@ -312,6 +347,24 @@ export function formatIncompleteDetails(agg) {
     lines.push(`${criteria.join('/')} ${rule} — ${samples.length} nepotpunih čvorova:`)
     for (const s of samples.slice(0, 6)) {
       lines.push(`  ${s.route} | ${s.target} | ${s.html} | ${s.message}`)
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Zaseban tekst o ČVOROVIMA KOJI SU PALI — ide u **svoju** anotaciju.
+ *
+ * @returns {string} prazan string ako nijedno pravilo nije palo
+ */
+export function formatViolationDetails(agg) {
+  const lines = []
+  for (const { rule, criteria } of TRACKED_RULES) {
+    const samples = agg.totals[rule]?.violationNodes ?? []
+    if (!samples.length) continue
+    lines.push(`${criteria.join('/')} ${rule} — ${samples.length} čvorova koji su pali:`)
+    for (const sample of samples.slice(0, 6)) {
+      lines.push(`  ${sample.route} | ${sample.target} | ${sample.html} | ${sample.message}`)
     }
   }
   return lines.join('\n')

@@ -32,6 +32,13 @@ export interface RuleCounts {
   routes: string[]
   nodes: number
   incompleteNodes: RoutedIncompleteNode[]
+  violationNodes: RoutedIncompleteNode[]
+}
+
+/** Rezultat `aggregateCoverage`: brojači po pravilu + koliko je ruta zabilježeno. */
+export interface CoverageAggregate {
+  totals: Record<string, RuleCounts>
+  routeCount: number
 }
 
 export const TRACKED_RULES: TrackedRule[]
@@ -66,19 +73,13 @@ export function recordAxeCoverage(
   dir: string,
 ): string
 
-export function aggregateCoverage(dir: string): {
-  totals: Record<string, RuleCounts>
-  routeCount: number
-}
+export function aggregateCoverage(dir: string): CoverageAggregate
 
 export function encodeWorkflowMessage(text: string): string
 
 export function verdictFor(counts: RuleCounts): 'PROLAZ' | 'NEPOTPUNO' | 'NIJE_SE_PRIMJENIO' | 'PAD'
 
-export function formatCoverageSummary(agg: {
-  totals: Record<string, RuleCounts>
-  routeCount: number
-}): string
+export function formatCoverageSummary(agg: CoverageAggregate): string
 
 export const MAX_INCOMPLETE_NODES_PER_RULE: number
 
@@ -89,6 +90,16 @@ export function describeIncompleteNodes(
 ): IncompleteNode[]
 
 export function formatIncompleteDetails(agg: CoverageAggregate): string
+
+/** Koji čvorovi su pali na pravilu, uz rutu. */
+export function describeViolationNodes(
+  results: unknown,
+  rule: string,
+  limit?: number,
+): IncompleteNode[]
+
+/** Tekst o čvorovima koji su pali — zasebna anotacija. */
+export function formatViolationDetails(agg: CoverageAggregate): string
 
 export const MAX_ANNOTATION_MESSAGE_LENGTH: number
 
