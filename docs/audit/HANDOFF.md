@@ -2013,3 +2013,33 @@ Ništa od navedenog nije moguće verificirati iz izvora.
 > linkovi i dugmad ušli u provjeru i javljali „nije u „null"" (run `42896831615`); a `innerText`
 > nad `<select>` vraća spojen tekst **svih** opcija, što je lažni prekršaj (run `42897798720`).
 > Opseg je sada onaj koji kriterij stvarno pokriva: dugmad, linkovi i dugmad-uloge.
+
+> **Zatvoreno 2026-11-08 — 3.3.1, 3.3.2, 3.3.3: glavna tabela više nema nijedan ŽUT kriterij.**
+> Matrica je za ova tri bila sebi proturječna (glavni redovi 94–96 ŽUTO, sažetak 236–238
+> ZELENO/ZELENO/ŽUTO), pa umjesto biranja strane — izmjereno je. Stanje u izvoru prije
+> mjerenja: `aria-invalid` postoji na **5** mjesta u **2** fajla, a `field-error.tsx`
+> (`FieldError`/`FormErrorSummary`/`fieldErrorProps`) koristi **isključivo** dnevna knjiga;
+> javne forme greške javljaju samo toastom (`Login.tsx:89`).
+>
+> - **3.3.1** `invalidWithoutDescription()` — svaka kontrola s `aria-invalid="true"` mora imati
+>   `aria-describedby` koji razriješi u element **sa sadržajem**; pogrešan `id` i prazan `<p>`
+>   su prekršaj i nalaz ih imenuje. **0** prekršaja na 9 javnih + 15 admin ruta; na `/login` i
+>   `/register` greška se izazove stvarnim pokušajem slanja.
+> - **3.3.2** `requiredNotMarked()` — vidljiva oznaka „*" / „obavezno" / „required" bez
+>   `required`/`aria-required` je prekršaj, jer čitač ekrana zvjezdicu ne čita. **0** prekršaja.
+> - **3.3.3** rendered test na `/admin/daily-log` (klijentska validacija, ne ovisi o backendu):
+>   sažetak `[role="alert"][tabindex="-1"]` prima fokus, polja imaju pridružen tekst, prijedlog
+>   je konkretan („Odaberite stilistu i servis"), linkovi vode na postojeća polja.
+>
+> CI run `42907161916` = **success**, **147 passed / 0 failed / 0 skipped**.
+>
+> **Greška koju je mjera otkrila na sebi (run `42904859111`):** 3.3.1 i 3.3.2 pali su na **svim**
+> rutama odjednom. Uzrok nije bio 40 defekata nego to što su obje funkcije zvale pomoćnike iz
+> opsega modula, a `page.evaluate(fn)` šalje u preglednik samo `fn.toString()` **bez tog opsega**
+> → `ReferenceError`. jsdom to **načelno ne može** uhvatiti jer tamo modul postoji. Sada svaka
+> izvozna funkcija nosi svoj kod, a čuvar (test 33 u `dom-metrics.test.mjs`) čita izvor modula i
+> tvrdi da nijedna izvozna funkcija ne referencira deklaraciju s nivoa modula.
+>
+> **Šta ostaje NEPROVJERENO, javno:** redoslijed najave čitača ekrana (ručna stavka **M13**) —
+> za to treba AT, kojeg u projektu nema. I dalje otvoren **1.4.10** (❌, izmjerenih **755px**
+> horizontalnog skrola, krivac `header.sticky.top-0.z-50`, `public-layout.tsx:158`).
