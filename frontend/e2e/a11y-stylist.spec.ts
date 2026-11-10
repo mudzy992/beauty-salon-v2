@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 
 import { defaultCoverageDir, recordAxeCoverage } from './axe-coverage.mjs'
 import { expect, test } from '@playwright/test'
+import { settleAnimations } from './settle'
 import { existsSync, readFileSync } from 'node:fs'
 
 import { STYLIST_STATUS, type AdminStatus } from './auth-paths'
@@ -65,6 +66,12 @@ for (const route of STYLIST_ROUTES) {
       url.pathname.startsWith(expectedPrefix),
       `${route.path}: očekivano ${expectedPrefix}*, dobijeno ${url.pathname} — sesija nema ulogu STYLIST`,
     ).toBe(true)
+
+    // Čeka završetak animacija PRIJE analize: `app-logo-reveal` kreće od `opacity: 0.01`
+    // (globals.css), pa axe mjeren u tom trenu vidi gotovo nevidljiv tekst i prijavi
+    // `color-contrast` — to je bio flake na `/` (run `42907958179`: violations 1, a
+    // ponavljanje istog posla dalo je 0).
+    await settleAnimations(page)
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 
 import { defaultCoverageDir, recordAxeCoverage } from './axe-coverage.mjs'
 import { expect, test } from '@playwright/test'
+import { settleAnimations } from './settle'
 
 /**
  * Rendered a11y dokaz — axe-core nad stvarnim DOM-om.
@@ -32,6 +33,12 @@ const PUBLIC_ROUTES = [
 for (const route of PUBLIC_ROUTES) {
   test(`axe: ${route.name} (${route.path})`, async ({ page }) => {
     await page.goto(route.path, { waitUntil: 'networkidle' })
+    // Čeka završetak animacija PRIJE analize: `app-logo-reveal` kreće od `opacity: 0.01`
+    // (globals.css), pa axe mjeren u tom trenu vidi gotovo nevidljiv tekst i prijavi
+    // `color-contrast` — to je bio flake na `/` (run `42907958179`: violations 1, a
+    // ponavljanje istog posla dalo je 0).
+    await settleAnimations(page)
+
     const results = await new AxeBuilder({ page })
       // 2.3.3 / 1.4.11 / 1.4.3 su ciljevi ovog redizajna; experimentalne axe provjere nisu dokaz
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
