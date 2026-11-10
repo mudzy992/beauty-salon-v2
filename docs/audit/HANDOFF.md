@@ -1256,7 +1256,7 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 
 | Provjera | Rezultat |
 |---|---|
-| `test:*` skripti (frontend) | **185/186** skripti, 0 padova — **717** pojedinačnih testova (`test:a11y-routes` preskočen jer je interaktivan) |
+| `test:*` skripti (frontend) | **186/187** skripti, 0 padova — **723** pojedinačna testa (`test:a11y-routes` preskočen jer je interaktivan) |
 | `tsc --noEmit` | exit **0** |
 | `npm run lint` | **0 errors** / 7 warnings |
 | `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
@@ -1264,7 +1264,7 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 | `check_i18n.py --strict` | PASS — **2710** leaf ključeva po jeziku, 0 razlika BS↔EN |
 | `check_repo_hygiene.py` | PASS — **1716** putanja |
 | `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
-| `check_ci_index.py` | PASS — **366/369** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
+| `check_ci_index.py` | PASS — **367/370** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
 | **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
 | `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
 
@@ -1307,6 +1307,16 @@ poruke o dnevnom zapisu nisu dostižne iz `/redeem` i `/adjust`). Dodano **46** 
 `resolveAdminApiError` vraća `{ key, values }` jer dvije poruke nose podatke; postojeći
 `resolveAdminApiErrorKey` je sada omotač, pa 6 postojećih pozivaoca nije dirnuto. Mutacije
 6/6. **Ostaje opcija (b)/(c):** 37 `toastApiError` poziva i dalje ima sirov opis.
+
+**I18N-01: isti princip primijenjen i na 37 opisa (2026-11-10).** `toastApiError` je imao
+preveden naslov ali **sirov opis** na svih 37 poziva. Novi čisti modul
+`lib/toast/api-error-description.mjs` prevodi opis kad je poruka mapirana, ostavlja sirov
+**samo** na bosanskom, a na engleskom ga izostavlja. **Namjerna promjena:** EN korisnik za
+nemapiranu poruku dobija samo preveden naslov, bez specifičnog razloga; bosansko iskustvo je
+netaknuto. Hardkodirano `'Greška'` kao default zamijenjeno je s `t('common.error')` (default
+se ionako nikad nije koristio). Novi `test:api-error-description` je **bihevioralni** test s
+pravim `i18next`, a test 6 u `test:raw-api-error-exposure` čuva ugovor da `useAppToast.ts`
+prolazi kroz taj modul. Mutacije 6/6.
 
 **CI YAML validnost nije pokrivena nijednom kapijom** — `check_ci_index.py` namjerno parsira
 po uvlačenju jer `repo-checks` job ima goli Python. Provjereno ručno `js-yaml@4.3.2`
@@ -1667,8 +1677,10 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    **engleski** `axiosErr.message` kad backend ne vrati poruku, ili (c) kodovi grešaka /
    backend i18n sloj.
    **2026-11-10: vlasnik izabrao (a) i ono je urađeno** — inventar sirovih naslova je sada
-   **0** (bilo 16), mapiranih mjesta **24**. **Preostaje (b)/(c)** za **37** `toastApiError`
-   opisa; to i dalje nije odlučeno.
+   **0** (bilo 16), mapiranih mjesta **24**. Isti princip je zatim primijenjen i na **37**
+   opisa (`lib/toast/api-error-description.mjs`): prevedeno kad je mapirano, sirovo samo na
+   bosanskom, izostavljeno na engleskom. **Preostaje samo (c)** — kodovi grešaka u backendu,
+   jer backend i dalje nema i18n sloj, pa mapiranje ostaje krhko na promjenu teksta.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,

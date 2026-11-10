@@ -13,14 +13,16 @@ import test from 'node:test'
  *
  * **B — sirov naslov.** `toast.error(getErrorMessage(err, t('...')))` — prevedeni
  *   fallback se **odbacuje** čim backend vrati poruku, pa je cijeli toast bosanski.
- * **D — sirov opis.** `useAppToast.toastApiError(err, t('...'))` radi
- *   `toast.error(fallback, { description: getErrorMessage(err, fallback) })`. Naslov
- *   je preveden, ali **opis je sirova poruka**. Render-put je potvrđen u izvoru
- *   sonner-a: `React.createElement("div", { "data-description": "" }, …description)`
- *   — opis je vidljiv tekst u DOM-u, ne samo za programere.
+ * **D — sirov opis.** `useAppToast.toastApiError(err, t('...'))` radio je
+ *   `toast.error(fallback, { description: getErrorMessage(err, fallback) })`: naslov
+ *   preveden, **opis sirov**. Render-put je potvrđen u izvoru sonner-a:
+ *   `React.createElement("div", { "data-description": "" }, …description)` — opis je
+ *   vidljiv tekst u DOM-u, ne samo za programere. Za EN korisnika to je WCAG **3.1.2**
+ *   (Language of Parts).
  *
- * Za EN korisnika to je WCAG **3.1.2** (Language of Parts): dio sadržaja je na drugom
- * jeziku i nije označen. Za čitač ekrana i za razumijevanje — nepreveden tekst.
+ * **D je riješen 2026-11-10** (`lib/toast/api-error-description.mjs`): opis se prevodi,
+ * a na engleskom se neprevedena bosanska poruka izostavlja. Broj poziva (37) ostaje
+ * zaključan, a test 6 čuva ugovor da `useAppToast.ts` prolazi kroz taj modul.
  *
  * ── Šta ovaj test radi, a šta NE ─────────────────────────────────────────────
  * **Zaključava inventar.** Ne mijenja ponašanje i ne bira popravku: hoće li se ove
@@ -29,9 +31,9 @@ import test from 'node:test'
  * može tiho povećati — svako novo mjesto pada i traži da se odluka donese svjesno.
  *
  * ── Izmjereno na dan pisanja ─────────────────────────────────────────────────
- * A) mapirano (poruka ide kroz resolver pa `t()`): **8** mjesta
- * B) sirov naslov: **16** mjesta
- * C) `toastApiError` (preveden naslov, sirov opis): **37** poziva
+ * A) mapirano (poruka ide kroz resolver pa `t()`): **24** mjesta
+ * B) sirov naslov: **0** mjesta (bilo 16 — provučeno kroz resolver)
+ * C) `toastApiError`: **37** poziva (opis više nije sirov — vidi gore)
  * Hardkodirani default `'Greška'` u `toastApiError` **nikad se ne koristi** — svih 37
  * poziva prosljeđuje drugi argument (36 s `t(...)`, 1 s prevedenom validacijskom
  * porukom iz `complete-reservation-dialog.tsx`). Zato ovdje nije naveden kao defekt.
@@ -194,6 +196,23 @@ test('i18n: mjesta gdje se poruka čita samo kao predikat (ne renderuje se) su z
     'Promijenio se skup mjesta koja čitaju serversku poruku samo kao regex-predikat.\n' +
       'Ako novo mjesto stvarno renderuje poruku, pripada u inventar sirovih (test 1).',
   )
+})
+
+test('i18n: useAppToast više ne ubacuje sirovu poruku kao opis toasta', () => {
+  // Bihevioralni dio je u `lib/toast/api-error-description.test.mjs`; ovo je ugovor da
+  // `useAppToast.ts` zaista prolazi kroz taj modul — bez toga bi se neko mogao vratiti na
+  // `description: getErrorMessage(err, fallback)` i svih 37 poziva bi opet bilo sirovo.
+  const src = readFileSync(new URL('../lib/toast/useAppToast.ts', import.meta.url), 'utf8')
+  assert.ok(
+    src.includes('resolveApiErrorDescription('),
+    'useAppToast.ts ne koristi resolveApiErrorDescription — opis bi opet bio sirov',
+  )
+  assert.ok(
+    !/description:\s*getErrorMessage/.test(src),
+    'useAppToast.ts ponovo prosljeđuje getErrorMessage direktno kao description',
+  )
+  // naslov više ne smije imati hardkodirano bosansko "Greška"
+  assert.ok(!src.includes("'Greška'"), 'useAppToast.ts ima hardkodirano bosansko "Greška"')
 })
 
 test('pozitivna kontrola: klasifikator razlikuje mapirano od sirovog na poznatom primjeru', () => {

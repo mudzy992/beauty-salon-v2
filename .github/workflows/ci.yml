@@ -651,6 +651,12 @@ jobs:
       - name: Test raw API-error exposure inventory is unchanged
         working-directory: frontend
         run: npm run test:raw-api-error-exposure
+      # Guard: opis u toastApiError se prevodi, a na engleskom se neprevedena bosanska
+      # poruka izostavlja (WCAG 3.1.2). Bihevioralni test nad cistim modulom + ugovor
+      # da useAppToast zaista prolazi kroz njega.
+      - name: Test API-error toast description is localized
+        working-directory: frontend
+        run: npm run test:api-error-description
       # Guard: jsx-a11y pravila moraju ostati na error (citaju se REZOLVANI nivoi preko
       # ESLint API-ja, pa pada i ako override tiho ponisti config).
       - name: Test ESLint jsx-a11y severity guard

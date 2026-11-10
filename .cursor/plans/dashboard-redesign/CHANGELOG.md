@@ -5829,3 +5829,85 @@ teksta — ali sada **zaključano** testom `test:api-error-keys-i18n` (drift pad
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
 `backend/`. Jedini backend fajl dirnut tokom mutacija bio je `loyalty.service.ts` i **vraćen je**.
+
+## 2026-11-10 — Isti princip (a) primijenjen na 37 opisa: `test:api-error-description`
+
+Nakon što je vlasnik izabrao opciju **(a)** za 16 sirovih naslova i rekao „nastavi dalje",
+isti princip je primijenjen na preostalih **37** `toastApiError` poziva čiji je naslov bio
+preveden, a **opis sirov**. Opcije **(b)** (označavanje jezikom) i **(c)** (kodovi grešaka u
+backendu) **nisu** rađene — nije bilo nove odluke, samo dosljedna primjena već donesene.
+
+### Novo ponašanje (i jedna namjerna promjena koju treba znati)
+
+`lib/toast/api-error-description.mjs` — čist modul bez Reacta, pa je ponašanje testabilno:
+
+| Slučaj | Prije | Sada |
+|---|---|---|
+| poruka **mapirana** | sirova bosanska | **prevedeno** (uključujući interpolaciju) |
+| **nemapirana**, jezik `bs` | sirova bosanska | sirova bosanska — **nepromijenjeno** |
+| **nemapirana**, jezik `en` | sirova bosanska | **izostavljeno** (samo preveden naslov) |
+
+**Namjerna promjena:** EN korisnik za nemapiranu poruku više ne dobija specifičan razlog,
+samo preveden naslov. Procjena je da je preveden naslov bez opisa bolji od naslova plus
+rečenice koju korisnik ne čita (WCAG 3.1.2). Bosansko iskustvo je **netaknuto** — tamo
+poruka ostaje, jer je na jeziku korisnika. Ovo je jedina prosudba u ovoj izmjeni i može se
+vratiti ako se ne slažete.
+
+Usput: hardkodirano bosansko `'Greška'` kao default parametar zamijenjeno je s
+`t('common.error')`. Izmjereno ranije: nijedan od 37 poziva ne koristi default, pa nije bio
+živ defekt — ali je sada uklonjen iz izvora.
+
+`normalizeAppLanguage` (`i18n/language.mjs`) garantuje da je `i18n.language` tačno `'bs'` ili
+`'en'` (sve ostalo pada na `'bs'`), pa jezička provjera ne treba dodatnu normalizaciju.
+
+### Novi testovi
+
+**`test:api-error-description` (5 testova)** — **bihevioralni**, s pravim `i18next`
+instancama za oba jezika, ne grep nad izvorom: mapirano se prevodi u oba jezika;
+interpolacija daje `09:00`/`10:30` a ne doslovno `{{start}}`; nemapirano je sirovo na `bs` a
+`undefined` na `en`; prazno/`null`/`0`/objekt/niz ne daju opis; pozitivne kontrole.
+
+**Test 6 u `test:raw-api-error-exposure`** — ugovor da `useAppToast.ts` zaista prolazi kroz
+taj modul i da nema `description: getErrorMessage(...)`. Bez toga bi se neko mogao vratiti na
+staro i svih 37 poziva bi opet bilo sirovo, a bihevioralni test to ne bi vidio.
+
+### Greška napravljena i uhvaćena
+
+Test je prvobitno asertovao `notEqual(got, sirovaPoruka)` za **oba** jezika. Pao je na `bs`
+— i to **ispravno**: bosanski prijevod `loyaltyAdmin.errors.insufficientPoints` namjerno
+**jest** jednak backend poruci, pa poređenje nije moglo dokazati prolaz kroz `t()`. Dodan je
+`MAPPED_DIFFERENT` (`'Rola Frizer nije pronađena.'` → `users.errors.roleNotFound` =
+`'Odabrana uloga nije pronađena.'`), čiji se prijevod razlikuje, pa asertacija nešto dokazuje.
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Test | Uhvatio |
+|---|---|---|---|
+| E1 | `useAppToast` vraćen na sirov opis | raw-exposure | test 6 |
+| E2 | modul uvijek vraća sirovu poruku | api-error-description | testovi 1, 2, 5 |
+| E3 | nemapirano se izostavlja i na bosanskom | api-error-description | testovi 3, 5 |
+| E4 | interpolacijske vrijednosti se ne prosljeđuju | api-error-description | test 2 |
+| E5 | jezička provjera izbačena (EN dobija sirovo) | api-error-description | testovi 3, 5 |
+| E6 | hardkodirano `'Greška'` vraćeno kao default | raw-exposure | test 6 |
+
+Restauracija potvrđena `filecmp.cmp(shallow=False)` za sva 4 fajla: `True`.
+
+### Kapije
+
+`test:*` **186/187** skripti prošle (**723** pojedinačna testa, **0** padova;
+`test:a11y-routes` preskočen jer je interaktivan — bilo 717/186) · `tsc --noEmit` exit **0** ·
+lint **0 errors / 7 warnings** · build **276.1 KiB**/300 · `check_i18n --strict` **2710**
+leaf · `check_repo_hygiene` PASS · `check_doc_links` **670/202** · `check_ci_index`
+**367/370** · CI YAML parsiran (`js-yaml`, korak prisutan tačno jednom) · `git diff --check`
+čist · sken ćirilice/CJK nad novim linijama i fajlovima **0**.
+
+Registracija: `frontend/package.json` (**187** `test:*` skripti) + `ci.yml`.
+
+### Stanje I18N-01 poslije ove izmjene
+
+- **16** sirovih naslova → **0** (prethodni commit)
+- **37** sirovih opisa → **0** na engleskom; na bosanskom ostaju samo nemapirane (namjerno)
+- Backend i dalje nema i18n sloj ni kodove grešaka → mapiranje ostaje krhko na promjenu
+  teksta, ali zaključano testom `test:api-error-keys-i18n` (drift pada)
+- **Opcija (c)** — kodovi grešaka u backendu — i dalje je jedina trajna popravka i i dalje
+  traži odluku vlasnika.

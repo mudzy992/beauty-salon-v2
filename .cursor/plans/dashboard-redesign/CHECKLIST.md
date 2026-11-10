@@ -528,10 +528,13 @@ korak u `ci.yml` odmah poslije `test:i18n-key-resolution`.
       `filecmp.cmp(shallow=False)` za sva 4 fajla.
 - [x] **Odluka vlasnika donesena 2026-11-10: opcija (a)** — provući 16 sirovih naslova kroz
       postojeće resolvere. **Urađeno** (vidi CHANGELOG od istog datuma).
-- [ ] **Ostaje opcija (b)/(c):** **37** `toastApiError` poziva i dalje ima sirov **opis**
-      (naslov preveden). (b) označavanje jezikom nije jednoznačno jer `getErrorMessage` pada
-      na **engleski** `axiosErr.message` kad backend ne vrati poruku; (c) kodovi grešaka u
-      backendu je trajna popravka. Zaključano testom `test:raw-api-error-exposure` (test 3).
+- [x] **Isti princip primijenjen i na 37 opisa** (`test:api-error-description`, 5 testova):
+      prevedeno kad je poruka mapirana, sirovo **samo** na bosanskom, izostavljeno na
+      engleskom. Čist modul `lib/toast/api-error-description.mjs` + bihevioralni test s
+      pravim `i18next`. Mutacije 6/6.
+- [ ] **Ostaje samo opcija (c):** backend i dalje nema i18n sloj ni kodove grešaka, pa
+      mapiranje ostaje krhko na promjenu teksta (zaključano testom, ali krhko). Kodovi
+      grešaka u backendu jedina su trajna popravka i traže odluku vlasnika.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
