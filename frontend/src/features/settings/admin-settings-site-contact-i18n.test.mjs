@@ -57,7 +57,7 @@ test('contact and social settings have matching Bosnian/English labels', () => {
 
 test('contact/social display translations preserve saved setting descriptions and API behavior', () => {
   assert.match(page, /\.\.\.group,\s*label: t\(copyKeys\.label\),\s*description: t\(copyKeys\.description\)/)
-  assert.match(page, /\.\.\.def,\s*label: t\(SITE_FIELD_COPY_KEYS/)
+  assert.match(page, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.doesNotMatch(page, /desc:\s*t\(/)
   assert.match(formEditor, /await onSave\(def\.key, value, def\.desc\)/)
   assert.match(settingsHook, /api\.put\(`\/api\/settings\/\$\{key\}`, \{ value, description: desc \}\)/)

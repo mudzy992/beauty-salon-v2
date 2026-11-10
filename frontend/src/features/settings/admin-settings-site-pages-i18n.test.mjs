@@ -88,7 +88,7 @@ test('public-page and sign-in settings have matching Bosnian/English copy', () =
 
 test('public-page display labels preserve saved descriptions and settings API behavior', () => {
   assert.match(page, /\.\.\.group,\s*label: t\(copyKeys\.label\),\s*description: t\(copyKeys\.description\)/)
-  assert.match(page, /\.\.\.def,\s*label: t\(SITE_FIELD_COPY_KEYS/)
+  assert.match(page, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.doesNotMatch(page, /desc:\s*t\(/)
   assert.match(formEditor, /await onSave\(def\.key, value, def\.desc\)/)
   assert.match(settingsHook, /api\.put\(`\/api\/settings\/\$\{key\}`, \{ value, description: desc \}\)/)

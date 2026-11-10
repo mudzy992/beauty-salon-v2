@@ -67,8 +67,8 @@ test('operations and appearance panels have BS/EN copy for every group and field
 })
 
 test('translated display labels do not change persisted setting descriptions or API payloads', () => {
-  assert.match(files.operationsPage, /\.\.\.def,\s*label: t\(/)
-  assert.match(files.appearancePage, /\.\.\.def,\s*label: t\(/)
+  assert.match(files.operationsPage, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
+  assert.match(files.appearancePage, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.match(files.booleanEditor, /const displayLabel = def\.label \?\? def\.desc/)
   assert.match(files.booleanEditor, /<Label htmlFor=\{switchId\}[^>]*>[\s\S]*?\{displayLabel\}/)
   assert.match(files.booleanEditor, /onSave\(def\.key, checked \? 'true' : 'false', def\.desc\)/)

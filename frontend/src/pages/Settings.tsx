@@ -137,16 +137,20 @@ export default function Settings() {
     () =>
       SITE_GROUPS.map((group) => {
         const copyKeys = SITE_GROUP_COPY_KEYS[group.prefix as keyof typeof SITE_GROUP_COPY_KEYS]
+        // Mapa je CI-pokrivena (`test:i18n-key-resolution`, test 5); ovi štitovi samo
+        // sprječavaju bijeli ekran (`t(copyKeys.label)` na undefined baca TypeError) i
+        // praznu labelu (`t(undefined)` vraća '') ako se mapa ikad razdvoji od izvora.
         if (!copyKeys) return group
         return {
           ...group,
           label: t(copyKeys.label),
           description: t(copyKeys.description),
           defaults: group.defaults.map((def) => {
+            const fieldKey = SITE_FIELD_COPY_KEYS[def.key as keyof typeof SITE_FIELD_COPY_KEYS]
             const placeholderKey = SITE_PLACEHOLDER_COPY_KEYS[def.key as keyof typeof SITE_PLACEHOLDER_COPY_KEYS]
             return {
               ...def,
-              label: t(SITE_FIELD_COPY_KEYS[def.key as keyof typeof SITE_FIELD_COPY_KEYS]),
+              ...(fieldKey ? { label: t(fieldKey) } : {}),
               ...(placeholderKey ? { placeholder: t(placeholderKey) } : {}),
             }
           }),

@@ -27,14 +27,21 @@ export default function SettingsAppearance() {
     () =>
       APPEARANCE_GROUPS.map((group) => {
         const copyKeys = APPEARANCE_GROUP_COPY_KEYS[group.prefix as keyof typeof APPEARANCE_GROUP_COPY_KEYS]
+        // Mapa je CI-pokrivena (`test:i18n-key-resolution`, test 5); ovi štitovi samo
+        // sprječavaju bijeli ekran (`t(copyKeys.label)` na undefined baca TypeError) i
+        // praznu labelu (`t(undefined)` vraća '') ako se mapa ikad razdvoji od izvora.
+        if (!copyKeys) return group
         return {
           ...group,
           label: t(copyKeys.label),
           description: t(copyKeys.description),
-          defaults: group.defaults.map((def) => ({
-            ...def,
-            label: t(APPEARANCE_FIELD_COPY_KEYS[def.key as keyof typeof APPEARANCE_FIELD_COPY_KEYS]),
-          })),
+          defaults: group.defaults.map((def) => {
+            const fieldKey = APPEARANCE_FIELD_COPY_KEYS[def.key as keyof typeof APPEARANCE_FIELD_COPY_KEYS]
+            return {
+              ...def,
+              ...(fieldKey ? { label: t(fieldKey) } : {}),
+            }
+          }),
         }
       }),
     [t],

@@ -574,6 +574,63 @@ test('i18n: roditelj svakog dinamičkog ključa iz predloška postoji u oba jezi
   )
 })
 
+/**
+ * ── Test 7: štit nad mapom kopirnih ključeva u postavkama ────────────────────
+ * Test 5 garantuje da **svaki** ključ u `*_COPY_KEYS` mapama postoji. Ali sama
+ * mapa nije dovoljna: kod koji je čita mora podnijeti i slučaj da se mapa
+ * razdvoji od izvora (`groups-*.ts` dobije novu grupu ili polje).
+ *
+ * Izmjereno ponašanje bez štita, s instaliranim `i18next@23.16.8`:
+ *   - `t(copyKeys.label)` kad `copyKeys === undefined` → **TypeError**
+ *     „Cannot read properties of undefined (reading 'label')" = bijeli ekran;
+ *   - `t(undefined)` **ne baca** nego vraća **`''`** → prazna labeta, što je tiše
+ *     i gore za AT (WCAG 3.3.2 / 4.1.2) jer korisnik dobije polje bez imena.
+ *
+ * Zato sve četiri stranice moraju imati isti oblik: rani izlaz za grupu i
+ * izostavljena labeta (ne prazna) za polje — `setting-editor-display.tsx:22` i
+ * `setting-editor-form.tsx:33` već rade `def.label ?? def.desc`, pa izostavljanje
+ * pada na postojeći bosanski opis umjesto na prazan string.
+ *
+ * Do 2026-11-10 štit je imao **samo** `Settings.tsx`; ostale tri stranice su
+ * mogle pasti. Usaglašeno uz odobrenje vlasnika.
+ */
+const SETTINGS_PAGES = [
+  '../pages/Settings.tsx',
+  '../pages/SettingsOperations.tsx',
+  '../pages/SettingsAppearance.tsx',
+  '../pages/SettingsSeo.tsx',
+]
+
+test('i18n: sve četiri stranice postavki štite mapu kopirnih ključeva', () => {
+  for (const rel of SETTINGS_PAGES) {
+    const name = rel.replace('../pages/', '')
+    const src = readFileSync(new URL(rel, import.meta.url), 'utf8')
+    assert.match(
+      src,
+      /if \(!copyKeys\) return group/,
+      `${name}: nema ranog izlaza — nova grupa bez kopirnog ključa baca TypeError ` +
+        '(`t(copyKeys.label)` na undefined) i obara cijelu stranicu',
+    )
+    assert.match(
+      src,
+      /const fieldKey = [A-Z_]+FIELD_COPY_KEYS\[def\.key as keyof typeof [A-Z_]+FIELD_COPY_KEYS\]/,
+      `${name}: ključ polja se mora prvo pročitati u varijablu da bi se mogao provjeriti`,
+    )
+    assert.match(
+      src,
+      /\.\.\.\(fieldKey \? \{ label: t\(fieldKey\) \} : \{\}\)/,
+      `${name}: labeta se mora IZOSTAVITI kad ključa nema — ` +
+        '`t(undefined)` vraća prazan string, a `def.label ?? def.desc` tada pada na prazno',
+    )
+    assert.doesNotMatch(
+      src,
+      /label: t\([A-Z_]+FIELD_COPY_KEYS\[/,
+      `${name}: vratio se direktan ` +
+        '`t(MAPA[def.key])` bez štita — polje bez ključa bi imalo praznu labelu',
+    )
+  }
+})
+
 test('regresija /stylist/workbook: newEntry je imenski prostor, .title je list', () => {
   assert.equal(resolve(BS, 'stylistWorkbook.newEntry'), 'branch',
     'stylistWorkbook.newEntry mora ostati imenski prostor — inače je struktura promijenjena')

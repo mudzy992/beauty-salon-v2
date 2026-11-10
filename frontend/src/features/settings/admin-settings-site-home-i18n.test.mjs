@@ -63,7 +63,7 @@ test('homepage-section settings have matching Bosnian/English group and field co
 })
 
 test('homepage display labels and placeholder localization preserve setting storage and API behavior', () => {
-  assert.match(page, /\.\.\.def,\s*label: t\(SITE_FIELD_COPY_KEYS/)
+  assert.match(page, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.match(page, /placeholderKey \? \{ placeholder: t\(placeholderKey\) \} : \{\}/)
   assert.doesNotMatch(page, /desc:\s*t\(/)
   assert.match(booleanEditor, /onSave\(def\.key, checked \? 'true' : 'false', def\.desc\)/)

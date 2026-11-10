@@ -39,13 +39,14 @@ test('SEO settings and shared settings controls have matching BS/EN copy', () =>
   for (const key of settingKeys) {
     assert.ok(files.page.includes(`${key}: 'adminSettings.seo.fields.`), `Missing display translation mapping for ${key}`)
   }
-  assert.match(files.page, /label: t\(SEO_FIELD_COPY_KEYS\[def\.key as keyof typeof SEO_FIELD_COPY_KEYS\]\)/)
+  assert.match(files.page, /const fieldKey = SEO_FIELD_COPY_KEYS\[def\.key as keyof typeof SEO_FIELD_COPY_KEYS\]/)
+  assert.match(files.page, /\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
 })
 
 test('localized labels do not alter persisted setting descriptions, keys, or API calls', () => {
   assert.match(files.page, /label: t\(copyKeys\.label\)/)
   assert.match(files.page, /description: t\(copyKeys\.description\)/)
-  assert.match(files.page, /\.\.\.def,\s*label: t\(/)
+  assert.match(files.page, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.match(files.form, /await onSave\(def\.key, value, def\.desc\)/)
   assert.match(files.hook, /api\.put\(`\/api\/settings\/\$\{key\}`, \{ value, description: desc \}\)/)
   assert.match(files.groups, /key: 'seo_default_title'/)

@@ -441,11 +441,17 @@ dva** načina prijenosa koja nijedan test nije pokrivao.
 - [x] **Mutacije 6/6** (M1 pokvaren ključ u mapi · M2 allowlist ispraznjen · M3 allowlist
       preširok · M4 pokvaren prefiks · M5 pohlepni umjesto lijenog regexa · M6 nova
       nerasriješena vrijednost). Backup u `/tmp/mbk/`, vraćeno, `filecmp.cmp` potvrđuje.
-- [ ] **Ostatak, svjesno nepromijenjen:** `Settings.tsx:140` ima `if (!copyKeys) return group`,
-      a `SettingsOperations.tsx:38`, `SettingsAppearance.tsx:32` i `SettingsSeo.tsx:43` nemaju
-      taj štit (tamo bi nova grupa bez kopirnog ključa bacila `TypeError`). Usaglašavanje
-      znači izmjenu 4 stranice + do 10 testova koji asertuju doslovan izvor; test 5
-      CI-garanuje da do tog stanja ne može doći. **Čeka odobrenje kao zasebna stavka.**
+- [x] **Usaglašeno uz odobrenje vlasnika (2026-11-10):** štit nad mapom kopirnih ključeva
+      sada je identičan u sve četiri stranice — `Settings.tsx:143`,
+      `SettingsOperations.tsx:39`, `SettingsAppearance.tsx:33`, `SettingsSeo.tsx:44`.
+      **Ispravka vlastite formulacije:** `TypeError` vrijedi samo za putanju *grupe*
+      (`t(copyKeys.label)` na `undefined`); za putanju *polja* izmjereno je da
+      `t(undefined)` **ne baca** nego vraća **`''`** → prazna labeta, što je tiše i gore za AT.
+      Tu rupu je imao i `Settings.tsx`, pa je zatvorena u sve četiri
+      (`…(fieldKey ? { label: t(fieldKey) } : {})`, pada na `def.label ?? def.desc`).
+      Novo: **test 7** u `i18n-key-resolution.test.mjs` (oblik štita na jednom mjestu,
+      **7/7**), **7 asertacija pojačano** u 6 postojećih skripti, mutacije **6/6**.
+      Kapije: **183/183** skripti, **703** testa, `tsc` 0, build 274.3 KiB.
 - [ ] **Ograničenje:** provjera je iz izvora — dokazuje da ključ postoji u oba jezika, ne da
       ga i18next zaista ispiše u pregledniku.
 

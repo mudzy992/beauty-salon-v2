@@ -39,7 +39,7 @@ test('site maintenance settings expose matching Bosnian and English labels', () 
 
 test('maintenance display translations preserve stored descriptions and settings requests', () => {
   assert.match(page, /\.\.\.group,\s*label: t\(copyKeys\.label\),\s*description: t\(copyKeys\.description\)/)
-  assert.match(page, /\.\.\.def,\s*label: t\(SITE_FIELD_COPY_KEYS/)
+  assert.match(page, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.match(booleanEditor, /onSave\(def\.key, checked \? 'true' : 'false', def\.desc\)/)
   assert.match(formEditor, /await onSave\(def\.key, value, def\.desc\)/)
   assert.match(settingsHook, /api\.put\(`\/api\/settings\/\$\{key\}`, \{ value, description: desc \}\)/)

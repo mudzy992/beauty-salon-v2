@@ -1256,7 +1256,7 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 
 | Provjera | Rezultat |
 |---|---|
-| `test:*` skripti (frontend) | **183/183** skripti, 0 padova — **702** pojedinačna testa |
+| `test:*` skripti (frontend) | **183/183** skripti, 0 padova — **703** pojedinačna testa |
 | `tsc --noEmit` | exit **0** |
 | `npm run lint` | **0 errors** / 7 warnings |
 | `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
@@ -1268,11 +1268,12 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 | **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
 | `mobile/` | **0 fajlova** dirnuto prema baznom commitu |
 
-`test:i18n-key-resolution` sada ima **6** testova (bilo 4). Novi test 5 pokriva **2449**
+`test:i18n-key-resolution` sada ima **7** testova (bilo 4). Novi test 5 pokriva **2449**
 string literala s imenskim prostorom — uključujući ključeve koji stoje u **mapama**
 (`SEO_FIELD_COPY_KEYS[def.key]` → `t(copyKeys.label)`), a koje nijedan postojeći sakupljač
 nije vidio. Novi test 6 asertuje roditelja svakog dinamičkog ključa oblika
-`` t(`a.b.${x}`) `` (34 poziva, 20 roditelja). Rupa je bila dokazana mutacijom: ključ u mapi
+`` t(`a.b.${x}`) `` (34 poziva, 20 roditelja). Novi test 7 zaključava oblik štita nad mapom
+kopirnih ključeva u sve četiri stranice postavki. Rupa je bila dokazana mutacijom: ključ u mapi
 promijenjen u nepostojeći prolazio je kroz svih 13 settings-testova i kroz sva 4 postojeća
 testa. Detalji u `.cursor/plans/dashboard-redesign/CHANGELOG.md` (2026-11-10).
 
@@ -1555,9 +1556,10 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    (`CHECKLIST.md`). Do sada nijedan AT test ne postoji (§3.5).
 6. **Zatvoriti 12 🟡 rendered dokazom** (§3.4) — svi su u kodu, nijedan nije viđen u renderu.
 
-> **Jedina izvorska stavka koja čeka odobrenje (nije blokirana okruženjem):**
-> `pages/Settings.tsx:140` ima `if (!copyKeys) return group`, dok `SettingsOperations.tsx:38`,
-> `SettingsAppearance.tsx:32` i `SettingsSeo.tsx:43` nemaju taj štit — nova grupa bez kopirnog
-> ključa bi tamo bacila `TypeError` i oborila stranicu. Usaglašavanje znači izmjenu 4 stranice
-> i do 10 testova koji asertuju njihov doslovan izvor, pa nije urađeno tiho.
-> `test:i18n-key-resolution` test 5 CI-garanuje da do tog stanja ne može doći.
+> **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
+> je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,
+> `SettingsAppearance.tsx:33`, `SettingsSeo.tsx:44`) i zaključan novim testom 7 u
+> `test:i18n-key-resolution` (**7/7**). Izmjereno na `i18next@23.16.8`: `t(copyKeys.label)` na
+> `undefined` baca `TypeError` (putanja grupe), a `t(undefined)` vraća `''` (putanja polja →
+> prazna labeta) — obje su sada pokrivene. 7 asertacija u 6 postojećih skripti je pojačano,
+> mutacije **6/6**.

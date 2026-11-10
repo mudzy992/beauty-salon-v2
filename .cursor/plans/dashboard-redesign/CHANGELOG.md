@@ -5243,3 +5243,105 @@ produkcijski kod nije dirnut, jer nijedan od 46 hardkodiranih stringova nije ži
 u oba jezika, ne da i18next zaista ispiše prijevod u pregledniku.
 
 Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`.
+
+---
+
+## 2026-11-10 — Štit nad mapom kopirnih ključeva usaglašen na sve četiri stranice postavki (odobrio vlasnik)
+
+Stavka je bila otvorena od prethodnog unosa: `Settings.tsx` je imao rani izlaz
+`if (!copyKeys) return group`, a `SettingsOperations.tsx`, `SettingsAppearance.tsx` i
+`SettingsSeo.tsx` nisu. Vlasnik je usaglašavanje odobrio („Imaš moju potvrdu, možeš
+usaglasiti").
+
+### Mjerenje prije izmjena — ispravljena vlastita formulacija
+
+U prethodnom unosu sam napisao da bi nova grupa bez kopirnog ključa „bacila `TypeError`".
+To je tačno **samo za putanju grupe**. Putanja polja se ponaša drugačije i tiše, što je
+izmjereno na instaliranom `i18next@23.16.8`:
+
+| Izraz | Stvarno ponašanje (izmjereno) |
+|---|---|
+| `t(copyKeys.label)` kad `copyKeys === undefined` | **TypeError**: `Cannot read properties of undefined (reading 'label')` → bijeli ekran |
+| `t(undefined)` (nedostaje ključ polja u mapi) | **ne baca** — vraća **`''`** → **prazna labeta** |
+| `t('a.nema')` | vraća sam ključ → goli ključ na ekranu |
+
+Prazna labeta je gori ishod od pada: stranica radi, a korisnik čitača ekrana dobije polje bez
+imena (WCAG 3.3.2 / 4.1.2). Tu rupu je imao i `Settings.tsx` — štit za grupu je postojao, za
+polje **nije**.
+
+### Izmjena (identičan oblik u sve četiri stranice)
+
+```tsx
+const copyKeys = SEO_GROUP_COPY_KEYS[group.prefix as keyof typeof SEO_GROUP_COPY_KEYS]
+if (!copyKeys) return group                    // štiti putanju grupe (TypeError)
+return {
+  …
+  defaults: group.defaults.map((def) => {
+    const fieldKey = SEO_FIELD_COPY_KEYS[def.key as keyof typeof SEO_FIELD_COPY_KEYS]
+    return { …def, …(fieldKey ? { label: t(fieldKey) } : {}) }   // štiti putanju polja ('')
+  }),
+}
+```
+
+Za polje se labeta **izostavlja**, a ne postavlja na prazan string: `setting-editor-display.tsx:22`
+i `setting-editor-form.tsx:33` već rade `def.label ?? def.desc`, pa izostavljanje pada na
+postojeći bosanski opis. Izmjereno: nijedan `SettingDef` u `groups-*.ts` nema svoj `label`
+(16 `label:` u ta četiri fajla = tačno 16 grupa), pa je `def.desc` uvijek dostupan.
+
+Lokacije štita: `Settings.tsx:143`/`:149`/`:153` · `SettingsOperations.tsx:39`/`:45`/`:48` ·
+`SettingsAppearance.tsx:33`/`:39`/`:42` · `SettingsSeo.tsx:44`/`:50`/`:53`.
+
+### Posljedica po postojeće testove — 7 asertacija palo, sve **pojačane**
+
+Testovi asertuju doslovan izvor ovih stranica. Palo je tačno onih 7 asertacija koje su
+provjeravale stari oblik, u 6 skripti:
+
+| Fajl | Stara asertacija | Nova |
+|---|---|---|
+| `admin-settings-seo-i18n` | `/label: t\(SEO_FIELD_COPY_KEYS\[def\.key …\]\)/` | `/const fieldKey = SEO_FIELD_COPY_KEYS\[…\]/` **i** `/\.\.\.\(fieldKey \? …\)/` |
+| `admin-settings-seo-i18n` | `/…def,\s*label: t\(/` | `/…def,\s*…\(fieldKey \? \{ label: t\(fieldKey\) \} : \{\}\)/` |
+| `admin-settings-operations-appearance-i18n` ×2 | isto | isto |
+| `admin-settings-site-{maintenance,home,contact,pages}-i18n` ×4 | `/…def,\s*label: t\(SITE_FIELD_COPY_KEYS/` | isto |
+
+Nove asertacije su **strože**: traže upravo zaštićeni oblik, pa povratak na
+`t(MAPA[def.key])` bez štita pada na njima, ne samo na novom testu 7.
+
+🔴 Prvi pokušaj izmjene `Settings.tsx` je **izgubio** liniju `const copyKeys = …` (sidro
+zamjene ju je progutao). Uhvatio je `tsc --noEmit` s 4 greške
+(`TS6133` nekorišten import + 3× `TS2304 Cannot find name 'copyKeys'`) — dokaz da
+`--noEmit` treba pokrenuti odmah poslije edita, ne na kraju.
+
+### Novi test 7 u `i18n-key-resolution.test.mjs`
+
+Umjesto da se štit asertuje u 6 različitih fajlova, oblik je zaključan **na jednom mjestu** za
+sve četiri stranice: rani izlaz mora postojati, ključ polja se mora prvo pročitati u
+varijablu, labeta se mora izostaviti (ne isprazniti), i `label: t([A-Z_]+FIELD_COPY_KEYS[` se
+**ne smije** vratiti.
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Uhvatio |
+|---|---|---|
+| G1 | skinut `if (!copyKeys) return group` iz `SettingsSeo.tsx` | test 7 |
+| G2 | isto, `SettingsOperations.tsx` | test 7 |
+| G3 | isto, `SettingsAppearance.tsx` | test 7 |
+| G4 | isto, `Settings.tsx` | test 7 |
+| G5 | vraćen direktan `t(SEO_FIELD_COPY_KEYS[def.key])` | test 7 **i** `admin-settings-seo-i18n` (oba testa) |
+| G6 | `label: fieldKey ? t(fieldKey) : ''` umjesto izostavljene labele | test 7 |
+
+Svaka: `cp` u `/tmp/gbk/`, vraćeno, `filecmp.cmp(shallow=False)` potvrđuje.
+
+### Kapije
+
+`test:*` **183/183** skripti (**703** pojedinačna testa, 0 padova — bilo 702) ·
+`tsc --noEmit` exit **0** · lint **0 errors / 7 warnings** · build **274.3 KiB**/300 ·
+`check_ui_contrast --strict` **80/80** · `check_i18n --strict` **2662** leaf ključeva po jeziku ·
+`check_repo_hygiene` **1712** · `check_doc_links` **670/202** · `check_ci_index` **363/366** ·
+`git diff --check` čist · sken ćirilice/CJK nad svih 11 dirnutih fajlova: **0**.
+
+**Nije verificirano:** rendered prikaz. Ponašanje `t(undefined)` i `t(copyKeys.label)` je
+izmjereno direktno nad instaliranim `i18next@23.16.8` u Node-u, ali nije viđeno u pregledniku —
+štita se nikad ne aktivira dok su mape potpune, pa ga test 5 drži nedostignutim.
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
+`groups-*.ts` (izvori postavki ostaju netaknuti — mijenjan je samo sloj koji ih prevodi).
