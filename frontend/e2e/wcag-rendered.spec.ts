@@ -49,6 +49,19 @@ const PUBLIC_ROUTES = [
 
 type Clipped = Record<string, ClippedEntry>
 
+/**
+ * Iznese detalj pada u CI anotaciju **prije** asertacije.
+ *
+ * Bez ovoga se zna samo IME testa koji je pao: grep u koraku `axe` hvata `Error`, ali
+ * `head -60` odsječe detalje kad padne više testova odjednom (izmjereno na runu
+ * `42886348870` — anotacija je nosila imena ruta, ne i brojeve). A bez brojeva se ne može
+ * razlikovati stvarni prekršaj od prestarog testa.
+ */
+function reportFailure(title: string, detail: string): void {
+  const encoded = detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  process.stdout.write(`::error title=${title}::${encoded}\n`)
+}
+
 async function measureClipped(page: Page): Promise<Clipped> {
   return page.evaluate(clippedSnapshot)
 }
@@ -91,13 +104,21 @@ for (const route of PUBLIC_ROUTES) {
     await page.waitForTimeout(300)
 
     const lost = regressions(before, await measureClipped(page))
+    if (lost.length) reportFailure(`1.4.4 ${route.path} — gubitak sadržaja`, lost.slice(0, 6).join(' | '))
     expect(lost, `${route.path}: 200% teksta gubi sadržaj na ${lost.length} elementa`).toEqual([])
 
     const overflowAfter = await measureHorizontalOverflow(page)
+    const limit = Math.max(overflowBefore, 0) + 2
+    if (overflowAfter > limit) {
+      reportFailure(
+        `1.4.4 ${route.path} — horizontalni overflow`,
+        `prije ${overflowBefore}px, pri 200% ${overflowAfter}px (granica ${limit}px)`,
+      )
+    }
     expect(
       overflowAfter,
       `${route.path}: horizontalni overflow se pogoršao s ${overflowBefore}px na ${overflowAfter}px pri 200%`,
-    ).toBeLessThanOrEqual(Math.max(overflowBefore, 0) + 2)
+    ).toBeLessThanOrEqual(limit)
   })
 }
 
@@ -112,6 +133,7 @@ for (const route of PUBLIC_ROUTES) {
     await page.waitForTimeout(300)
 
     const lost = regressions(before, await measureClipped(page))
+    if (lost.length) reportFailure(`1.4.12 ${route.path} — gubitak sadržaja`, lost.slice(0, 6).join(' | '))
     expect(lost, `${route.path}: WCAG razmak teksta gubi sadržaj na ${lost.length} elementa`).toEqual([])
   })
 }
@@ -128,6 +150,13 @@ for (const route of PUBLIC_ROUTES) {
     const byVisual = [...order].sort((a, b) => a.top - b.top).map((o) => o.tag)
     const byDom = [...order].sort((a, b) => a.dom - b.dom).map((o) => o.tag)
 
+    if (JSON.stringify(byDom) !== JSON.stringify(byVisual)) {
+      reportFailure(
+        `1.3.2 ${route.path} — redoslijed landmarka`,
+        `DOM [${byDom.join(' > ')}] vs vizuelno [${byVisual.join(' > ')}] :: ` +
+          order.map((o) => `${o.tag}@${o.top}px(dom#${o.dom})`).join(' '),
+      )
+    }
     expect(byDom, `${route.path}: DOM redoslijed landmarka ne odgovara vizuelnom`).toEqual(byVisual)
     expect(byDom, `${route.path}: stranica nema <main>`).toContain('main')
   })
@@ -151,10 +180,17 @@ for (const route of PUBLIC_ROUTES) {
 
       // Fokus mora biti vidljiv — bez indikatora korisnik tastature ne zna gdje je.
       const visibleFocus = await page.evaluate(hasVisibleFocusIndicator)
+      if (!visibleFocus) reportFailure(`2.1.1 ${route.path} — fokus bez indikatora`, label ?? '(bez oznake)')
       expect(visibleFocus, `${route.path}: fokus bez vidljivog indikatora na "${label}"`).toBe(true)
     }
 
     const missed = expected.filter((e) => !reached.has(e))
+    if (missed.length) {
+      reportFailure(
+        `2.1.1 ${route.path} — Tab ne doseže`,
+        `${missed.length}/${expected.length}: ${missed.slice(0, 6).join(' | ')}`,
+      )
+    }
     expect(missed, `${route.path}: Tab ne doseže ${missed.length} interaktivnih elemenata`).toEqual([])
   })
 }
