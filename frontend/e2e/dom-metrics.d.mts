@@ -26,3 +26,7 @@ export type OverflowingElement = {
 }
 
 export function overflowingElements(tolerance?: number): OverflowingElement[]
+
+export type LabelInNameViolation = { element: string; name: string; visible: string }
+
+export function labelInNameViolations(): LabelInNameViolation[]

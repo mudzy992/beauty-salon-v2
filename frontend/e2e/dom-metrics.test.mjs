@@ -9,6 +9,7 @@ import {
   describeElement,
   focusableSnapshot,
   hasVisibleFocusIndicator,
+  labelInNameViolations,
   landmarkSnapshot,
 } from './dom-metrics.mjs'
 
@@ -195,4 +196,93 @@ test('overflowingElements — poštuje toleranciju i sortira po veličini viška
     ['div.veliki', 'div.mali'],
     'višak od 3px je unutar tolerancije 5',
   )
+})
+
+/** jsdom nema `innerText`, a upravo on odlučuje šta je „vidljivo". */
+function withInnerText(el, text) {
+  Object.defineProperty(el, 'innerText', { value: text, configurable: true })
+  return el
+}
+
+test('labelInNameViolations — hvata dugme čije ime ne sadrži vidljivi tekst', () => {
+  const doc = makeDom(`<button class="meni" aria-label="Admin meni"><span>NJ</span></button>`)
+  withInnerText(doc.querySelector('button'), 'NJ')
+  setBox(doc.querySelector('button'), {})
+
+  const found = labelInNameViolations()
+  assert.equal(found.length, 1)
+  assert.equal(found[0].element, 'button.meni')
+  assert.equal(found[0].name, 'Admin meni')
+  assert.equal(found[0].visible, 'nj', 'normalizovano na mala slova')
+})
+
+test('labelInNameViolations — ime koje sadrži vidljivi tekst prolazi', () => {
+  const doc = makeDom(`<button class="meni" aria-label="Admin meni, NJ">NJ</button>`)
+  withInnerText(doc.querySelector('button'), 'NJ')
+  setBox(doc.querySelector('button'), {})
+  assert.deepEqual(labelInNameViolations(), [])
+})
+
+test('labelInNameViolations — preskače neinteraktivno, nevidljivo i bez vidljivog teksta', () => {
+  const doc = makeDom(`
+    <div aria-label="Samo omotac">tekst</div>
+    <button aria-label="Ikona"></button>
+    <a href="#" aria-label="Nazad" class="skriven">Nazad</a>
+  `)
+  const [wrap, icon, link] = doc.querySelectorAll('div, button, a')
+  withInnerText(wrap, 'tekst')
+  withInnerText(icon, '')
+  withInnerText(link, 'Nazad')
+  setBox(wrap, {})
+  setBox(icon, {})
+  setBox(link, { w: 0, h: 0 })
+
+  const found = labelInNameViolations()
+  assert.deepEqual(
+    found.map((f) => f.element),
+    [],
+    'div nije interaktivan; ikona nema vidljivog teksta; link je nevidljiv',
+  )
+})
+
+test('labelInNameViolations — poštuje aria-hidden i višestruke razmake', () => {
+  const doc = makeDom(`
+    <button aria-label="Admin meni" aria-hidden="true">NJ</button>
+    <button class="dva" aria-label="Admin   meni">N   J</button>
+  `)
+  const [hidden, two] = doc.querySelectorAll('button')
+  withInnerText(hidden, 'NJ')
+  withInnerText(two, 'N   J')
+  setBox(hidden, {})
+  setBox(two, {})
+
+  const found = labelInNameViolations()
+  assert.deepEqual(
+    found.map((f) => f.element),
+    ['button.dva'],
+    'aria-hidden se preskače, a razmaci se sažimaju na obje strane',
+  )
+})
+
+test('labelInNameViolations — gleda SAMO interaktivne elemente, ne svaki aria-label', () => {
+  const doc = makeDom(`<div class="omotac" aria-label="Samo omotac">tekst</div>`)
+  withInnerText(doc.querySelector('div'), 'tekst')
+  setBox(doc.querySelector('div'), {})
+  assert.deepEqual(labelInNameViolations(), [], 'div nema ulogu dugmeta ni linka')
+})
+
+test('labelInNameViolations — innerText, ne textContent: skriveni tekst nije vidljiv', () => {
+  const doc = makeDom(`<button class="ikona" aria-label="Zatvori">NJ</button>`)
+  const btn = doc.querySelector('button')
+  // textContent ima „NJ", ali se ne iscrtava — upravo slučaj ikonice s nevidljivim slovom.
+  withInnerText(btn, '')
+  setBox(btn, {})
+  assert.deepEqual(labelInNameViolations(), [], 'textContent bi dao lažni prekršaj')
+})
+
+test('labelInNameViolations — element širine 0 se preskače', () => {
+  const doc = makeDom(`<button class="nula" aria-label="Meni">NJ</button>`)
+  withInnerText(doc.querySelector('button'), 'NJ')
+  setBox(doc.querySelector('button'), { w: 0, h: 12 })
+  assert.deepEqual(labelInNameViolations(), [], 'ništa se ne iscrtava, pa nema vidljivog teksta')
 })

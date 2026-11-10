@@ -165,3 +165,49 @@ export function overflowingElements(tolerance = 2) {
   }
   return out.sort((a, b) => b.excess - a.excess)
 }
+
+/**
+ * 2.5.3 Label in Name — izmjereno direktno, jer axe to NE MOŽE presuditi.
+ *
+ * Izmjereno na runu `42895442598`: nakon popravke ime je postalo „Admin meni, C" (vidljivi
+ * inicijal ušao je u ime), a axe je i dalje javljao `incomplete 22/22` uz poruku „Unable to
+ * determine if the visible text is part of the accessible name". To je ograničenje alata,
+ * ne nalaz — pa se zahtijev provjerava ovdje, u stvarnom rasporedu.
+ *
+ * Uzima se `innerText`, ne `textContent`: `innerText` prati ono što je stvarno iscrtano,
+ * pa skriveni sadržaj ne ulazi u „vidljivi tekst".
+ *
+ * @returns {{element: string, name: string, visible: string}[]}
+ */
+export function labelInNameViolations() {
+  const describe = (el) => {
+    const tag = el.tagName.toLowerCase()
+    const id = el.id ? `#${el.id}` : ''
+    const cls = typeof el.className === 'string' && el.className.trim()
+      ? `.${el.className.trim().split(/\s+/).slice(0, 2).join('.')}` : ''
+    return `${tag}${id}${cls}`
+  }
+  // axe i WCAG upoređuju bez obzira na veličinu slova i nakon sažimanja razmaka.
+  const norm = (t) => String(t ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+
+  const out = []
+  const interactive = 'button, a, [role="button"], [role="menuitem"], [role="tab"], input, select, textarea'
+  for (const el of document.querySelectorAll(`${interactive}[aria-label]`)) {
+    if (el.getAttribute('aria-hidden') === 'true') continue
+    // Nula na BILO KOJOJ dimenziji znači da se ništa ne iscrtava, pa nema ni vidljivog
+    // teksta. Namjerno `||`, ne `&&` kao u `landmarkSnapshot`: tamo se traži landmark koji
+    // postoji, ovdje tekst koji se vidi — a element širine 0 ne pokazuje ništa.
+    const rect = el.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) continue
+    const visible = norm(el.innerText ?? el.textContent)
+    if (!visible) continue
+    const name = norm(el.getAttribute('aria-label'))
+    if (name.includes(visible)) continue
+    out.push({
+      element: describe(el),
+      name: String(el.getAttribute('aria-label')).slice(0, 60),
+      visible: visible.slice(0, 40),
+    })
+  }
+  return out
+}

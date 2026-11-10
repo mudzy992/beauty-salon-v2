@@ -6,6 +6,7 @@ import {
   clippedSnapshot,
   focusableSnapshot,
   hasVisibleFocusIndicator,
+  labelInNameViolations,
   landmarkSnapshot,
   overflowingElements,
 } from './dom-metrics.mjs'
@@ -228,5 +229,25 @@ for (const route of PUBLIC_ROUTES) {
       )
     }
     expect(missed, `${route.path}: Tab ne doseže ${missed.length} interaktivnih elemenata`).toEqual([])
+  })
+}
+
+// ── 2.5.3 Label in Name ──────────────────────────────────────────────────────
+//
+// Mjeri se ovdje, a ne preko axe-a: axe pravilo `label-content-name-mismatch` vraća
+// `incomplete` i onda kad je sve ispravno (run `42895442598` — „Admin meni, C" i dalje
+// „Unable to determine"). Direktno poređenje `aria-label` i `innerText` nema tu rupu.
+for (const route of PUBLIC_ROUTES) {
+  test(`2.5.3 Label in name: ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const bad = await page.evaluate(labelInNameViolations)
+    if (bad.length) {
+      reportFailure(
+        `2.5.3 ${route.path} — ime ne sadrži vidljivi tekst`,
+        bad.slice(0, 4).map((b) => `${b.element}: „${b.visible}" nije u „${b.name}"`).join(' | '),
+      )
+    }
+    expect(bad, `${route.path}: pristupačno ime ne sadrži vidljivi tekst`).toEqual([])
   })
 }

@@ -4,6 +4,7 @@ import { defaultCoverageDir, recordAxeCoverage } from './axe-coverage.mjs'
 import { expect, test } from '@playwright/test'
 import { existsSync, readFileSync } from 'node:fs'
 
+import { labelInNameViolations } from './dom-metrics.mjs'
 import { ADMIN_STATUS, type AdminStatus } from './auth-paths'
 
 /**
@@ -97,6 +98,31 @@ for (const route of ADMIN_ROUTES) {
           )
           .join('\n'),
     ).toEqual([])
+  })
+}
+
+// ── 2.5.3 Label in Name ──────────────────────────────────────────────────────
+//
+// Axe ovo pravilo NE MOŽE presuditi: na runu `42895442598` javljao je `incomplete 22/22`
+// uz poruku „Unable to determine if the visible text is part of the accessible name", čak
+// i nakon što je ime postalo „Admin meni, C". Zato se mjeri direktno — `aria-label` se
+// upoređuje s `innerText` u stvarnom rasporedu. Ovo je upravo onih 22 rute gdje je defekt
+// i nađen.
+for (const route of ADMIN_ROUTES) {
+  test(`2.5.3 admin: ime sadrži vidljivi tekst — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const bad = await page.evaluate(labelInNameViolations)
+    if (bad.length) {
+      process.stdout.write(
+        `::error title=2.5.3 ${route.path} — ime ne sadrži vidljivi tekst::` +
+          `${bad
+            .slice(0, 4)
+            .map((b) => `${b.element}: „${b.visible}" nije u „${b.name}"`)
+            .join(' | ')}\n`,
+      )
+    }
+    expect(bad, `${route.path}: pristupačno ime ne sadrži vidljivi tekst`).toEqual([])
   })
 }
 
