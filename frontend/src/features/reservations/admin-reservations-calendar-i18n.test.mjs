@@ -7,7 +7,15 @@ const locales = ['bs', 'en'].map((language) =>
 )
 const source = readFileSync(new URL('../../pages/ReservationsCalendar.tsx', import.meta.url), 'utf8')
 const scheduler = readFileSync(new URL('./components/ReservationScheduler.tsx', import.meta.url), 'utf8')
-const pageKeys = [...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
+// Ključ se koristi i kao fallback u `resolveAdminApiError(getErrorMessage(err, ''), 'ključ')`:
+// serverska poruka se tada prevodi kroz mapu, a ovaj ključ ostaje jedini izvor teksta kad
+// backend ne vrati poruku. Bez ove grane sakupljač bi mislio da je ključ ispao iz upotrebe.
+const usedKeys = (src) =>
+  [
+    ...src.matchAll(/\bt\('([^']+)'/g),
+    ...src.matchAll(/resolveAdminApiError\(.*, '([^']+)'\)/g),
+  ].map(([, key]) => key)
+const pageKeys = usedKeys(source)
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 
@@ -35,7 +43,7 @@ test('reservation calendar page copy has matching Bosnian and English translatio
 })
 
 test('calendar toolbar and filters have matching Bosnian and English translations', () => {
-  const toolbarKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
+  const toolbarKeys = usedKeys(scheduler)
   const expectedKeys = [
     'reservations.calendar.toolbar.title',
     'reservations.calendar.toolbar.selectedStylistsCount',
@@ -82,7 +90,7 @@ test('react-big-calendar labels use matching BS/EN translation resources', () =>
 })
 
 test('reservation detail drawer copy has matching Bosnian and English translations', () => {
-  const detailKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
+  const detailKeys = usedKeys(scheduler)
     .filter((key) => key.startsWith('reservations.calendar.details.'))
   const expectedKeys = [
     'status', 'appointment', 'total', 'client', 'stylist', 'unconfirmed', 'clientNotes',
@@ -110,9 +118,9 @@ test('reservation detail drawer copy has matching Bosnian and English translatio
 })
 
 test('reservation creation drawer copy has matching Bosnian and English translations', () => {
-  const createKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)]
-    .map(([, key]) => key)
-    .filter((key) => key.startsWith('reservations.calendar.create.'))
+  const createKeys = usedKeys(scheduler).filter((key) =>
+    key.startsWith('reservations.calendar.create.'),
+  )
   const expectedKeys = [
     'selectClientFirst', 'title', 'subtitle', 'bookingMode', 'standardTitle',
     'standardDescription', 'directTitle', 'directDescription', 'stylist', 'client',

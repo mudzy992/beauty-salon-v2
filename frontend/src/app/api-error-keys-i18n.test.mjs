@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 
-import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
+import { resolveAdminApiError, resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { getRegistrationErrorKey } from '../features/auth/registration-error.mjs'
 import { resolveClientReservationError } from '../features/client-reservations/client-reservation-error.mjs'
 import { resolveProfileApiErrorKey } from '../features/profile/profile-api-error.mjs'
@@ -21,7 +21,7 @@ import { resolvePublicReservationError } from '../features/reservations/public-r
  * nosi bosanski tekst (**191** različitih poruka). Pet modula na frontendu zato
  * mapira **tačnu bosansku poruku** → i18n ključ:
  *
- *   `features/admin/admin-api-error.mjs`                        30 parova
+ *   `features/admin/admin-api-error.mjs`                        76 parova
  *   `features/auth/registration-error.mjs`                       3 para
  *   `features/profile/profile-api-error.mjs`                    14 parova
  *   `features/client-reservations/client-reservation-error.mjs` 10 parova
@@ -134,11 +134,22 @@ const MODULES = [
     label: 'admin-api-error',
     file: '../features/admin/admin-api-error.mjs',
     prefix: '',
-    expectedPairs: 30,
-    // modul vraća **string** (ključ), ne objekt
-    resolve: (message) => ({ key: resolveAdminApiErrorKey(message, SENTINEL) }),
+    expectedPairs: 76,
+    // `resolveAdminApiError` vraća `{ key, values }` — vrijednosti su potrebne za dvije
+    // interpolirane grane, pa se provjerava i poklapanje s `{{placeholder}}` u lokalima.
+    resolve: (message) => resolveAdminApiError(message, SENTINEL),
     // `Rola <ime> nije pronađena.` je regex grana (`admin-api-error.mjs`), ne par u mapi
-    probes: [{ message: 'Rola Frizer nije pronađena.' }],
+    probes: [
+      { message: 'Rola Frizer nije pronađena.' },
+      {
+        message: 'Preklapanje sa drugim terminom (09:00–10:30).',
+        values: { start: '09:00', end: '10:30' },
+      },
+      {
+        message: 'Rok za potvrdu dolaska je istekao (najkasnije 12h prije termina).',
+        values: { hours: '12' },
+      },
+    ],
   },
   {
     label: 'registration-error',
@@ -296,6 +307,15 @@ test('pozitivne kontrole: broj parova, nepoznata poruka i stvarno izvršen kod',
   // nepoznata poruka MORA pasti na fallback/null — bez toga „mapira sve" nije dokaz
   assert.equal(resolveAdminApiErrorKey('Nepoznata serverska poruka.', SENTINEL), SENTINEL)
   assert.equal(resolveAdminApiErrorKey('Rola Frizer nije pronađena.', SENTINEL), 'users.errors.roleNotFound')
+  // interpolirane grane vraćaju i vrijednosti, ne samo ključ
+  assert.deepEqual(
+    resolveAdminApiError('Preklapanje sa drugim terminom (09:00–10:30).', SENTINEL),
+    { key: 'reservations.errors.slotOverlap', values: { start: '09:00', end: '10:30' } },
+  )
+  assert.deepEqual(
+    resolveAdminApiError('Rok za potvrdu dolaska je istekao (najkasnije 12h prije termina).', SENTINEL),
+    { key: 'reservations.errors.attendanceDeadline', values: { hours: '12' } },
+  )
   assert.equal(getRegistrationErrorKey('Nepoznata serverska poruka.'), 'auth.registrationError')
   assert.equal(resolveProfileApiErrorKey('Nepoznata serverska poruka.', SENTINEL), SENTINEL)
   assert.equal(resolveClientReservationError('Nepoznata serverska poruka.'), null)

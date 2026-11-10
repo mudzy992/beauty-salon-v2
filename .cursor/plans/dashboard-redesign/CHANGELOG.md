@@ -5724,3 +5724,108 @@ Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSe
 Produkcijski fajlovi dirnuti tokom mutacija (`Loyalty.tsx`, `Users.tsx`,
 `use-reservation-detail-actions.ts`) **vraćeni su** — `git status --porcelain` pokazuje samo
 3 namjerna fajla.
+
+## 2026-11-10 — I18N-01 opcija (a): 16 sirovih naslova provučeno kroz resolver (odobrio vlasnik)
+
+Vlasnik je na postavljeni upit izabrao **(a) „Provući 16 sirovih naslova kroz postojeće
+resolvere"** i **(b) „Izmjeriti koje poruke bacaju endpointi tih 16 mjesta"** kao sljedeći korak.
+Mjerenje je zato urađeno **prije** ijedne izmjene.
+
+### Mjerenje: 16 mjesta → 11 endpointa → 58 poruka
+
+| Korak | Rezultat |
+|---|---|
+| API poziv uz svako od 16 mjesta | 11 jedinstvenih endpointa |
+| Servisni fajlovi iza tih ruta | 8 fajlova |
+| Različitih bosanskih poruka u njima (nadskup po fajlu) | **84** |
+| Stvarno dostižan skup (loyalty sveden na `redeemPoints`/`adjustPoints` + helperi) | **58** |
+| — s interpolacijom (treba regex granu) | **2** |
+| — već mapirano | **10** |
+| — **novih ključeva** | **46** (+2 regex grane) |
+
+Endpointi: `POST /api/reservations` (admin) · `POST …/stylist/direct` · `PATCH …/:id` ·
+`POST …/:id/admin-cancel` · `POST …/:id/staff-confirm-attendance` · `GET /api/reservations` ·
+`POST /api/app-releases/upload` · `POST /api/app-releases` · `PATCH /api/app-releases/:id` ·
+`POST /api/loyalty/accounts/:id/redeem` · `…/adjust`.
+
+Indirekcije su razriješene, ne pretpostavljene: `ReservationScheduler:854/1259` idu preko
+`props.onMoveRequest` / `props.onCreateRequest` → `ReservationsCalendar.tsx:212-213` →
+`handleMove` / `handleCreate`; `ReservationsCalendar:82` ide preko `fetchAllReservationPages`
+→ `GET /api/reservations` (`reservation-list.api.ts:21`).
+
+Loyalty je **svjesno sužen**: nadskup po fajlu ima 34 poruke, ali poruke o dnevnom zapisu i
+loyalty popustu nisu dostižne iz `/redeem` i `/adjust`, pa je uzeto samo 14 iz te dvije metode
+i njihovih helpera. Prekomjerno uključivanje je bezopasno (mapa je po tačnom tekstu), ali
+nisam ga htio bez potrebe.
+
+### Izmjene
+
+1. **`resolveAdminApiError(message, fallbackKey)` → `{ key, values }`** — novi export u
+   `admin-api-error.mjs`. Postojeći `resolveAdminApiErrorKey` sada je tanki omotač
+   (`.key`), pa **nijedan od 6 postojećih pozivaoca nije dirnut**. Razlog: dvije poruke nose
+   podatke, pa sâm ključ nije dovoljan — bez `values` bi se `{{start}}`/`{{end}}`/`{{hours}}`
+   prikazali doslovno. Deklaracija dodana u `admin-api-error.d.mts` (bez nje TS javlja
+   TS2724 „has no exported member").
+2. **46 novih parova** u mapi (30 → **76**) + **2 regex grane** (`OVERLAP_RE`, `DEADLINE_RE`).
+3. **48 novih ključeva × 2 jezika**: `reservations.errors.*` (21), `appReleases.errors.*` (13),
+   `loyaltyAdmin.errors.*` (14). Leaf ključeva **2662 → 2710**, paritet 0/0.
+4. **16 mjesta** prebačeno na
+   `const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'ključ')` +
+   `toast.error(t(apiErr.key, apiErr.values))`.
+
+### Četiri greške napravljene i uhvaćene
+
+1. **`json.dumps(indent=2)` je preformatovao cijele lokale** — diff 269/154 umjesto čistih
+   dodataka. Vraćeno iz backupa i ubačeno **hirurški** po linijama: **108 dodataka, 0 brisanja**.
+2. **Novi parovi su imali dvostruke navodnike** (`json.dumps`), a fajl koristi jednostruke —
+   sakupljač parova ih nije vidio, pa je test javio „30 umjesto 76". Pretvoreno.
+3. **`check_repo_hygiene` je uhvatio praznu liniju na EOF** `admin-api-error.mjs` — ostatak
+   mog splice-a. Uklonjeno.
+4. **Moj vlastiti test je imao rupu:** `RESOLVERS` u `raw-api-error-exposure.test.mjs` nije
+   sadržavao `resolveAdminApiError`, pa je test i poslije popravke brojao tih 16 kao sirove i
+   **prolazio**. Uhvaćeno jer sam očekivao pad. Dodano, inventar sada **0 sirovih / 24 mapirana**.
+
+### Dva postojeća testa su pala — i to je bilo ispravno
+
+`test:admin-reservations-calendar-i18n` i `test:stylist-direct-booking-i18n` sakupljaju
+ključeve regexom po `t('…')`. Poslije izmjene ključevi više nisu u `t(...)` nego su fallback
+argument resolvera — dakle **i dalje u upotrebi**, samo na drugom mjestu. Sakupljač je
+proširen drugom granom (`resolveAdminApiError(…, 'ključ')`), čime je provjera **jača**: sada
+i ti ključevi prolaze kroz asertiju „postoji u oba jezika".
+
+Provjereno da test **nije oslabljen**: obrisan `reservations.calendar.moveError` iz `en.json`
+→ test pada s „Missing locale key". `en.json` vraćen, `filecmp` potvrđuje.
+
+### Mutacije — 6/6 uhvaćeno
+
+| # | Mutacija | Test | Uhvatio |
+|---|---|---|---|
+| D1 | `Loyalty.tsx` vraćen na sirovo | raw-exposure | testovi 1, 2, 5 |
+| D2 | obrisan `en` ključ `loyaltyAdmin.errors.insufficientPoints` | api-error-keys | test 2 |
+| D3 | regex za preklapanje termina pokvaren | api-error-keys | testovi 3, 4 |
+| D4 | backend poruka „Nedovoljno bodova." promijenjena (drift) | api-error-keys | test 1 |
+| D5 | `resolveAdminApiError` ne vraća `values` | api-error-keys | test 4 |
+| D6 | `resolveAdminApiError` izbačen iz `RESOLVERS` | raw-exposure | testovi 1, 2, 5 |
+
+Restauracija potvrđena `filecmp.cmp(shallow=False)` za svih 5 dirnutih fajlova: `True`.
+
+### Kapije
+
+`test:*` **185/186** skripti prošle (**717** pojedinačnih testova, **0** padova;
+`test:a11y-routes` preskočen jer je interaktivan) · `tsc --noEmit` exit **0** · lint
+**0 errors / 7 warnings** · build **276.2 KiB**/300 (bilo 274.3) · `check_i18n --strict`
+**2710** leaf · `check_repo_hygiene` **1716** · `check_doc_links` **670/202** ·
+`check_ci_index` **366/369** · `check_ui_contrast --strict` **80/80** · `git diff --check`
+čist · sken ćirilice/CJK nad novim linijama **0**.
+
+### Šta ovo NE rješava
+
+**37 `toastApiError` poziva i dalje ima sirov opis** (naslov preveden, opis ne). To je
+opcija (b)/(c) iz upita i **nije** rađeno — vlasnik je izabrao samo (a). Inventar tih 37
+ostaje zaključan testom `test:raw-api-error-exposure` (test 3).
+
+Backend i dalje nema i18n sloj ni kodove grešaka, pa mapiranje ostaje krhko na promjenu
+teksta — ali sada **zaključano** testom `test:api-error-keys-i18n` (drift pada).
+
+Nije dirnuto: `mobile/`, `features/shell/public/`, `src/pages/public/`, `EmailSettings.tsx`,
+`backend/`. Jedini backend fajl dirnut tokom mutacija bio je `loyalty.service.ts` i **vraćen je**.

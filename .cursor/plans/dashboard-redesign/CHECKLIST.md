@@ -526,10 +526,12 @@ korak u `ci.yml` odmah poslije `test:i18n-key-resolution`.
       opsega (> 250 skeniranih fajlova, izmjereno 298).
 - [x] **Mutacije 6/6**; `restore()` ovog puta vraća i sâm test fajl, restauracija potvrđena
       `filecmp.cmp(shallow=False)` za sva 4 fajla.
-- [ ] **Ne mijenja ponašanje i ne bira popravku.** Opcije su (a) provući 16 sirovih naslova
-      kroz postojeće resolvere, (b) označiti sirove opise jezikom — **nije jednoznačno**, jer
-      `getErrorMessage` pada na **engleski** `axiosErr.message` kad backend ne vrati poruku,
-      ili (c) kodovi grešaka / backend i18n sloj. Odluka vlasnika (`I18N-01`).
+- [x] **Odluka vlasnika donesena 2026-11-10: opcija (a)** — provući 16 sirovih naslova kroz
+      postojeće resolvere. **Urađeno** (vidi CHANGELOG od istog datuma).
+- [ ] **Ostaje opcija (b)/(c):** **37** `toastApiError` poziva i dalje ima sirov **opis**
+      (naslov preveden). (b) označavanje jezikom nije jednoznačno jer `getErrorMessage` pada
+      na **engleski** `axiosErr.message` kad backend ne vrati poruku; (c) kodovi grešaka u
+      backendu je trajna popravka. Zaključano testom `test:raw-api-error-exposure` (test 3).
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

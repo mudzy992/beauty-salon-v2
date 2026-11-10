@@ -1261,8 +1261,8 @@ Svaki broj ispod je iz ovog runa, ne prepisan iz starije tabele.
 | `npm run lint` | **0 errors** / 7 warnings |
 | `npm run build` | PASS — **274.3 KiB** gzip (budžet 300) |
 | `check_ui_contrast.py --strict` | **80/80** |
-| `check_i18n.py --strict` | PASS — **2662** leaf ključeva po jeziku, 0 razlika BS↔EN |
-| `check_repo_hygiene.py` | PASS — **1715** putanja |
+| `check_i18n.py --strict` | PASS — **2710** leaf ključeva po jeziku, 0 razlika BS↔EN |
+| `check_repo_hygiene.py` | PASS — **1716** putanja |
 | `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
 | `check_ci_index.py` | PASS — **366/369** (3 interaktivna izuzeta, 0 nepostojećih skripti) |
 | **`npm run test:a11y-routes` (rendered, axe)** | **neizvršeno u ovom okruženju** — vidi §3.1 |
@@ -1297,6 +1297,16 @@ ne pretpostavljen. Za EN korisnika to je WCAG 3.1.2 (Language of Parts). Test **
 inventar i ne bira popravku** — mutacije 6/6. Usput ispravljeno vlastito mjerenje: prvi
 parser je gledao jednu liniju pa je tvrdio da 1 poziv prikazuje hardkodirano „Greška";
 ponovljeno preko više linija, **svih 37** prosljeđuje naslov, pa default nije živ defekt.
+
+**I18N-01 opcija (a) urađena 2026-11-10 (odobrio vlasnik).** Svih **16** sirovih naslova
+provučeno je kroz resolver: izmjereno je da tih 16 mjesta gađa **11** endpointa, da iza njih
+stoji **8** servisnih fajlova s **84** različite bosanske poruke, te da je stvarno dostižan
+skup **58** (loyalty svjesno sveden na `redeemPoints`/`adjustPoints` + helperi = 14, jer
+poruke o dnevnom zapisu nisu dostižne iz `/redeem` i `/adjust`). Dodano **46** parova
+(30 → 76), **2** regex grane i **48** ključeva × 2 jezika (2662 → 2710). Novi export
+`resolveAdminApiError` vraća `{ key, values }` jer dvije poruke nose podatke; postojeći
+`resolveAdminApiErrorKey` je sada omotač, pa 6 postojećih pozivaoca nije dirnuto. Mutacije
+6/6. **Ostaje opcija (b)/(c):** 37 `toastApiError` poziva i dalje ima sirov opis.
 
 **CI YAML validnost nije pokrivena nijednom kapijom** — `check_ci_index.py` namjerno parsira
 po uvlačenju jer `repo-checks` job ima goli Python. Provjereno ručno `js-yaml@4.3.2`
@@ -1651,11 +1661,14 @@ Ništa od navedenog nije moguće verificirati iz izvora.
    poruka, a frontend prevodi samo **40** po tačnom tekstu. To je krhko (promjena jednog
    znaka u backendu tiho vraća generički fallback), ali sada **zaključano testom**
    `test:api-error-keys-i18n` (2026-11-10, mutacije 6/6). Izloženost je sada i **izmjerena i
-   zaključana**: `test:raw-api-error-exposure` čuva inventar od **16** sirovih naslova i
-   **37** sirovih opisa (mutacije 6/6). Trajna popravka traži odluku vlasnika: (a) provući
-   tih 16 kroz postojeće resolvere, (b) označiti sirove opise jezikom — uz napomenu da to
-   nije jednoznačno, jer `getErrorMessage` pada na **engleski** `axiosErr.message` kad backend
-   ne vrati poruku, ili (c) kodovi grešaka / backend i18n sloj. **Nije** odlučeno ovdje.
+   zaključana**: `test:raw-api-error-exposure` čuva inventar (mutacije 6/6). Trajna popravka
+   tražila je odluku vlasnika: (a) provući tih 16 kroz postojeće resolvere, (b) označiti sirove
+   opise jezikom — uz napomenu da to nije jednoznačno, jer `getErrorMessage` pada na
+   **engleski** `axiosErr.message` kad backend ne vrati poruku, ili (c) kodovi grešaka /
+   backend i18n sloj.
+   **2026-11-10: vlasnik izabrao (a) i ono je urađeno** — inventar sirovih naslova je sada
+   **0** (bilo 16), mapiranih mjesta **24**. **Preostaje (b)/(c)** za **37** `toastApiError`
+   opisa; to i dalje nije odlučeno.
 
 > **Zatvoreno 2026-11-10 uz odobrenje vlasnika:** štit nad mapom kopirnih ključeva usaglašen
 > je u sve četiri stranice postavki (`Settings.tsx:143`, `SettingsOperations.tsx:39`,

@@ -40,7 +40,8 @@ import test from 'node:test'
 const ROOT = new URL('..', import.meta.url)
 const SKIP_FILES = new Set(['useAppToast.ts', 'error.ts', 'partition.ts'])
 const RESOLVERS = [
-  'resolveAdminApiErrorKey',
+  // `resolveAdminApiError` je nadskup od `...Key` (isti modul), pa pokriva oba poziva.
+  'resolveAdminApiError',
   'resolveProfileApiErrorKey',
   'getRegistrationErrorKey',
   'resolveClientReservationError',
@@ -48,15 +49,10 @@ const RESOLVERS = [
 ]
 
 /** Očekivano stanje — ažurirati SVJESNO kad se donese odluka o I18N-01. */
-const EXPECTED_RAW_TITLE = {
-  'features/reservations/components/ReservationScheduler.tsx': 4,
-  'features/stylist-portal/pages/stylist-direct-booking-page.tsx': 1,
-  'pages/AppReleases.tsx': 3,
-  'pages/Loyalty.tsx': 2,
-  'pages/Reservations.tsx': 2,
-  'pages/ReservationsCalendar.tsx': 4,
-}
-const EXPECTED_MAPPED_COUNT = 8
+// 2026-11-10: svih 16 sirovih naslova provučeno je kroz `resolveAdminApiError`
+// (odluka vlasnika, opcija (a) za I18N-01), pa je inventar sada PRAZAN.
+const EXPECTED_RAW_TITLE = {}
+const EXPECTED_MAPPED_COUNT = 24
 const EXPECTED_TOAST_API_ERROR_CALLS = 37
 
 function sourceFiles() {
@@ -205,9 +201,20 @@ test('pozitivna kontrola: klasifikator razlikuje mapirano od sirovog na poznatom
   // Users.tsx: `error(t(resolveAdminApiErrorKey(message, fallbackKey)))` -> MAPIRANO
   assert.equal(rawTitle['pages/Users.tsx'], undefined)
   assert.ok(mapped['pages/Users.tsx'] > 0)
-  // Loyalty.tsx: `error(getErrorMessage(err))` -> SIROVO
-  assert.ok(rawTitle['pages/Loyalty.tsx'] > 0)
-  assert.equal(mapped['pages/Loyalty.tsx'], undefined)
+  // Loyalty.tsx: `resolveAdminApiError(getErrorMessage(err, ''), ...)` -> MAPIRANO
+  assert.ok(mapped['pages/Loyalty.tsx'] > 0)
+  assert.equal(rawTitle['pages/Loyalty.tsx'], undefined)
+  // i ostalih 5 fajlova koji su nekad bili sirovi
+  for (const f of [
+    'features/reservations/components/ReservationScheduler.tsx',
+    'features/stylist-portal/pages/stylist-direct-booking-page.tsx',
+    'pages/AppReleases.tsx',
+    'pages/Reservations.tsx',
+    'pages/ReservationsCalendar.tsx',
+  ]) {
+    assert.ok(mapped[f] > 0, `${f} više nema mapirano mjesto`)
+    assert.equal(rawTitle[f], undefined, `${f} ima sirovo mjesto`)
+  }
   // use-reservation-detail-actions.ts: predikat, NIJE sirovo
   assert.equal(rawTitle['features/stylist-portal/hooks/use-reservation-detail-actions.ts'], undefined)
 })

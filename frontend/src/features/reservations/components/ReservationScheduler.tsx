@@ -20,6 +20,7 @@ import './reservation-scheduler.css'
 import api from '../../../api/client'
 import { fetchAllPublicServices } from '../../../api/catalog'
 import { getErrorMessage } from '../../../api/error'
+import { resolveAdminApiError } from '../../admin/admin-api-error.mjs'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
 import { DialogDescription, DialogTitle } from '../../../components/ui/dialog'
@@ -851,7 +852,8 @@ export const ReservationScheduler = (props: Props) => {
                           })
                           setDrawerOpen(false)
                         } catch (err) {
-                          toast.error(getErrorMessage(err, t('reservations.calendar.details.saveError')))
+                          const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.details.saveError')
+                          toast.error(t(apiErr.key, apiErr.values))
                         } finally {
                           setSavingEdit(false)
                         }
@@ -892,7 +894,8 @@ export const ReservationScheduler = (props: Props) => {
                             toast.success(t('reservations.calendar.details.attendanceConfirmed'))
                             setDrawerOpen(false)
                           } catch (err) {
-                            toast.error(getErrorMessage(err, t('reservations.calendar.details.attendanceConfirmError')))
+                            const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.details.attendanceConfirmError')
+                            toast.error(t(apiErr.key, apiErr.values))
                           } finally {
                             setConfirmingAttendance(false)
                           }
@@ -937,7 +940,8 @@ export const ReservationScheduler = (props: Props) => {
                               })
                               setDrawerOpen(false)
                             } catch (err) {
-                              toast.error(getErrorMessage(err, t('reservations.calendar.details.cancelError')))
+                              const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.details.cancelError')
+                              toast.error(t(apiErr.key, apiErr.values))
                             } finally {
                               setCancelling(false)
                             }
@@ -1256,7 +1260,8 @@ export const ReservationScheduler = (props: Props) => {
                       })
                       setDrawerOpen(false)
                     } catch (err) {
-                      toast.error(getErrorMessage(err, t('reservations.calendar.createError')))
+                      const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'reservations.calendar.createError')
+                      toast.error(t(apiErr.key, apiErr.values))
                     }
                   }}
                   disabled={

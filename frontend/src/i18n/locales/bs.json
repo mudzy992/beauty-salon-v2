@@ -606,6 +606,21 @@
     }
   },
   "appReleases": {
+    "errors": {
+      "apkPathChanged": "APK putanja je promijenjena tokom objave.",
+      "apkPathInvalid": "APK putanja nije validna.",
+      "onlyApkAllowed": "Dozvoljen je samo validan APK fajl.",
+      "publicApkPathInvalid": "Javna APK putanja nije validna.",
+      "publicNotApk": "Javna datoteka nije validan APK.",
+      "publicApkNotFound": "Javni APK fajl nije pronađen.",
+      "publicChecksumMismatch": "Kontrolni zbir javnog APK fajla nije ispravan.",
+      "privateChecksumMismatch": "Kontrolni zbir privatnog APK fajla nije ispravan.",
+      "noFileUploaded": "Nijedna datoteka nije poslata.",
+      "privateApkPathInvalid": "Privatna APK putanja nije validna.",
+      "privateNotApk": "Privatna datoteka nije validan APK.",
+      "privateApkNotFound": "Privatni APK fajl nije pronađen.",
+      "notFound": "Release nije pronađen."
+    },
     "title": "Mobilni release (Android)",
     "subtitle": "Objavi APK za in-app update (sideload).",
     "newRelease": "Novi release",
@@ -954,6 +969,22 @@
     "service": "Usluga"
   },
   "loyaltyAdmin": {
+    "errors": {
+      "belowMinimum": "Broj bodova je ispod minimalnog za korištenje.",
+      "pointsPositiveInteger": "Broj bodova mora biti pozitivan cijeli broj.",
+      "idempotencyConflict": "Idempotency key je već korišten za drugačiju loyalty transakciju.",
+      "ledgerPointsInteger": "Ledger bodovi moraju biti cijeli broj.",
+      "idempotencyRequired": "Loyalty idempotency key je obavezan.",
+      "accountInactive": "Loyalty račun nije aktivan.",
+      "accountNotFound": "Loyalty račun nije pronađen.",
+      "balanceConcurrentChange": "Loyalty saldo je promijenjen tokom obrade; pokušajte ponovo.",
+      "insufficientPoints": "Nedovoljno bodova.",
+      "deltaInteger": "Promjena bodova mora biti cijeli broj.",
+      "deltaNonZeroInteger": "Promjena bodova mora biti različit od nule i cijeli broj.",
+      "deltaNonZero": "Promjena bodova mora biti različita od nule.",
+      "redeemDisabled": "Redeem je trenutno onemogućen.",
+      "balanceCapExceeded": "Saldo prelazi dozvoljeni broj bodova."
+    },
     "title": "Program lojalnosti",
     "caption": "Tabela loyalty računa: korisnik, e-mail, bodovi, nivo, status, broj transakcija i dostupne radnje.",
     "description": "Postavke programa lojalnosti i upravljanje korisničkim bodovnim računima.",
@@ -1438,6 +1469,29 @@
     }
   },
   "reservations": {
+    "errors": {
+      "invalidTime": "Neispravno vrijeme termina.",
+      "listAccessDenied": "Nemate pristup listi svih rezervacija.",
+      "stylistListAccessDenied": "Nemate pristup rezervacijama stiliste.",
+      "noStylistProfile": "Nemate profil stilista.",
+      "stylistCannotPerformServices": "Odabrani stilist ne može izvršiti sve odabrane usluge.",
+      "invalidPagination": "Parametri paginacije nisu validni.",
+      "concurrentChange": "Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.",
+      "attendanceRequiresConfirmation": "Rezervacija mora biti potvrđena i zahtijevati potvrdu dolaska klijenta.",
+      "staffAttendanceDeadline": "Rok za staff potvrdu dolaska je početak termina.",
+      "salonNotConfigured": "Salon nije konfigurisan.",
+      "summaryAccessDenied": "Samo admin ili vlasnik mogu pristupiti sažetku rezervacija.",
+      "attendancePermission": "Samo dodijeljeni stilist ili admin može potvrditi dolazak.",
+      "stylistRequired": "Stilist je obavezan za direktnu rezervaciju.",
+      "stylistProfileUnavailable": "Stilist profil nije dostupan za ovaj račun.",
+      "slotConcurrentChange": "Termin je istovremeno promijenjen. Osvježite rezervaciju i pokušajte ponovo.",
+      "endBeforeStart": "Vrijeme završetka mora biti nakon početka.",
+      "invalidDateRange": "fromDate i toDate moraju biti važeći datumi u formatu YYYY-MM-DD.",
+      "dateRangeRequired": "fromDate i toDate su obavezni.",
+      "paginationPairRequired": "page i pageSize moraju biti navedeni zajedno.",
+      "slotOverlap": "Preklapanje sa drugim terminom ({{start}}–{{end}}).",
+      "attendanceDeadline": "Rok za potvrdu dolaska je istekao (najkasnije {{hours}}h prije termina)."
+    },
     "detail": "Detalji Rezervacije",
     "cancelReservation": "Otkaži Rezervaciju",
     "cancelReason": "Razlog otkazivanja",

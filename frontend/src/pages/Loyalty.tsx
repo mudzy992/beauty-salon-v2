@@ -4,6 +4,7 @@ import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
+import { resolveAdminApiError } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 import { Badge } from '../components/ui/badge'
@@ -118,7 +119,10 @@ export default function Loyalty() {
         success(t('loyaltyAdmin.pointsRedeemed'))
         setRedeemTarget(null)
       })
-      .catch((err) => error(getErrorMessage(err)))
+      .catch((err) => {
+        const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'loyaltyAdmin.updateFailed')
+        error(t(apiErr.key, apiErr.values))
+      })
       .finally(() => setUpdating(null))
   }
 
@@ -136,7 +140,10 @@ export default function Loyalty() {
         success(t('loyaltyAdmin.pointsAdjusted'))
         setAdjustTarget(null)
       })
-      .catch((err) => error(getErrorMessage(err)))
+      .catch((err) => {
+        const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'loyaltyAdmin.updateFailed')
+        error(t(apiErr.key, apiErr.values))
+      })
       .finally(() => setUpdating(null))
   }
 
