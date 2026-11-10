@@ -39,13 +39,22 @@ const ADMIN_ROUTES = [
   { path: '/admin/reservations/calendar', name: 'Kalendar rezervacija' },
 ]
 
-const status: AdminStatus = existsSync(ADMIN_STATUS)
-  ? (JSON.parse(readFileSync(ADMIN_STATUS, 'utf8')) as AdminStatus)
-  : { ok: false, reason: 'setup nije izvršen (nedostaje .auth/admin-status.json)' }
+const readStatus = (): AdminStatus =>
+  existsSync(ADMIN_STATUS)
+    ? (JSON.parse(readFileSync(ADMIN_STATUS, 'utf8')) as AdminStatus)
+    : { ok: false, reason: 'setup nije izvršen (nedostaje .auth/admin-status.json)' }
 
 // Bez prijave admin rute redirektuju na /login, pa bi axe mjerio POGREŠNU stranicu i
-// dao lažni prolaz. Zato se cijeli spec preskače, a ne samo pojedini testovi.
-test.skip(!status.ok, `/admin/** nije testirano — ${status.reason}`)
+// dao lažni prolaz. Zato se testovi preskaču.
+// 🔴 Odluka MORA biti u `beforeEach`, ne na nivou fajla. Playwright ucita spec fajlove pri
+// sakupljanju testova, a to je PRIJE nego sto `setup` projekt upise status fajl; na nivou
+// fajla `status.ok` je zato uvijek false i svi testovi se preskocu CAK I kad je prijava
+// uspjela. Izmjereno: run 42855048776 — anotacije kazu `ok: true, prijavljen kao
+// ci_a11y_admin`, a brojaci i dalje 13 passed | 25 skipped.
+test.beforeEach(() => {
+  const status = readStatus()
+  test.skip(!status.ok, `/admin/** nije testirano — ${status.reason}`)
+})
 
 for (const route of ADMIN_ROUTES) {
   test(`axe admin: ${route.name} (${route.path})`, async ({ page }) => {

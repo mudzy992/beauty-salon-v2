@@ -33,11 +33,20 @@ const STYLIST_ROUTES = [
   { path: '/stylist/profile', name: 'Profil' },
 ]
 
-const status: AdminStatus = existsSync(STYLIST_STATUS)
-  ? (JSON.parse(readFileSync(STYLIST_STATUS, 'utf8')) as AdminStatus)
-  : { ok: false, reason: 'setup nije izvršen (nedostaje .auth/stylist-status.json)' }
+const readStatus = (): AdminStatus =>
+  existsSync(STYLIST_STATUS)
+    ? (JSON.parse(readFileSync(STYLIST_STATUS, 'utf8')) as AdminStatus)
+    : { ok: false, reason: 'setup nije izvršen (nedostaje .auth/stylist-status.json)' }
 
-test.skip(!status.ok, `/stylist/** nije testirano — ${status.reason}`)
+// 🔴 Odluka MORA biti u `beforeEach`, ne na nivou fajla. Playwright ucita spec fajlove pri
+// sakupljanju testova, a to je PRIJE nego sto `setup` projekt upise status fajl; na nivou
+// fajla `status.ok` je zato uvijek false i svi testovi se preskocu CAK I kad je prijava
+// uspjela. Izmjereno: run 42855048776 — anotacije kazu `ok: true, prijavljen kao
+// ci_a11y_admin`, a brojaci i dalje 13 passed | 25 skipped.
+test.beforeEach(() => {
+  const status = readStatus()
+  test.skip(!status.ok, `/stylist/** nije testirano — ${status.reason}`)
+})
 
 for (const route of STYLIST_ROUTES) {
   test(`axe stylist: ${route.name} (${route.path})`, async ({ page }) => {
