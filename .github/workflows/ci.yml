@@ -590,6 +590,9 @@ jobs:
       - name: Test WCAG source contracts
         working-directory: frontend
         run: npm run test:wcag-source-contracts
+      - name: Test rendered WCAG DOM metrics
+        working-directory: frontend
+        run: npm run test:dom-metrics
       - name: Test admin content page accessibility
         working-directory: frontend
         run: npm run test:admin-content-a11y

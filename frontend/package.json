@@ -165,6 +165,7 @@
     "test:calendar-aria-shim": "node --test src/features/reservations/components/calendar-aria-shim.test.mjs",
     "test:axe-coverage": "node --test e2e/axe-coverage.test.mjs",
     "test:wcag-source-contracts": "node --test src/app/wcag-source-contracts.test.mjs",
+    "test:dom-metrics": "node --test e2e/dom-metrics.test.mjs",
     "test:admin-content-a11y": "node --test src/features/content/admin-content-a11y.test.mjs",
     "test:settings-semantic-tokens": "node --test src/features/settings/settings-semantic-tokens.test.mjs",
     "test:admin-settings-controls-a11y": "node --test src/features/settings/admin-settings-controls-a11y.test.mjs",
