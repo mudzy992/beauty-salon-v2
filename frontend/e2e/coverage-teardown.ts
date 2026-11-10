@@ -1,4 +1,9 @@
-import { aggregateCoverage, defaultCoverageDir, formatCoverageSummary } from './axe-coverage.mjs'
+import {
+  aggregateCoverage,
+  defaultCoverageDir,
+  encodeWorkflowMessage,
+  formatCoverageSummary,
+} from './axe-coverage.mjs'
 
 /**
  * `globalTeardown` — sabere zapise pokrivenosti svih ruta i iznese ih u CI anotaciju.
@@ -13,6 +18,10 @@ import { aggregateCoverage, defaultCoverageDir, formatCoverageSummary } from './
  */
 export default function coverageTeardown(): void {
   const summary = formatCoverageSummary(aggregateCoverage(defaultCoverageDir()))
-  // Anotacije ne smiju biti višelinijske u naslovu, pa tijelo ide kao jedna linija s `\n`.
-  process.stdout.write(`::notice title=axe pokrivenost pravila po WCAG kriteriju::${summary}\n`)
+  // Sirovi novi red bi prekinuo workflow komandu i anotacija bi nosila samo prvi red
+  // (izmjereno na runu `42876931983`), pa se poruka mora kodirati. Naslov je namjerno bez
+  // `:` i `,` — to su separatori svojstava u workflow komandi.
+  process.stdout.write(
+    `::notice title=axe pokrivenost pravila po WCAG kriteriju::${encodeWorkflowMessage(summary)}\n`,
+  )
 }

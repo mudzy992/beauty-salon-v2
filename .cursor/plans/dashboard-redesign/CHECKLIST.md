@@ -680,8 +680,14 @@ ključeva po jeziku, 0 razlika · `check_doc_links` **670/202** · `check_ci_ind
 - [ ] **16 kriterija nema axe pravilo** (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12, 2.3.1, 2.3.3, 2.4.5,
       2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — ostaju 🟡; treba čitač ekrana ili
       M1–M13.
-- [ ] **Nijedan 🟡 još NIJE pomjeren na ✅** — to čeka prvi CI run s anotacijom pokrivenosti.
-      Bez nje bi bilo nagađanje.
+- [x] **Druga greška, uhvaćena tek u CI (run `42876931983`):** anotacija je stigla kao jedan red
+      jer GitHub workflow komanda **završava na sirovom novom redu**. `\n` → `%0A`, `%` → `%25`
+      (**prvi**). Dodato `encodeWorkflowMessage()` + 3 testa; **mutacije 2/2**. Ukupno na modulu
+      **7/7**.
+- [x] **Izmjereno iz istog runa: 32 zapisa** = 9 javnih + 15 admin + 8 stylist ruta. Suite javlja
+      38 jer uključuje nerutne testove — 32 je ispravno.
+- [ ] **Nijedan 🟡 još NIJE pomjeren na ✅** — to čeka CI run s **potpunom** anotacijom
+      pokrivenosti. Bez nje bi bilo nagađanje.
 
 ### Kapije na kraju ovog poteza (izmjereno, ne prepisano)
 

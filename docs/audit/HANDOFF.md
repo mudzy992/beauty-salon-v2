@@ -1555,6 +1555,15 @@ ima ključ **`passes`** (množina). Posljedica bi bila tiha i potpuna — **svak
 ruti postalo bi `absent`, izvještaj bi izgledao uredno, i nijedan kriterij se ne bi mogao
 pomjeriti. `test:axe-coverage` (10/10, mutacije 5/5) to hvata.
 
+**Druga greška, uhvaćena tek u CI (run `42876931983`):** anotacija je stigla kao jedan red —
+„axe pokrivenost — 32 ruta" — a svih 17 redova o pravilima je izgubljeno. Uzrok: GitHub workflow
+komanda **završava na sirovom novom redu**, pa se `\n` mora kodirati kao `%0A` (a `%` kao `%25`,
+i to **prvi**). Dodato `encodeWorkflowMessage()` + 3 testa (mutacije 2/2).
+
+**Izmjereno iz tog runa:** zapisa je **32**, što je tačno zbir ruta (9 javnih + 15 admin +
+8 stylist). Suite javlja 38 jer uključuje i nerutne testove (skip-link i sl.) — 32 je dakle
+ispravan broj, ne propust.
+
 **Šta ovo NE rješava:** 16 kriterija **nema** axe pravilo (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12,
 2.3.1, 2.3.3, 2.4.5, 2.5.1, 2.5.2, 2.5.4, 3.2.1, 3.2.2, 3.3.1, 3.3.3, 3.3.8) — za njih treba
 čitač ekrana ili ručna provjera (M1–M13). Oni ostaju 🟡 bez obzira na ovaj alat.

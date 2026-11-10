@@ -6285,6 +6285,17 @@ postalo bi `absent`, izvještaj bi izgledao uredno, i nijedan kriterij se ne bi 
 nad `violations` (1) · ime fajla bez saterivanja (7). Vraćeni fajl bajt-identičan, 0 pada.
 Registrovan u `frontend/package.json` **i** `.github/workflows/ci.yml`.
 
+### Druga greška — uhvaćena tek u CI (run `42876931983`)
+
+Anotacija je stigla kao **jedan red** („axe pokrivenost — 32 ruta"), a svih 17 redova o pravilima
+je izgubljeno. Uzrok: GitHub workflow komanda **završava na sirovom novom redu**, pa se `\n`
+mora kodirati kao `%0A`, a `%` kao `%25` — i to **prvi**, inače kvari vlastite zamjene.
+Dodato `encodeWorkflowMessage()` u `.mjs` (testabilno) + 3 testa; **mutacije 2/2** (bez
+kodiranja novog reda 2 pada · `%` zadnji 1 pad). Ukupno mutacija na ovom modulu: **7/7**.
+
+**Izmjereno iz istog runa:** zapisa je **32** = 9 javnih + 15 admin + 8 stylist ruta. Suite javlja
+38 jer uključuje i nerutne testove (skip-link i sl.) — 32 je ispravan broj, ne propust.
+
 ### Šta ovo NE rješava
 
 **16 kriterija nema axe pravilo** (1.3.2, 1.3.3, 1.3.4, 1.4.5, 1.4.12, 2.3.1, 2.3.3, 2.4.5,

@@ -4,10 +4,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
+import { readFileSync as readFile } from 'node:fs'
 import {
   TRACKED_RULES,
   aggregateCoverage,
   coverageFileName,
+  encodeWorkflowMessage,
   formatCoverageSummary,
   recordAxeCoverage,
   verdictFor,
@@ -177,4 +179,34 @@ test('zapis je čitljiv JSON s jednim fajlom po ruti (nema prepisivanja pri full
   writeFileSync(join(dir, 'noise.txt'), 'x', 'utf8')
   assert.equal(aggregateCoverage(dir).routeCount, 2, 'ne-JSON fajlovi se preskaču')
   rmSync(dir, { recursive: true, force: true })
+})
+
+test('encodeWorkflowMessage kodira novi red — inače anotacija nosi samo prvi red', () => {
+  // Izmjereno na runu 42876931983: bez kodiranja anotacija je stigla kao
+  // „axe pokrivenost — 32 ruta" i svih 17 redova o pravilima je izgubljeno.
+  assert.equal(encodeWorkflowMessage('a\nb'), 'a%0Ab')
+  assert.equal(encodeWorkflowMessage('a\r\nb'), 'a%0D%0Ab')
+  // `%` mora ići PRVI, inače bi se vlastite zamjene pokvarile.
+  assert.equal(encodeWorkflowMessage('50%\n'), '50%25%0A')
+  assert.equal(encodeWorkflowMessage(encodeWorkflowMessage('a\nb')), 'a%250Ab')
+  assert.equal(encodeWorkflowMessage('bez specijalnih'), 'bez specijalnih')
+})
+
+test('kodirani sažetak nema sirovi novi red i nosi sva pravila', () => {
+  const dir = tempDir()
+  recordAxeCoverage('admin', '/admin/settings', axeReport({ passed: ['color-contrast'] }), dir)
+  const encoded = encodeWorkflowMessage(formatCoverageSummary(aggregateCoverage(dir)))
+  assert.equal(encoded.includes('\n'), false, 'sirovi novi red bi prekinuo workflow komandu')
+  assert.equal(encoded.includes('\r'), false)
+  for (const { rule } of TRACKED_RULES) assert.ok(encoded.includes(rule), `nedostaje ${rule}`)
+  rmSync(dir, { recursive: true, force: true })
+})
+
+test('teardown kodira poruku, a naslov nema separatora svojstava', () => {
+  const source = readFile(new URL('./coverage-teardown.ts', import.meta.url), 'utf8')
+  assert.match(source, /encodeWorkflowMessage\(summary\)/)
+  const title = source.match(/::notice title=([^:]*)::/)
+  assert.ok(title, 'teardown mora imati ::notice title=...')
+  assert.equal(title[1].includes(','), false, 'zarez razdvaja svojstva u workflow komandi')
+  assert.equal(/globalTeardown/.test(readFile(new URL('./../playwright.config.ts', import.meta.url), 'utf8')), true)
 })

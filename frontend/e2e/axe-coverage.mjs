@@ -141,6 +141,21 @@ export function verdictFor(counts) {
   return 'PROLAZ'
 }
 
+/**
+ * Kodira poruku za GitHub workflow komandu (`::notice::`).
+ *
+ * Komanda se završava na **sirovom** novom redu, pa višelinijska poruka bez kodiranja stiže
+ * kao samo prvi red — izmjereno na runu `42876931983`: anotacija je nosila jedva
+ * „axe pokrivenost — 32 ruta", a svih 17 redova o pravilima je izgubljeno. Redoslijed je
+ * bitan: `%` se mora zamijeniti **prvi**, inače bi pokvario vlastite zamjene.
+ */
+export function encodeWorkflowMessage(text) {
+  return String(text)
+    .replace(/%/g, '%25')
+    .replace(/\r/g, '%0D')
+    .replace(/\n/g, '%0A')
+}
+
 /** Kompaktan sažetak za CI anotaciju (log i artefakt se ne daju dohvatiti). */
 export function formatCoverageSummary(agg) {
   const byCriterion = new Map()

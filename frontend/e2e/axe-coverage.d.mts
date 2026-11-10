@@ -48,6 +48,8 @@ export function aggregateCoverage(dir: string): {
   routeCount: number
 }
 
+export function encodeWorkflowMessage(text: string): string
+
 export function verdictFor(counts: RuleCounts): 'PROLAZ' | 'NEPOTPUNO' | 'NIJE_SE_PRIMJENIO' | 'PAD'
 
 export function formatCoverageSummary(agg: {
