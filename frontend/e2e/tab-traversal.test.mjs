@@ -89,12 +89,34 @@ test('prazan i nepotpun ulaz ne pada', () => {
   assert.equal(junk.expectedCount, 0)
 })
 
-test('tabPressesFor daje jedan pritisak više od broja elemenata', () => {
-  // Tek taj dodatni pritisak pokazuje da fokus ciklira nazad umjesto da ostane zarobljen.
-  assert.equal(tabPressesFor(3), 4)
-  assert.equal(tabPressesFor(0), 1)
-  assert.equal(tabPressesFor(NaN), 1, 'NaN ne smije proizvesti NaN petlju')
-  assert.equal(tabPressesFor(undefined), 1)
+test('tabPressesFor je gornja granica, ne tačan broj pritisaka', () => {
+  // Petlja u specu prekida čim se ciklus zatvori. Granica mora biti znatno veća od spiska
+  // jer jedan element može potrošiti više pritisaka: native `<input type="date">` ima
+  // segmente dan/mjesec/godina i svaki troši po jedan Tab. S `expected + 1` bi rep stranice
+  // ostao neposjećen (izmjereno na runu 42967538571).
+  assert.ok(tabPressesFor(3) >= 3 * 2, 'mora biti višestruko veće od spiska')
+  assert.ok(tabPressesFor(0) > 0, 'i prazna stranica dobije barem jedan pritisak')
+  assert.ok(Number.isFinite(tabPressesFor(NaN)), 'NaN ne smije proizvesti NaN petlju')
+  assert.ok(Number.isFinite(tabPressesFor(undefined)))
+})
+
+test('2.1.2 se ne izjašnjava o višestrukim oznakama', () => {
+  // Dvije RAZLIČITE dugmadi mogu dati istu oznaku (više Radix switcheva
+  // `button.peer.inline-flex` bez teksta). Uzastopne iste oznake tad znače da se fokus
+  // POMJERIO, samo se to iz oznake ne vidi. Izmjereno na runu 42967538571: `/admin/loyalty`
+  // i `/admin/reservations/calendar` javili su zamku upravo na takvim oznakama.
+  const out = analyzeTabTraversal({
+    expected: ['btn', 'btn', 'btn'],
+    visited: ['btn', 'btn', 'btn'],
+  })
+  assert.equal(out.stuckAt, null, 'višestruka oznaka ne dokazuje zamku')
+
+  // Kontrola: jedinstvena oznaka koja se ponovi uzastopno JESTE zamka.
+  const real = analyzeTabTraversal({
+    expected: ['jedinstven', 'btn'],
+    visited: ['jedinstven', 'jedinstven', 'jedinstven'],
+  })
+  assert.equal(real.stuckAt, 'jedinstven')
 })
 
 test('describeTraversal imenuje elemente, ne samo brojeve', () => {

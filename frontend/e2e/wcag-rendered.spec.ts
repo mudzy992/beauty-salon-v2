@@ -218,6 +218,7 @@ for (const route of PUBLIC_ROUTES) {
     // redoslijed je upravo ono što 2.4.3 traži. Isti prolazak daje obje tvrdnje.
     const visited: (string | null)[] = []
     let previous: string | null = null
+    let cycleStart: string | null = null
 
     // Generozan broj koraka: javne stranice imaju navigaciju, forme i podnožje.
     for (let i = 0; i < expected.length + 10; i += 1) {
@@ -233,6 +234,11 @@ for (const route of PUBLIC_ROUTES) {
         label === previous &&
         (await page.evaluate(activeElementIsSegmentedInput))
       visited.push(indeterminate ? null : label)
+      // Petlja staje čim se ciklus zatvori — daljnji pritisci bi samo ponavljali isti krug.
+      if (!indeterminate && label !== null) {
+        if (cycleStart === null) cycleStart = label
+        else if (label === cycleStart) break
+      }
       previous = label
       if (!label) continue
 

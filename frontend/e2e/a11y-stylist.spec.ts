@@ -143,6 +143,7 @@ for (const route of STYLIST_ROUTES) {
     const expected: string[] = await page.evaluate(focusableSnapshot)
     const visited: (string | null)[] = []
     let previous: string | null = null
+    let cycleStart: string | null = null
     for (let i = 0; i < tabPressesFor(expected.length); i += 1) {
       await page.keyboard.press('Tab')
       const label = await page.evaluate(activeElementLabel)
@@ -156,6 +157,11 @@ for (const route of STYLIST_ROUTES) {
         label === previous &&
         (await page.evaluate(activeElementIsSegmentedInput))
       visited.push(indeterminate ? null : label)
+      // Petlja staje čim se ciklus zatvori — daljnji pritisci bi samo ponavljali isti krug.
+      if (!indeterminate && label !== null) {
+        if (cycleStart === null) cycleStart = label
+        else if (label === cycleStart) break
+      }
       previous = label
     }
 

@@ -72,12 +72,20 @@ export function analyzeTabTraversal({ expected = [], visited = [] } = {}) {
   // snapshotu, fokus nije zarobljen nego `b` nije dostižan. To je prekršaj 2.1.1 i već je
   // prijavljen kroz `unvisited`. Proglasiti to zamkom bio bi nalaz koji imenuje pogrešan
   // kriterij. `cycleLength` ostaje kao podatak da se to dvoje može razlikovati.
+  // I ovdje vrijedi isto pravilo kao za redoslijed: dvije RAZLIČITE dugmadi mogu dati istu
+  // oznaku (npr. više Radix switcheva `button.peer.inline-flex` bez teksta). Uzastopne iste
+  // oznake tad znače da se fokus POMJERIO, samo se to iz oznake ne vidi — pa bi mjera
+  // prijavila zamku koje nema. Presuđuje se samo po jedinstvenim oznakama.
+  // Izmjereno na runu 42967538571: `/admin/loyalty`, `/admin/reservations/calendar`,
+  // `/admin/finance` i `/stylist/workbook` pali su upravo na višestrukim oznakama.
+  const occurrences = new Map()
+  for (const label of expectedList) occurrences.set(label, (occurrences.get(label) ?? 0) + 1)
   let stuckAt = null
   for (let i = 1; i < meaningful.length; i += 1) {
-    if (meaningful[i] === meaningful[i - 1]) {
-      stuckAt = meaningful[i]
-      break
-    }
+    if (meaningful[i] !== meaningful[i - 1]) continue
+    if (occurrences.get(meaningful[i]) !== 1) continue
+    stuckAt = meaningful[i]
+    break
   }
 
   // Dužina prvog kruga: koliko različitih elemenata prije prvog ponavljanja.
@@ -106,8 +114,6 @@ export function analyzeTabTraversal({ expected = [], visited = [] } = {}) {
   // Izmjereno na runu 42966480987: `/admin/loyalty` i `/admin/reservations/calendar`
   // javili su „redoslijed" upravo na višestrukim `button.inline-flex.items-center` bez
   // teksta, dok je `/admin/analytics` pao na jedinstvenim oznakama i taj nalaz ostaje.
-  const occurrences = new Map()
-  for (const label of expectedList) occurrences.set(label, (occurrences.get(label) ?? 0) + 1)
   const uniqueExpected = expectedList.filter(
     (label) => occurrences.get(label) === 1 && reached.has(label),
   )
@@ -138,16 +144,21 @@ export function analyzeTabTraversal({ expected = [], visited = [] } = {}) {
 }
 
 /**
- * Koliko puta pritisnuti Tab.
- *
- * Jedan pritisak više od broja fokusabilnih elemenata: tek tad se vidi da fokus ciklira
- * nazad na početak umjesto da ostane zarobljen. Bez tog jednog dodatnog pritiska zamka na
- * posljednjem elementu ne bi bila vidljiva.
+ * Gornja granica broja pritisaka Tab. Petlja u specu prekida čim se ciklus zatvori, pa se
+ * ovaj broj dohvata samo kad nešto nije u redu.
  *
  * @param {number} expectedCount
  */
 export function tabPressesFor(expectedCount) {
-  return (Number.isFinite(expectedCount) ? expectedCount : 0) + 1
+  // GORNJA GRANICA, ne tačan broj: spec petlju prekida čim se ciklus zatvori, pa se ovaj
+  // broj troši samo kad nešto nije u redu. Triput veći od spiska jer jedan element može
+  // potrošiti više pritisaka — native `<input type="date">` ima segmente dan/mjesec/godina
+  // u zatvorenom shadow DOM-u i svaki segment troši po jedan Tab, a `document.activeElement`
+  // ostaje isti. Izmjereno na runu 42967538571: s `expected + 1` pritisaka rep stranice
+  // ostajao je neposjećen, pa je mjera javljala „Tab ne doseže" na elementima do kojih Tab
+  // stvarno dolazi — uvijek na repu, odmah poslije polja s datumom.
+  const base = Number.isFinite(expectedCount) ? expectedCount : 0
+  return base * 3 + 10
 }
 
 /**
