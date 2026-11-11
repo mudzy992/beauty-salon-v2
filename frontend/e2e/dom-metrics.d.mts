@@ -15,6 +15,13 @@ export function clippedSnapshot(): Record<string, ClippedEntry>
 export function focusableSnapshot(): string[]
 export function hasVisibleFocusIndicator(): boolean
 export function activeElementLabel(): string | null
+
+/**
+ * Da li je fokusirani element native input s internim segmentima (datum/vrijeme).
+ * Chromium takve segmente drži u zatvorenom shadow DOM-u, pa Tab pomjeri fokus a
+ * `document.activeElement` ostaje isti — izvana identično zaglavljenom fokusu.
+ */
+export function activeElementIsSegmentedInput(): boolean
 export function landmarkSnapshot(): Landmark[]
 
 export type OverflowingElement = {

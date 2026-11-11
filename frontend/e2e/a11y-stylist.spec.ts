@@ -10,7 +10,11 @@ import { expect, test } from '@playwright/test'
 import { settleAnimations } from './settle'
 import { existsSync, readFileSync } from 'node:fs'
 
-import { activeElementLabel, focusableSnapshot } from './dom-metrics.mjs'
+import {
+  activeElementIsSegmentedInput,
+  activeElementLabel,
+  focusableSnapshot,
+} from './dom-metrics.mjs'
 import { analyzeTabTraversal, describeTraversal, tabPressesFor } from './tab-traversal.mjs'
 import { STYLIST_STATUS, type AdminStatus } from './auth-paths'
 
@@ -138,9 +142,21 @@ for (const route of STYLIST_ROUTES) {
 
     const expected: string[] = await page.evaluate(focusableSnapshot)
     const visited: (string | null)[] = []
+    let previous: string | null = null
     for (let i = 0; i < tabPressesFor(expected.length); i += 1) {
       await page.keyboard.press('Tab')
-      visited.push(await page.evaluate(activeElementLabel))
+      const label = await page.evaluate(activeElementLabel)
+      // Native `<input type="date">` ima segmente u ZATVORENOM shadow DOM-u: Tab prebacuje
+      // segment, a `document.activeElement` ostaje isti `<input>`. Izvana je to identično
+      // zaglavljenom fokusu, pa se takav pritisak bilježi kao neodređen (`null`), što
+      // `analyzeTabTraversal` već zna preskočiti. Bez toga bi 2.1.2 prijavio zamku na
+      // svakoj formi s datumom (izmjereno: run 42966480987, 4 rute).
+      const indeterminate =
+        label !== null &&
+        label === previous &&
+        (await page.evaluate(activeElementIsSegmentedInput))
+      visited.push(indeterminate ? null : label)
+      previous = label
     }
 
     const traversal = analyzeTabTraversal({ expected, visited })

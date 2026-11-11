@@ -75,11 +75,18 @@ export function focusableSnapshot() {
     return `${tag}${id}${cls}${text ? ` "${text}"` : ''}`
   }
 
-  const selector =
-    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
-    'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  // `tabindex="-1"` se provjerava u JS-u, NE u CSS alternativama. Prijašnji oblik je bio
+  // `button:not([disabled]), …, [tabindex]:not([tabindex="-1"])` — a `:not([tabindex="-1"])`
+  // je važilo SAMO za posljednju alternativu, pa je `<button tabindex="-1">` upadao u spisak
+  // preko `button:not([disabled])`. Takav element NIJE u tab nizu po definiciji.
+  // Izmjereno na runu 42966480987: `/admin/finance` i `/admin/users` javili su „Tab ne
+  // doseže" upravo na neaktivnim Radix tabovima, koji imaju `tabindex="-1"` jer se po
+  // ARIA APG između tabova ide strelicama, a tablista je jedan tab-stop.
+  const selector = 'a[href], button, input, select, textarea, [tabindex]'
   const out = []
   for (const el of document.querySelectorAll(selector)) {
+    if (el.hasAttribute('disabled')) continue
+    if (el.getAttribute('tabindex') === '-1') continue
     const rect = el.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) continue
     const cs = getComputedStyle(el)
@@ -98,6 +105,21 @@ export function hasVisibleFocusIndicator() {
   const cs = getComputedStyle(el)
   const hasOutline = cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) > 0
   return hasOutline || cs.boxShadow !== 'none'
+}
+
+/**
+ * Da li je fokusirani element native input s internim segmentima.
+ *
+ * Chromiumov `<input type="date">` ima segmente dan/mjesec/godina unutar **zatvorenog**
+ * shadow DOM-a. Tab prebacuje segment, a `document.activeElement` ostaje isti `<input>` —
+ * pa izvana to izgleda identično kao zaglavljen fokus. Nije: fokus se pomjerio, samo se to
+ * ne vidi. Bez ove provjere bi 2.1.2 prijavio zamku na svakoj formi s datumom
+ * (izmjereno na runu 42966480987: 4 rute, sve na `input` s datumom).
+ */
+export function activeElementIsSegmentedInput() {
+  const el = document.activeElement
+  if (!el || el.tagName !== 'INPUT') return false
+  return ['date', 'time', 'month', 'week', 'datetime-local'].includes(el.type)
 }
 
 /** Landmarki u DOM redoslijedu, s vizuelnom pozicijom (1.3.2). */

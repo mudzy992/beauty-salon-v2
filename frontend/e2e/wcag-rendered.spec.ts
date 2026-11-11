@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
 import {
+  activeElementIsSegmentedInput,
   activeElementLabel,
   clippedSnapshot,
   focusableSnapshot,
@@ -216,12 +217,23 @@ for (const route of PUBLIC_ROUTES) {
     // Bilježi se NIZ, ne skup: skup dokazuje dostižnost (2.1.1) ali baca redoslijed, a
     // redoslijed je upravo ono što 2.4.3 traži. Isti prolazak daje obje tvrdnje.
     const visited: (string | null)[] = []
+    let previous: string | null = null
 
     // Generozan broj koraka: javne stranice imaju navigaciju, forme i podnožje.
     for (let i = 0; i < expected.length + 10; i += 1) {
       await page.keyboard.press('Tab')
       const label = await page.evaluate(activeElementLabel)
-      visited.push(label)
+      // Native `<input type="date">` ima segmente u ZATVORENOM shadow DOM-u: Tab prebacuje
+      // segment, a `document.activeElement` ostaje isti `<input>`. Izvana je to identično
+      // zaglavljenom fokusu, pa se takav pritisak bilježi kao neodređen (`null`), što
+      // `analyzeTabTraversal` već zna preskočiti. Bez toga bi 2.1.2 prijavio zamku na
+      // svakoj formi s datumom (izmjereno: run 42966480987).
+      const indeterminate =
+        label !== null &&
+        label === previous &&
+        (await page.evaluate(activeElementIsSegmentedInput))
+      visited.push(indeterminate ? null : label)
+      previous = label
       if (!label) continue
 
       // Fokus mora biti vidljiv — bez indikatora korisnik tastature ne zna gdje je.

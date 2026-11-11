@@ -121,3 +121,52 @@ test('describeTraversal imenuje elemente, ne samo brojeve', () => {
   )
   assert.doesNotMatch(clean, /ZAGLAVLJENO|nedostignuto|REDOSLIJED|krug/)
 })
+
+test('2.1.1 broji pojave, ne skup: jedan od dva ista elementa ostaje nedostignut', () => {
+  // Oznaka nije nužno jedinstvena. Da se broji samo skup, jedan dosegnut „Nazad" bi
+  // prikrio onaj drugi koji Tab nikad nije dohvatio — lažni prolaz.
+  // Dvije pojave „Nazad" u DOM-u, a Tab je dohvatio samo jednu.
+  const out = analyzeTabTraversal({
+    expected: ['Nazad', 'Naprijed', 'Nazad'],
+    visited: ['Nazad', 'Naprijed', 'Naprijed'],
+  })
+  assert.deepEqual(out.unvisited, ['Nazad'], 'jedna od dvije pojave ostaje nedostignuta')
+
+  // Kontrola: kad se obje pojave dosegnu, duga je prazna.
+  const twice = analyzeTabTraversal({
+    expected: ['Nazad', 'Naprijed', 'Nazad'],
+    visited: ['Nazad', 'Naprijed', 'Nazad'],
+  })
+  assert.deepEqual(twice.unvisited, [])
+
+  const both = analyzeTabTraversal({
+    expected: ['Nazad', 'Naprijed', 'Nazad'],
+    visited: ['Nazad', 'Naprijed', 'Nazad', 'Naprijed', 'Nazad'],
+  })
+  assert.deepEqual(both.unvisited, [], 'oba „Nazad" su dosegnuta')
+})
+
+test('2.4.3 se ne izjašnjava o višestrukim oznakama', () => {
+  // Izmjereno na runu 42966480987: `/admin/loyalty` i `/admin/reservations/calendar`
+  // javili su „redoslijed" na višestrukim `button.inline-flex.items-center` bez teksta.
+  // Iz niza istih oznaka ne zna se koji je element fokusiran, pa bi nalaz imenovao
+  // element koji nije uzrok.
+  const out = analyzeTabTraversal({
+    expected: ['btn', 'btn', 'jedinstven'],
+    visited: ['btn', 'jedinstven', 'btn'],
+  })
+  assert.equal(out.orderMismatch, null, 'višestruke oznake se preskaču')
+  assert.deepEqual(out.unvisited, [])
+})
+
+test('2.4.3 jedinstvene oznake i dalje presuđuje', () => {
+  const out = analyzeTabTraversal({
+    expected: ['a "Stilisti"', 'select#period', 'btn', 'btn'],
+    visited: ['select#period', 'a "Stilisti"', 'btn'],
+  })
+  assert.deepEqual(out.orderMismatch, {
+    index: 0,
+    expected: 'a "Stilisti"',
+    actual: 'select#period',
+  })
+})

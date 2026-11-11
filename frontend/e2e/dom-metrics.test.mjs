@@ -9,6 +9,7 @@ import {
   overflowingElements,
   clippedSnapshot,
   describeElement,
+  activeElementIsSegmentedInput,
   focusableSnapshot,
   hasVisibleFocusIndicator,
   invalidWithoutDescription,
@@ -110,6 +111,49 @@ test('focusableSnapshot nabraja interaktivne, a preskače aria-hidden i nevidlji
   assert.ok(found.some((f) => f.startsWith('input#polje')))
   assert.equal(found.some((f) => f.includes('neaktivno')), false, 'disabled nije fokusabilan')
   assert.equal(found.some((f) => f.includes('skriveno')), false, 'aria-hidden nije dio 2.1.1')
+})
+
+test('focusableSnapshot preskače tabindex="-1" na SVAKOJ vrsti elementa', () => {
+  // Regression za grešku koja je bila u CSS alternativama: `:not([tabindex="-1"])` je
+  // važilo samo za posljednju alternativu, pa je `<button tabindex="-1">` upadao u spisak
+  // preko `button:not([disabled])`. Takav element nije u tab nizu po definiciji, a Radix
+  // upravo tako radi neaktivne tabove (po ARIA APG između tabova se ide strelicama).
+  // Izmjereno na runu 42966480987: `/admin/finance` i `/admin/users` su zato javljali
+  // „Tab ne doseže" na elementima koje Tab legitimno preskače.
+  const doc = makeDom(`
+    <button id="aktivan">Aktivan</button>
+    <button id="neaktivni-tab" tabindex="-1">Neaktivni tab</button>
+    <a href="/x" id="link-s-idx" tabindex="-1">Link</a>
+    <div id="kontejner" tabindex="0">Kontejner</div>
+    <div id="kontejner-minus" tabindex="-1">Kontejner</div>
+  `)
+  for (const el of doc.querySelectorAll('button, a, div')) setBox(el, {})
+
+  const found = focusableSnapshot()
+  assert.ok(found.some((f) => f.startsWith('button#aktivan')), 'obično dugme jeste u nizu')
+  assert.ok(found.some((f) => f.startsWith('div#kontejner ')), 'tabindex="0" jeste u nizu')
+  assert.equal(found.some((f) => f.includes('neaktivni-tab')), false, 'button tabindex="-1" NIJE u nizu')
+  assert.equal(found.some((f) => f.includes('link-s-idx')), false, 'a tabindex="-1" NIJE u nizu')
+  assert.equal(found.some((f) => f.includes('kontejner-minus')), false, 'div tabindex="-1" NIJE u nizu')
+})
+
+test('activeElementIsSegmentedInput — native datum ima segmente koje Tab prebacuje', () => {
+  const doc = makeDom(`
+    <input id="datum" type="date" />
+    <input id="vrijeme" type="time" />
+    <input id="tekst" type="text" />
+    <button id="dugme">Dugme</button>
+  `)
+  doc.querySelector('#datum').focus()
+  assert.equal(activeElementIsSegmentedInput(), true, 'datum ima segmente dan/mjesec/godina')
+  doc.querySelector('#vrijeme').focus()
+  assert.equal(activeElementIsSegmentedInput(), true, 'i vrijeme')
+  doc.querySelector('#tekst').focus()
+  assert.equal(activeElementIsSegmentedInput(), false, 'obično polje nema segmente')
+  doc.querySelector('#dugme').focus()
+  assert.equal(activeElementIsSegmentedInput(), false, 'nije input')
+  doc.body.focus()
+  assert.equal(activeElementIsSegmentedInput(), false, 'fokus nije na elementu')
 })
 
 test('focusableSnapshot preskače elemente bez dimenzija', () => {

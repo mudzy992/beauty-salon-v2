@@ -48,8 +48,20 @@ export function analyzeTabTraversal({ expected = [], visited = [] } = {}) {
   const meaningful = visitedList.filter((label) => label !== null && label !== undefined)
 
   // ── 2.1.1: je li svaki fokusabilni element stvarno dostižan ────────────────
+  // S MULTIPLICITETOM: oznaka nije nužno jedinstvena (dva dugmeta „Nazad" daju isti
+  // string). Da se broji samo skup, jedan dosegnut „Nazad" bi prikrio onaj drugi koji
+  // nije dosegnut — lažni prolaz. Ovako se svaka pojava posebno skida s duga.
   const reached = new Set(meaningful)
-  const unvisited = expectedList.filter((label) => !reached.has(label))
+  const remaining = new Map()
+  for (const label of expectedList) remaining.set(label, (remaining.get(label) ?? 0) + 1)
+  for (const label of meaningful) {
+    const left = remaining.get(label)
+    if (left !== undefined && left > 0) remaining.set(label, left - 1)
+  }
+  const unvisited = []
+  for (const [label, left] of remaining) {
+    for (let i = 0; i < left; i += 1) unvisited.push(label)
+  }
 
   // ── 2.1.2: zaglavljen fokus ───────────────────────────────────────────────
   // Namjerno USKO: `stuckAt` je element na kojem uzastopni Tab nije pomjerio fokus. To je
@@ -88,12 +100,29 @@ export function analyzeTabTraversal({ expected = [], visited = [] } = {}) {
     alreadyListed.add(label)
     firstVisits.push(label)
   }
-  const expectedOrder = expectedList.filter((label) => reached.has(label))
+  // Poredi se samo po JEDINSTVENIM oznakama. Kad se ista oznaka pojavljuje više puta u
+  // DOM-u, iz niza oznaka se ne može zaključiti koji je od njih fokusiran, pa bi svako
+  // poređenje bilo nagađanje — a nagađanje koje padne imenuje element koji nije uzrok.
+  // Izmjereno na runu 42966480987: `/admin/loyalty` i `/admin/reservations/calendar`
+  // javili su „redoslijed" upravo na višestrukim `button.inline-flex.items-center` bez
+  // teksta, dok je `/admin/analytics` pao na jedinstvenim oznakama i taj nalaz ostaje.
+  const occurrences = new Map()
+  for (const label of expectedList) occurrences.set(label, (occurrences.get(label) ?? 0) + 1)
+  const uniqueExpected = expectedList.filter(
+    (label) => occurrences.get(label) === 1 && reached.has(label),
+  )
+  const uniqueSet = new Set(uniqueExpected)
+  const actualUnique = []
+  for (const label of meaningful) {
+    if (!uniqueSet.has(label) || actualUnique.includes(label)) continue
+    actualUnique.push(label)
+  }
+
   let orderMismatch = null
-  const limit = Math.min(firstVisits.length, expectedOrder.length)
+  const limit = Math.min(actualUnique.length, uniqueExpected.length)
   for (let i = 0; i < limit; i += 1) {
-    if (firstVisits[i] !== expectedOrder[i]) {
-      orderMismatch = { index: i, expected: expectedOrder[i], actual: firstVisits[i] }
+    if (actualUnique[i] !== uniqueExpected[i]) {
+      orderMismatch = { index: i, expected: uniqueExpected[i], actual: actualUnique[i] }
       break
     }
   }
