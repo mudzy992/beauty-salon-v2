@@ -59,6 +59,13 @@ export type ImageBearingInventory = {
  * imenovan skup.
  */
 export function imageBearingInventory(limit?: number): ImageBearingInventory
+
+/**
+ * Opis inventara za CI anotaciju. Razdvaja ono što je odlučivo (`<canvas>`) od onog što
+ * traži ljudsku procjenu (raster) i od onog što **nije** prekršaj (`svg <text>` — pravi
+ * tekst u DOM-u), da se popis ne pročita kao nalaz.
+ */
+export function describeImageInventory(inventory: ImageBearingInventory): string
 export function landmarkSnapshot(): Landmark[]
 
 export type OverflowingElement = {

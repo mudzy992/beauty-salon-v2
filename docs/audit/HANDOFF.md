@@ -2273,6 +2273,26 @@ Mutacije 3/3 uhvaćene: **M23** `canvas: 0` umjesto brojanja, **M24** uklonjen f
 `url(` (gradijent bi se brojao kao slika), **M25** `Math.min(img.length, limit)` — granica
 uzorka bi rezala i brojanje.
 
+### Šum u prvoj verziji anotacije — ispravljen prije nego je postao „nalaz“
+
+Prvi CI run s ovom mjerom (`42984459370`, success, 212 passed / 0 failed / 0 skipped)
+ispisao je za `/admin/analytics` anotaciju `1.4.5 /admin/analytics | svg text 18: svg „2025
+M11“ | …`. To se čita kao 18 nalaza, a **nije nijedan**: `<text>` unutar SVG-a je pravi
+tekst u DOM-u, čitač ekrana ga dobija, pa 1.4.5 (slike teksta) tu nije ni dotaknut.
+Četiri javne rute (`/`, `/blog`, `/kontakt`, `/galerija`) dobile su `bg-image 1: …
+url("…/brand/media-fallback.jpg")` — to jeste raster i za njega mjera s pravom traži
+ljudsku procjenu.
+
+`describeImageInventory()` sada razdvaja tri vrste i to piše u samoj poruci: `PREKRŠAJ` za
+`<canvas>`, `TRAŽI LJUDSKU PROCJENU` za raster u pozadini, `NIJE PREKRŠAJ` za `svg <text>`.
+Naslov anotacije je `1.4.5 popis <ruta>`, ne `1.4.5 <ruta>`. Redoslijed je po težini — ono
+što je odlučivo ide prije onog što traži čovjeka — a kad `<canvas>` nema, poruka to i dalje
+kaže, jer prazan ishod ne smije biti tišina. `test:dom-metrics` 42 → **45**.
+
+Mutacije 3/3 uhvaćene: **M26** uklonjena oznaka `NIJE PREKRŠAJ` (svg tekst bi se čitao kao
+nalaz), **M27** uklonjena oznaka `PREKRŠAJ` za canvas, **M28** uklonjena `else` grana
+(tišina kad canvas prolazi).
+
 ### Pouka: `git checkout --` nad nekomitovanim radom
 
 Mutacije su se vraćale s `git checkout -- <fajl>`, a to vraća na **HEAD**. Funkcija

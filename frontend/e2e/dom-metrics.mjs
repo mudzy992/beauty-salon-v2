@@ -475,3 +475,45 @@ export function imageBearingInventory(limit = 4) {
     },
   }
 }
+
+/**
+ * Čitljiv opis inventara za CI anotaciju — 1.4.5.
+ *
+ * ── Zašto postoji kao poseban korak ────────────────────────────────────────
+ * Prva verzija je u anotaciju ispisala `svg text 18` za `/admin/analytics`. To se čita kao
+ * 18 nalaza, a **nije nijedan**: `<text>` unutar SVG-a je pravi tekst u DOM-u, čitač ekrana
+ * ga dobija, pa 1.4.5 (slike teksta) tu nije ni dotaknut. Mjera koja imenuje elemente koji
+ * nisu uzrok je šum, i to se ovdje ispravlja u samoj poruci.
+ *
+ * Redoslijed je po težini: prvo ono što je **odlučivo** (`<canvas>` — tekst u platnu je
+ * nevidljiv za AT, a 1.4.5 za to nema izuzetak), zatim ono što **traži ljudsku procjenu**
+ * (raster slike, jer sadržaj piksela ne čita nijedan alat u ovom repu), i na kraju ono što
+ * **nije prekršaj** ali vrijedi znati (SVG tekst — tekst jeste grafika, ali jeste i tekst).
+ */
+export function describeImageInventory(inventory) {
+  const { counts, samples } = inventory
+  const list = (items, render) => items.map(render).join(' | ')
+  const parts = []
+
+  if (counts.canvas > 0) {
+    parts.push(
+      `PREKRŠAJ ${counts.canvas} <canvas>: ${list(samples.canvas, (s) => `${s.where} ${s.width}×${s.height}`)} — tekst u platnu je nevidljiv za AT, a 1.4.5 za to nema izuzetak`,
+    )
+  } else {
+    parts.push('canvas 0 — odlučivo prolazi (tekst u platnu bi bio nevidljiv za AT)')
+  }
+
+  if (counts.bgImage > 0) {
+    parts.push(
+      `TRAŽI LJUDSKU PROCJENU ${counts.bgImage} background-image s URL-om: ${list(samples.bgImage, (s) => `${s.where} ${s.value}`)} — sadrži li raster tekst ne zna nijedan alat ovdje`,
+    )
+  }
+
+  if (counts.svgText > 0) {
+    parts.push(
+      `NIJE PREKRŠAJ ${counts.svgText} svg <text>: ${list(samples.svgText, (s) => `${s.where} „${s.text}“`)} — pravi tekst u DOM-u, čitač ekrana ga dobija; navedeno samo da se vidi gdje je tekst grafika`,
+    )
+  }
+
+  return parts.join(' · ')
+}

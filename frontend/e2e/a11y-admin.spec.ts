@@ -14,6 +14,7 @@ import {
   activeElementIsSegmentedInput,
   activeElementLabel,
   focusableSnapshot,
+  describeImageInventory,
   imageBearingInventory,
   probeFocusability,
   invalidWithoutDescription,
@@ -351,6 +352,9 @@ for (const route of ADMIN_ROUTES) {
 //
 // Anotacija se ispisuje samo kad ima nečeg što vrijedi pogledati (`svg text`, `canvas`,
 // `background-image` s URL-om) — `<img>` i `role="img"` su očekivani i pokriveni pod 1.1.1.
+// `describeImageInventory` razdvaja tri vrste: `<canvas>` je prekršaj, raster u pozadini
+// traži ljudsku procjenu, a `svg <text>` NIJE prekršaj jer je to pravi tekst u DOM-u. Bez
+// te oznake bi `/admin/analytics` s 18 oznaka osa u grafikonu izgledao kao 18 nalaza.
 for (const route of ADMIN_ROUTES) {
   test(`1.4.5 admin: popis mjesta gdje tekst može biti slika — ${route.name} (${route.path})`, async ({ page }) => {
     await page.goto(route.path, { waitUntil: 'networkidle' })
@@ -359,13 +363,9 @@ for (const route of ADMIN_ROUTES) {
     const { counts } = inventory
 
     if (counts.svgText > 0 || counts.canvas > 0 || counts.bgImage > 0) {
-      const detail = [
-        `svg text ${counts.svgText}: ${inventory.samples.svgText.map((s) => `${s.where} „${s.text}“`).join(' | ')}`,
-        `canvas ${counts.canvas}: ${inventory.samples.canvas.map((s) => `${s.where} ${s.width}×${s.height}`).join(' | ')}`,
-        `bg-image ${counts.bgImage}: ${inventory.samples.bgImage.map((s) => `${s.where} ${s.value}`).join(' | ')}`,
-      ].join(' · ')
+      const detail = describeImageInventory(inventory)
       process.stdout.write(
-        `::notice title=1.4.5 ${route.path}::` +
+        `::notice title=1.4.5 popis ${route.path}::` +
           `${detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}\n`,
       )
     }

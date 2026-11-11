@@ -14,6 +14,7 @@ import {
   hasVisibleFocusIndicator,
   invalidWithoutDescription,
   requiredNotMarked,
+  describeImageInventory,
   imageBearingInventory,
   labelInNameViolations,
   landmarkSnapshot,
@@ -615,4 +616,47 @@ test('overflowingElements — element koji reže sadržaj nije krivac za širinu
     ['div.gura'],
     'hidden/auto/scroll režu svoj sadržaj i ne prenose višak na viewport',
   )
+})
+
+// ── 1.4.5: opis inventara mora razdvojiti prekršaj od onog što to nije ──────
+// Bez ovoga anotacija za `/admin/analytics` glasi `svg text 18`, što se čita kao 18 nalaza
+// a nije nijedan — `<text>` u SVG-u je pravi tekst u DOM-u.
+const inventory = (counts, samples = {}) => ({
+  counts: { img: 0, roleImg: 0, svgText: 0, canvas: 0, bgImage: 0, ...counts },
+  samples: { img: [], roleImg: [], svgText: [], canvas: [], bgImage: [], ...samples },
+})
+
+test('describeImageInventory oznacava svg <text> kao nesto sto NIJE prekršaj', () => {
+  const out = describeImageInventory(
+    inventory({ svgText: 18 }, { svgText: [{ where: 'svg#graf', text: '2025 M11' }] }),
+  )
+  assert.match(out, /NIJE PREKRŠAJ 18 svg <text>/)
+  assert.match(out, /pravi tekst u DOM-u/, 'mora reci zasto ovo nije nalaz')
+  assert.match(out, /2025 M11/, 'primjer mora biti imenovan')
+  // Samostalna oznaka PREKRŠAJ (bez NIJE ispred) bi se u CI procitala kao nalaz.
+  assert.doesNotMatch(out, /(?:^|· )PREKRŠAJ /)
+})
+
+test('describeImageInventory imenuje canvas prekršajem i stavlja ga ispred raster slika', () => {
+  const out = describeImageInventory(
+    inventory(
+      { canvas: 1, bgImage: 1 },
+      {
+        canvas: [{ where: 'canvas#platno', width: 300, height: 150 }],
+        bgImage: [{ where: 'div.pozadina', value: 'url("/l.png")' }],
+      },
+    ),
+  )
+  assert.match(out, /PREKRŠAJ 1 <canvas>/)
+  assert.match(out, /300×150/)
+  assert.match(out, /TRAŽI LJUDSKU PROCJENU 1 background-image/)
+  assert.ok(
+    out.indexOf('PREKRŠAJ 1 <canvas>') < out.indexOf('TRAŽI LJUDSKU PROCJENU'),
+    'ono sto je odlucivo ide prije onog sto trazi ljudsku procjenu',
+  )
+})
+
+test('describeImageInventory javlja i kad canvas prolazi — prazan ishod nije tišina', () => {
+  const out = describeImageInventory(inventory({ img: 3 }))
+  assert.match(out, /canvas 0 — odlučivo prolazi/)
 })
