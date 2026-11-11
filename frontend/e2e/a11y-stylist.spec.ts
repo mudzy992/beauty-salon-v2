@@ -15,8 +15,8 @@ import {
   activeElementLabel,
   focusableSnapshot,
   describeImageInventory,
-  visibleTextNotInName,
   imageBearingInventory,
+  labelInNameViolations,
   probeFocusability,
 } from './dom-metrics.mjs'
 import { analyzeTabTraversal, describeTraversal, tabPressesFor } from './tab-traversal.mjs'
@@ -261,36 +261,26 @@ for (const route of STYLIST_ROUTES) {
   })
 }
 
-// ── 2.5.3 Label in Name — mjera koja sama presuđuje ─────────────────────────
+// ── 2.5.3 Label in Name — postojeća mjera proširena na stylist rute ─────────
 //
-// Axe pravilo `label-content-name-mismatch` na 22 admin/stylist rute vraća
-// **incomplete** s porukom „Unable to determine if the visible text is part of the
-// accessible name" — to nije nalaz nego nesigurnost, pa se ne može ni potvrditi ni
-// opovrgnuti. `visibleTextNotInName` računa oba teksta sama i presuđuje: vidljivi
-// tekst mora biti dio `aria-label`-a, jer glasovni korisnik izgovara ono što vidi.
+// `labelInNameViolations()` je dosad bila vezana samo na 9 javnih i 15 admin ruta, iako
+// stylist shell ima isti obrazac menija s inicijalima. Axe ovo pravilo vraća kao
+// **incomplete** (nesigurnost, ne nalaz), pa se mjeri direktno: `aria-label` se upoređuje
+// s `innerText` u stvarnom rasporedu.
 for (const route of STYLIST_ROUTES) {
-  test(`2.5.3 stylist: vidljivi tekst je dio pristupačnog imena — ${route.name} (${route.path})`, async ({ page }) => {
+  test(`2.5.3 stylist: ime sadrži vidljivi tekst — ${route.name} (${route.path})`, async ({ page }) => {
     await page.goto(route.path, { waitUntil: 'networkidle' })
 
-    const violations = await page.evaluate(visibleTextNotInName)
-
-    if (violations.length) {
+    const bad = await page.evaluate(labelInNameViolations)
+    if (bad.length) {
       process.stdout.write(
-        `::error title=2.5.3 ${route.path}::` +
-          violations
-            .map((v) => `${v.element}: vidljivo „${v.visible}“ nije dio imena „${v.name}“`)
-            .join(' | ')
-            .replace(/%/g, '%25')
-            .replace(/\r/g, '%0D')
-            .replace(/\n/g, '%0A') +
-          '\n',
+        `::error title=2.5.3 ${route.path} — ime ne sadrži vidljivi tekst::` +
+          `${bad
+            .slice(0, 4)
+            .map((b) => `${b.element}: „${b.visible}“ nije u „${b.name}“`)
+            .join(' | ')}\n`,
       )
     }
-
-    expect(
-      violations,
-      `${route.path}: vidljivi tekst nije dio pristupačnog imena — glasovni korisnik koji ` +
-        'izgovori ono što vidi ne pogađa kontrolu',
-    ).toEqual([])
+    expect(bad, `${route.path}: pristupačno ime ne sadrži vidljivi tekst`).toEqual([])
   })
 }

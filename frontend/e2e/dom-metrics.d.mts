@@ -87,11 +87,3 @@ export type RequiredNotMarked = { element: string; label: string }
 
 export function invalidWithoutDescription(): InvalidWithoutDescription[]
 export function requiredNotMarked(): RequiredNotMarked[]
-
-export type VisibleTextNotInName = { element: string; visible: string; name: string }
-
-/**
- * Vidljivi tekst koji nije dio `aria-label`-a — 2.5.3. Mjera računa oba teksta sama jer
- * axe ovo pravilo na 22 rute vraća kao **incomplete** (nesigurnost, ne nalaz).
- */
-export function visibleTextNotInName(): VisibleTextNotInName[]
