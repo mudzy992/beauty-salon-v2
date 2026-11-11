@@ -30,6 +30,12 @@
  *   (izlaz `focusableSnapshot()`)
  * @param {(string|null)[]} [input.visited] oznake fokusiranog elementa nakon svakog
  *   pritiska Tab, redom. `null` znači da fokus nije bio na elementu.
+ * @param {string[]} [input.unfocusable] oznake za koje je `probeFocusability` izmjerila da
+ *   `el.focus()` NE zadrži fokus. Takav element nije zaseban tab-stop, pa ga Tab legitimno
+ *   preskače. Dokazano iz izvora: `react-roving-focus/dist/index.mjs:92` daje kontejneru
+ *   tabliste `tabIndex: 0`, a `onFocus` na linijama 100–106 odmah preusmjeri fokus na
+ *   aktivni tab — pa `document.activeElement` nikad ne ostane na kontejneru. Bez ovog
+ *   podatka mjera je na `/admin/finance` i `/admin/users` tražila prekršaj kojeg nema.
  * @param {string[]} [input.stillFocusable] isti snapshot, ali uzet NA KRAJU prolaska.
  *   Fokusabilnost se može promijeniti tokom prolaska: Radix tablista je jedan tab-stop, pa
  *   njen kontejner ima `tabindex="0"` dok je fokus izvan grupe, a `-1` čim fokus uđe u nju.
@@ -45,6 +51,7 @@
  *   expectedCount: number,
  *   stableCount: number,
  *   becameUnfocusable: string[],
+  notDistinctTabStops: string[],
  *   reachedCount: number,
  *   unvisited: string[],
  *   stuckAt: string|null,
@@ -52,7 +59,12 @@
  *   orderMismatch: {index: number, expected: string, actual: string}|null,
  * }}
  */
-export function analyzeTabTraversal({ expected = [], visited = [], stillFocusable } = {}) {
+export function analyzeTabTraversal({
+  expected = [],
+  visited = [],
+  stillFocusable,
+  unfocusable = [],
+} = {}) {
   const expectedAll = Array.isArray(expected) ? expected : []
   const visitedList = Array.isArray(visited) ? visited : []
 
@@ -65,6 +77,11 @@ export function analyzeTabTraversal({ expected = [], visited = [], stillFocusabl
   }
   const expectedList = []
   const becameUnfocusable = []
+  const notDistinctTabStops = []
+  const probeSaysNo = new Map()
+  for (const label of Array.isArray(unfocusable) ? unfocusable : []) {
+    probeSaysNo.set(label, (probeSaysNo.get(label) ?? 0) + 1)
+  }
   if (Array.isArray(stillFocusable)) {
     for (const label of expectedAll) {
       const left = stillCounts.get(label) ?? 0
@@ -78,6 +95,21 @@ export function analyzeTabTraversal({ expected = [], visited = [], stillFocusabl
   } else {
     expectedList.push(...expectedAll)
   }
+
+  // Elementi za koje je sonda izmjerila da `focus()` ne zadrži fokus nisu zasebni
+  // tab-stopovi — ispadaju iz onoga o čemu se presuđuje, ali ostaju vidljivi.
+  const judged = []
+  for (const label of expectedList) {
+    const left = probeSaysNo.get(label) ?? 0
+    if (left > 0) {
+      probeSaysNo.set(label, left - 1)
+      notDistinctTabStops.push(label)
+    } else {
+      judged.push(label)
+    }
+  }
+  expectedList.length = 0
+  expectedList.push(...judged)
 
   // `null` = fokus nije na elementu (u pravom pregledniku to može biti adresna traka ili
   // okvir). Ne broji se kao posjet, ali i ne prekida niz — Tab se i dalje desio.
@@ -173,6 +205,7 @@ export function analyzeTabTraversal({ expected = [], visited = [], stillFocusabl
     expectedCount: expectedAll.length,
     stableCount: expectedList.length,
     becameUnfocusable,
+    notDistinctTabStops,
     reachedCount: reached.size,
     unvisited,
     stuckAt,
@@ -214,6 +247,12 @@ export function describeTraversal(analysis) {
     parts.push(
       `van tab niza tokom prolaska ${analysis.becameUnfocusable.length}: ` +
         `${analysis.becameUnfocusable.slice(0, 2).join(' | ')}`,
+    )
+  }
+  if (analysis.notDistinctTabStops?.length) {
+    parts.push(
+      `nije zaseban tab-stop (focus() ne zadrži fokus) ${analysis.notDistinctTabStops.length}: ` +
+        `${analysis.notDistinctTabStops.slice(0, 2).join(' | ')}`,
     )
   }
   if (analysis.unvisited.length) {

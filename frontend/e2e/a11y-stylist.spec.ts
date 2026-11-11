@@ -14,6 +14,7 @@ import {
   activeElementIsSegmentedInput,
   activeElementLabel,
   focusableSnapshot,
+  probeFocusability,
 } from './dom-metrics.mjs'
 import { analyzeTabTraversal, describeTraversal, tabPressesFor } from './tab-traversal.mjs'
 import { STYLIST_STATUS, type AdminStatus } from './auth-paths'
@@ -171,10 +172,33 @@ for (const route of STYLIST_ROUTES) {
     // (`/admin/finance`, `/admin/users`) — run 42969095988 pokazuje da je kontejner i
     // dalje u drugom snimku, pa uzrok nije promjenjiva fokusabilnost.
     const stillFocusable: string[] = await page.evaluate(focusableSnapshot)
-    const traversal = analyzeTabTraversal({ expected, visited, stillFocusable })
+    // Sonda pita DOM direktno (`el.focus()` pa `document.activeElement === el`) za svaki
+    // nedostignuti element. Bez toga se ne može razlikovati artefakt instrumenta od
+    // stvarnog prekršaja 2.1.1: Radix kontejner tabliste ima `tabindex="0"`
+    // (`react-roving-focus/dist/index.mjs:92`), ali mu `onFocus` odmah preusmjeri fokus na
+    // aktivni tab, pa na njemu fokus nikad ne ostane.
+    const firstPass = analyzeTabTraversal({ expected, visited, stillFocusable })
+    const probes = firstPass.unvisited.length
+      ? await page.evaluate(probeFocusability, firstPass.unvisited)
+      : []
+    const traversal = analyzeTabTraversal({
+      expected,
+      visited,
+      stillFocusable,
+      unfocusable: probes.filter((probe) => !probe.took).map((probe) => probe.label),
+    })
+    // Dokaz iz sonde ide uz nalaz, ne u zasebnu anotaciju: čitatelja zanima upravo zašto
+    // je ovaj element ostao nedostignut.
+    const probeEvidence = probes
+      .filter((probe) => probe.took)
+      .map((probe) => `${probe.label} (focus() prima; tabindex=${probe.tabindex}, u tablisti=${probe.inTablist})`)
+      .join(' | ')
 
     if (traversal.unvisited.length) {
-      reportStylist(`2.1.1 ${route.path} — Tab ne doseže`, describeTraversal(traversal))
+      reportStylist(
+        `2.1.1 ${route.path} — Tab ne doseže`,
+        describeTraversal(traversal) + (probeEvidence ? ` · sonda: ${probeEvidence}` : ''),
+      )
     }
     expect(
       traversal.unvisited,

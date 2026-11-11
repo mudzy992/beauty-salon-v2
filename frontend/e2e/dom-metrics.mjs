@@ -108,6 +108,70 @@ export function hasVisibleFocusIndicator() {
 }
 
 /**
+ * Da li elementi koje `focusableSnapshot` smatra fokusabilnim to ZAISTA jesu.
+ *
+ * ── Zašto ovo postoji ──────────────────────────────────────────────────────
+ * Snapshot zaključuje fokusabilnost iz atributa i stilova. To nije isto što i pitati DOM:
+ * `el.focus()` pa provjeriti `document.activeElement === el`. Razlika nije teorijska —
+ * nakon runa `42969095988` ostala su 2 nalaza 2.1.1 na kontejneru Radix tabliste koji Tab
+ * nikad ne dohvati, i iz snapshot-a se ne može vidjeti je li to
+ *   (a) element koji uopće nije fokusabilan, pa je nalaz artefakt instrumenta, ili
+ *   (b) element koji jeste fokusabilan a Tab ga preskače, što je stvarni prekršaj 2.1.1.
+ * Bez ove sonde se to dvoje ne može razlikovati, a nagađanje je već jednom dalo pogrešno
+ * objašnjenje koje je run opovrgnuo.
+ *
+ * Zato ovo NE mijenja presudu: samo prijavljuje činjenice uz nalaz, pa se odluka donosi na
+ * osnovu izmjerenog.
+ *
+ * Namjerno je samodostatna (logika za oznaku je prepisana, ne pozvana): Playwright u
+ * preglednik šalje samo `fn.toString()`, bez opsega modula, pa bi poziv pomoćne funkcije
+ * bio `ReferenceError` na svakoj ruti.
+ *
+ * @param {string[]} labels oznake koje treba ispitati (iz `unvisited`)
+ */
+export function probeFocusability(labels) {
+  const wanted = new Set(Array.isArray(labels) ? labels : [])
+  if (wanted.size === 0) return []
+
+  const describe = (el) => {
+    const tag = el.tagName.toLowerCase()
+    const id = el.id ? `#${el.id}` : ''
+    const cls = (typeof el.className === 'string' ? el.className : '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((c) => `.${c}`)
+      .join('')
+    const text = (el.textContent || '').trim().slice(0, 40)
+    return `${tag}${id}${cls}${text ? ` "${text}"` : ''}`
+  }
+
+  const selector = 'a[href], button, input, select, textarea, [tabindex]'
+  const out = []
+  for (const el of document.querySelectorAll(selector)) {
+    const label = describe(el)
+    if (!wanted.has(label)) continue
+
+    let took = false
+    try {
+      el.focus()
+      took = document.activeElement === el
+    } catch {
+      took = false
+    }
+    out.push({
+      label,
+      took,
+      tabindex: el.getAttribute('tabindex'),
+      role: el.getAttribute('role'),
+      // `closest()` matchuje i sâm element: kontejner s `role="tablist"` jeste uključen.
+      inTablist: el.closest('[role="tablist"]') !== null,
+    })
+  }
+  return out
+}
+
+/**
  * Da li je fokusirani element native input s internim segmentima.
  *
  * Chromiumov `<input type="date">` ima segmente dan/mjesec/godina unutar **zatvorenog**

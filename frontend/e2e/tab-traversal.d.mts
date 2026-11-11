@@ -11,6 +11,8 @@ export interface TabTraversalAnalysis {
   stableCount: number
   /** Elementi koji su tokom prolaska ispali iz tab niza; nije prekršaj. */
   becameUnfocusable: string[]
+  /** Elementi na kojima `focus()` ne zadrži fokus — nisu zasebni tab-stopovi, nije prekršaj. */
+  notDistinctTabStops: string[]
   /** Koliko ih je Tab stvarno dohvatio. */
   reachedCount: number
   /** Fokusabilni, a nedostignuti — 2.1.1. */
@@ -29,6 +31,8 @@ export function analyzeTabTraversal(input?: {
   /** Isti snapshot na kraju prolaska — bez njega se presuđuje i o elementima koji su
    * u međuvremenu ispali iz tab niza. */
   stillFocusable?: string[]
+  /** Oznake za koje je `probeFocusability` izmjerila da `focus()` NE zadrži fokus. */
+  unfocusable?: string[]
 }): TabTraversalAnalysis
 
 /** Jedan pritisak više od broja elemenata, da se vidi cikliranje. */

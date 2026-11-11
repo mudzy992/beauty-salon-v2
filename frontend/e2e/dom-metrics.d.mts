@@ -22,6 +22,24 @@ export function activeElementLabel(): string | null
  * `document.activeElement` ostaje isti — izvana identično zaglavljenom fokusu.
  */
 export function activeElementIsSegmentedInput(): boolean
+
+/** Rezultat sonde: šta DOM stvarno kaže o elementu koji snapshot smatra fokusabilnim. */
+export type FocusProbe = {
+  label: string
+  /** Da li je `el.focus()` stvarno primio fokus. */
+  took: boolean
+  tabindex: string | null
+  role: string | null
+  /** Da li je element tablista ili je unutar nje (`closest` matchuje i sâm element). */
+  inTablist: boolean
+}
+
+/**
+ * Ispituje fokusabilnost direktno (`el.focus()` + `document.activeElement`), za razliku od
+ * `focusableSnapshot` koji zaključuje iz atributa i stilova. Ne mijenja presudu — samo
+ * prijavljuje činjenice uz nalaz.
+ */
+export function probeFocusability(labels: string[]): FocusProbe[]
 export function landmarkSnapshot(): Landmark[]
 
 export type OverflowingElement = {

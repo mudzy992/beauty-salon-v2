@@ -238,3 +238,51 @@ test('describeTraversal javlja elemente koji su ispali iz tab niza', () => {
   assert.match(text, /van tab niza tokom prolaska 1: div\.tablista/)
   assert.doesNotMatch(text, /nedostignuto/, 'nije prijavljen kao nedostignut')
 })
+
+test('2.1.1 ne presuđuje o elementu na kojem focus() ne zadrži fokus', () => {
+  // Dokazano iz izvora: `react-roving-focus/dist/index.mjs:92` daje kontejneru tabliste
+  // `tabIndex: 0`, a `onFocus` (linije 100–106) odmah preusmjeri fokus na aktivni tab.
+  // Tab dakle DOĐE na kontejner, ali `document.activeElement` nikad ne ostane na njemu —
+  // pa kontejner nije zaseban tab-stop i nije prekršaj što ga Tab „ne doseže".
+  const out = analyzeTabTraversal({
+    expected: ['div.tablista', 'button "Knjiga Prihoda"', 'a "Dalje"'],
+    visited: ['button "Knjiga Prihoda"', 'a "Dalje"', 'button "Knjiga Prihoda"'],
+    stillFocusable: ['div.tablista', 'button "Knjiga Prihoda"', 'a "Dalje"'],
+    unfocusable: ['div.tablista'],
+  })
+  assert.deepEqual(out.notDistinctTabStops, ['div.tablista'])
+  assert.deepEqual(out.unvisited, [], 'nije prekršaj — fokus se ne zadržava na njemu')
+  assert.deepEqual(out.becameUnfocusable, [], 'nije ni ispao iz tab niza — još je tu')
+})
+
+test('element koji focus() prima a Tab ga preskače JESTE prekršaj', () => {
+  // Kontrola: bez nje bi gornja ispravka bila samo način da mjera prestane javljati.
+  const out = analyzeTabTraversal({
+    expected: ['div.tablista', 'a', 'b'],
+    visited: ['a', 'b', 'a'],
+    stillFocusable: ['div.tablista', 'a', 'b'],
+    unfocusable: ['div.tablista'],
+  })
+  assert.deepEqual(out.unvisited, [])
+
+  const real = analyzeTabTraversal({
+    expected: ['div.tablista', 'a', 'b'],
+    visited: ['a', 'b', 'a'],
+    stillFocusable: ['div.tablista', 'a', 'b'],
+    unfocusable: [],
+  })
+  assert.deepEqual(real.unvisited, ['div.tablista'], 'fokusabilan a nedostignut = prekršaj')
+})
+
+test('describeTraversal javlja elemente koji nisu zaseban tab-stop', () => {
+  const text = describeTraversal(
+    analyzeTabTraversal({
+      expected: ['div.tablista', 'a'],
+      visited: ['a', 'a'],
+      stillFocusable: ['div.tablista', 'a'],
+      unfocusable: ['div.tablista'],
+    }),
+  )
+  assert.match(text, /nije zaseban tab-stop \(focus\(\) ne zadrži fokus\) 1: div\.tablista/)
+  assert.doesNotMatch(text, /nedostignuto/)
+})

@@ -16,6 +16,7 @@ import {
   requiredNotMarked,
   labelInNameViolations,
   landmarkSnapshot,
+  probeFocusability,
 } from './dom-metrics.mjs'
 
 const require = createRequire(import.meta.url)
@@ -135,6 +136,48 @@ test('focusableSnapshot preskače tabindex="-1" na SVAKOJ vrsti elementa', () =>
   assert.equal(found.some((f) => f.includes('neaktivni-tab')), false, 'button tabindex="-1" NIJE u nizu')
   assert.equal(found.some((f) => f.includes('link-s-idx')), false, 'a tabindex="-1" NIJE u nizu')
   assert.equal(found.some((f) => f.includes('kontejner-minus')), false, 'div tabindex="-1" NIJE u nizu')
+})
+
+test('probeFocusability pita DOM direktno, ne zaključuje iz atributa', () => {
+  const doc = makeDom(`
+    <div id="kontejner" tabindex="0" role="tablist"><button id="tab" role="tab" aria-selected="true">Tab</button></div>
+    <button id="obicno">Obično</button>
+  `)
+  for (const el of doc.querySelectorAll('div, button')) setBox(el, {})
+
+  const out = probeFocusability(['div#kontejner "Tab"', 'button#obicno "Obično"'])
+  assert.equal(out.length, 2, 'oba tražena elementa su ispitana')
+
+  const kontejner = out.find((o) => o.label.startsWith('div#kontejner'))
+  assert.equal(kontejner.tabindex, '0', 'atribut kaže da je fokusabilan')
+  assert.equal(kontejner.role, 'tablist')
+  // `closest()` matchuje i sâm element, pa je kontejner s `role="tablist"` uključen.
+  assert.equal(kontejner.inTablist, true, 'kontejner JESTE tablista')
+  assert.equal(kontejner.took, true, 'jsdom prima fokus na div s tabindex=0')
+
+  const obicno = out.find((o) => o.label.startsWith('button#obicno'))
+  assert.equal(obicno.took, true)
+  assert.equal(obicno.inTablist, false, 'obično dugme nema veze s tablistom')
+
+  const tab = probeFocusability(['button#tab "Tab"'])[0]
+  assert.equal(tab.inTablist, true, 'tab jeste unutar tabliste')
+  assert.equal(tab.role, 'tab')
+})
+
+test('probeFocusability — element koji ne može primiti fokus to i pokaže', () => {
+  const doc = makeDom('<button id="neaktivan" disabled>Ne</button><button id="aktivan">Da</button>')
+  for (const el of doc.querySelectorAll('button')) setBox(el, {})
+  const out = probeFocusability(['button#neaktivan "Ne"', 'button#aktivan "Da"'])
+  const neaktivan = out.find((o) => o.label.startsWith('button#neaktivan'))
+  assert.equal(neaktivan.took, false, 'disabled dugme ne prima fokus')
+  assert.equal(out.find((o) => o.label.startsWith('button#aktivan')).took, true)
+})
+
+test('probeFocusability — prazan i nepoznat ulaz ne pada', () => {
+  makeDom('<button id="x">X</button>')
+  assert.deepEqual(probeFocusability([]), [])
+  assert.deepEqual(probeFocusability(undefined), [], 'bez ulaza prazno, ne pad')
+  assert.deepEqual(probeFocusability(['nema-ga']), [], 'nepoznata oznaka se preskače')
 })
 
 test('activeElementIsSegmentedInput — native datum ima segmente koje Tab prebacuje', () => {
