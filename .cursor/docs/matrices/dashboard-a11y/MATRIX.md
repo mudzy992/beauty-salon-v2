@@ -222,7 +222,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.4.5 | ✅ | sidebar + pretraga + hub tabovi (M1/M2) |
 | 2.4.6 | ✅ | `PageHeader` `h1`, vidljive labele; `test:stylist-form-controls-a11y` (≥27 kontrola, 0 bez imena) |
 | 2.4.7 | ✅ | `--focus-ring` 11.56:1, `focus-visible` ×162 |
-| 2.4.9 (AAA) | 🟡 | **Nalaz izmjeren u Chromiumu 2026-11-08** (`identical-links-same-purpose`, run `42985731553`): 30 prolaza, **1 nepotpun čvor** na `/admin/analytics` — `a[href$="stylists"]`. Uzrok pročitan iz izvora: tab „Stilisti" ide na `/admin/analytics?tab=stylists`, a stavka u bočnoj traci „Stilisti" na `/admin/stylists` — identično pristupačno ime, različita svrha. Isto i za „Pregled" (tab vs. naslov grupe) i u bs i u en. Popravljeno kontekstom u imenu: `aria-label` = „Stilisti — analitika" (`adminAnalytics.tabContext`), čime je očuvan i 2.5.3 jer je vidljivi tekst doslovno prefiks imena. `test:analytics-link-purpose` (3 testa, mutacije M29–M32 4/4) računa imena iz i18n datoteka i izvora, ima samoprovjeru opsega (17 linkova bočne trake — obrazac koji traži `}` odmah za `labelKey`-om tiho preskače 4 linka s poljem `tab`) i samoprovjeru da bi bez konteksta sukob zaista bio prijavljen. **Status ostaje 🟡 dok CI ne potvrdi da je nepotpun čvor nestao.** **Šta ovo NE dokazuje:** mjera pokriva tabove analitike naspram bočne trake admina, ne sve linkove u aplikaciji; axe pokriva sve rute, ali 2.4.9 traži da svrha bude jasna iz samog teksta, što potvrđuje tek čovjek. |
+| 2.4.9 (AAA) | ✅ | **Nalaz izmjeren u Chromiumu 2026-11-08** (`identical-links-same-purpose`, run `42985731553`): 30 prolaza, **1 nepotpun čvor** na `/admin/analytics` — `a[href$="stylists"]`. Uzrok pročitan iz izvora: tab „Stilisti" ide na `/admin/analytics?tab=stylists`, a stavka u bočnoj traci „Stilisti" na `/admin/stylists` — identično pristupačno ime, različita svrha. Isto i za „Pregled" (tab vs. naslov grupe) i u bs i u en. Popravljeno kontekstom u imenu: `aria-label` = „Stilisti — analitika" (`adminAnalytics.tabContext`), čime je očuvan i 2.5.3 jer je vidljivi tekst doslovno prefiks imena. `test:analytics-link-purpose` (3 testa, mutacije M29–M32 4/4) računa imena iz i18n datoteka i izvora, ima samoprovjeru opsega (17 linkova bočne trake — obrazac koji traži `}` odmah za `labelKey`-om tiho preskače 4 linka s poljem `tab`) i samoprovjeru da bi bez konteksta sukob zaista bio prijavljen. **CI potvrda: run `42989950774` success, `identical-links-same-purpose` PREŠAO s `passed 30, incomplete 1` na **`passed 31, incomplete 0, violations 0`** — nepotpun čvor je nestao.** **Šta ovo NE dokazuje:** mjera pokriva tabove analitike naspram bočne trake admina, ne sve linkove u aplikaciji; axe pokriva sve rute, ali 2.4.9 traži da svrha bude jasna iz samog teksta, što potvrđuje tek čovjek. |
 | 2.4.11 | ✅ | `scroll-padding-top/bottom` u `globals.css`; sticky konteksti 🟡 |
 | 2.4.12 (AAA) | ➖ | odbijeno (Q5) |
 | 2.4.13 (AAA) | ✅ | 3px prsten, `outline-offset: 2px`, 11.56:1 |
@@ -261,9 +261,9 @@ rendered mjeru (`e2e/a11y-admin.spec.ts:157`, run `42923727266` success).
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (test/skriptu/render) | **42** |
+| ✅ verifikovano (test/skriptu/render) | **43** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **2** |
+| 🟡 u kodu, nije verifikovano u renderu | **1** |
 | ❌ nije zadovoljeno | **0** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
@@ -280,7 +280,8 @@ kriteriji WCAG 2.1/2.2 **nisu** u tabeli i za njih nema nijedne tvrdnje, ni ✅ 
 takav slučaj — mjera ga je pratila i imala nepotpun nalaz, a kriterija nije bilo u tabeli,
 pa nalaz nije vodio nigdje.
 
-Preostaju **2** 🟡: `1.4.5` (tekst kao slika) i `2.4.9` (popravka u izvoru, čeka CI). Axe nema pravilo za to, a dokaz traži OCR
+Preostaje **1** 🟡: `1.4.5` (tekst kao slika). `2.4.9` je prešao na ✅ **2026-11-08** nakon
+što je run `42989950774` potvrdio da nepotpunog čvora više nema. Axe nema pravilo za to, a dokaz traži OCR
 ili ljudsku procjenu — ovo je jedini kriterij u matrici za koji mjerni aparat u ovom repu
 stvarno ne postoji. Od 2026-11-08 postoji bar **popis** mjesta gdje bi tekst mogao biti
 slika (`imageBearingInventory()`, 32 rute) i tvrdnja `<canvas> === 0`; usaglašenost se i
