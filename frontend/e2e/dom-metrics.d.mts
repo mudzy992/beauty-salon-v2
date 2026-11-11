@@ -87,3 +87,18 @@ export type RequiredNotMarked = { element: string; label: string }
 
 export function invalidWithoutDescription(): InvalidWithoutDescription[]
 export function requiredNotMarked(): RequiredNotMarked[]
+
+export type InlineColorContrastViolation = {
+  element: string
+  ratio: number
+  threshold: number
+  fg: string
+  bg: string
+  text: string
+}
+
+/**
+ * Kontrast teksta s inline bojom tamo gdje axe vrati `incomplete` jer ne može odrediti
+ * pozadinu (1.4.3). Elementi s gradijentom ili slikom u pozadini se preskaču.
+ */
+export function inlineColorContrastViolations(): InlineColorContrastViolation[]

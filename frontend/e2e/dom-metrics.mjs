@@ -517,3 +517,102 @@ export function describeImageInventory(inventory) {
 
   return parts.join(' · ')
 }
+
+/**
+ * Kontrast teksta kojem je boja zadana inline, a axe ne može odrediti pozadinu — 1.4.3.
+ *
+ * ── Zašto ovo postoji pored axe-a ──────────────────────────────────────────
+ * Axe `color-contrast` na `/admin/analytics` vraća **incomplete** za tri čvora legende
+ * grafikona, uz poruku „Element's background color could not be determined because element
+ * contains an image node" (run `43000853379`). Nije nesigurnost bez razloga: Recharts
+ * stavlja SVG ikonu serije unutar `.recharts-legend-item-text`. Ali pozadina se **može**
+ * naći — kartica ispod je neprozirna — pa se kontrast da izračunati. Izmjereno ručno:
+ * boje serija na bijeloj daju 3.25:1 (#38A169), 4.13:1 (#E53E3E) i 2.39:1 (#D69E2E),
+ * sve ispod 4.5:1. Dakle `incomplete` je krio stvarni prekršaj.
+ *
+ * Opseg je namjerno uzak: samo elementi kojima je boja teksta zadana **inline** (to je
+ * slučaj kad biblioteka boji tekst, kao Recharts). Elementi čija se pozadina ne može
+ * odrediti — gradijent ili slika — se preskaču, jer tu ni ova mjera ne može presuditi.
+ *
+ * Namjerno je samodostatna: Playwright u preglednik šalje samo `fn.toString()`.
+ *
+ * @returns {{element: string, ratio: number, threshold: number, fg: string, bg: string}[]}
+ */
+export function inlineColorContrastViolations() {
+  const parse = (value) => {
+    const m = String(value ?? '').match(/rgba?\(([^)]+)\)/)
+    if (!m) return null
+    const parts = m[1]
+      .split(/[,\s/]+/)
+      .filter(Boolean)
+      .map(Number)
+    if (parts.length < 3 || parts.some(Number.isNaN)) return null
+    return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 }
+  }
+
+  const luminance = ({ r, g, b }) => {
+    const channel = (c) => {
+      const v = c / 255
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    }
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+  }
+
+  const ratio = (fg, bg) => {
+    const a = luminance(fg)
+    const b = luminance(bg)
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  }
+
+  /** Prva neprozirna pozadinska boja u lancu roditelja; `null` ako je nema ili je gradijent. */
+  const backgroundOf = (el) => {
+    for (let node = el; node && node.nodeType === 1; node = node.parentElement) {
+      const cs = getComputedStyle(node)
+      // Gradijent ili slika u pozadini: ova mjera tu ne presuđuje.
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') return null
+      const bg = parse(cs.backgroundColor)
+      if (bg && bg.a > 0.99) return bg
+    }
+    return null
+  }
+
+  const css = (c) => `rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`
+
+  const out = []
+  for (const el of document.querySelectorAll('[style*="color"]')) {
+    if (!el.style.color) continue
+    const text = (el.textContent ?? '').trim()
+    if (!text) continue
+    const rect = el.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) continue
+
+    const fg = parse(getComputedStyle(el).color)
+    if (!fg) continue
+    const bg = backgroundOf(el)
+    if (!bg) continue
+
+    // AA: 4.5:1 za običan tekst, 3:1 za veliki (≥24px, ili ≥18.66px podebljano).
+    const cs = getComputedStyle(el)
+    const size = parseFloat(cs.fontSize) || 16
+    const bold = Number(cs.fontWeight) >= 700
+    const large = size >= 24 || (size >= 18.66 && bold)
+    const threshold = large ? 3 : 4.5
+
+    const value = ratio(fg, bg)
+    if (value >= threshold) continue
+
+    out.push({
+      element: `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}${
+        typeof el.className === 'string' && el.className.trim()
+          ? `.${el.className.trim().split(/\s+/)[0]}`
+          : ''
+      }`,
+      ratio: Math.round(value * 100) / 100,
+      threshold,
+      fg: css(fg),
+      bg: css(bg),
+      text: text.slice(0, 30),
+    })
+  }
+  return out
+}

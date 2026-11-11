@@ -335,7 +335,15 @@ export default function Analytics() {
               <XAxis dataKey="label" fontSize={12} />
               <YAxis fontSize={12} tickFormatter={(v) => formatLocalizedAmount(v, i18n.language)} />
               <Tooltip formatter={(value: unknown) => [formatLocalizedAmount(Number(value ?? 0), i18n.language), '']} />
-              <Legend />
+              {/* WCAG 1.4.3 — Recharts boji tekst legende bojom serije
+                  (`DefaultLegendContent.js:120`: `finalLabelStyle.color || entry.color`),
+                  a te tri boje na bijeloj kartici imaju 3.25:1 (#38A169), 4.13:1 (#E53E3E)
+                  i 2.39:1 (#D69E2E) — sve ispod 4.5:1 koliko traži AA za tekst te veličine.
+                  Axe to ne hvata jer `.recharts-legend-item-text` sadrži SVG ikonu serije,
+                  pa vrati `incomplete` („background color could not be determined because
+                  element contains an image node", run 43000853379). Boja serije ostaje na
+                  ikoni pored teksta i na stupcima; tekst dobija boju sadržaja. */}
+              <Legend labelStyle={{ color: 'hsl(var(--text))' }} />
               <Bar dataKey="income" name={t('adminAnalytics.revenue')} fill="#38A169" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expenses" name={t('adminAnalytics.expenses')} fill="#E53E3E" radius={[4, 4, 0, 0]} />
               <Bar dataKey="tips" name={t('adminAnalytics.tips')} fill="#D69E2E" radius={[4, 4, 0, 0]} />

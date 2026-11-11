@@ -16,6 +16,7 @@ import {
   focusableSnapshot,
   describeImageInventory,
   imageBearingInventory,
+  inlineColorContrastViolations,
   labelInNameViolations,
   probeFocusability,
 } from './dom-metrics.mjs'
@@ -282,5 +283,36 @@ for (const route of STYLIST_ROUTES) {
       )
     }
     expect(bad, `${route.path}: pristupačno ime ne sadrži vidljivi tekst`).toEqual([])
+  })
+}
+
+// ── 1.4.3 — kontrast teksta s inline bojom, tamo gdje axe odustane ───────────
+//
+// Axe `color-contrast` vraća **incomplete** kad ne može odrediti pozadinu: na
+// `/admin/analytics` za tri čvora legende grafikona, jer Recharts stavlja SVG ikonu serije
+// unutar `.recharts-legend-item-text` (run `43000853379`). Iza toga se krio stvarni
+// prekršaj — boje serija na bijeloj kartici imaju 3.25:1, 4.13:1 i 2.39:1. Mjera računa
+// kontrast sama i presuđuje; elemente s gradijentom ili slikom u pozadini preskače, jer tu
+// ni ona ne može znati pozadinu.
+for (const route of STYLIST_ROUTES) {
+  test(`1.4.3 stylist: inline boja teksta ima dovoljan kontrast — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const bad = await page.evaluate(inlineColorContrastViolations)
+    if (bad.length) {
+      const detail = bad
+        .slice(0, 4)
+        .map((b) => `${b.element} „${b.text}“ ${b.fg} na ${b.bg} = ${b.ratio}:1 (traži ${b.threshold}:1)`)
+        .join(' | ')
+      process.stdout.write(
+        `::error title=1.4.3 ${route.path} — kontrast inline boje::` +
+          `${detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}\n`,
+      )
+    }
+
+    expect(
+      bad,
+      `${route.path}: tekst s inline bojom ima premali kontrast — axe ovo javlja kao incomplete, ne kao nalaz`,
+    ).toEqual([])
   })
 }

@@ -14,6 +14,7 @@ import {
   hasVisibleFocusIndicator,
   invalidWithoutDescription,
   requiredNotMarked,
+  inlineColorContrastViolations,
   describeImageInventory,
   imageBearingInventory,
   labelInNameViolations,
@@ -659,4 +660,66 @@ test('describeImageInventory imenuje canvas prekršajem i stavlja ga ispred rast
 test('describeImageInventory javlja i kad canvas prolazi — prazan ishod nije tišina', () => {
   const out = describeImageInventory(inventory({ img: 3 }))
   assert.match(out, /canvas 0 — odlučivo prolazi/)
+})
+
+// ── 1.4.3 — kontrast teksta s inline bojom, tamo gdje axe vrati incomplete ──────────
+
+test('inlineColorContrastViolations — hvata boju serije ispod 4.5:1 na bijeloj kartici', () => {
+  const doc = makeDom(`
+    <div style="background-color: rgb(255, 255, 255)">
+      <span class="recharts-legend-item-text" style="color: rgb(214, 158, 46)">Prihodi</span>
+    </div>
+  `)
+  setBox(doc.querySelector('span'), {})
+
+  const out = inlineColorContrastViolations()
+  assert.equal(out.length, 1)
+  assert.equal(out[0].ratio, 2.39, 'izmjereno ručno: #D69E2E na bijeloj')
+  assert.equal(out[0].threshold, 4.5)
+  assert.equal(out[0].text, 'Prihodi')
+})
+
+test('inlineColorContrastViolations — dovoljan kontrast prolazi', () => {
+  const doc = makeDom(`
+    <div style="background-color: rgb(255, 255, 255)">
+      <span style="color: rgb(15, 23, 42)">Prihodi</span>
+    </div>
+  `)
+  setBox(doc.querySelector('span'), {})
+  assert.deepEqual(inlineColorContrastViolations(), [], '17.85:1 je daleko iznad praga')
+})
+
+test('inlineColorContrastViolations — veliki tekst ima prag 3:1, običan 4.5:1', () => {
+  const doc = makeDom(`
+    <div style="background-color: rgb(255, 255, 255)">
+      <span id="veliki" style="color: rgb(135, 135, 135); font-size: 24px">Naslov</span>
+      <span id="obicni" style="color: rgb(135, 135, 135); font-size: 14px">Tekst</span>
+    </div>
+  `)
+  for (const el of doc.querySelectorAll('span')) setBox(el, {})
+
+  const out = inlineColorContrastViolations()
+  assert.deepEqual(
+    out.map((v) => v.element),
+    ['span#obicni'],
+    '3.59:1 prolazi za veliki tekst (prag 3) a pada za običan (prag 4.5)',
+  )
+})
+
+test('inlineColorContrastViolations — gradijent preko boje se preskače, ne pogađa', () => {
+  // Gradijent bez neprozirne `background-color` ispod ionako daje `null`, pa takav slučaj
+  // ne bi dokazao da provjera radi — mutacija koja je ukloni prošla bi neprimijećeno.
+  // Zato je pozadina ovdje bijela BOJA s gradijentom preko nje: bez provjere mjera bi
+  // uzela bijelu i prijavila 2.39:1, a stvarnu pozadinu čini gradijent i ne zna se.
+  const doc = makeDom(`
+    <div style="background-color: rgb(255, 255, 255); background-image: linear-gradient(rgb(255,255,255), rgb(0,0,0))">
+      <span style="color: rgb(214, 158, 46)">Tekst</span>
+    </div>
+  `)
+  setBox(doc.querySelector('span'), {})
+  assert.deepEqual(
+    inlineColorContrastViolations(),
+    [],
+    'pozadina se ne može odrediti — ova mjera tu ne presuđuje, to ostaje axe-u',
+  )
 })
