@@ -928,7 +928,22 @@ jobs:
         run: npm run build
       - name: Install Chromium for Playwright
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        # Odobreni CI-only fallback (2026-11-11, odluka `ci_fallback`): GitHub runner
+        # povremeno ne razrijesi `azure.archive.ubuntu.com`, pa `apt` dio `--with-deps`
+        # padne prije nego se preuzme Chromium. Runner vec ima sistemske biblioteke koje
+        # Playwright trazi; tada se preuzima SAMO browser binary, bez 9 dodatnih font
+        # paketa. Rendered axe suite ostaje obavezan, bez `continue-on-error`.
+        run: |
+          set -e
+          if npx playwright install --with-deps chromium; then
+            echo 'Chromium + sistemske zavisnosti instalirani.'
+          else
+            echo '::warning title=Playwright install-deps nije uspio::Pokusavam samo browser binary; rendered axe suite ostaje obavezan.'
+            npx playwright install chromium
+          fi
+          # Fail-closed: bez stvarnog browser fajla `run-a11y-routes.mjs` ispisuje
+          # SKIPPED i vraca 0, pa bi a11y posao bio lazno zelen.
+          node -e "const { chromium } = require('@playwright/test'); const fs = require('node:fs'); const p = chromium.executablePath(); if (!p || !fs.existsSync(p)) { console.error('Chromium executable missing: ' + p); process.exit(1); } console.log('Chromium executable: ' + p);"
       - name: Run rendered a11y (axe) suite
         id: axe
         working-directory: frontend
@@ -962,6 +977,17 @@ jobs:
             failed=$(grep -aoE '[0-9]+ failed' "$RUNNER_TEMP/axe.log" | tail -1)
             skipped=$(grep -aoE '[0-9]+ skipped' "$RUNNER_TEMP/axe.log" | tail -1)
             echo "::notice title=axe suite prošao (exit 0)::${passed:-bez 'passed' u izlazu} | ${failed:-0 failed} | ${skipped:-0 skipped}"
+          fi
+          # Odobreni fallback ne smije proizvesti lažno zelen rezultat: ako omotac nije
+          # pokrenuo nijedan rendered test, `code` je 0 ali dokaz ne postoji.
+          if grep -aq 'SKIPPED — test:a11y-routes' "$RUNNER_TEMP/axe.log"; then
+            {
+              echo '### Axe suite — SKIPPED (lažno zelen spriječen)'
+              echo ''
+              echo '`run-a11y-routes.mjs` nije pronašao Chromium i vratio je 0 bez rendered dokaza.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo '::error title=axe suite NIJE pokrenut::Chromium nije dostupan; rendered a11y dokaz ne postoji.'
+            exit 1
           fi
           # `set +e` iznad znači da bi korak bez ovoga izišao s 0 i kad axe padne — anotacija
           # bi bila crvena, a CI zelen. Ovo je linija koja pad stvarno prosljeđuje poslu.

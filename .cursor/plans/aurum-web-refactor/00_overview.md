@@ -180,17 +180,17 @@ Napomena uz 11: `frontend/scripts/run-a11y-routes.mjs` u sandboxu **namjerno ne 
 | # | Rizik / pretpostavka | Kako se tretira |
 |---|---|---|
 | R1 | U sandboxu nema Chromium-a/čitača ekrana → nema rendered dokaza | Sve rendered tvrdnje 🟡 dok `a11y-e2e` ne bude zelen; S11 proširuje axe na 3 stanja teme |
-| R2 | `.dark` je uspavan; `dark:` klase u 85 fajlova nikad nisu aktivirane | S1 definira da `Aurum tamna` dodjeljuje `.dark` + `data-skin="aurum"`; Aurum tokeni moraju imati veći specifičnosti od `.dark` bloka — mjeri se kontrast skriptom i axe-om |
+| R2 | `.dark` je uspavan; `dark:` klase u 85 fajlova nikad nisu aktivirane | ✅ **Potvrđeno odlukom `dark_yes` (2026-11-11):** S1 dodjeljuje `.dark` + `data-skin="aurum"` za `Aurum tamna`; Aurum tokeni moraju imati veću specifičnost od `.dark` bloka — mjeri se kontrast skriptom i axe-om |
 | R3 | Runtime brand override piše inline `--brand-*` na `<html>` i time bi pobjedio CSS | S1 gasi `setProperty` dok je `skin=aurum` i uklanja već postavljene inline varijable; `test:brand-colors` ostaje zelen; napomena u Postavke → Izgled (Q9) |
 | R4 | Q4 = zamjena šablona/tokena; ~198 source-contract testova čita mark-up | Svaki pogođeni test se ažurira uz obrazloženje u `CHANGELOG.md`, nikad se ne briše; `check_ci_index.py` ostaje zelen |
 | R5 | `check_ui_contrast.py` parsira samo `:root` i `.dark` jednostavnim regexom | S1 proširuje parser na nove selektore (`[data-skin="aurum"]`, `.dark[data-skin="aurum"]`) s naslijeđenim `:root` vrijednostima; bez novih zavisnosti |
-| R6 | Baseline CI je crven (1 test) | S0 ga popravlja prvim pushom; prije S0 nema pusha |
+| R6 | Baseline CI je crven (1 test) | S0 je popravio `test:design-reference` (199/199 lokalno, `frontend` posao zelen), ali `a11y-e2e` na `fa6d73a` pada na `apt` DNS-u runnera → **4/5, ne 5/5**. Prvi push je obavljen; dalji korak isključivo po odluci vlasnika |
 | R7 | AI ilustracije mogu narasti >1 MB po dokumentu | Ugrađuju se kao JPEG base64; generisani međufajlovi se **ne commit-aju**; cilj ≤ ~1,5 MB po HTML-u; `.gitignore` se ne dira |
 | R8 | `docs/design` NEJRA dokument ima nelatinične znakove u imenu | Ne preimenuje se, ne briše, ne mijenja mu se ime (Q7); svi linkovi na njega su inline kod, ne Markdown link |
 | R9 | Grupisanje navigacije (Q10) može dirati `?tab=` deep-linkove | Dozvoljeno samo uz `<Navigate replace>`/`TabRedirect` koji čuva query; `test:settings-hub-redirect` i `test:analytics-hub-redirect` ostaju zeleni |
 | R10 | `framer-motion` animacije (`MotionConfig reducedMotion="user"` u `providers.tsx`) | Ne uklanja se; nove animacije poštuju `prefers-reduced-motion`; `test:wcag-source-contracts` ostaje zelen |
 
-**Pretpostavke koje se NE smiju pretvoriti u odluke bez pitanja:** da li Aurum tamna smije aktivirati sve postojeće `dark:` klase (R2), gdje tačno stoji izbornik teme na auth ekranima i u fullscreen kalendaru, i da li se postojeći `SettingsHub`/`AnalyticsHub` grupišu dalje (Q10 dopušta, ne nalaže). Sve tri su u planovima S1/S5/S6/S9 kao **eksplicitna pitanja za odobrenje u tom segmentu**.
+**Riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` **smije** aktivirati `.dark` klasu i postojeće `dark:` varijante; Aurum tokeni moraju imati veću specifičnost. **Preostale pretpostavke koje se NE smiju pretvoriti u odluke bez pitanja:** gdje tačno stoji izbornik teme na auth ekranima i u fullscreen kalendaru, i da li se postojeći `SettingsHub`/`AnalyticsHub` grupišu dalje (Q10 dopušta, ne nalaže). Obje su u planovima S5/S6/S9 kao **eksplicitna pitanja za odobrenje u tom segmentu**.
 
 ---
 

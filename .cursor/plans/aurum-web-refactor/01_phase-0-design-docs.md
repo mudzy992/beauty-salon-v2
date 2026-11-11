@@ -1,6 +1,6 @@
 # S0 — Dizajn dokumenti + popravka CI baselinea
 
-**Status:** ✅ **S0 implementiran i lokalno provjeren (199/199); čeka se zeleni CI run na grani.** Plan je odobren odlukom `approve_s0` · **Tip:** isključivo dokumenti + jedan novi source-contract test + registracija tog testa u CI · **Bez produkcijskog UI koda.**
+**Status:** 🔴 **S0 implementiran i lokalno provjeren (199/199), ali BLOKIRAN na CI: 4/5 poslova.** `a11y-e2e` pada na `apt` DNS-u GitHub runnera prije axe suite (run `43032814134` × 3 pokušaja, `43038425689`). **Nema 5/5; S1 ne počinje.** Plan je odobren odlukom `approve_s0` · **Tip:** isključivo dokumenti + jedan novi source-contract test + registracija tog testa u CI · **Bez produkcijskog UI koda.**
 
 ---
 
@@ -92,8 +92,12 @@ Provjerava (JSDOM, bez vanjskih resursa): `lang="bs"`, `title`, postojanje svih 
 
 ## 7. CI provjere
 
-Lokalno prije commit-a: svih 5 Python provjera + puna `test:*` petlja (sada **199/199**) + `npm run build` + `npm run typecheck:e2e` + `git diff --check`.
-Zatim `git push origin arena/71be6ba3-beauty-salon-v2` → `gh run watch <id>` → **5/5 poslova success** (`repo-checks`, `backend`, `frontend`, `a11y-e2e`, `mobile`). Ovo je **prvi zeleni run na grani**.
+Lokalno prije commit-a: svih 5 Python provjera + puna `test:*` petlja (**199/199**) + `npm run build` + `npm run typecheck:e2e` + `git diff --check` — ✅ sve izmjereno.
+Zatim `git push origin arena/71be6ba3-beauty-salon-v2` → `gh run watch <id>` → **5/5 poslova success** (`repo-checks`, `backend`, `frontend`, `a11y-e2e`, `mobile`).
+
+🔴 **Prvi pokušaji nisu ostvarili 5/5:** push `fa6d73a` → `43032814134` i `workflow_dispatch` → `43038425689` daju **4/5**. U oba runa `a11y-e2e` pada na koraku `Install Chromium for Playwright` zbog `Temporary failure resolving 'azure.archive.ubuntu.com'`; axe suite je `skipped`. Tri reruna nisu pomogla.
+
+✅ **Odluka vlasnika `ci_fallback`:** u `ci.yml` se dodaje odobreni minimalni fallback (ako `install --with-deps` padne → `install chromium` bez dodatnih fontova + `node` provjera browser fajla + axe korak odbija `SKIPPED`). Nema `continue-on-error`, nema novih zavisnosti, nema `frontend/src` izmjena. Slijedi novi commit + push + `gh run watch`; bez 5/5 nema STOP-završetka S0 ni odobrenja S1.
 
 ---
 
@@ -104,8 +108,8 @@ Zatim `git push origin arena/71be6ba3-beauty-salon-v2` → `gh run watch <id>` �
 - ✅ `check_ci_index.py` vidi novu skriptu i njen CI korak; `check_doc_links.py` i dalje zelen.
 - ✅ Nijedan produkcijski fajl (`frontend/src`, `backend`, `mobile`) nije diran; nema novih zavisnosti.
 - ✅ Generisani JPEG-ovi nisu u Gitu; veličina HTML-ova zabilježena u `CHANGELOG.md`.
-- 🟡 Rendered a11y koncepata nije provjeren u pregledniku (nije ni cilj koncepata); `a11y-e2e` je zelen jer se app nije mijenjala.
-- ✅ Commit sha + CI run id + 5/5 upisani u `CHECKLIST.md` / `CHANGELOG.md` / `HANDOFF.md`.
+- 🔴 Rendered a11y koncepata nije provjeren u pregledniku (nije ni cilj koncepata); **`a11y-e2e` nije zelen** jer `apt` nije mogao instalirati fontove — bez obzira što se app nije mijenjala.
+- ❌ **5/5 nije upisano** — u `CHECKLIST.md` / `CHANGELOG.md` / `HANDOFF.md` upisani su commit `fa6d73a` i oba run id-a s tačnim 4/5 statusom. S0 ostaje otvoren.
 - **STOP** → pitanje: „Odobravaš li S1 (temelj: tokeni + 3-state tema)?".
 
 ---

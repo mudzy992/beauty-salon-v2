@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|---|
 | `classic` | `classic` | `light` | ❌ ne | `light` | današnja `#0f172a` | **✅ DA** |
 | `aurum-light` | `aurum` | `light` | ❌ ne | `light` | Aurum svijetla iz NEJRA §10 | ne |
-| `aurum-dark` | `aurum` | `dark` | ✅ da (pretpostavka **R2**, čeka potvrdu) | `dark` | Aurum tamna iz NEJRA §10 | ne |
+| `aurum-dark` | `aurum` | `dark` | ✅ da (**R2 potvrđeno odlukom `dark_yes`, 2026-11-11**) | `dark` | Aurum tamna iz NEJRA §10 | ne |
 
 **Nepostojanje 4. stanja:** kombinacija `classic` + `dark` **nije** ponuđena (Q8). Nepoznata vrijednost iz `localStorage` → `classic` (fail-closed na današnji izgled).
 
@@ -102,7 +102,7 @@ A11y ugovor izbornika: `role="group"` + i18n `aria-label`, 3× `button[aria-pres
 
 ## 8. Šta se ne smije promijeniti
 
-- Default izgled (Q8), `:root` / `.dark` blokovi, `dark:` klase u 85 fajlova (osim ako R2 potvrdi njihovo aktiviranje u Aurum tamnoj).
+- Default izgled (Q8), `:root` / `.dark` blokovi, `dark:` klase u 85 fajlova — **aktiviraju se u Aurum tamnoj** (R2 potvrđeno odlukom `dark_yes`).
 - `buildBrandColorVariables`, `test:brand-colors`, `SettingsSocketSync`, svi setting ključevi.
 - Rute, API, `queryKeys`, socket eventi, guardovi, podaci, formati, i18n značenje postojećih ključeva.
 - Bez novih npm zavisnosti; bez diranja `/mobile` (Q3) i `/backend`.

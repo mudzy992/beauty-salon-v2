@@ -63,7 +63,7 @@ U kodu uspostaviti ono što je `NEJRA – …html` (S0, §10–§12) proglasio j
 3. Nijedna ruta, API poziv, `queryKey`, socket event, guard, iznos, datum, status, filter, sort, paginacija ni zbir se ne mijenja.
 4. `check_i18n.py --strict` zeleno; nema hard-coded stringova, uključujući `aria-label`/`title`/`alt`/`placeholder`/toast.
 5. Bez novih npm zavisnosti; bez promjena `/mobile`, `/backend`, `.env`, migracija.
-6. **Aurum tamna i `.dark`:** namjera je da `Aurum tamna` doda klasu `dark` na `<html>` kako bi postojeće `dark:` varijante u 85 fajlova radile; Aurum tokeni imaju veću specifičnost, pa pobjeduju. Ovo je **eksplicitna pretpostavka R2** — prije implementacije se u STOP-sažetku S0 traži potvrda; ako vlasnik ne želi aktivirati `dark:` klase, S1 koristi samo `data-mode` bez `.dark` klase (drugačiji, veći posao u S2–S10) → **STOP + pitanje**.
+6. **Aurum tamna i `.dark`:** ✅ **R2 potvrđeno odlukom `dark_yes` (2026-11-11).** `Aurum tamna` dodaje klasu `dark` na `<html>` kako bi postojeće `dark:` varijante u 85 fajlova radile; Aurum tokeni imaju veću specifičnost, pa pobjeduju. Alternativa „samo `data-mode` bez `.dark`" je odbijena i ne implementira se. S1 i dalje ne počinje bez 5/5 CI S0 i eksplicitnog odobrenja.
 
 ---
 
@@ -115,13 +115,13 @@ Push → `gh run watch` → **5/5 success**. Posebno paziti:
 - ✅ Nove primitive postoje, stari šabloni još rade (migracija je S6–S10); nema mrtvog koda koji se više ne koristi, a nije planiran za brisanje u S11.
 - 🟡 Rendered a11y **Aurum stanja** još nije provjerena (axe u CI pokriva default); S11 dodaje pokrivenost za sva 3 stanja.
 - ✅ Commit sha + run id + 5/5 + delta bundle-a u evidenciji.
-- **STOP** → pitanje: „Odobravaš li S2 (javni shell + Početna + Usluge + Detalj)?" + potvrda pretpostavke R2 iz §4.6.
+- **STOP** → pitanje: „Odobravaš li S2 (javni shell + Početna + Usluge + Detalj)?" R2 je već potvrđen (`dark_yes`) i ne traži se ponovo.
 
 ---
 
 ## 9. Rizici / pitanja
 
-- **R2 (§4.6)** je jedina stvarna nejasnoća ovog segmenta i rješava se potvrdom vlasnika prije S1, ne nagađanjem.
+- **R2 (§4.6) je riješeno** odlukom `dark_yes` prije S1; više nije nejasnoća ovog segmenta.
 - Ako `check_ui_contrast.py` pokaže da neki Aurum par iz NEJRA §10 pada → **STOP**, ne korigirati boju bez odobrenja (Q9 + „ne izmišljaš").
 - Ako novi provider pokvari `test:hooks-order` ili `test:admin-render-smoke` → analizirati uzrok; test se ažurira samo uz obrazloženje u `CHANGELOG.md`.
 - Ako se pokaže da `data-[skin=aurum]:` varijante traže promjenu `tailwind.config.js` koja bi dirala klasični izgled → admin-scoped CSS pravilo umjesto toga (pravilo iz starog prompta: dijeljena komponenta se ne mijenja ako postoji rizik za javni sajt).

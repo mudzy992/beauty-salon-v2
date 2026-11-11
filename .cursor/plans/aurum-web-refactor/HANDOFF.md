@@ -1,8 +1,8 @@
 # HANDOFF — Aurum web refaktor
 
-**Stanje:** 🟡 **S0 IMPLEMENTIRAN LOKALNO — ČEKA ZELENI CI RUN.** Plan je odobren (`approve_s0`); S1 nije započet.
-**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0`
-**Datum:** 2026-11-11 · **Sljedeći korak:** `gh run watch` do 5/5 → upis run id-a → **STOP** za S1.
+**Stanje:** 🔴 **S0 BLOKIRAN NA CI INFRASTRUKTURI — 4/5 POSLOVA ZELENO, `a11y-e2e` NIJE POKRENUT.** Plan je odobren (`approve_s0`); **S1 nije započet i ne smije započeti** dok se ne dobije 5/5.
+**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commit:** `fa6d73a`
+**Datum:** 2026-11-11 · **Sljedeći korak:** odluka vlasnika o CI fallbacku/čekanju (vidi „Blokada CI" ispod).
 
 ---
 
@@ -49,7 +49,7 @@
 
 | # | Pitanje | Gdje se postavlja |
 |---|---|---|
-| O1 | **R2:** smije li `Aurum tamna` dodijeliti `.dark` klasu (aktivira `dark:` varijante u 85 fajlova) ili samo `data-mode`? | STOP-sažetak S0, prije S1; `02_phase-1-foundation.md` §4.6 |
+| O1 | **R2:** smije li `Aurum tamna` dodijeliti `.dark` klasu (aktivira `dark:` varijante u 85 fajlova) ili samo `data-mode`? | ✅ **RIJEŠENO odlukom `dark_yes` (2026-11-11):** da, `Aurum tamna` dodaje `.dark` + `data-skin="aurum"`; Aurum tokeni moraju imati veću specifičnost. S1 i dalje čeka 5/5 CI i eksplicitno odobrenje. |
 | O2 | Gdje stoji `ThemeSwitcher` na auth/onboarding ekranima bez layouta? | STOP-sažetak S4, prije S5 |
 | O3 | Hoće li se koristiti dopušteno **grupisanje navigacije** (Q10), i gdje `ThemeSwitcher` u fullscreen kalendaru? | STOP-sažetak S5, prije S6 |
 | O4 | Smije li se `window.confirm` zamijeniti pristupačnim `ConfirmDialog`om (ista poruka/uvjet/efekat)? | STOP-sažetak S5/S6; tiče se S6–S9 |
@@ -64,17 +64,19 @@
 
 | Provjera | Rezultat |
 |---|---|
-| `check_repo_hygiene.py` | PASS (1749 putanja) |
-| `check_ci_index.py` | PASS (379/382; 3 interaktivna izuzetka) |
-| `check_doc_links.py` | PASS (670 linkova / 202 fajla) → ponovo provjereno nakon pisanja plana |
+| `check_repo_hygiene.py` | PASS (1772 putanje) |
+| `check_ci_index.py` | PASS (380/383; 3 interaktivna izuzetka; 199 frontend skripti, svaka ima CI korak) |
+| `check_doc_links.py` | PASS (685 linkova / 222 fajla) |
 | `check_i18n.py --strict` | PASS (BS 2711 / EN 2711) |
 | `check_ui_contrast.py --strict` | PASS (80/80) |
 | `frontend`: `npm run build` | PASS (276,9 / 300 KiB gzip; `public home` 45,3 · `admin dashboard` 13,3 · `stylist inbox` 17,9 · `analytics` 114,7/140 · `calendar` 99,4/125) |
 | `frontend`: svih **199** `test:*` (nakon `test:design-spec`) | **199 PASS / 0 FAIL**; `test:design-reference` 6/6, `test:design-spec` 2/2 |
-| `check_ci_index.py` | 380/383 (199 frontend skripti, svaka ima CI korak) |
 | `frontend`: `npm run typecheck:e2e` | 0 grešaka |
+| `git diff --check HEAD` | čist |
+| GitHub Actions `43032814134` (push, `fa6d73a`) | 4/5 ✅; `a11y-e2e` ❌ na koraku 15 `Install Chromium for Playwright` (3 pokušaja) |
+| GitHub Actions `43038425689` (`workflow_dispatch`, isti commit) | 4/5 ✅; isti ❌ na koraku 15 |
 | `test:a11y-routes` lokalno | `SKIPPED` (Chromium nije instaliran) — **ne tvrdi se prolaz** |
-| `git status` | S0 fajlovi stageani za commit; bez `backend/`, `mobile/`, `.env`, migracija |
+| `git status` | `fa6d73a` pushan; naknadne izmjene evidencije još nisu commitane |
 
 ---
 
@@ -82,10 +84,30 @@
 
 1. ~~Vlasnik odobrava plan (K0b).~~ ✅ `approve_s0`
 2. ~~**S0** po `01_phase-0-design-docs.md`.~~ ✅ implementiran lokalno, sve provjere zelene.
-3. **U toku:** `commit` + `push` na ovu granu → `gh run watch` → **5/5 success** → upis run id-a u `CHECKLIST.md` / `CHANGELOG.md` / ovaj fajl.
-4. U STOP-sažetku S0 postaviti **O1** (R2: smije li `Aurum tamna` dodijeliti `.dark` klasu) i zatražiti odobrenje S1.
-5. Zatim redom S1 → S11, svaki s 5/5 CI i ažurnim `CHECKLIST.md` / `CHANGELOG.md` / ovim `HANDOFF.md` / matricama.
-6. S11 predaje dokazni paket i navodi šta ostaje za ručnu provjeru (čitač ekrana, fizički uređaj, stvarni email klijent). Bez PR-a, merge-a i deploya.
+3. ~~`commit` + `push` na ovu granu.~~ ✅ `fa6d73a`, pushan.
+4. 🔴 **`gh run watch` → 5/5 nije ostvareno.** Dva runa (`43032814134` s 3 pokušaja, `43038425689`) padaju isključivo na `apt` DNS-u GitHub runnera. **Čeka se odluka vlasnika**; bez nje se ne mijenja `ci.yml` i ne pokreće S1.
+5. **O1/R2 je riješeno** odlukom `dark_yes`; odobrenje S1 traži se tek nakon 5/5 CI.
+6. Zatim redom S1 → S11, svaki s 5/5 CI i ažurnim `CHECKLIST.md` / `CHANGELOG.md` / ovim `HANDOFF.md` / matricama.
+7. S11 predaje dokazni paket i navodi šta ostaje za ručnu provjeru (čitač ekrana, fizički uređaj, stvarni email klijent). Bez PR-a, merge-a i deploya.
+
+---
+
+## 6a. Blokada CI — izmjereni uzrok (2026-11-11)
+
+Sva 4 ne-a11y posla zelena su u oba runa. U `a11y-e2e` poslu korak 15 `npx playwright install --with-deps chromium` pokreće `apt-get`, a GitHub Ubuntu 24.04 runner ne može razriješiti `azure.archive.ubuntu.com`:
+
+```
+E: Failed to fetch .../fonts-ipafont-gothic_00303-21ubuntu1_all.deb  Temporary failure resolving 'azure.archive.ubuntu.com'
+E: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?
+Failed to install browsers
+Error: Installation process exited with code: 100
+```
+
+Korak 16 `Run rendered a11y (axe) suite` je **skipped**, pa rendered/axe dokaz ne postoji — ovo nije a11y regresija aplikacije, ali ni zelen CI. Većina sistemskih biblioteka (`libnss3`, `libatk*`, `xvfb`, `fonts-liberation`, …) već je instalirana na runneru; `apt` pokušava dohvatiti samo 9 dodatnih font paketa (21,1 MB). Zato je tehnički moguć **CI-only fallback**: prvo `npx playwright install chromium` (bez `--with-deps`), pa tek onda pokušaj `install-deps`, bez diranja axe suite, bez novih npm zavisnosti i bez `continue-on-error`. To je ipak **izmjena `ci.yml` ugovora** i ne radi se bez odobrenja vlasnika („Ne izmišljaš, sve nejasnoće pitaš").
+
+Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate-limit (reset 14:45 UTC); konačni status runa `43038425689` pročitan je nakon reset-a. `gh run watch` je u jednom navratu vratio `0` dok je posao još bio u toku, pa se **ne koristi** kao dokaz 5/5.
+
+**Odluka vlasnika (2026-11-11, `ci_fallback`):** odobren je CI-only fallback u `ci.yml`: ako `npx playwright install --with-deps chromium` padne na `apt` DNS-u, pokušava se `npx playwright install chromium` (samo browser binary), zatim `node` provjerava da `chromium.executablePath()` stvarno postoji. Axe korak dodatno odbija `SKIPPED` izlaz iz `run-a11y-routes.mjs`, pa nema lažno zelenog `a11y-e2e`. Nema `continue-on-error`, nema novih npm zavisnosti, nema izmjena u `frontend/src`. Istovremeno je odlukom `dark_yes` potvrđeno R2.
 
 ---
 
