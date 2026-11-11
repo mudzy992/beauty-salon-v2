@@ -16,4 +16,4 @@
 
 **Zašto:** Q1/Q7 — dizajn dokument je jedini izvor istine i mora sadržavati provjerljivu mapu svih ruta; bez toga bi se u S2–S10 mogla preskočiti neka ruta.
 
-**Status:** ✅ za „Dizajn dokumenti"; 🟡 za „CI" — `test:design-spec` korak je dodan i `frontend` posao je zelen, ali prvi runovi na `fa6d73a` (`43032814134`, `43038425689`) daju 4/5 zbog `apt` DNS runnera. Vlasnik je odobrio `ci_fallback`; novi run slijedi. Svih 58 ruta i dalje ⬜ jer refaktor koda još nije započet. Bez izmjena u `frontend/src`.
+**Status:** ✅ za „Dizajn dokumenti" i „CI" — run **`43043182552`** je **5/5** nakon odobrenog `ci_fallback`; `test:design-spec` i rendered axe (252/252) su zeleni. Prva dva runa (`43032814134`, `43038425689`) ostaju historijski 4/5 zbog `apt` DNS-a. Svih 58 ruta i dalje ⬜ jer refaktor koda još nije započet. Bez izmjena u `frontend/src`.

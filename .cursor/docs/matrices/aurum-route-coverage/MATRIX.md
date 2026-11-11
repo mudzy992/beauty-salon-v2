@@ -109,9 +109,9 @@
 | Stare primitive | `features/shell/admin/ui/*` | S11 (brisanje, 0 potrošača) | ⬜ |
 | i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ⬜ |
 | Kontrast skript | `scripts/check_ui_contrast.py` | S1 | ⬜ |
-| CI | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0, S1, S11 | ⬜ |
 | Dizajn dokumenti | `docs/design/*` (3) | S0 | ✅ NEJRA 14 sekcija + v2/v3 koncepti; `test:design-spec` 2/2 |
-| CI | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0, S1, S11 | 🟡 S0 dodan `test:design-spec` korak; 380/383; ostali koraci u S1/S11 |
+| CI (S0 dio) | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0 | ✅ `test:design-spec` korak + odobreni `ci_fallback`; 380/383; run `43043182552` 5/5, rendered axe 252/252 |
+| CI (S1/S11 dio) | `.github/workflows/ci.yml` | S1, S11 | ⬜ planirani koraci za Aurum stanja |
 | Dokumentacija | `docs/audit/CI.md`, `docs/codebase-map/FRONTEND.md`, `docs/audit/UX_UI_ROUTE_INVENTORY.md`, `SOURCE_OF_TRUTH.md` | S11 | ⬜ |
 
 ---

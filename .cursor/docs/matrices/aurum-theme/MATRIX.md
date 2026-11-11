@@ -1,6 +1,6 @@
 # MATRIX — Aurum theme / skin sustav
 
-**Status:** 🟡 **PLAN (K0) + S0 ugovor u NEJRA — logika još nije implementirana.** Ovaj fajl postaje autoritativan tek nakon S1; model 3 stanja, fiksna paleta, kontrast 22/22 i ugovor izbornika sada su dokumentovani u NEJRA §10/§12 i pokriveni `test:design-spec`, ali se **ne tvrdi da runtime kod radi**.
+**Status:** 🟡 **S0 ZAVRŠEN (5/5 CI `43043182552`), ali runtime logika još nije implementirana.** Ovaj fajl postaje autoritativan tek nakon S1; model 3 stanja, fiksna paleta, kontrast 22/22, ugovor izbornika i potvrđeni R2 (`dark_yes`) dokumentovani su u NEJRA §10/§12 i pokriveni `test:design-spec`, ali se **ne tvrdi da runtime kod radi**.
 **Vlasnik:** `.cursor/plans/aurum-web-refactor/` · **Izvori odluka:** `00_overview.md` §2, `02_phase-1-foundation.md`
 **Ažurirano:** 2026-11-11
 

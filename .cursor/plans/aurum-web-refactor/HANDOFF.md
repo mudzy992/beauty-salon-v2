@@ -1,8 +1,8 @@
 # HANDOFF — Aurum web refaktor
 
-**Stanje:** 🔴 **S0 BLOKIRAN NA CI INFRASTRUKTURI — 4/5 POSLOVA ZELENO, `a11y-e2e` NIJE POKRENUT.** Plan je odobren (`approve_s0`); **S1 nije započet i ne smije započeti** dok se ne dobije 5/5.
-**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commit:** `fa6d73a`
-**Datum:** 2026-11-11 · **Sljedeći korak:** odluka vlasnika o CI fallbacku/čekanju (vidi „Blokada CI" ispod).
+**Stanje:** ✅ **S0 ZAVRŠEN — 5/5 CI ZELENO. ČEKA SE EKSPLICITNO ODOBRENJE S1.** Plan je odobren (`approve_s0`); S1 nije započet.
+**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commiti:** `fa6d73a` (dizajn) + `bbd7ca5` (odobreni CI fallback)
+**Zeleni run:** `43043182552` · **Datum:** 2026-11-11 · **Sljedeći korak:** STOP → pitanje „Odobravaš li S1?". R2 je već riješeno (`dark_yes`).
 
 ---
 
@@ -73,10 +73,12 @@
 | `frontend`: svih **199** `test:*` (nakon `test:design-spec`) | **199 PASS / 0 FAIL**; `test:design-reference` 6/6, `test:design-spec` 2/2 |
 | `frontend`: `npm run typecheck:e2e` | 0 grešaka |
 | `git diff --check HEAD` | čist |
-| GitHub Actions `43032814134` (push, `fa6d73a`) | 4/5 ✅; `a11y-e2e` ❌ na koraku 15 `Install Chromium for Playwright` (3 pokušaja) |
-| GitHub Actions `43038425689` (`workflow_dispatch`, isti commit) | 4/5 ✅; isti ❌ na koraku 15 |
-| `test:a11y-routes` lokalno | `SKIPPED` (Chromium nije instaliran) — **ne tvrdi se prolaz** |
-| `git status` | `fa6d73a` pushan; naknadne izmjene evidencije još nisu commitane |
+| GitHub Actions `43032814134` (push, `fa6d73a`) | 4/5 ✅; `a11y-e2e` ❌ na koraku 15 `Install Chromium for Playwright` (3 pokušaja) — historijski, vanjski DNS |
+| GitHub Actions `43038425689` (`workflow_dispatch`, isti commit) | 4/5 ✅; isti ❌ na koraku 15 — historijski, vanjski DNS |
+| **GitHub Actions `43043182552` (push, `bbd7ca5`)** | ✅ **5/5 success**: `repo-checks`, `backend`, `frontend`, `a11y-e2e`, `mobile` |
+| Rendered axe u `43043182552` | ✅ **252 passed \| 0 failed \| 0 skipped**, 32 rute; korak 15 i 16 oba ✅; `SKIPPED` zaštita nije aktivirana |
+| `test:a11y-routes` lokalno | `SKIPPED` (Chromium nije instaliran u sandboxu) — rendered dokaz dolazi isključivo iz gornjeg CI runa |
+| `git status` | svi S0 commiti pushani na `arena/71be6ba3-beauty-salon-v2`; radno stablo čisto |
 
 ---
 
@@ -85,14 +87,14 @@
 1. ~~Vlasnik odobrava plan (K0b).~~ ✅ `approve_s0`
 2. ~~**S0** po `01_phase-0-design-docs.md`.~~ ✅ implementiran lokalno, sve provjere zelene.
 3. ~~`commit` + `push` na ovu granu.~~ ✅ `fa6d73a`, pushan.
-4. 🔴 **`gh run watch` → 5/5 nije ostvareno.** Dva runa (`43032814134` s 3 pokušaja, `43038425689`) padaju isključivo na `apt` DNS-u GitHub runnera. **Čeka se odluka vlasnika**; bez nje se ne mijenja `ci.yml` i ne pokreće S1.
-5. **O1/R2 je riješeno** odlukom `dark_yes`; odobrenje S1 traži se tek nakon 5/5 CI.
+4. ✅ **5/5 ostvareno** na `43043182552` nakon odobrenog `ci_fallback` u commitu `bbd7ca5`. Prva dva historijska runa ostaju zapisana radi sljedivosti.
+5. ✅ **O1/R2 je riješeno** odlukom `dark_yes`. **Sada slijedi STOP**: eksplicitno pitanje „Odobravaš li S1?" — bez odgovora se S1 ne pokreće.
 6. Zatim redom S1 → S11, svaki s 5/5 CI i ažurnim `CHECKLIST.md` / `CHANGELOG.md` / ovim `HANDOFF.md` / matricama.
 7. S11 predaje dokazni paket i navodi šta ostaje za ručnu provjeru (čitač ekrana, fizički uređaj, stvarni email klijent). Bez PR-a, merge-a i deploya.
 
 ---
 
-## 6a. Blokada CI — izmjereni uzrok (2026-11-11)
+## 6a. Riješena blokada CI — izmjereni uzrok i dokaz (2026-11-11)
 
 Sva 4 ne-a11y posla zelena su u oba runa. U `a11y-e2e` poslu korak 15 `npx playwright install --with-deps chromium` pokreće `apt-get`, a GitHub Ubuntu 24.04 runner ne može razriješiti `azure.archive.ubuntu.com`:
 
@@ -108,6 +110,8 @@ Korak 16 `Run rendered a11y (axe) suite` je **skipped**, pa rendered/axe dokaz n
 Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate-limit (reset 14:45 UTC); konačni status runa `43038425689` pročitan je nakon reset-a. `gh run watch` je u jednom navratu vratio `0` dok je posao još bio u toku, pa se **ne koristi** kao dokaz 5/5.
 
 **Odluka vlasnika (2026-11-11, `ci_fallback`):** odobren je CI-only fallback u `ci.yml`: ako `npx playwright install --with-deps chromium` padne na `apt` DNS-u, pokušava se `npx playwright install chromium` (samo browser binary), zatim `node` provjerava da `chromium.executablePath()` stvarno postoji. Axe korak dodatno odbija `SKIPPED` izlaz iz `run-a11y-routes.mjs`, pa nema lažno zelenog `a11y-e2e`. Nema `continue-on-error`, nema novih npm zavisnosti, nema izmjena u `frontend/src`. Istovremeno je odlukom `dark_yes` potvrđeno R2.
+
+**Rezultat (run `43043182552`, commit `bbd7ca5`):** svih **5/5 poslova success**. U `a11y-e2e` su korak 15 `Install Chromium for Playwright` i korak 16 `Run rendered a11y (axe) suite` ✅; job log daje `252 passed | 0 failed | 0 skipped` nad 32 rute, uz axe anotaciju pokrivenosti. Napomena: anotacija `1.4.6 color-contrast-enhanced` (AAA) prikazuje 28 prekršaja, ali to pravilo nije dio asertiranog praga suite-a; **ne tvrdi se WCAG AAA/2.2 potpuna usklađenost**, niti zamjena za čitač ekrana, zoom/reflow i fizički uređaj. S0 time ispunjava „5/5 + STOP".
 
 ---
 

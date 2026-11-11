@@ -24,8 +24,8 @@
 
 **Fajlovi:** `docs/design/NEJRA – beauty salon · Referentni dokument.html`, `frontend/scripts/design-spec.test.mjs`, `frontend/package.json`, `.github/workflows/ci.yml`. Bez izmjena u `frontend/src`.
 
-**CI napomena (2026-11-11):** `test:design-spec` je zelen u `frontend` poslu, ali `a11y-e2e` nije izvršio rendered axe zbog `apt` DNS-a na GitHub runneru (`43032814134`, `43038425689`: 4/5). Zato S0 nema 5/5 i S1 ne počinje.
+**CI dokaz (2026-11-11):** nakon odobrenog `ci_fallback`, run **`43043182552`** daje ✅ **5/5**, uključujući `a11y-e2e` s **252 passed | 0 failed | 0 skipped** nad 32 rute. `test:design-spec` je zelen. Prva dva runa (`43032814134`, `43038425689`) ostaju historijski 4/5 zbog `apt` DNS-a. S0 je završen; S1 čeka odobrenje.
 
 **R2 riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` dodaje `.dark` na `<html>` uz `data-skin="aurum"`; time se aktiviraju postojeće `dark:` varijante, a Aurum tokeni moraju imati veću specifičnost. Odobrenje S1 i dalje čeka 5/5 CI i eksplicitno STOP-pitanje — ova odluka ne pokreće S1 automatski.
 
-**Otvoreno i dalje:** CI 5/5 (odobren `ci_fallback`, novi run u toku).
+**Otvoreno i dalje:** S1 odobrenje (STOP); R2 više nije otvoreno.

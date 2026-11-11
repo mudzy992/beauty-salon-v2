@@ -19,7 +19,7 @@
 
 | Seg | Naziv | Status | Commit | CI run id | 5/5 | Testova | Bundle | Napomena |
 |---|---|---|---|---|---|---|---|---|
-| S0 | Dizajn dokumenti + popravka CI baselinea | 🔴 **BLOKIRAN: 4/5 CI** | `fa6d73a` | `43032814134` / `43038425689` | ❌ | **199/199** | 276,9 KiB | lokalno sve zeleno; `a11y-e2e` pao na `apt` DNS-u runnera prije axe suite; čeka odluku vlasnika |
+| S0 | Dizajn dokumenti + popravka CI baselinea | ✅ **ZAVRŠEN, čeka odobrenje S1** | `fa6d73a` + `bbd7ca5` | **`43043182552`** | ✅ **5/5** | **199/199** | 276,9 KiB | rendered axe **252/252**, 0 skipped, 32 rute; prethodna 2 runa 4/5 zbog `apt` DNS-a, riješeno odobrenim `ci_fallback` |
 | S1 | Temelj: tokeni + 3-state tema + primitive | ⬜ | — | — | ⬜ | 203 | — | jedini novi feature; potvrda R2 |
 | S2 | Javni shell + Početna + Usluge + Detalj | ⬜ | — | — | ⬜ | — | — | |
 | S3 | Javni sadržaj (blog, galerija, kontakt, klijenti) | ⬜ | — | — | ⬜ | — | — | |
