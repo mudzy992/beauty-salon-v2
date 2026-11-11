@@ -2197,3 +2197,48 @@ Otvorena su **2** 🟡: `1.4.5` (tekst kao slika — axe nema pravilo, treba OCR
 mjeri ne pojavljuje — njega hvataju `jsx-a11y` (na `error`) i axe. 2.4.3 dokazuje da
 redoslijed fokusa prati DOM redoslijed; da taj redoslijed ima smisla čitaču ekrana
 potvrđuje tek AT (M9/M13).
+
+## 2026-11-08 — 2.5.7 zatvoren iscrpnim inventarom; matrica tvrdila dva mjesta, postoje tri
+
+Otvoreno pitanje u redu `2.5.7` bilo je: „**Nije provjereno** da li je `onSelectEvent`
+dostupan tastaturom". Odgovor je pročitan u izvoru, ne nagađan:
+
+- `ReservationScheduler.tsx:687` prosljeđuje `onKeyPressEvent` koji na **Enter i Space**
+  poziva **isti** `openDetails` kao `onSelectEvent` (`:686`), a detalji imaju 4 `type="time"`
+  polja. Tastaturni put je potpun i u biblioteci: `react-big-calendar/lib/TimeGridEvent.js:65`
+  daje `tabIndex: 0`, a `EventCell.js:91` veže `onKeyDown` → `onKeyPress`.
+
+Inventar drag operacija u cijelom `src/` našao je **tri** mjesta, a matrica je navodila dva:
+
+| fajl | drag | alternativa bez povlačenja |
+|---|---|---|
+| `ReservationScheduler.tsx` | `onEventDrop`, `onEventResize` | Enter/Space → detalji s `type="time"` |
+| `BeforeAfterSlider.tsx` | `onMouseMove`, `onTouchMove` | `role="slider"` + strelice/Home/End |
+| `email-visual-editor.tsx` | `draggable`, `onDragStart/Over/Drop` | dugmad moveUp/moveDown s `aria-label` |
+
+**Dvije tvrdnje u matrici su bile netačne.** Prvo: „`before-after-spotlight`: **0**
+drag/pointer handlera" — `BeforeAfterSlider.tsx` ima `onMouseMove` (lin. 50) i `onTouchMove`
+(lin. 61). Zaključak (nije problem za 2.5.7) je držao, ali iz drugog razloga nego što je
+naveden: komponenta ima pravi `role="slider"` s tastaturnim upravljanjem. Drugo: inventar
+nije bio potpun — `email-visual-editor.tsx` uopće nije bio naveden.
+
+Test u `wcag-source-contracts` je **iscrpan** (skenira cijeli `src/`, ne samo poznate
+fajlove) i samodokaziv u oba smjera: svaki fajl s drag operacijom mora biti u popisu s
+obrascom koji dokazuje alternativu, i nijedan fajl s popisa ne smije nestati. Uz to ima
+**samoprovjeru skena** — svaki obrazac mora prepoznati vlastitu konstrukciju na uzorku.
+
+Ta samoprovjera nije dekoracija. Mutacijski test je pokazao da uklanjanje `draggable` iz
+popisa obrazaca **nije** srušilo test, jer `email-visual-editor.tsx` matchuje i preko
+`onDragStart`/`onDragOver`/`onDrop`. Bez samoprovjere bi sken tiho prestao pokrivati jednu
+vrstu drag operacije i test bi ostao zelen.
+
+Mutacije 6/6 uhvaćene: M17 bez `onKeyPressEvent`, M18 sken bez `draggable`, M19 bez
+`moveBlock(index, index + 1)`, M20 bez strelica, M21 sken bez `onDrop`, M22 uzorak bez
+`onPointerMove`.
+
+**Šta dokaz NE pokriva:** izvor, ne render. Da Enter stvarno otvori detalje u pregledniku
+potvrđuje tek rendered test, a kalendar u CI radi bez poslovnih podataka, pa bi mjera nad
+praznim kalendarom bila prazna — a prazan ishod nije dokaz prolaza.
+
+Stanje matrice: ✅ 41 · ➖ 7 · 🟡 1 · ✅/❌ 1 · ➖/⚠️ 1 · ❌ 0 (51 redova). Preostaje samo
+`1.4.5` (tekst kao slika) — jedini kriterij za koji mjerni aparat u ovom repu ne postoji.

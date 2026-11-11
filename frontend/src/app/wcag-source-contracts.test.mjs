@@ -352,3 +352,113 @@ test('2.4.6: naslov kartice u finance tabovima je h2, ne h3 koji preskače nivo'
     )
   }
 })
+
+test('2.5.7: svaka drag operacija u src/ ima imenovanu alternativu bez povlačenja', () => {
+  // Kriterij: sve što se pokreće povlačenjem mora imati put bez povlačenja. Inventar je
+  // namjerno ISCRPAN — skenira cijeli `src/`, a ne samo fajlove za koje se zna. Bez toga bi
+  // nova drag operacija ušla bez alternative i test bi i dalje bio zelen.
+  //
+  // `MATRIX.md` je za 2.5.7 navodila samo kalendar i tvrdila „before-after-spotlight: 0
+  // drag/pointer handlera". Sken pokazuje da to nije tačno (`BeforeAfterSlider.tsx` ima
+  // `onMouseMove` i `onTouchMove`), a da postoji i TREĆE mjesto koje uopće nije bilo
+  // navedeno: `email-visual-editor.tsx` s `draggable`/`onDragStart`/`onDragOver`/`onDrop`.
+  const DRAG_PATTERNS = [
+    ['onEventDrop', /\bonEventDrop\b/],
+    ['onEventResize', /\bonEventResize\b/],
+    ['onDragStart', /\bonDragStart\b/],
+    ['onDragOver', /\bonDragOver\b/],
+    ['onDrop', /\bonDrop\s*=/],
+    ['draggable', /\bdraggable\b/],
+    ['onTouchMove', /\bonTouchMove\b/],
+    ['onMouseMove', /\bonMouseMove\b/],
+    ['onPointerDown', /\bonPointerDown\b/],
+    ['onPointerMove', /\bonPointerMove\b/],
+  ]
+
+  const found = new Map()
+  for (const [file, src] of CLEAN) {
+    const hits = DRAG_PATTERNS.filter(([, re]) => re.test(src)).map(([name]) => name)
+    if (hits.length) found.set(file, hits)
+  }
+
+  // Dozvoljeni ISKLJUČIVO uz obrazac koji dokazuje alternativu u istom fajlu.
+  const ALLOWED = {
+    'components/BeforeAfterSlider.tsx': {
+      alternative: /role="slider"[\s\S]*?onKeyDown/,
+      keys: /ArrowLeft[\s\S]*?ArrowRight[\s\S]*?Home[\s\S]*?End/,
+      note: 'role="slider" + strelice/Home/End uz aria-valuenow',
+    },
+    'features/reservations/components/ReservationScheduler.tsx': {
+      alternative: /onKeyPressEvent[\s\S]*?openDetails/,
+      keys: /keyEvent\.key === 'Enter'[\s\S]*?keyEvent\.key === ' '/,
+      note: 'Enter/Space otvara detalje, a tamo su type="time" polja za početak i kraj',
+    },
+    'features/email-settings/email-visual-editor.tsx': {
+      alternative: /moveBlock\(index, index - 1\)[\s\S]*?moveBlock\(index, index \+ 1\)/,
+      keys: null,
+      note: 'dugmad moveUp/moveDown s aria-label pored svake kartice bloka',
+    },
+  }
+
+  // 1) Ništa novo bez alternative — ovo je svrha testa.
+  for (const [file, hits] of found) {
+    assert.ok(
+      Object.prototype.hasOwnProperty.call(ALLOWED, file),
+      `${file} ima drag operacije (${hits.join(', ')}) a nema zabilježenu alternativu bez povlačenja`,
+    )
+  }
+
+  // 2) Nijedan dozvoljeni fajl nije nestao ni promijenio ime — inače bi popis trunuo i
+  //    test bi šutke prestao išta provjeravati.
+  for (const file of Object.keys(ALLOWED)) {
+    assert.ok(
+      found.has(file),
+      `${file} više nema drag operacija — popis dozvoljenih je zastario i treba ga ažurirati`,
+    )
+  }
+
+  // 3) Alternativa stvarno postoji u izvoru, ne samo u ovom popisu.
+  for (const [file, rule] of Object.entries(ALLOWED)) {
+    const src = CLEAN.get(file)
+    assert.ok(src, `${file} ne postoji`)
+    assert.match(src, rule.alternative, `${file}: alternativa (${rule.note}) nije nađena u izvoru`)
+    if (rule.keys) {
+      assert.match(src, rule.keys, `${file}: alternativni unos nije nađen u izvoru`)
+    }
+  }
+
+  // 4) Samoprovjera SKENA, ne repozitorija. Bez ovoga mrtav obrazac tiho sužava opseg a
+  //    test ostaje zelen — izmjereno: uklanjanje `draggable` iz popisa NIJE srušilo test,
+  //    jer `email-visual-editor.tsx` matchuje i preko onDragStart/onDragOver/onDrop.
+  //    Uzorci dokazuju da svaki obrazac prepoznaje vlastitu konstrukciju, pa sken ne može
+  //    šutke prestati pokrivati neku vrstu drag operacije.
+  const SAMPLES = {
+    onEventDrop: '<Calendar onEventDrop={f} />',
+    onEventResize: '<Calendar onEventResize={f} />',
+    onDragStart: '<div onDragStart={f} />',
+    onDragOver: '<div onDragOver={f} />',
+    onDrop: '<div onDrop={f} />',
+    draggable: '<div draggable />',
+    onTouchMove: '<div onTouchMove={f} />',
+    onMouseMove: '<div onMouseMove={f} />',
+    onPointerDown: '<div onPointerDown={f} />',
+    onPointerMove: '<div onPointerMove={f} />',
+  }
+  for (const [name, re] of DRAG_PATTERNS) {
+    const sample = SAMPLES[name]
+    assert.ok(sample, `obrazac ${name} nema uzorak za samoprovjeru`)
+    assert.match(sample, re, `obrazac ${name} ne prepoznaje vlastitu konstrukciju: ${sample}`)
+  }
+  for (const name of Object.keys(SAMPLES)) {
+    assert.ok(
+      DRAG_PATTERNS.some(([n]) => n === name),
+      `uzorak ${name} nema obrazac u skenu — popis je nepotpun`,
+    )
+  }
+
+  // 5) Kalendar: alternativni put mora nuditi polja za vrijeme, inače Enter samo otvori
+  //    detalje bez mogućnosti da se promijeni termin.
+  const scheduler = CLEAN.get('features/reservations/components/ReservationScheduler.tsx')
+  const timeFields = (scheduler.match(/type="time"/g) ?? []).length
+  assert.ok(timeFields >= 2, `kalendar treba barem 2 type="time" polja (početak i kraj), nađeno ${timeFields}`)
+})

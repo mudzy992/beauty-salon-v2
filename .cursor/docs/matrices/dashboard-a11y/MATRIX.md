@@ -227,7 +227,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.5.1 / 2.5.2 / 2.5.4 | ✅ | `BeforeAfterSlider` ima tastaturnu alternativu; nijedan `onMouseDown` ne aktivira; `MotionConfig reducedMotion="user"` |
 | 2.5.3 | ✅ | **Axe nalaz (serious) na 6 ruta** (`/`, `/usluge`, `/galerija`, `/kontakt`, `/zadovoljni-klijenti`, `/blog`): `<button aria-label="Prebaci jezik na Engleski">BS</button>` — vidljivi tekst „BS" **nije** bio dio pristupačnog imena. Uzrok u `components/i18n/language-switcher.tsx`: `aria-label={actionLabel}` (cijela rečenica) uz sadržaj `{currentLanguage.toUpperCase()}`. Sada `aria-label={`${visibleCode} — ${actionLabel}`}`; `title` je **namjerno ostao** `actionLabel` jer `aria-label` ionako preglasava `title` u računanju imena → 0 vidljivih izmjena na javnom sajtu. `test:public-a11y-axe-findings` |
 | 2.5.5 (AAA) 44px | ✅ | `minHeight/minWidth.target` = 2.75rem u tokenima |
-| 2.5.7 | 🟡 | kalendar: `onEventDrop`/`onEventResize` (`:673`/`:682`) ostaju, ali postoji **agenda** prikaz (`:409`, `:565`) i `type="time"` polja u detaljima (`:807`/`:817`, `:1197`/`:1206`) kao put bez povlačenja. **Nije provjereno** da li je `onSelectEvent` dostupan tastaturom. `before-after-spotlight`: **0** drag/pointer handlera → ➖ |
+| 2.5.7 | ✅ | **Iscrpan inventar drag operacija u `src/` (2026-11-08, `test:wcag-source-contracts`, 16/16, mutacije 6/6):** postoje **tri** mjesta, a ne dva kako je ovdje stajalo. (1) `ReservationScheduler.tsx` — `onEventDrop`/`onEventResize` (`:693`/`:702`); alternativa je `onKeyPressEvent` (`:687`) koji na **Enter i Space** poziva isti `openDetails` kao `onSelectEvent`, a detalji imaju **4** `type="time"` polja. Tastaturni put je potpun i u biblioteci: `react-big-calendar/lib/TimeGridEvent.js:65` daje `tabIndex: 0`, a `EventCell.js:91` veže `onKeyDown` → `onKeyPress`. (2) `BeforeAfterSlider.tsx` — `onMouseMove`/`onTouchMove`; alternativa je `role="slider"` + `tabIndex={0}` + strelice/Home/End uz `aria-valuenow`. (3) `email-visual-editor.tsx` — `draggable`/`onDragStart`/`onDragOver`/`onDrop`; alternativa su dugmad moveUp/moveDown s `aria-label` pored svake kartice. **Dvije tvrdnje u ovom redu su bile netačne:** da `before-after-spotlight` ima „0 drag/pointer handlera" (ima `onMouseMove` i `onTouchMove` — zaključak je držao, ali iz drugog razloga) i da je inventar potpun (email editor uopće nije bio naveden). **Šta ovo NE dokazuje:** dokaz je iz izvora, ne iz rendera — da Enter stvarno otvori detalje u pregledniku potvrđuje tek rendered test, a kalendar u CI radi bez poslovnih podataka pa bi takva mjera bila prazna. |
 | 2.5.8 24px | ✅ | axe `target-size` **PROLAZ na svih 32 rute** (run `42877920751`); `h-8 w-8` (32px) / `h-7 w-7` (28px) prolaze minimum |
 | 3.1.1 | ✅ | `test:i18n-language` |
 | 3.1.2 | ✅ | jezik članka se sada **čuva** (`blog_posts.language VARCHAR(8) NOT NULL DEFAULT 'bs'`), pa više nije „nepoznat". Javne stranice ga izdaju kao `lang` na `<h1>`, kontejneru sadržaja (`dangerouslySetInnerHTML`), naslovu i sažetku kartice. Admin forma ima selektor (`blog.admin.language`). `blogPostLang()` normalizuje `en-GB → en` i pada na `bs`. |
@@ -259,22 +259,23 @@ rendered mjeru (`e2e/a11y-admin.spec.ts:157`, run `42923727266` success).
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (test/skriptu/render) | **40** |
+| ✅ verifikovano (test/skriptu/render) | **41** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **2** |
+| 🟡 u kodu, nije verifikovano u renderu | **1** |
 | ❌ nije zadovoljeno | **0** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
 | **ukupno** | **51** |
 
-Preostala **2** 🟡: `1.4.5` (tekst kao slika — treba OCR ili ljudsku procjenu; axe nema
-pravilo za to) i `2.5.7` (pokreti povlačenja — alternativa postoji, ali nije provjereno da
-li je `onSelectEvent` dostupan tastaturom).
+Preostaje **1** 🟡: `1.4.5` (tekst kao slika). Axe nema pravilo za to, a dokaz traži OCR
+ili ljudsku procjenu — ovo je jedini kriterij u matrici za koji mjerni aparat u ovom repu
+stvarno ne postoji.
 
 `2.1.1` i `2.4.3` su prešli na ✅ **2026-11-08** mjerenjem stvarnog Tab-prolaska na svih
 33 rute (`e2e/tab-traversal.mjs`, run `42976330528` success, 180/0/0, 0 nalaza); `2.1.2`
-je uz dokaz iz izvora dobio i rendered dokaz. Prije toga su stajali na 🟡 jer mjera nije
-postojala, ne jer je postojao nalaz.
+je uz dokaz iz izvora dobio i rendered dokaz. `2.5.7` je zatvoren iscrpnim inventarom drag
+operacija u `src/` (`test:wcag-source-contracts`). Prije toga su stajali na 🟡 jer mjera
+nije postojala, ne jer je postojao nalaz.
 
 ## Dvije planirane stavke koje **nisu** urađene — i zašto
 
