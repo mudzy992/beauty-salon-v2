@@ -192,7 +192,7 @@ export const BeforeAfterSpotlight = ({
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-center gap-6 lg:gap-8">
+      <div data-aurum-spotlight className="flex flex-col lg:flex-row lg:items-center lg:justify-center gap-6 lg:gap-8">
         <MarqueeThumbColumn
           items={leftRail}
           resolveBefore={resolveBefore}

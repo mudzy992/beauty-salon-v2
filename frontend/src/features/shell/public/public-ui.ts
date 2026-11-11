@@ -17,6 +17,18 @@ export const publicSection = {
   subtle: 'bg-slate-50',
 } as const
 
+/* NEJRA §10/§11 — semantički tokeni za Aurum stanja (S2). Klasični `public*`
+   objekti iznad ostaju NETAKNUTI: bez `data-skin="aurum"` nijedna se vrijednost
+   ne primjenjuje, pa je default izgled identičan. Nema tvrdih hexova ni vanjskih fontova. */
+export const publicAurum = {
+  page: 'bg-surface text-content',
+  subtle: 'bg-surface-sunken',
+  heading: 'aurum-heading text-content',
+  kicker: 'text-content-muted',
+  muted: 'text-content-muted',
+  border: 'border-line',
+} as const
+
 export const publicPageHero = {
   section: 'border-b border-slate-200/80 bg-white',
   inner: 'mx-auto max-w-6xl px-4 py-12 sm:py-14 md:py-16',

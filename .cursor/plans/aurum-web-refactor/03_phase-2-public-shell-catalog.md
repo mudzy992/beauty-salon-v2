@@ -1,6 +1,6 @@
 # S2 — Javni shell + Početna + Usluge + Detalj usluge
 
-**Status:** 🟡 **S1 završen (5/5 CI `43100889990` na `ae87acf`); S2 čeka eksplicitno odobrenje nakon S1 STOP-a** · **Prvi segment koji konzumira nove tokene i primitive.**
+**Status:** 🟢 **S2 eksplicitno odobren („Možeš krenuti sa S2") i u toku** · **Prvi segment koji konzumira nove tokene i primitive.** STOP uvjet iz §9 riješen odlukom `dopuna_ssot`: NEJRA §10 je dopunjen izračunatim hero kontrastom bez izmjene palete. evidencija se upisuje nakon 5/5 CI-ja.
 
 ---
 
@@ -81,5 +81,5 @@ Lokalno: 5 Python + puna `test:*` petlja + `npm run build` (izmjeriti `public ho
 ## 9. Rizici / pitanja
 
 - `components/ui/*` dijele javni sajt i admin: svaka izmjena mora imati grep-dokaz da klasični prikaz nije promijenjen; u suprotnom aurum-scoped varijanta.
-- Ako hero kontrast u NEJRA §10 nije izračunat za `#F5EDE0` na gradientu → **STOP + pitanje**, ne procjenjivati „izgleda ok".
+- ✅ **RIJEŠENO (`dopuna_ssot`, 2026-11-11):** hero kontrast u NEJRA §10 nije bio izračunat za `#F5EDE0` na gradientu → poslan STOP + pitanje; vlasnik je odabrao dopunu SSOT-a. §10 sada ima 4 izračunata omjera iz §07, a `test:public-aurum-hero-contrast` + CI korak ih ponavljaju iz `const T`; paleta nije korigovana.
 - Ako `PublicServices` filter logika traži promjenu `queryKey`/API poziva da bi se uklopila u novi `FilterBar` → **STOP** (Q10).

@@ -157,7 +157,7 @@ export const PublicLayout = () => {
       {/* WCAG 2.4.1 Bypass blocks — javni layout dosad NIJE imao skip-link (imao ga je samo
           admin/stylist shell), pa je prvi Tab išao na logo. axe: 2.4.1. */}
       <SkipLink />
-      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
+      <header data-aurum-shell="header" className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
         {/* WCAG 1.4.10 Reflow — red se MORA moći prelomiti. Bez `flex-wrap` (i `min-w-0`
             na nav-u) flex-stavka se ne skuplja ispod širine svog sadržaja, pa pri 200%
             veličine teksta red probija kontejner: izmjereno **755px** horizontalnog skrola
@@ -189,6 +189,7 @@ export const PublicLayout = () => {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={item.isActive ? 'page' : undefined}
                 className={
                   item.isActive
                     ? 'px-3 py-2 text-sm font-medium text-slate-900 rounded-full bg-slate-100/90'
@@ -332,6 +333,7 @@ export const PublicLayout = () => {
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileOpen(false)}
+                      aria-current={item.isActive ? 'page' : undefined}
                       className={
                         item.isActive
                           ? 'rounded-xl px-3 py-2.5 text-[15px] font-medium text-slate-900 bg-slate-100'
@@ -410,7 +412,7 @@ export const PublicLayout = () => {
         <Outlet />
       </main>
 
-      <footer className="mt-auto border-t border-slate-200/80 bg-slate-50/80">
+      <footer data-aurum-shell="footer" className="mt-auto border-t border-slate-200/80 bg-slate-50/80">
         <div className="mx-auto max-w-6xl px-4 py-10 flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           <div className="text-center md:text-left">
             {hasLogo ? (

@@ -147,13 +147,14 @@ export default function PublicHome() {
   const titleRest = titleLines.slice(1).join(' ')
 
   return (
-    <div className="bg-white">
-      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+    <div data-aurum-page="home" className="bg-white">
+      <section data-aurum-hero className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         <div
+          data-aurum-hero-image
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: cssBackgroundImage(heroImage) }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/60" />
+        <div data-aurum-hero-overlay className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/60" />
         <div className="relative z-10 mx-auto max-w-5xl px-4 py-24 md:py-28 text-center text-white">
           <MotionDiv initial="hidden" animate="visible" variants={staggerContainer}>
             <MotionDiv variants={fadeUp}>
@@ -181,12 +182,12 @@ export default function PublicHome() {
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
               <div className="flex items-center justify-center gap-4 flex-wrap">
-                <Button asChild variant="onDark" size="lg" className="px-8">
+                <Button asChild variant="onDark" size="lg" className="px-8" data-aurum-cta="primary">
                   <Link to="/rezervacija">
                     {getSetting('public_hero_cta_text_web', t('public.home.heroReserve'))}
                   </Link>
                 </Button>
-                <Button asChild variant="onDarkOutline" size="lg" className="px-8">
+                <Button asChild variant="onDarkOutline" size="lg" className="px-8" data-aurum-cta="secondary">
                   <Link to="/usluge">{t('public.home.allServices')}</Link>
                 </Button>
               </div>
@@ -380,7 +381,7 @@ export default function PublicHome() {
               {getSetting('public_cta_subtitle', t('public.home.ctaSubtitleFallback'))}
             </div>
           </div>
-          <Button asChild size="lg" className="shrink-0 px-8">
+          <Button asChild size="lg" className="shrink-0 px-8" data-aurum-cta="secondary">
             <Link to="/rezervacija">{t('public.nav.reserve')}</Link>
           </Button>
         </div>

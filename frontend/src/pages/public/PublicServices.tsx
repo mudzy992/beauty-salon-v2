@@ -14,6 +14,10 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
+import { publicAurum } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
+import { FilterBar } from '../../features/shell/aurum/ui/filter-bar'
+import { EmptyState, ErrorState, TableSkeleton } from '../../features/shell/aurum/ui/data-state'
 
 interface ServiceOption {
   id: string
@@ -61,6 +65,8 @@ const getServiceCount = (category: ServiceCategory) =>
 export default function PublicServices() {
   const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const [categories, setCategories] = useState<ServiceCategory[]>([])
   const [salon, setSalon] = useState<PublicSalonIdentity | null>(null)
   const [loading, setLoading] = useState(true)
@@ -187,8 +193,65 @@ export default function PublicServices() {
     setActiveCategoryId(ALL_CATEGORIES)
   }
 
+  /* Ista polja za klasični i Aurum omotač: nema duplih id-jeva ni kontrola. */
+  const filterFields = (
+              <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.8fr)_1.2fr] lg:items-end">
+                <div>
+                  <label htmlFor="public-services-search" className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-[#7d6658]">
+                    {t('public.servicesPage.searchLabel')}
+                  </label>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#806b5d]" aria-hidden="true" />
+                    <Input
+                      id="public-services-search"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder={t('public.servicesPage.searchPlaceholder')}
+                      className="h-12 rounded-full border-[#e6dcd3] bg-[#fcfaf7] pl-11 pr-12 text-[#49332d] placeholder:text-[#75645a] focus-visible:ring-[#9d735d]"
+                    />
+                    {query ? (
+                      <button
+                        type="button"
+                        aria-label={t('public.servicesPage.clearSearch')}
+                        onClick={() => setQuery('')}
+                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#806b5d] transition hover:bg-[#efe7e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#7d6658]">
+                    {t('public.servicesPage.categoryFilter')}
+                  </legend>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    <button
+                      type="button"
+                      aria-pressed={activeCategoryId === ALL_CATEGORIES}
+                      onClick={() => setActiveCategoryId(ALL_CATEGORIES)}
+                      className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === ALL_CATEGORIES ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
+                    >
+                      {t('public.servicesPage.allCategories')}
+                    </button>
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        aria-pressed={activeCategoryId === category.id}
+                        onClick={() => setActiveCategoryId(category.id)}
+                        className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === category.id ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
+  )
+
   return (
-    <main className="min-h-screen overflow-hidden bg-[#fbf8f4] pb-20 text-[#352925]">
+    <main data-aurum-page="services" data-aurum-tokens={publicAurum.page} className={`min-h-screen overflow-hidden bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ''}`}>
       <section className="relative isolate overflow-hidden border-b border-[#e8ddd3] bg-[#f4eee7]">
         <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-44 h-[34rem] w-[34rem] rounded-full border border-[#d5c1b0]/30" />
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-28 h-[26rem] w-[26rem] rounded-full border border-[#d5c1b0]/25" />
@@ -200,7 +263,7 @@ export default function PublicServices() {
                 <span>{salonIdentity}</span>
               </div>
             ) : null}
-            <h1 className="max-w-xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[4.5rem]">
+            <h1 className={`max-w-xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[4.5rem] ${isAurum ? publicAurum.heading : ''}`}>
               {serviceTitle}
             </h1>
             {serviceSubtitle ? (
@@ -315,118 +378,111 @@ export default function PublicServices() {
         </div>
 
         {loading ? (
-          <div role="status" aria-live="polite" className="space-y-5">
-            <p className="text-sm text-[#79695e]">{t('public.servicesPage.loading')}</p>
-            <div className="grid gap-5 xl:grid-cols-2">
-              {[0, 1].map((item) => (
-                <div key={item} aria-hidden="true" className="h-72 animate-pulse rounded-[1.5rem] border border-[#eee5dd] bg-white" />
-              ))}
+          isAurum ? (
+            <TableSkeleton rows={2} columns={2} />
+          ) : (
+            <div role="status" aria-live="polite" className="space-y-5">
+              <p className="text-sm text-[#79695e]">{t('public.servicesPage.loading')}</p>
+              <div className="grid gap-5 xl:grid-cols-2">
+                {[0, 1].map((item) => (
+                  <div key={item} aria-hidden="true" className="h-72 animate-pulse rounded-[1.5rem] border border-[#eee5dd] bg-white" />
+                ))}
+              </div>
             </div>
-          </div>
+          )
         ) : loadError ? (
-          <div role="alert" className="rounded-[1.5rem] border border-[#ead7d0] bg-white px-6 py-12 text-center shadow-sm">
-            <p className="text-[#65524a]">{t('public.servicesPage.loadFailed')}</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-5 border-[#d5c4b8] text-[#49332d]"
-              onClick={() => void loadCategories()}
-            >
-              {t('public.servicesPage.retry')}
-            </Button>
-          </div>
-        ) : categories.length === 0 ? (
-          <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center text-[#79695e]">
-            {t('public.servicesPage.emptyCatalog')}
-          </div>
-        ) : (
-          <>
-            <div className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-white p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5">
-              <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.8fr)_1.2fr] lg:items-end">
-                <div>
-                  <label htmlFor="public-services-search" className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-[#7d6658]">
-                    {t('public.servicesPage.searchLabel')}
-                  </label>
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#806b5d]" aria-hidden="true" />
-                    <Input
-                      id="public-services-search"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder={t('public.servicesPage.searchPlaceholder')}
-                      className="h-12 rounded-full border-[#e6dcd3] bg-[#fcfaf7] pl-11 pr-12 text-[#49332d] placeholder:text-[#75645a] focus-visible:ring-[#9d735d]"
-                    />
-                    {query ? (
-                      <button
-                        type="button"
-                        aria-label={t('public.servicesPage.clearSearch')}
-                        onClick={() => setQuery('')}
-                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#806b5d] transition hover:bg-[#efe7e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                <fieldset className="min-w-0">
-                  <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#7d6658]">
-                    {t('public.servicesPage.categoryFilter')}
-                  </legend>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    <button
-                      type="button"
-                      aria-pressed={activeCategoryId === ALL_CATEGORIES}
-                      onClick={() => setActiveCategoryId(ALL_CATEGORIES)}
-                      className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === ALL_CATEGORIES ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
-                    >
-                      {t('public.servicesPage.allCategories')}
-                    </button>
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        aria-pressed={activeCategoryId === category.id}
-                        onClick={() => setActiveCategoryId(category.id)}
-                        className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === category.id ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-              </div>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e9e2] pt-4 text-xs text-[#75645a]">
-                <span aria-live="polite" aria-atomic="true">
-                  {t('public.servicesPage.serviceCount', { count: visibleServiceCount })}
-                </span>
-                {hasFilters ? (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="inline-flex items-center gap-1.5 font-semibold text-[#79553f] underline decoration-[#c5a88f] underline-offset-4 hover:text-[#49332d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
-                  >
-                    {t('public.servicesPage.clearFilters')}
-                    <X className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                ) : null}
-              </div>
+          isAurum ? (
+            <ErrorState
+              title={t('public.servicesPage.loadFailed')}
+              onRetry={() => void loadCategories()}
+            />
+          ) : (
+            <div role="alert" className="rounded-[1.5rem] border border-[#ead7d0] bg-white px-6 py-12 text-center shadow-sm">
+              <p className="text-[#65524a]">{t('public.servicesPage.loadFailed')}</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-5 border-[#d5c4b8] text-[#49332d]"
+                onClick={() => void loadCategories()}
+              >
+                {t('public.servicesPage.retry')}
+              </Button>
             </div>
-
-            {filteredCategories.length === 0 ? (
-              <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center">
-                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f3e8e0] text-[#8d554d]">
-                  <Search className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-[#49332d]">
-                  {t('public.servicesPage.noResultsTitle')}
-                </h3>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#75645a]">
-                  {t('public.servicesPage.noResultsDescription')}
-                </p>
-                <Button type="button" variant="outline" className="mt-5 border-[#d5c4b8] text-[#49332d]" onClick={clearFilters}>
+          )
+        ) : categories.length === 0 ? (
+          isAurum ? (
+            <EmptyState
+              title={t('public.servicesPage.emptyCatalog')}
+              action={
+                <Button type="button" variant="outline" onClick={clearFilters}>
                   {t('public.servicesPage.clearFilters')}
                 </Button>
+              }
+            />
+          ) : (
+            <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center text-[#79695e]">
+              {t('public.servicesPage.emptyCatalog')}
+            </div>
+          )
+        ) : (
+          <>
+            {isAurum ? (
+              <FilterBar
+                showSubmit={false}
+                onReset={hasFilters ? clearFilters : undefined}
+                resultSummary={t('public.servicesPage.serviceCount', { count: visibleServiceCount })}
+                className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-white p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5"
+              >
+                {filterFields}
+              </FilterBar>
+            ) : (
+              <div className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-white p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5">
+                {filterFields}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e9e2] pt-4 text-xs text-[#75645a]">
+                  <span aria-live="polite" aria-atomic="true">
+                    {t('public.servicesPage.serviceCount', { count: visibleServiceCount })}
+                  </span>
+                  {hasFilters ? (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="inline-flex items-center gap-1.5 font-semibold text-[#79553f] underline decoration-[#c5a88f] underline-offset-4 hover:text-[#49332d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
+                    >
+                      {t('public.servicesPage.clearFilters')}
+                      <X className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
               </div>
+            )}
+
+            {filteredCategories.length === 0 ? (
+              isAurum ? (
+                <EmptyState
+                  title={t('public.servicesPage.noResultsTitle')}
+                  description={t('public.servicesPage.noResultsDescription')}
+                  action={
+                    <Button type="button" variant="outline" onClick={clearFilters}>
+                      {t('public.servicesPage.clearFilters')}
+                    </Button>
+                  }
+                />
+              ) : (
+                <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center">
+                  <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f3e8e0] text-[#8d554d]">
+                    <Search className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <h3 className="mt-4 text-lg font-semibold text-[#49332d]">
+                    {t('public.servicesPage.noResultsTitle')}
+                  </h3>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#75645a]">
+                    {t('public.servicesPage.noResultsDescription')}
+                  </p>
+                  <Button type="button" variant="outline" className="mt-5 border-[#d5c4b8] text-[#49332d]" onClick={clearFilters}>
+                    {t('public.servicesPage.clearFilters')}
+                  </Button>
+                </div>
+              )
             ) : (
               <div className="grid gap-5 xl:grid-cols-2">
                 {filteredCategories.map((category, categoryIndex) => {

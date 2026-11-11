@@ -614,6 +614,9 @@ jobs:
       - name: Test Aurum CSS tokens against NEJRA SSOT (S1)
         working-directory: frontend
         run: npm run test:theme-ssot-sync
+      - name: Test NEJRA Aurum hero contrast (S2)
+        working-directory: frontend
+        run: npm run test:public-aurum-hero-contrast
       - name: Test label-in-name helper (WCAG 2.5.3)
         working-directory: frontend
         run: npm run test:label-in-name

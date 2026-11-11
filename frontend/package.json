@@ -50,6 +50,7 @@
     "test:public-blog-post-read-recovery": "node --test src/features/blog/public-blog-post-data.test.mjs src/features/blog/public-blog-post-read-recovery.test.mjs",
     "test:public-blog-share-accessibility": "node --test src/features/blog/public-blog-share-accessibility.test.mjs",
     "test:public-home-accessibility": "node --test src/features/public-catalog/public-home-accessibility.test.mjs",
+    "test:public-aurum-hero-contrast": "node --test src/features/public-catalog/public-aurum-hero-contrast.test.mjs",
     "test:public-home-before-after-recovery": "node --test src/features/public-catalog/public-home-before-after-data.test.mjs src/features/public-catalog/public-home-before-after-read-recovery.test.mjs",
     "test:public-home-featured-review-recovery": "node --test src/features/public-catalog/public-home-featured-review-data.test.mjs src/features/public-catalog/public-home-featured-review-read-recovery.test.mjs",
     "test:satisfied-clients-read-recovery": "node --test src/features/public-catalog/public-satisfied-clients-data.test.mjs src/features/public-catalog/public-satisfied-clients-read-recovery.test.mjs",

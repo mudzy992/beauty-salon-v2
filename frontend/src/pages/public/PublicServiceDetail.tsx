@@ -15,6 +15,10 @@ import api from "../../api/client";
 import { MediaImage } from "../../components/media-image";
 import { getUploadUrl } from "../../utils/uploadUrl";
 import { BeforeAfterSpotlight } from "../../features/shell/public/before-after-spotlight";
+import { publicAurum } from "../../features/shell/public/public-ui";
+import { useTheme } from "../../features/shell/theme/theme-context";
+import { PageHeader } from "../../features/shell/aurum/ui/page-header";
+import { StatusBadge, type StatusDescriptor } from "../../features/shell/aurum/ui/status-badge";
 import { Button } from "../../components/ui/button";
 import { useSettings } from "../../context/SettingsContext";
 import { useAuth } from "../../context/AuthContext";
@@ -100,6 +104,8 @@ export default function PublicServiceDetail() {
   const { t, i18n } = useTranslation();
   const { getSetting } = useSettings();
   const { user } = useAuth();
+  const { skin } = useTheme();
+  const isAurum = skin === "aurum";
   const [service, setService] = useState<Service | null>(null);
   const [salon, setSalon] = useState<PublicSalonIdentity | null>(null);
   const [loadingService, setLoadingService] = useState(true);
@@ -276,17 +282,33 @@ export default function PublicServiceDetail() {
     return (
       <div className="py-16">
         <div className="mx-auto max-w-4xl px-4">
-          <h1 className="text-2xl font-semibold text-slate-900 mb-2">
-            {t("public.serviceDetail.notFound")}
-          </h1>
-          <p className="text-slate-600 mb-6">
-            {t("public.serviceDetail.notFoundHint")}
-          </p>
-          <Button asChild variant="outline">
-            <Link to="/usluge">
-              {t("public.serviceDetail.backToServices")}
-            </Link>
-          </Button>
+          {isAurum ? (
+            <PageHeader
+              title={t("public.serviceDetail.notFound")}
+              description={t("public.serviceDetail.notFoundHint")}
+              actions={
+                <Button asChild variant="outline">
+                  <Link to="/usluge">
+                    {t("public.serviceDetail.backToServices")}
+                  </Link>
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold text-slate-900 mb-2">
+                {t("public.serviceDetail.notFound")}
+              </h1>
+              <p className="text-slate-600 mb-6">
+                {t("public.serviceDetail.notFoundHint")}
+              </p>
+              <Button asChild variant="outline">
+                <Link to="/usluge">
+                  {t("public.serviceDetail.backToServices")}
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -370,7 +392,7 @@ export default function PublicServiceDetail() {
         twitter={{ image: ogImage }}
         jsonLd={jsonLd}
       />
-      <main className="min-h-screen bg-[#fbf8f4] pb-20 text-[#352925]">
+      <main data-aurum-page="service-detail" className={`min-h-screen bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ""}`}>
         <section className="relative isolate overflow-hidden border-b border-[#e8ddd3] bg-[#f4eee7]">
           <div
             aria-hidden="true"
@@ -397,7 +419,7 @@ export default function PublicServiceDetail() {
                     <span className="text-[#806b5d]">{salonName}</span>
                   ) : null}
                 </div>
-                <h1 className="max-w-3xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[5.25rem]">
+                <h1 className={`max-w-3xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[5.25rem] ${isAurum ? publicAurum.heading : ""}`}>
                   {service.name}
                 </h1>
                 {service.shortDescription?.trim() ? (
@@ -438,6 +460,17 @@ export default function PublicServiceDetail() {
                         {categoryName}
                       </span>
                     </div>
+                  ) : null}
+                  {isAurum && categoryName ? (
+                    <StatusBadge
+                      status={{
+                        labelKey: "public.serviceDetail.categoryLabel",
+                        tone: "neutral",
+                        icon: Sparkles,
+                      } as StatusDescriptor}
+                      label={categoryName}
+                      className="min-h-target items-center px-4 text-sm"
+                    />
                   ) : null}
                 </div>
                 <div className="mt-8 flex flex-wrap items-center gap-3">

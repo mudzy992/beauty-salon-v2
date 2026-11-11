@@ -11,6 +11,8 @@ type FilterBarProps = {
   onReset?: () => void
   resultSummary?: string
   className?: string
+  /** Javni katalog filtrira uživo: sakrij no-op submit, zadrži reset. */
+  showSubmit?: boolean
 }
 
 /**
@@ -23,6 +25,7 @@ export const FilterBar = ({
   onReset,
   resultSummary,
   className,
+  showSubmit = true,
 }: FilterBarProps) => {
   const { t } = useTranslation()
 
@@ -48,9 +51,11 @@ export const FilterBar = ({
               {t('table.clearFilters')}
             </Button>
           ) : null}
-          <Button type="submit" variant="outline" size="sm">
-            {t('common.filter')}
-          </Button>
+          {showSubmit ? (
+            <Button type="submit" variant="outline" size="sm">
+              {t('common.filter')}
+            </Button>
+          ) : null}
         </div>
       </div>
     </form>
