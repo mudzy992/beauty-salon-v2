@@ -13,9 +13,9 @@
 
 | # | Ruta | Ekran / izvor | Segment | Ključni testovi | Status |
 |---|---|---|---|---|---|
-| 1 | `/` | `pages/public/PublicHome.tsx` | S2 | `test:public-home-accessibility`, `test:public-home-before-after-recovery`, `test:public-home-featured-review-recovery` | ⬜ |
-| 2 | `/usluge` | `pages/public/PublicServices.tsx` | S2 | `test:public-services-redesign`, `test:public-services-recovery`, `test:public-catalog-i18n` | ⬜ |
-| 3 | `/usluge/:serviceId` | `pages/public/PublicServiceDetail.tsx` | S2 | `test:public-service-detail-recovery`, `test:before-after-i18n` | ⬜ |
+| 1 | `/` | `pages/public/PublicHome.tsx` | S2 | `test:public-home-accessibility`, `test:public-home-before-after-recovery`, `test:public-home-featured-review-recovery`, `test:public-aurum-hero-contrast` | ✅ **S2** (`43110763869` / `d1fb55d`) |
+| 2 | `/usluge` | `pages/public/PublicServices.tsx` | S2 | `test:public-services-redesign`, `test:public-services-recovery`, `test:public-catalog-i18n` | ✅ **S2** (`43110763869` / `d1fb55d`); `FilterBar`/`EmptyState`/`ErrorState`/`TableSkeleton` u Aurum grani |
+| 3 | `/usluge/:serviceId` | `pages/public/PublicServiceDetail.tsx` | S2 | `test:public-service-detail-recovery`, `test:before-after-i18n` | ✅ **S2** (`43110763869` / `d1fb55d`); `PageHeader`/`StatusBadge` u Aurum grani |
 | 4 | `/blog` | `pages/public/PublicBlogList.tsx` (feature gate) | S3 | `test:public-blog-list-i18n`, `test:public-blog-list-recovery`, `test:public-blog-list-accessibility` | ⬜ |
 | 5 | `/blog/:slug` | `pages/public/PublicBlogPost.tsx` (feature gate) | S3 | `test:public-blog-post-i18n`, `test:public-blog-post-read-recovery`, `test:public-blog-share-accessibility`, `test:public-blog-comments-*` | ⬜ |
 | 6 | `/galerija` | `pages/public/PublicGallery.tsx` (feature gate) | S3 | `test:public-gallery-accessibility` | ⬜ |
@@ -99,13 +99,13 @@
 
 | Sloj | Fajl | Segment | Status |
 |---|---|---|---|
-| Javni shell | `features/shell/public/public-layout.tsx`, `public-ui.ts` | S1 (tema), S2 (stil) | ⬜ |
+| Javni shell | `features/shell/public/public-layout.tsx`, `public-ui.ts` | S1 (tema), S2 (stil) | ✅ **S2** (`43110763869` / `d1fb55d`); `aria-current` + oblik, 44 px mete, `SkipLink`/drawer netaknuti |
 | Admin shell | `features/shell/admin/*`, `layouts/DashboardLayout.tsx` | S1 (tema), S6 (stil) | ⬜ |
 | Stylist shell | `layouts/StylistLayout.tsx` | S1 (tema), S10 (stil) | ⬜ |
 | Provideri | `app/providers.tsx` | S1 | ✅ `ThemeProvider` iznad `SettingsProvider`; `MotionConfig` netaknut; `test:theme-brand-precedence` |
 | Tokeni / Tailwind | `styles/globals.css`, `styles/index.css`, `tailwind.config.js` | S1 | ✅ 2 Aurum bloka + `fontFamily.serif`; `test:theme-ssot-sync`; `:root`/`.dark` netaknuti |
-| Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | 🟡 S1 ne dira dijeljene komponente (ugovor: klasični paritet) |
-| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S6–S10 (migracija) | 🟡 **8 kreirano u S1**, čekaju potrošače S6–S10 |
+| Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | ✅ **S2: 0 diff** (grep dokaz); Aurum varijanta ostvarena u `globals.css` bez diranja dijeljenih komponenti |
+| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S2 (prvi potrošači), S6–S10 (migracija) | ✅ **S2 konzumira 6/8** (`FilterBar`, `TableSkeleton`, `EmptyState`, `ErrorState`, `PageHeader`, `StatusBadge`); `data-table`/`confirm-dialog`/`form-section` čekaju S6–S10 |
 | Stare primitive | `features/shell/admin/ui/*` | S11 (brisanje, 0 potrošača) | ⬜ namjerno ostaju do S11 |
 | Izbornik teme | `features/shell/theme/*` | S1 | ✅ `ThemeSwitcher` u 3 shella; `test:theme-state`, `test:theme-switcher-a11y` |
 | i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ✅ S1: 6 novih ključeva, `check_i18n.py --strict` 2717/2717 |

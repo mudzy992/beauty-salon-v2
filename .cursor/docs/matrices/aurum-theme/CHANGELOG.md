@@ -24,11 +24,11 @@
 
 **Fajlovi:** `docs/design/NEJRA – beauty salon · Referentni dokument.html`, `frontend/scripts/design-spec.test.mjs`, `frontend/package.json`, `.github/workflows/ci.yml`. Bez izmjena u `frontend/src`.
 
-**CI dokaz (2026-11-11):** nakon odobrenog `ci_fallback`, run **`43043182552`** daje ✅ **5/5**, uključujući `a11y-e2e` s **252 passed | 0 failed | 0 skipped** nad 32 rute. `test:design-spec` je zelen. Prva dva runa (`43032814134`, `43038425689`) ostaju historijski 4/5 zbog `apt` DNS-a. S0 je završen; S1 čeka odobrenje.
+**CI dokaz (2026-11-11):** nakon odobrenog `ci_fallback`, run **`43043182552`** daje ✅ **5/5**, uključujući `a11y-e2e` s **252 passed | 0 failed | 0 skipped** nad 32 rute. `test:design-spec` je zelen. Prva dva runa (`43032814134`, `43038425689`) ostaju historijski 4/5 zbog `apt` DNS-a. S0 je završen; S1 i S2 su naknadno odobreni i završeni (5/5).
 
-**R2 riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` dodaje `.dark` na `<html>` uz `data-skin="aurum"`; time se aktiviraju postojeće `dark:` varijante, a Aurum tokeni moraju imati veću specifičnost. Odobrenje S1 i dalje čeka 5/5 CI i eksplicitno STOP-pitanje — ova odluka ne pokreće S1 automatski.
+**R2 riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` dodaje `.dark` na `<html>` uz `data-skin="aurum"`; time se aktiviraju postojeće `dark:` varijante, a Aurum tokeni moraju imati veću specifičnost. S1 je naknadno odobren i završen (`43100889990`), S2 (`43110763869`); ova odluka nije pokrenula S1 automatski.
 
-**Otvoreno i dalje:** S1 odobrenje (STOP); R2 više nije otvoreno.
+**Otvoreno i dalje:** S3 odobrenje (STOP); R2 i odobrenja S1/S2 više nisu otvorena.
 
 ---
 
@@ -43,3 +43,14 @@
 **Status:** ✅ runtime logika i source-only dokazi (`test:theme-ssot-sync`, `check_ui_contrast.py --strict` **140/140**); ✅ default `classic` rendered axe ostaje zelen u CI; 🟡 rendered axe za oba Aurum stanja, zoom/reflow i čitač ekrana do S11. **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`.
 
 **Lokalni dokazi:** 203/203 `test:*` (nova 4: 5/5, 6/6, 5/5, 8/8); 5 Python gate-ova PASS (`check_doc_links` 687/222); i18n 2717/2717; `npm run build` 279,1/300 KiB (+2,2 KiB); `lint` 0 grešaka; `typecheck:e2e` 0; `git diff --check` čist. Stari `features/shell/admin/ui/*` netaknuti do S11.
+
+
+---
+
+## 2026-11-11 · S2 · Javni shell koristi Aurum token-e
+
+**Šta:** `globals.css` dobio 155 Aurum-only linija (hero `radial-gradient`, `--nejra-hero-*` iz `const T`, serifni naslovi, semantički header/footer/katalog, `aria-current` crtica, `prefers-reduced-motion` za `drift`). NEJRA §10 dopunjen izračunatim hero kontrastom (`5.73 / 3.22 / 8.96 / 16.89:1`) odlukom `dopuna_ssot`; novi `test:public-aurum-hero-contrast` (4/4) + CI korak. `publicAurum` semantička mapa u `public-ui.ts`; klasični `:root`/`.dark` i klasični TSX netaknuti.
+
+**Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet). STOP uvjet iz S2 plana §9 riješen dopunom SSOT-a, ne procjenom „izgleda ok".
+
+**Status:** ✅ source-only (`test:public-aurum-hero-contrast`, `test:theme-ssot-sync`, `check_ui_contrast.py --strict` 140/140) + ✅ **5/5 CI** run **`43110763869`** na `d1fb55d` (`d1fb55d7006e8e74c24f6f0ee018424136c92ba7`); rendered axe 252/0/0 nad 32 rute na default `classic`, artifact `13896851237`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400% i čitač ekrana do S11.

@@ -76,7 +76,7 @@ Ukupno **80 → 140 parova** (52 web klasična + 28 mobile + 60 Aurum), izmjeren
 
 | Kontekst | Fajl | Segment | Status |
 |---|---|---|---|
-| Javni header + mobilni drawer | `features/shell/public/public-layout.tsx` | S1 (montaža), S2 (stil) | ✅ **S1 montirano** (2× `<ThemeSwitcher />`); stil u S2 |
+| Javni header + mobilni drawer | `features/shell/public/public-layout.tsx` | S1 (montaža), S2 (stil) | ✅ **S2 stil gotov** (`43110763869` / `d1fb55d`): Aurum-only semantički tokeni, `aria-current` + oblik, 44 px mete; 2× `<ThemeSwitcher />` iz S1 |
 | Admin header | `features/shell/admin/admin-chrome.tsx` | S1 (montaža), S6 (stil) | ✅ **S1 montirano** unutar `AdminUserMenu`; stil u S6 |
 | Stylist header | `layouts/StylistLayout.tsx` | S1 (montaža), S10 (stil) | ✅ **S1 montirano** prije korisničkog menija; stil u S10 |
 | Auth / onboarding / NotFound | `pages/Login.tsx` i dr. | **S5** (mjesto = otvoreno pitanje O2) | ⬜ |

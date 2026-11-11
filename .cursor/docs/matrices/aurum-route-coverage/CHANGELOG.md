@@ -27,3 +27,14 @@
 **Zašto:** S1 je „temelj" koji S2–S10 konzumiraju; `ThemeSwitcher` je montiran u 3 shella, ali stil i migracija ekrana dolaze tek u njihovim segmentima. Matrica ne smije tvrditi da je ruta obrađena ako njen ekran nije diran.
 
 **Status:** ✅ lokalni dokazi (203/203 `test:*`, 140/140 kontrast, 2717/2717 i18n, 5 Python gate-ova, build 279,1/300 KiB, `typecheck:e2e` 0); 🟡 rendered axe za Aurum stanja do S11. **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`.
+
+
+---
+
+## 2026-11-11 · S2 · Prve 3 javne rute + javni shell refaktorisani
+
+**Šta:** redovi 1–3 (`/`, `/usluge`, `/usluge/:serviceId`) i „Javni shell" prebačeni u ✅; „Dijeljeni UI" ima grep dokaz **0 diff**; „Nove primitive" bilježi 6/8 potrošača. `PublicHome` dobio filmski Aurum hero, `PublicServices` Aurum `FilterBar`/`EmptyState`/`ErrorState`/`TableSkeleton`, `PublicServiceDetail` Aurum `PageHeader`/`StatusBadge`. Klasične grane u izvoru ostaju doslovno identične; API/`queryKey`/stale brojači/flagovi/`data/*.mjs` netaknuti.
+
+**Zašto:** S2 je prvi segment koji konzumira S1 temelj; NEJRA §09 potvrđuje da su ovo jedine S2 rute. `dopuna_ssot` je razriješila STOP uvjet za hero kontrast u §10.
+
+**Status:** ✅ **204/204** `test:*` (novi `test:public-aurum-hero-contrast` 4/4 + CI korak), 5 Python gate-ova, build 279,9/300 KiB. **CI:** commit `d1fb55d` (`d1fb55d7006e8e74c24f6f0ee018424136c92ba7`), run **`43110763869`** = **5/5 success**; `a11y-e2e` job `130825854913` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13896851237`. Preostalih 55 ruta i rendered axe za 3 stanja ostaju ⬜/🟡 do S3–S11.

@@ -112,10 +112,10 @@ Push → `gh run watch` → **5/5 success**. **Ostvareno:** commit `ae87acf` (`a
 - ✅ Q9: override neaktivan u Aurumu + napomena u postavkama; `test:brand-colors` zelen.
 - ✅ `test:theme-ssot-sync` potvrđuje da kod = NEJRA §10.
 - ✅ 140/140 kontrastnih parova; BS/EN paritet; 203/203 testova; build unutar budžeta.
-- ✅ Nove primitive postoje, stari šabloni još rade (migracija je S6–S10); nema mrtvog koda koji se više ne koristi, a nije planiran za brisanje u S11.
+- ✅ Nove primitive postoje, stari šabloni još rade (S2 je konzumirao 6/8, ostatak migracije je S6–S10); nema mrtvog koda koji se više ne koristi, a nije planiran za brisanje u S11.
 - 🟡 Rendered a11y **Aurum stanja** još nije provjerena (axe u CI pokriva default); S11 dodaje pokrivenost za sva 3 stanja.
 - ✅ Commit sha + run id + 5/5 + delta bundle-a u evidenciji: `ae87acf` / `43100889990` / 5/5 / **+2,2 KiB** (276,9 → 279,1 KiB gzip).
-- **STOP** → pitanje: „Odobravaš li S2 (javni shell + Početna + Usluge + Detalj)?" R2 je već potvrđen (`dark_yes`) i ne traži se ponovo.
+- **STOP** → pitanje: „Odobravaš li S2 (javni shell + Početna + Usluge + Detalj)?" ✅ **ODGOVORENO:** vlasnik je rekao „Možeš krenuti sa S2"; S2 je završen (`43110763869` / `d1fb55d`). R2 je već potvrđen (`dark_yes`) i ne traži se ponovo.
 
 ---
 

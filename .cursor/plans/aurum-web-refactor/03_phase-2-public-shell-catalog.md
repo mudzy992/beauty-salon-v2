@@ -1,6 +1,6 @@
 # S2 — Javni shell + Početna + Usluge + Detalj usluge
 
-**Status:** 🟢 **S2 eksplicitno odobren („Možeš krenuti sa S2") i u toku** · **Prvi segment koji konzumira nove tokene i primitive.** STOP uvjet iz §9 riješen odlukom `dopuna_ssot`: NEJRA §10 je dopunjen izračunatim hero kontrastom bez izmjene palete. evidencija se upisuje nakon 5/5 CI-ja.
+**Status:** ✅ **S2 ZAVRŠEN (5/5 CI `43110763869` na `d1fb55d` / `d1fb55d7006e8e74c24f6f0ee018424136c92ba7`)** · **Prvi segment koji konzumira nove tokene i primitive.** Odobrenje: „Možeš krenuti sa S2"; STOP uvjet iz §9 riješen odlukom `dopuna_ssot`: NEJRA §10 dopunjen izračunatim hero kontrastom bez izmjene palete. Sljedeći korak: **STOP** → pitanje za S3.
 
 ---
 
@@ -67,13 +67,14 @@ Lokalno: 5 Python + puna `test:*` petlja + `npm run build` (izmjeriti `public ho
 
 ---
 
-## 8. DoD + dokazi
+## 8. DoD + dokazi (izmjereno 2026-11-11)
 
-- ✅ 4 ekrana + shell refaktorisani u 3 stanja; nema tvrdih boja; BS/EN paritet.
-- ✅ Svi navedeni testovi zeleni; nijedan nije oslabljen; nova skripta ima CI korak.
-- ✅ API/parametri/stale-request/flagovi netaknuti (diff pregled u STOP-sažetku).
-- ✅ Build ≤300 KiB; `a11y-e2e` zelen; commit sha + run id upisani.
-- 🟡 Rendered izgled Auruma na 320 px / zoom 400% nije ručno provjeren u pregledniku — `e2e/dom-metrics` i `a11y-e2e` daju samo ono što mjere; označiti 🟡 do S11.
+- ✅ **4 ekrana + shell u 3 stanja.** `classic` je DOSLOVNO netaknut (svi novi CSS pravila su pod `[data-skin="aurum"]`, primitive se renderuju samo za `skin === 'aurum'`); `aurum-light` / `aurum-dark` dobijaju serifne naslove, semantičke tokene, 44 px mete, `aria-current` + oblik, filmski hero. Nema **novih** tvrdih boja: legacy hex klase u TSX-u ostaju radi klasičnog pariteta, a pod Aurumom ih prekrivaju `hsl(var(--*))` tokeni. BS/EN paritet: **nijedan novi vidljivi string** — korišteni su već postojeći ključevi (`check_i18n.py --strict` 2717/2717).
+- ✅ **Svi navedeni testovi zeleni; nijedan nije oslabljen.** Puna petlja **204/204 PASS / 0 FAIL** (203 S1 + novi `test:public-aurum-hero-contrast` 4/4). Novi test čita NEJRA §10 `const T` + §07 `.hero` alfe + `globals.css`, računa najsvjetliju kompoziciju i odbija mutacije; dobio je svoj CI korak (`ci.yml` #617–#619). Nijedan postojeći source-contract test nije mijenjan; jedina izmjena S1 primitiva je **opcioni** `showSubmit = true` na `FilterBar` (default = identično S1 ponašanje), obrazloženo u `CHANGELOG.md`.
+- ✅ **API/parametri/stale-request/flagovi netaknuti.** `git diff` nad `frontend/src` ne sadrži `PublicFeatureGate`, `AppLogo`, `UploadedBrandLogo`, `public_feature_*`, `queryKey`, `/api/`, `limit`, `random`, `*RequestIdRef` ni `requestIdRef`. `components/ui/*`, `BeforeAfterSlider.tsx`, `media-image.tsx`, `features/public-catalog/*` (osim novog testa) i `data/*.mjs` imaju **0 diff**. `package-lock.json` 0 diff; nema novih zavisnosti, ekrana ni akcija.
+- ✅ **Build ≤300 KiB:** `279,9 / 300 KiB` gzip (+0,8 prema S1 279,1); `public home 45,4`, `dashboard 13,5`, `stylist inbox 17,9`, `analytics 114,7/140`, `calendar 99,4/125`. 5 Python gate-ova PASS (`check_repo_hygiene` **1789 nakon S2 commit-a**, `check_ci_index` **385/388**, `check_doc_links` **687/222**, `check_i18n` **2717/2717**, `check_ui_contrast` **140/140 source-only**); `typecheck:e2e` 0; `npm run lint` 0 grešaka / 7 poznatih warninga; `git diff --check` čist.
+- ✅ **`a11y-e2e` zelen:** run **`43110763869`** = **5/5 success**, `headSha=d1fb55d7006e8e74c24f6f0ee018424136c92ba7`; job `130825854913` daje **252 passed | 0 failed | 0 skipped** nad **32 rute** na default `classic`, artifact `playwright-a11y-report.zip` ID **`13896851237`** / 331270 B / SHA256 `b27443d74d6a31b714ebf8d8a7f66958594f9147ee7bb506602d53907a7e56f4`. CI log i dalje ima nepotpune `1.4.3` (8) / `2.5.3` (22) i poznate `1.4.6` AAA padove (28 violations / 70 čvorova) — **ne tvrdi se WCAG 2.2/AAA usklađenost**.
+- 🟡 Rendered izgled Auruma na 320 px / zoom 400%, čitač ekrana i rendered axe za `aurum-light`/`aurum-dark` nisu provjereni — `e2e/dom-metrics` i `a11y-e2e` daju samo ono što mjere; ostaje 🟡 do S11.
 - **STOP** → „Odobravaš li S3 (javni sadržaj: blog, galerija, kontakt, zadovoljni klijenti)?"
 
 ---
