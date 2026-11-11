@@ -2442,3 +2442,59 @@ Uklonjeno: `visibleTextNotInName()`, njen tip u `.d.mts`, 7 testova u `dom-metri
 (natrag na 45) i 32 vezana testa u tri speka. Mutacije M37–M43 koje sam napisao za duplikat
 odnose se na kod koji više ne postoji; postojeća mjera ima svoje testove
 (`test:dom-metrics`, 45/45).
+
+## 2026-11-08 — 1.4.3: axe-ov `incomplete` krio je stvarni prekršaj u legendi grafikona
+
+Axe `color-contrast` na `/admin/analytics` od početka vraća **incomplete** za tri čvora
+legende, uz „Element's background color could not be determined because element contains an
+image node". Razlog je stvaran — Recharts stavlja SVG ikonu serije unutar
+`.recharts-legend-item-text` — ali to ne znači da se kontrast ne može izračunati: kartica
+ispod je neprozirna, pa se pozadina da naći penjanjem uz roditelje.
+
+Izračun pokazuje prekršaj. Recharts boji **tekst** legende bojom serije
+(`DefaultLegendContent.js:120`: `finalLabelStyle.color = … || entry.color`), a boje iz
+`Analytics.tsx:339-341` na bijeloj kartici daju:
+
+| Serija | Boja | Kontrast na bijeloj | AA za tekst |
+|---|---|---:|---|
+| Bakšiš | `#D69E2E` | **2.39:1** | ✗ |
+| Prihodi | `#38A169` | **3.25:1** | ✗ |
+| Rashodi | `#E53E3E` | **4.13:1** | ✗ |
+
+Popravka: `<Legend labelStyle={{ color: 'hsl(var(--text))' }} />`. Boja serije ostaje na
+ikoni pored teksta i na stupcima (gdje je razlikovanje bojom i dalje korisno, a 1.4.1 je
+zadovoljen jer legenda nosi i tekst); sam tekst dobija boju sadržaja.
+
+`inlineColorContrastViolations()` u `e2e/dom-metrics.mjs` računa kontrast za tekst kojem je
+boja zadana **inline** (to je slučaj kad biblioteka boji tekst) i presuđuje po AA pragovima
+(4.5:1 običan, 3:1 veliki). Elementi s gradijentom ili slikom u pozadini se preskaču — tu ni
+ova mjera ne može znati pozadinu. Vezano u 3 speka = **32 nova testa**, `playwright --list`
+220 → **252**; `test:dom-metrics` 45 → **49**.
+
+**Rezultat: run `43003895895` success, 252 passed / 0 failed / 0 skipped, 0 nalaza.**
+
+### Mutacija koja u prvom krugu nije uhvaćena — i zašto
+
+**M45** (uklonjena provjera „ako roditelj ima `background-image`, vrati `null`") prošla je
+neprimijećeno. Uzrok nije bio u mjeri nego u testu: fixture je imao gradijent **bez**
+neprozirne `background-color` ispod, pa je `backgroundOf` i bez te provjere vraćao `null` —
+penjanje uz roditelje nije našlo nijednu neprozirnu boju. Provjera nešto mijenja **samo**
+kad je gradijent preko boje, pa test sada ima upravo to: `background-color: white` s
+`linear-gradient` preko nje. Bez provjere mjera bi uzela bijelu i prijavila 2.39:1.
+
+Pouka: mutacija koja ne padne ne znači uvijek da je koda suvišan — može značiti da fixture
+ne pokriva slučaj u kojem taj kod radi. Prije nego se grana proglasi mrtvom, treba naći
+ulaz koji je čini živom. (U istom nizu je `if (child.tagName === 'IMG')` u jednoj drugoj
+mjeri doista bio mrtav — razlika je u tome što tamo nijedan ulaz nije mogao promijeniti
+ishod.)
+
+Mutacije 3/3: **M44** prag za običan tekst spušten na 3:1, **M45** gradijent se ne
+preskače, **M46** omjer luminancija obrnut.
+
+### Šta ostaje i zašto se ne dira
+
+Axe i dalje javlja `incomplete` za 18 čvorova na 8 ruta. Tri su legenda (sada izmjereno i
+popravljeno — mjera to potvrđuje, axe ne može). Ostatak su gradijenti
+(`bg-gradient-to-b from-white/95 via-white/85 to-white`) na `/blog`, `/galerija` i
+`/kontakt`, gdje efektivna pozadina ovisi o fotografiji ispod. Ti fajlovi su u
+`src/pages/public/`, koji je izričito zabranjen za izmjene, pa je nalaz samo zabilježen.
