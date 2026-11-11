@@ -2142,3 +2142,58 @@ Axe se sada pokreće i s `best-practice` i s `wcag2aaa` tagovima, pa su prvi put
 Za **2.5.5** (Target Size Enhanced) i **2.4.13** (Focus Appearance) axe 4.14.0 **nema
 pravila** — provjereno preko `getRules([])`. Ta dva AAA kriterija zaista nisu mjerljiva
 ovim alatom, i to je sada utvrđeno, a ne pretpostavljeno.
+
+## 2026-11-08 — Tab-prolazak izmjeren na 33 rute; 2.1.1 i 2.4.3 🟡 → ✅
+
+`MATRIX.md` je 2.1.1 i 2.4.3 držala na 🟡 („u kodu, nije verifikovano u renderu"), a 2.1.2
+na ✅ uz dokaz koji je bio **samo iz izvora**. Sve tri tvrdnje govore o onome što se desi
+kad korisnik pritisne Tab — dakle o nečemu što Chromium u CI poslu `a11y-e2e` može
+izmjeriti. Postojeći test `2.1.1 Keyboard` već je mjerio dostižnost, ali je oznake skupljao
+u **Set**, a skup baca redoslijed — upravo ono što 2.4.3 traži.
+
+Novo `e2e/tab-traversal.mjs` (`analyzeTabTraversal`, `tabPressesFor`, `describeTraversal`)
+iz istog niza pritisaka daje tri tvrdnje: `unvisited` (2.1.1), `stuckAt` (2.1.2),
+`orderMismatch` (2.4.3). Pokriveno **33 rute**: 9 javnih + 15 admin + 9 stylist.
+
+### Četiri klase lažnih pozitivnih u mjeri (svaka je pala na CI prije nego je ispravljena)
+
+Prvi run (`42966480987`) pao je na 10 nalaza i **nijedan nije bio defekt aplikacije**:
+
+1. `button:not([disabled]), …, [tabindex]:not([tabindex="-1"])` — `:not([tabindex="-1"])`
+   vrijedi samo za posljednju alternativu, pa je `<button tabindex="-1">` ulazio u spisak
+   preko `button`. Radix tako radi neaktivne tabove (ARIA APG: tablista je jedan tab-stop,
+   između tabova se ide strelicama).
+2. Chromiumov `<input type="date">` ima segmente u **zatvorenom** shadow DOM-u: Tab pomjeri
+   segment, `document.activeElement` ostaje isti. Izgledalo je kao zamka na 4 rute.
+3. Oznaka elementa nije jedinstvena (više Radix switcheva = isti string). Brojanje preko
+   skupa dalo bi lažni **prolaz**, što je opasnije od lažnog pada.
+4. `expected + 1` pritisaka je premalo (datum troši po jedan po segmentu), pa je
+   „nedostignuto" uvijek bilo na repu stranice.
+
+### Uzrok posljednja 2 nalaza pročitan je u instaliranom Radix izvoru
+
+Prvo objašnjenje (promjenjiva fokusabilnost) run `42969095988` je **opovrgnuo**, pa je
+uzrok pročitan u `node_modules/@radix-ui/react-roving-focus/dist/index.mjs`:
+
+- linija 92: kontejner dobija `tabIndex: isTabbingBackOut || focusableItemsCount === 0 ? -1 : 0`
+- linije 100–106: `onFocus` kontejnera, kad fokus stigne s tastature, **odmah preusmjeri
+  fokus na aktivni tab** (`getItems().filter((item) => item.focusable)`)
+
+Tab dakle dođe na kontejner, samo fokus na njemu ne ostane. Zato je dodana
+`probeFocusability(labels)` u `dom-metrics.mjs`: za svaki nedostignuti element pozove
+`el.focus()` i provjeri `document.activeElement === el`, uz `tabindex`, `role`, `inTablist`.
+Elementi na kojima fokus ne ostane nisu zasebni tab-stopovi i ne presuđuju se; oni na kojima
+ostane a Tab ih preskače ostaju prekršaj. Dokaz iz sonde ide uz nalaz u anotaciju.
+
+**Rezultat: run `42976330528` success, 180 passed / 0 failed / 0 skipped, 0 nalaza za
+2.1.1, 2.1.2 i 2.4.3 na svih 33 rute.**
+
+### Šta ostaje i šta mjera NE dokazuje
+
+Otvorena su **2** 🟡: `1.4.5` (tekst kao slika — axe nema pravilo, treba OCR/čovjek) i
+`2.5.7` (pokreti povlačenja). Za `2.5.5` i `2.4.13` (AAA) axe 4.14.0 nema pravila.
+
+2.1.1 mjeri dostižnost elemenata koji SU fokusabilni. `<div onClick>` bez `tabIndex` se u
+mjeri ne pojavljuje — njega hvataju `jsx-a11y` (na `error`) i axe. 2.4.3 dokazuje da
+redoslijed fokusa prati DOM redoslijed; da taj redoslijed ima smisla čitaču ekrana
+potvrđuje tek AT (M9/M13).

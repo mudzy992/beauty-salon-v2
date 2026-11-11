@@ -207,8 +207,8 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 1.4.13 | ➖ | tooltip komponenta **obrisana** (faza 13, D2) → nema tooltipova |
 | 1.4.6 (AAA) | ✅/❌ | glavni tekst 20.01:1 ✅; `--text-muted` 5.61:1 ispod 7:1 (Q5: admin override). **Izmjereno u Chromiumu 2026-11-08** (`color-contrast-enhanced`, run `42923727266`): **28 od 32 rute padaju, 70 čvorova** — npr. `text-content-muted` `#67676f` na `#ffffff` daje **5.6:1** pri 12–14px, a AAA traži 7:1. Broj se poklapa s proračunom 5.61:1, pa proračun i render nisu u sukobu. Ostaje ❌ za sporedni tekst, ali sada s brojem, a ne s procjenom. |
 | 1.4.8 / 1.4.9 (AAA) | ➖ | odbijeno (Q5) |
-| 2.1.1 | 🟡 | combobox u `ReservationScheduler` popravljen (`test:reservation-scheduler-combobox`, 12/12 mutacija). **Novi nalaz 2026-11-09:** `<Card onClick>` u `Gallery.tsx` — `Card` renderuje običan `<div>`, a `loadImages` je jedini put do `selectedCatId`, pa tastaturni korisnik nije mogao otvoriti nijednu kategoriju. Popravljeno pravim `<button>` + `aria-pressed` (`test:admin-gallery-keyboard`, 5/5 mutacija). **Napomena:** `jsx-a11y` ovo NIJE javio jer ne zna šta custom komponenta renderuje. **Rendered dokaz 2026-11-08:** tastatura **jeste** provjerena na 9 javnih ruta — Tab doseže svaki fokusabilni element, fokus ima vidljiv indikator (run `42889168373` success) |
-| 2.1.2 | ✅ | Radix fokus trap; `window.confirm` ×14 je native i **nema** trap (vidi niže) |
+| 2.1.1 | ✅ | combobox u `ReservationScheduler` popravljen (`test:reservation-scheduler-combobox`, 12/12 mutacija). **Novi nalaz 2026-11-09:** `<Card onClick>` u `Gallery.tsx` — `Card` renderuje običan `<div>`, a `loadImages` je jedini put do `selectedCatId`, pa tastaturni korisnik nije mogao otvoriti nijednu kategoriju. Popravljeno pravim `<button>` + `aria-pressed` (`test:admin-gallery-keyboard`, 5/5 mutacija). **Napomena:** `jsx-a11y` ovo NIJE javio jer ne zna šta custom komponenta renderuje. **Rendered dokaz 2026-11-08:** tastatura **jeste** provjerena na 9 javnih ruta — Tab doseže svaki fokusabilni element, fokus ima vidljiv indikator (run `42889168373` success). **Prošireno na svih 33 ruta (9 javnih + 15 admin + 9 stylist), run `42976330528` success, 180/0/0, 0 nalaza.** Mjera bilježi stvarni niz pritisaka Tab i presuđuje samo o elementima koji su fokusabilni u oba snimka **i** na kojima `el.focus()` zadrži fokus. **Šta ovo NE dokazuje:** kriterij traži da sva *funkcionalnost* radi s tastature, a mjera polazi od elemenata koji SU fokusabilni — `<div onClick>` bez `tabIndex` se u njoj ne pojavljuje. Njega hvataju `jsx-a11y` (postavljen na `error`) i axe. Povlačenje u kalendaru ostaje zasebno pod 2.5.7. |
+| 2.1.2 | ✅ | Radix fokus trap; `window.confirm` ×14 je native i **nema** trap (vidi niže). **Rendered dokaz 2026-11-08:** dosad samo iz izvora, sada i pritiscima Tab na **33** rute (run `42976330528`, 0 nalaza) — nijedan element ne zadrži fokus nakon uzastopnog Tab-a. |
 | 2.1.4 | ➖ | nema single-key shortcuta |
 | 2.2.1 | ➖/⚠️ | UI nema auto-logout; backend timeout nije provjeren |
 | 2.2.2 | ➖ | 60s poll za badge nije „moving content“; bez animiranog sadržaja |
@@ -216,7 +216,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.3.3 (AAA) | ✅ | `globals.css:241` globalni `prefers-reduced-motion` na `*` (pokriva i Radix i Sonner) |
 | 2.4.1 | ✅ | skip-link postoji u admin/stylist shellu (`test:shell-a11y`). **Axe nalaz:** javni layout ga **nije imao** — prvi Tab išao je na `<a href="/" class="flex items-center gap-2 flex-none">` (logo), 14× isti rezultat. Sada `<SkipLink />` prvi u `features/shell/public/public-layout.tsx` + `<main id="main" tabIndex={-1}>`. `test:public-a11y-axe-findings` asertira i **redoslijed** (SkipLink prije `<header>`) |
 | 2.4.2 | ✅ | `seo/dashboard-titles.ts` + `test:analytics-hub-redirect` / `test:settings-hub-redirect` |
-| 2.4.3 | 🟡 | `tabIndex={-1}` na naslovu postoji; stvarni pomak fokusa 🟡 |
+| 2.4.3 | ✅ | **Izmjereno u Chromiumu 2026-11-08** na svih **33** rute (run `42976330528` success, 180/0/0, 0 nalaza): redoslijed kojim Tab obilazi elemente prati DOM redoslijed — nijedan pozitivan `tabIndex` i nijedno vizuelno preslagivanje bez preslagivanja DOM-a. Prije toga je postojao samo dokaz da `tabIndex={-1}` stoji na naslovu, što je bio razlog za 🟡. **Šta ovo NE dokazuje:** DOM redoslijed je zamjena za značenje; da redoslijed zaista ima smisla čitaču ekrana potvrđuje tek AT (M9/M13). Uz 1.3.2 ✅ (DOM = vizuelni redoslijed) lanac je potpun za javne rute. |
 | 2.4.4 | ✅ | `aria-current` ×6, jedinstvena imena akcija (testovi po modulu) |
 | 2.4.5 | ✅ | sidebar + pretraga + hub tabovi (M1/M2) |
 | 2.4.6 | ✅ | `PageHeader` `h1`, vidljive labele; `test:stylist-form-controls-a11y` (≥27 kontrola, 0 bez imena) |
@@ -259,16 +259,22 @@ rendered mjeru (`e2e/a11y-admin.spec.ts:157`, run `42923727266` success).
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (test/skriptu/render) | **38** |
+| ✅ verifikovano (test/skriptu/render) | **40** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **4** |
+| 🟡 u kodu, nije verifikovano u renderu | **2** |
 | ❌ nije zadovoljeno | **0** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
 | **ukupno** | **51** |
 
-Preostala **4** 🟡: `1.4.5` (tekst kao slika), `2.1.1` (tastatura — javni dio izmjeren,
-admin/stylist dijelom), `2.4.3` (redoslijed fokusa), `2.5.7` (pokreti povlačenja).
+Preostala **2** 🟡: `1.4.5` (tekst kao slika — treba OCR ili ljudsku procjenu; axe nema
+pravilo za to) i `2.5.7` (pokreti povlačenja — alternativa postoji, ali nije provjereno da
+li je `onSelectEvent` dostupan tastaturom).
+
+`2.1.1` i `2.4.3` su prešli na ✅ **2026-11-08** mjerenjem stvarnog Tab-prolaska na svih
+33 rute (`e2e/tab-traversal.mjs`, run `42976330528` success, 180/0/0, 0 nalaza); `2.1.2`
+je uz dokaz iz izvora dobio i rendered dokaz. Prije toga su stajali na 🟡 jer mjera nije
+postojala, ne jer je postojao nalaz.
 
 ## Dvije planirane stavke koje **nisu** urađene — i zašto
 
