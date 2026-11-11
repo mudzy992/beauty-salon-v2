@@ -744,3 +744,18 @@ test('visibleTextNotInName: svaka vrsta kontrole je u opsegu, ne samo button', (
     'link i tab s ulogom moraju biti provjereni, ne samo <button>',
   )
 })
+
+test('visibleTextNotInName: <select> nije u opsegu — textContent mu je spojen tekst svih opcija', () => {
+  makeDom(`
+    <select id="filter" aria-label="Filtriraj recenzije po statusu">
+      <option value="">Sve recenzije</option>
+      <option value="pending" selected>Na čekanju</option>
+      <option value="approved">Odobreno</option>
+    </select>
+  `)
+  assert.deepEqual(
+    visibleTextNotInName(),
+    [],
+    'vidljivo je samo „Na čekanju" (stanje, ne labela) — a textContent bi spojio sve tri opcije',
+  )
+})

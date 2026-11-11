@@ -558,7 +558,13 @@ export function visibleTextNotInName() {
     'button',
     'a[href]',
     'input',
-    'select',
+    // `select` namjerno NIJE ovdje. CI run 42998442105 je na `/admin/reviews` prijavio
+    // „vidljivo „sve recenzijena čekanjuodobreno" nije dio imena" — to je `textContent`
+    // nad `<select>`, koji vraća spojen tekst SVIH `<option>` elemenata, a vidljiva je
+    // samo odabrana. Isti uzrok već je jednom u ovom repu dao lažni 2.5.3 nalaz nad
+    // `innerText`. Odabrana vrijednost je **stanje** kontrole, ne njena labela; labela
+    // selecta dolazi iz `<label>` ili `aria-label`, dakle izvan elementa, pa ovdje nema
+    // vidljivog teksta koji bi se mogao uporediti s imenom. Pokriva ga axe pravilo `label`.
     'textarea',
     'summary',
     '[role="button"]',
