@@ -13,6 +13,7 @@ import {
   requiredNotMarked,
 } from './dom-metrics.mjs'
 import type { ClippedEntry, Landmark } from './dom-metrics.mjs'
+import { analyzeTabTraversal, describeTraversal } from './tab-traversal.mjs'
 
 /**
  * WCAG kriteriji koji traže **raspored**, pa ih jsdom (`test:axe-render-a11y`) i axe
@@ -212,14 +213,16 @@ for (const route of PUBLIC_ROUTES) {
     await page.goto(route.path, { waitUntil: 'networkidle' })
 
     const expected: string[] = await page.evaluate(focusableSnapshot)
-    const reached = new Set<string>()
+    // Bilježi se NIZ, ne skup: skup dokazuje dostižnost (2.1.1) ali baca redoslijed, a
+    // redoslijed je upravo ono što 2.4.3 traži. Isti prolazak daje obje tvrdnje.
+    const visited: (string | null)[] = []
 
     // Generozan broj koraka: javne stranice imaju navigaciju, forme i podnožje.
     for (let i = 0; i < expected.length + 10; i += 1) {
       await page.keyboard.press('Tab')
       const label = await page.evaluate(activeElementLabel)
+      visited.push(label)
       if (!label) continue
-      reached.add(label)
 
       // Fokus mora biti vidljiv — bez indikatora korisnik tastature ne zna gdje je.
       const visibleFocus = await page.evaluate(hasVisibleFocusIndicator)
@@ -227,14 +230,36 @@ for (const route of PUBLIC_ROUTES) {
       expect(visibleFocus, `${route.path}: fokus bez vidljivog indikatora na "${label}"`).toBe(true)
     }
 
-    const missed = expected.filter((e) => !reached.has(e))
-    if (missed.length) {
+    const traversal = analyzeTabTraversal({ expected, visited })
+
+    if (traversal.unvisited.length) {
       reportFailure(
         `2.1.1 ${route.path} — Tab ne doseže`,
-        `${missed.length}/${expected.length}: ${missed.slice(0, 6).join(' | ')}`,
+        `${traversal.unvisited.length}/${traversal.expectedCount}: ${traversal.unvisited.slice(0, 6).join(' | ')}`,
       )
     }
-    expect(missed, `${route.path}: Tab ne doseže ${missed.length} interaktivnih elemenata`).toEqual([])
+    expect(
+      traversal.unvisited,
+      `${route.path}: Tab ne doseže ${traversal.unvisited.length} interaktivnih elemenata`,
+    ).toEqual([])
+
+    // 2.1.2: fokus se ne smije zaglaviti. Do sad je ovo bilo dokazano samo iz izvora
+    // („Radix fokus trap"); sada je izmjereno pritiscima Tab.
+    if (traversal.stuckAt) {
+      reportFailure(`2.1.2 ${route.path} — fokus zaglavljen`, describeTraversal(traversal))
+    }
+    expect(traversal.stuckAt, `${route.path}: fokus zaglavljen na "${traversal.stuckAt}"`).toBe(null)
+
+    // 2.4.3: redoslijed fokusa mora pratiti značenje sadržaja, a DOM redoslijed je ono
+    // što se može izmjeriti bez čitača ekrana. Pozitivni `tabindex` i vizuelno
+    // preslagivanje bez preslagivanja DOM-a isplivaju upravo ovdje.
+    if (traversal.orderMismatch) {
+      reportFailure(`2.4.3 ${route.path} — redoslijed fokusa`, describeTraversal(traversal))
+    }
+    expect(
+      traversal.orderMismatch,
+      `${route.path}: redoslijed fokusa ne prati DOM — ${describeTraversal(traversal)}`,
+    ).toBe(null)
   })
 }
 

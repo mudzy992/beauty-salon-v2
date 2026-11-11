@@ -599,6 +599,9 @@ jobs:
       - name: Test animation settle helper (axe color-contrast flake)
         working-directory: frontend
         run: npm run test:settle-animations
+      - name: Test tab traversal analysis (WCAG 2.1.1, 2.1.2, 2.4.3)
+        working-directory: frontend
+        run: npm run test:tab-traversal
       - name: Test admin content page accessibility
         working-directory: frontend
         run: npm run test:admin-content-a11y
