@@ -192,3 +192,49 @@ test('2.4.3 jedinstvene oznake i dalje presuđuje', () => {
     actual: 'select#period',
   })
 })
+
+test('2.1.1 ne presuđuje o elementu koji je tokom prolaska ispao iz tab niza', () => {
+  // Izmjereno na runu 42968367610: `/admin/finance` i `/admin/users` javili su „Tab ne
+  // doseže" na kontejneru Radix tabliste. Kontejner ima `tabindex="0"` dok je fokus izvan
+  // grupe, a `-1"` čim fokus uđe u nju — dakle Tab ga legitimno preskače. Presuđivati o
+  // njemu znači tražiti prekršaj tamo gdje ga nema.
+  const out = analyzeTabTraversal({
+    expected: ['div.tablista', 'button "Knjiga Prihoda"', 'a "Dalje"'],
+    visited: ['button "Knjiga Prihoda"', 'a "Dalje"', 'button "Knjiga Prihoda"'],
+    stillFocusable: ['button "Knjiga Prihoda"', 'a "Dalje"'],
+  })
+  assert.deepEqual(out.becameUnfocusable, ['div.tablista'])
+  assert.deepEqual(out.unvisited, [], 'nije prekršaj — element više nije u tab nizu')
+  assert.equal(out.expectedCount, 3, 'početni broj se i dalje vidi')
+  assert.equal(out.stableCount, 2)
+  assert.equal(out.stuckAt, null)
+  assert.equal(out.orderMismatch, null)
+})
+
+test('2.1.1 element koji je ostao fokusabilan a nije dosegnut JESTE prekršaj', () => {
+  const out = analyzeTabTraversal({
+    expected: ['a', 'b', 'c'],
+    visited: ['a', 'c', 'a'],
+    stillFocusable: ['a', 'b', 'c'],
+  })
+  assert.deepEqual(out.unvisited, ['b'])
+  assert.deepEqual(out.becameUnfocusable, [])
+})
+
+test('bez `stillFocusable` mjera se ponaša kao prije (nazad kompatibilno)', () => {
+  const out = analyzeTabTraversal({ expected: ['a', 'b'], visited: ['a', 'a'] })
+  assert.deepEqual(out.becameUnfocusable, [])
+  assert.equal(out.stableCount, 2)
+})
+
+test('describeTraversal javlja elemente koji su ispali iz tab niza', () => {
+  const text = describeTraversal(
+    analyzeTabTraversal({
+      expected: ['div.tablista', 'a'],
+      visited: ['a', 'a'],
+      stillFocusable: ['a'],
+    }),
+  )
+  assert.match(text, /van tab niza tokom prolaska 1: div\.tablista/)
+  assert.doesNotMatch(text, /nedostignuto/, 'nije prijavljen kao nedostignut')
+})

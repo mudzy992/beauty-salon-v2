@@ -248,7 +248,13 @@ for (const route of PUBLIC_ROUTES) {
       expect(visibleFocus, `${route.path}: fokus bez vidljivog indikatora na "${label}"`).toBe(true)
     }
 
-    const traversal = analyzeTabTraversal({ expected, visited })
+    // Drugi snimak, na kraju prolaska: fokusabilnost se može promijeniti dok Tab ide kroz
+    // stranicu (Radix tablista je jedan tab-stop, pa njen kontejner ima `tabindex="0"` dok
+    // je fokus izvan grupe a `-1"` čim fokus uđe). Presuđuje se samo o elementima koji su
+    // fokusabilni u OBA snimka — inače bi mjera tražila prekršaj tamo gdje ga nema
+    // (izmjereno na runu 42968367610: `/admin/finance` i `/admin/users`).
+    const stillFocusable: string[] = await page.evaluate(focusableSnapshot)
+    const traversal = analyzeTabTraversal({ expected, visited, stillFocusable })
 
     if (traversal.unvisited.length) {
       reportFailure(

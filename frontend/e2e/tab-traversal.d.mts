@@ -5,8 +5,12 @@
 
 /** Rezultat analize zabilježenog Tab-prolaska. */
 export interface TabTraversalAnalysis {
-  /** Koliko je fokusabilnih elemenata bilo u DOM-u. */
+  /** Koliko je fokusabilnih elemenata bilo u DOM-u na početku. */
   expectedCount: number
+  /** Koliko ih je fokusabilno i na kraju — samo o njima se presuđuje. */
+  stableCount: number
+  /** Elementi koji su tokom prolaska ispali iz tab niza; nije prekršaj. */
+  becameUnfocusable: string[]
   /** Koliko ih je Tab stvarno dohvatio. */
   reachedCount: number
   /** Fokusabilni, a nedostignuti — 2.1.1. */
@@ -22,6 +26,9 @@ export interface TabTraversalAnalysis {
 export function analyzeTabTraversal(input?: {
   expected?: string[]
   visited?: (string | null)[]
+  /** Isti snapshot na kraju prolaska — bez njega se presuđuje i o elementima koji su
+   * u međuvremenu ispali iz tab niza. */
+  stillFocusable?: string[]
 }): TabTraversalAnalysis
 
 /** Jedan pritisak više od broja elemenata, da se vidi cikliranje. */
