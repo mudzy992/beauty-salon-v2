@@ -167,6 +167,7 @@
     "test:axe-coverage": "node --test e2e/axe-coverage.test.mjs",
     "test:wcag-source-contracts": "node --test src/app/wcag-source-contracts.test.mjs",
     "test:dom-metrics": "node --test e2e/dom-metrics.test.mjs",
+    "test:design-reference": "node --test scripts/design-reference.test.mjs",
     "test:label-in-name": "node --test src/components/a11y/label-in-name.test.mjs",
     "test:settle-animations": "node --test e2e/settle-animations.test.mjs",
     "test:tab-traversal": "node --test e2e/tab-traversal.test.mjs",

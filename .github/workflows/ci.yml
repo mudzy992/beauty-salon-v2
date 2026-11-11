@@ -596,6 +596,9 @@ jobs:
       - name: Test rendered WCAG DOM metrics
         working-directory: frontend
         run: npm run test:dom-metrics
+      - name: Test standalone design references
+        working-directory: frontend
+        run: npm run test:design-reference
       - name: Test label-in-name helper (WCAG 2.5.3)
         working-directory: frontend
         run: npm run test:label-in-name
