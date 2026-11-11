@@ -1,6 +1,6 @@
 # Plan — Aurum web refaktor: javne stranice + svi dashboardi
 
-**Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0 ZAVRŠEN (5/5 CI) · S1 ZAVRŠEN (5/5 CI `43100889990` na `ae87acf`) · S2 ZAVRŠEN (5/5 CI `43110763869` na `d1fb55d`; 204/204 lokalno, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`, 279,9/300 KiB).** S3–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje. U S0 nije diran produkcijski UI kod; S1 jeste uveo jedini novi feature (izbornik teme), a S2 je prvi potrošač tog temelja u `frontend/src/`.
+**Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0 ZAVRŠEN (5/5 CI) · S1 ZAVRŠEN (`43100889990` / `ae87acf`) · S2 ZAVRŠEN (`43110763869` / `d1fb55d`) · S3 ZAVRŠEN (5/5 CI `43116167107` na `a12cf5b`; 204/204 lokalno, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`, 280,9/300 KiB).** S4–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje. U S0 nije diran produkcijski UI kod; S1 jeste uveo jedini novi feature (izbornik teme), S2 je prvi potrošač tog temelja u `frontend/src/`, a S3 je proširio Aurum na 5 sadržajnih javnih ruta.
 
 **Datum:** 2026-11-11
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0`

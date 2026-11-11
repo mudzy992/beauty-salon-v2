@@ -1,8 +1,8 @@
 # HANDOFF — Aurum web refaktor
 
-**Stanje:** ✅ **S0 → S1 → S2 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1 („Možeš nastaviti, odobravam S1…") i S2 („Možeš krenuti sa S2"), a na S2 STOP uvjet odabrao `dopuna_ssot`. S2 je realizovan po [03_phase-2-public-shell-catalog.md](03_phase-2-public-shell-catalog.md).
+**Stanje:** ✅ **S0 → S1 → S2 → S3 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1, S2 i S3 (`approve_s3`), a na S2 STOP uvjet odabrao `dopuna_ssot`. S3 je realizovan po [04_phase-3-public-content.md](04_phase-3-public-content.md).
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commiti:** `fa6d73a` (dizajn) + `bbd7ca5` (CI fallback) + `3ed3069` (konačna evidencija)
-**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2 commit:** `d1fb55d` (`d1fb55d7006e8e74c24f6f0ee018424136c92ba7`) · **S2 CI:** `43110763869` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13896851237` · **Datum:** 2026-11-11 · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S3 (javni sadržaj: blog, galerija, kontakt, zadovoljni klijenti)?". R2 je već riješeno (`dark_yes`).
+**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2:** `d1fb55d` / `43110763869` · **S3 commit:** `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · **S3 CI:** `43116167107` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13899570263` · **Datum:** 2026-11-11 · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S4 (javni tokovi: rezervacija, moje rezervacije, token, unsubscribe, profil)?". R2 je već riješeno (`dark_yes`).
 
 ---
 
@@ -128,7 +128,7 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 ## 8. S1 realizacija (2026-11-11) — predaja S2
 
-**Odobrenje:** vlasnik je nakon finalnog S0 STOP-a eksplicitno rekao „Možeš nastaviti, odobravam S1 - Temelj: tokeni + 3-state tema + primitive". Nije traženo novo odobrenje za S1; **S2 je naknadno odobren („Možeš krenuti sa S2") i završen, a S3 traži STOP + odobrenje**.
+**Odobrenje:** vlasnik je nakon finalnog S0 STOP-a eksplicitno rekao „Možeš nastaviti, odobravam S1 - Temelj: tokeni + 3-state tema + primitive". Nije traženo novo odobrenje za S1; **S2 je naknadno odobren („Možeš krenuti sa S2") i završen, a S3 je naknadno odobren (`approve_s3`) i završen (5/5 CI `43116167107`)**.
 
 **Jedina nova nejasnoća riješena pitanjem:** plan je tvrdio „30 postojećih kontrastnih parova × 2 = +60", a stvarni `check_ui_contrast.py` ih je imao **26** po stanju (ukupno 80). Vlasnik je odabrao **`use_140_four`**: zadržati 140, dodati 4 para iz NEJRA §10 (`text/page`, `muted/page`, `brand/page`, `accent/page`) po Aurum stanju. Nijedna boja nije izmišljena niti korigovana. Detalji u `02_phase-1-foundation.md` §10.
 
@@ -140,7 +140,7 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Šta još NIJE dokazano (ostaje 🟡 do S11):** rendered axe nad `aurum-light` / `aurum-dark` (CI axe pokriva samo default `classic`), zoom/reflow 320 px, čitač ekrana, fizički uređaj, `1.4.6` AAA. `test:theme-ssot-sync` i `check_ui_contrast.py` su **source-only** dokazi.
 
-**Za S2 (ostvareno):** `ThemeSwitcher` je bio u sva 3 shella; S2 je konzumirao 6 od 8 S1 primitiva (`FilterBar`, `TableSkeleton`, `EmptyState`, `ErrorState`, `PageHeader`, `StatusBadge`) isključivo u Aurum granama. CI 5/5 je ostvaren; **S3 se ne starta bez eksplicitnog odobrenja vlasnika**.
+**Za S2 (ostvareno):** `ThemeSwitcher` je bio u sva 3 shella; S2 je konzumirao 6 od 8 S1 primitiva (`FilterBar`, `TableSkeleton`, `EmptyState`, `ErrorState`, `PageHeader`, `StatusBadge`) isključivo u Aurum granama. CI 5/5 je ostvaren; **S3 je pokrenut tek nakon eksplicitnog `approve_s3` vlasnika (bez diranja `PublicFeatureGate`)**.
 
 
 ---
@@ -157,4 +157,24 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Šta još NIJE dokazano (🟡 do S11):** rendered axe nad `aurum-light`/`aurum-dark`, 320 px / zoom 400%, čitač ekrana, fizički uređaj, `1.4.6` AAA.
 
-**Za S3:** javni sadržaj (blog, galerija, kontakt, zadovoljni klijenti) čeka **STOP + eksplicitno odobrenje**. Ne dirati `PublicFeatureGate` (`public_feature_blog/gallery/reviews`) bez nove odluke.
+**Za S3 (ostvareno):** vlasnik je odabrao `approve_s3`; 5 ruta + dijeljene blog komponente su u Aurum grani, `PublicFeatureGate` (`public_feature_blog/gallery/reviews`) nije diran. **S4 čeka STOP + eksplicitno odobrenje**.
+
+---
+
+## 10. S3 realizacija (2026-11-11) — predaja S4
+
+**Odobrenje:** `ask_user s3_approval` → **`approve_s3`**, uz „Ne dirati PublicFeatureGate bez nove odluke". Nije traženo novo odobrenje za S2/S3 ni ponovljen STOP za kontrast.
+
+**Implementirano:** 12 fajlova / +386 −90. 5 stranica + 2 dijeljene blog komponente koriste `isAurum ? <Aurum> : <doslovno klasični markup>`; 164 Aurum-only CSS linije; `EmptyState` (sljedeći korak), `ErrorState` (retry), `PageHeader`, `DialogDescription`, `fieldset/legend`, `aria-describedby`, `aria-label` iz i18n, `aria-busy`, `autoComplete="name"`, `data-aurum-cta="primary"`, ikone uz tekst, `forced-colors`, 44 px mete, `overflow-wrap`. 11 novih BS/EN ključeva (**2728/2728**). Jedini dirani test: `public-blog-share-accessibility.test.mjs` (regex + novi assert, obrazloženje u §10 S3 plana); `check_ci_index` ostaje 385/388.
+
+**Lokalno izmjereno:** **204/204** `test:*`; 5 Python gate-ova (`check_repo_hygiene` 1789, `check_ci_index` 385/388, `check_doc_links` 687/222, `check_i18n` 2728/2728, `check_ui_contrast` 140/140 source-only); build **280,9/300 KiB** (+1,0 prema S2); `typecheck:e2e` 0; `lint` 0 grešaka / 7 warninga; `postcss.parse` 90 pravila; `git diff --check` čist.
+
+**CI dokaz:** commit `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`), run **`43116167107`** = **5/5 success**; `a11y-e2e` job `130844618383`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `13899570263` (330688 B, SHA256 `d360f1ffc3df2b390b855a2a46eac2d38db941862b4db2c535e9f7626b456627`). `140/140` i `test:public-aurum-hero-contrast` su source-only; log i dalje ima nepotpune `1.4.3`/`2.5.3` i poznate `1.4.6` AAA padove — bez tvrdnje o WCAG 2.2/AAA usklađenosti.
+
+**Nije dirano (grep dokaz 0 diff):** endpointi, paginacija, `approved` projekcija, `parse*`, stale brojači, share/`AbortError`, validacija komentara, `dangerouslySetInnerHTML` i backend sanitizacija, `PublicFeatureGate`, `queryKey`, feature flagovi, `components/ui/*`, `BeforeAfterSlider.tsx`, `data/*.mjs`, `media-image.tsx`, `/backend`, `/mobile`, `package-lock.json`, `ci.yml`. Kontakt vrijednosti isključivo iz postavki; NEJRA §07 ilustrativni podaci nisu hard-code-ani. Nema audio/video sadržaja u dozvoljenim tagovima, pa titlovi nisu izmišljani i STOP uvjet iz §9 nije aktiviran.
+
+**Obrazložena odstupanja (➖, detalj u §10 S3 plana):** `aria-current` na paginaciji i `aria-pressed` na kategorijama (nema numeričke paginacije ni filter tipki), `StatusBadge`/ocjena (nema statusa/ocjene u payloadu), `aria-invalid`/sažetak grešaka (greška je toast, submit logika je zabranjena), audio/video titlovi (sanitizer ih ne dozvoljava).
+
+**Šta još NIJE dokazano (🟡 do S11):** rendered axe nad `aurum-light`/`aurum-dark`, 320 px / zoom 400%, čitač ekrana, fizički uređaj, `1.4.6` AAA.
+
+**Za S4:** javni tokovi (rezervacija, moje rezervacije, token, unsubscribe, profil) čekaju **STOP + eksplicitno odobrenje**.

@@ -38,3 +38,13 @@
 **Zašto:** S2 je prvi segment koji konzumira S1 temelj; NEJRA §09 potvrđuje da su ovo jedine S2 rute. `dopuna_ssot` je razriješila STOP uvjet za hero kontrast u §10.
 
 **Status:** ✅ **204/204** `test:*` (novi `test:public-aurum-hero-contrast` 4/4 + CI korak), 5 Python gate-ova, build 279,9/300 KiB. **CI:** commit `d1fb55d` (`d1fb55d7006e8e74c24f6f0ee018424136c92ba7`), run **`43110763869`** = **5/5 success**; `a11y-e2e` job `130825854913` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13896851237`. Preostalih 55 ruta i rendered axe za 3 stanja ostaju ⬜/🟡 do S3–S11.
+
+---
+
+## 2026-11-11 · S3 · 5 javnih sadržajnih ruta refaktorisano
+
+**Šta:** redovi 4–7 i 14 (`/blog`, `/blog/:slug`, `/galerija`, `/kontakt`, `/zadovoljni-klijenti`) prebačeni u ✅. Dijeljene blog komponente (`public-blog-comments.tsx`, `public-blog-share.tsx`) dobile su Aurum prezentački sloj; `features/blog/*-data.mjs` parseri, `PublicFeatureGate`, `queryKey`, `components/ui/*`, `BeforeAfterSlider.tsx`, `data/*.mjs` i `media-image.tsx` imaju **0 diff**. Preostalih 50 ruta i rendered axe za 3 stanja ostaju ⬜/🟡 do S4–S11.
+
+**Zašto:** odluka `approve_s3` po NEJRA §09; režim plan → implementacija → 5/5 CI → evidencija → STOP. `PublicFeatureGate` flagovi `public_feature_blog/gallery/reviews` nisu dirani bez nove odluke.
+
+**Status:** ✅ **204/204** `test:*` (bez novih skripti; 1 source-contract regex proširen uz obrazloženje), 5 Python gate-ova, build **280,9/300 KiB**, BS/EN **2728/2728**. **CI:** commit `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`), run **`43116167107`** = **5/5 success**; `a11y-e2e` job `130844618383` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13899570263`.

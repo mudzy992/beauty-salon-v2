@@ -28,7 +28,7 @@
 
 **R2 riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` dodaje `.dark` na `<html>` uz `data-skin="aurum"`; time se aktiviraju postojeće `dark:` varijante, a Aurum tokeni moraju imati veću specifičnost. S1 je naknadno odobren i završen (`43100889990`), S2 (`43110763869`); ova odluka nije pokrenula S1 automatski.
 
-**Otvoreno i dalje:** S3 odobrenje (STOP); R2 i odobrenja S1/S2 više nisu otvorena.
+**Otvoreno i dalje (S0 unos, historijski):** S3 odobrenje je naknadno stiglo kao `approve_s3` i S3 je završen (`43116167107`); R2 i odobrenja S1/S2/S3 više nisu otvorena. S4 čeka STOP.
 
 ---
 
@@ -54,3 +54,13 @@
 **Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet). STOP uvjet iz S2 plana §9 riješen dopunom SSOT-a, ne procjenom „izgleda ok".
 
 **Status:** ✅ source-only (`test:public-aurum-hero-contrast`, `test:theme-ssot-sync`, `check_ui_contrast.py --strict` 140/140) + ✅ **5/5 CI** run **`43110763869`** na `d1fb55d` (`d1fb55d7006e8e74c24f6f0ee018424136c92ba7`); rendered axe 252/0/0 nad 32 rute na default `classic`, artifact `13896851237`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400% i čitač ekrana do S11.
+
+---
+
+## 2026-11-11 · S3 · 5 javnih sadržajnih stranica koriste Aurum token-e
+
+**Šta:** `globals.css` dobio **164 Aurum-only linije** za `data-aurum-page-hero`, `data-aurum-skeleton` (jedna `role="status"` regija s rezervisanom visinom), `data-aurum-surface`/`-satisfied-card`/`-contact-card`/`-comment`, `data-aurum-article*` (serifni naslov na tamnom hero-veu iz §10, kontejner bez diranja sanitiziranog HTML-a), `data-aurum-lightbox`, legacy `text-slate-*`/`bg-slate-*` → semantički tokeni, 44 px mete, vidljiv fokus, `overflow-wrap`, `forced-colors`. Nijedan novi hex: samo `hsl(var(--*))`, `var(--aurum-*)` i `var(--nejra-hero-*)` iz `const T`. `const T` i `:root`/`.dark` ostaju netaknuti; `test:theme-ssot-sync` i `check_ui_contrast.py --strict` (**140/140**) zeleni.
+
+**Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet), `approve_s3`. Bez `data-skin="aurum"` nijedno pravilo se ne primjenjuje, pa je default `classic` identičan — potvrđeno rendered axe **252 passed | 0 failed | 0 skipped**.
+
+**Status:** ✅ source-only + ✅ **5/5 CI** run **`43116167107`** na `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`); artifact `13899570263`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400%, čitač ekrana i `1.4.6` AAA do S11; `1.4.3`/`2.5.3` ostaju nepotpuni u coverage logu.

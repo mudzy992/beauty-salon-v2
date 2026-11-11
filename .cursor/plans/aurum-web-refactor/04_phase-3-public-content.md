@@ -1,6 +1,6 @@
 # S3 — Javni sadržaj: Blog, Galerija, Kontakt, Zadovoljni klijenti
 
-**Status:** 🟡 **u toku** (odobrenje `approve_s3`; režim: plan → implementacija → 5/5 CI → evidencija → STOP) · **Obuhvata 5 javnih ruta + dijeljene blog komponente.**
+**Status:** ✅ **ZAVRŠEN** — odobrenje `approve_s3`; kod `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · CI run **`43116167107` = 5/5 success** · režim: plan → implementacija → 5/5 CI → evidencija → **STOP**. **Obuhvata 5 javnih ruta + dijeljene blog komponente.**
 
 ---
 
@@ -79,3 +79,29 @@ Lokalno: 5 Python + puna `test:*` petlja + build (budžet) + `typecheck:e2e` + `
 - Blog članak može sadržavati HTML iz backend sanitizera; ne mijenjati sanitizaciju ni dozvoljene tagove — **ako dizajn traži drugačiji markup sanitiziranog sadržaja → STOP + pitanje** (to bi bio backend/API zahvat).
 - Ako se pojavi audio/video u članku (1.2.x), ne izmišljati titlove: bilježi se ➖/🟡 s obrazloženjem i pita vlasnika.
 - Kontakt podaci su iz postavki; ne hard-code-ati ilustrativne vrijednosti iz NEJRA §07 (`Ulica Primjer 12`, `+387 33 000 000`) u kod.
+
+---
+
+## 10. Realizacija S3 (2026-11-11) — dokazi i obrazložena odstupanja
+
+**Odobrenje:** `ask_user s3_approval` → **`approve_s3`**: „Pokrenuti S3 — javni sadržaj: blog, galerija, kontakt, zadovoljni klijenti — po istom režimu (plan → implementacija → 5/5 CI → evidencija → STOP). Ne dirati PublicFeatureGate bez nove odluke." Nije traženo novo odobrenje za S2/S3.
+
+**Implementirano (12 fajlova / +386 −90):** 5 stranica (`PublicBlogList`, `PublicBlogPost`, `PublicGallery`, `PublicContact`, `PublicSatisfiedClients`) + `features/blog/{public-blog-comments,public-blog-share}.tsx` + `bs.json`/`en.json` + `styles/globals.css` (164 Aurum-only linije) + 1 source-contract test. Obrazac je svuda `isAurum ? <S1 primitiva / novi Aurum markup> : <doslovno postojeći klasični markup>`, uz `data-aurum-*` markere i `useTheme()`. `EmptyState` (sa sljedećim korakom), `ErrorState` (retry), `PageHeader` (kontakt, jedan `<h1>`), status/alert regije i `DialogDescription` u lightboxu. `fieldset/legend` + `aria-describedby` hint + `aria-busy` na komentarima; `aria-label={t('public.blogShare.shareArticle', { title })}` („Podijeli – {naslov}"); `autoComplete="name"`; `data-aurum-cta="primary"` na jedinom primarnom CTA-u; `Images`/`AlertCircle` ikone uz tekst kategorije i greške; 11 novih BS/EN ključeva u paritetu.
+
+**Lokalno izmjereno:** **204/204** `test:*` PASS / 0 FAIL; 5 Python gate-ova PASS (`check_repo_hygiene` **1789**, `check_ci_index` **385/388**, `check_doc_links` **687/222**, `check_i18n.py --strict` **2728/2728**, `check_ui_contrast.py --strict` **140/140 source-only**); `npm run build` **280,9 / 300 KiB** gzip (**+1,0 KiB** prema S2 279,9); `typecheck:e2e` 0; `lint` 0 grešaka / 7 poznatih warninga; `git diff --check` čist; `postcss.parse` 90 pravila.
+
+**CI dokaz:** commit **`a12cf5b`** (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`), run **`43116167107`** = `completed/success`, **5/5**: `Backend build and tests`, `Frontend typecheck and production build`, `Rendered a11y (axe) nad izolovanom CI bazom`, `Repository hygiene and static reports`, `Mobile TypeScript check`. `a11y-e2e` job **`130844618383`**: **252 passed | 0 failed | 0 skipped**, artifact `playwright-a11y-report` ID **`13899570263`** / 330688 B / SHA256 `d360f1ffc3df2b390b855a2a46eac2d38db941862b4db2c535e9f7626b456627`. Rendered axe pokriva **default `classic`** = dokaz da klasični javni sajt nije regresirao.
+
+**Ugovor netaknut (grep dokaz, 0 diff):** `api.get`/`api.post`, `parsePublicBlogListPage`/`parsePublicBlogPost`/`parsePublicBlogComments`/`parsePublicSatisfiedClientsPage`, `PAGE_SIZE`/`limit`/`offset`, `approved` projekcija, share logika/`AbortError`, komentar validacija, `requestGeneration`/`commentSubmissionGeneration`/`commentsRetryRef`, `post.content.replace(/\n/g, '<br />')` i `dangerouslySetInnerHTML`, `PublicFeatureGate` (`public_feature_blog/gallery/reviews`), `queryKey`, `components/ui/*`, `BeforeAfterSlider.tsx`, `data/*.mjs`, `media-image.tsx`, `features/blog/*-data.mjs`, `package-lock.json`, `/backend`, `/mobile`, `ci.yml`. Kontakt vrijednosti isključivo iz `getSetting(...)`; NEJRA §07 ilustrativni podaci (`Ulica Primjer 12`, `+387 33 000 000`, `info@nejra.example`) nisu u kodu. Nema novih hard-coded hexova ni novih zavisnosti.
+
+**Obrazložena odstupanja od koraka u §5 („ažurirati uz obrazloženje ako markup traži"):**
+- **Jedna izmjena source-contracta:** `features/blog/public-blog-share-accessibility.test.mjs` — prvi `assert.match` proširen s `[\\s\\S]*?` između atributa jer `aria-label` iz i18n sada stoji unutar `<Button>`; dodan je i novi `assert.match` za `public.blogShare.shareArticle`. Ostalih 16 navedenih testova nisu dirani i svi su zeleni.
+- ➖ **`aria-current` na paginaciji / `aria-pressed` na kategorijama:** S3 rute koriste „Učitaj još" + `IntersectionObserver`, a kategorije galerije su `<h2>` sekcije, ne filter tipke. Ne uvode se lažne kontrole ni lažna paginacija bez promjene API ugovora; `aria-current` ostaje na navigaciji iz S2.
+- ➖ **`StatusBadge` / ocjena tekstom + zvjezdicama:** payloadi `parsePublicSatisfiedClientsPage` i galerije ne nose status ni ocjenu. Ne izmišljaju se podaci koji ne postoje u API odgovoru.
+- ➖ **`aria-invalid` i sažetak grešaka s linkovima na polja:** komentar forma validira `trim()` + `maxLength`, a neuspjeh se prikazuje toastom (postojeći ugovor). Uvođenje polje-specifične greške bi diralo submit logiku koja je u §4 zabranjena; umjesto toga su dodani `fieldset/legend`, `aria-describedby`, `aria-busy` i `role="status"`.
+- ➖ **Audio/video titlovi (1.2.x):** backend `sanitizeBlogContent` uklanja `iframe`/`script`, a dozvoljeni tagovi ne uključuju `<audio>`/`<video>`; S3 nije naišao na takav sadržaj, pa se titlovi ne izmišljaju i **STOP + pitanje nije aktiviran**.
+- ➖ **Drugačiji markup sanitiziranog HTML-a:** dizajn S3 stilizuje samo kontejner `.blog-content` (`data-aurum-article`); `dangerouslySetInnerHTML` i backend sanitizacija ostaju netaknuti, pa **STOP + pitanje nije aktiviran**.
+
+**Šta još NIJE dokazano (🟡 do S11):** rendered axe nad `aurum-light`/`aurum-dark`, 320 px / zoom 400%, čitač ekrana, fizički uređaj, `1.4.6` AAA. `140/140` i `test:public-aurum-hero-contrast` su **source-only**. CI log i dalje ima nepotpune `1.4.3` (8) / `2.5.3` (22) i poznate `1.4.6` AAA padove (28 violations / 70 čvorova); **ne tvrdi se WCAG 2.2/AAA usklađenost**.
+
+**Sljedeći korak:** **STOP** → „Odobravaš li S4 (javni tokovi: rezervacija, moje rezervacije, token, unsubscribe, profil)?".

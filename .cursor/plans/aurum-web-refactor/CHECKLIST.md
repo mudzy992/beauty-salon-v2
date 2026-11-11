@@ -1,6 +1,6 @@
 # CHECKLIST — Aurum web refaktor
 
-**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (S2 završen: `d1fb55d` / run `43110763869` / 5/5)
+**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (S3 završen: `a12cf5b` / run `43116167107` / 5/5)
 **Legenda:** ✅ izmjereno/provjereno · 🟡 u kodu ili planu, nije provjereno u renderu · ❌ nije zadovoljeno · ➖ nije primjenjivo · ⬜ nije započeto
 
 ---
@@ -11,7 +11,7 @@
 |---|---|---|---|
 | K0 | Plan + CHECKLIST + matrice napisani, **bez koda** | ✅ | ovaj folder + 2 matrice; `git status` je tada pokazivao samo `.cursor/` izmjene |
 | K0b | **Odobrenje plana od vlasnika** | ✅ | odgovor `approve_s0` na Kapiju 0 |
-| K1–K12 | Odobrenje svakog segmenta S0–S11 prije sljedećeg | 🟡 **K0 (`approve_s0`) + K1 (S1) + K2 (S2) ✅**; K3–K12 čekaju | svaki STOP-sažetak |
+| K1–K12 | Odobrenje svakog segmenta S0–S11 prije sljedećeg | 🟡 **K0 (`approve_s0`) + K1 (S1) + K2 (S2) + K3 (`approve_s3`) ✅**; K4–K12 čekaju | svaki STOP-sažetak |
 
 ---
 
@@ -22,7 +22,7 @@
 | S0 | Dizajn dokumenti + popravka CI baselinea | ✅ **ZAVRŠEN** (S1 naknadno eksplicitno odobren) | `fa6d73a` + `bbd7ca5` + `3ed3069` | **`43043182552`** + `43046250037` | ✅ **5/5** | **199/199** | 276,9 KiB | rendered axe **252/252**, 0 skipped, 32 rute; prethodna 2 runa 4/5 zbog `apt` DNS-a, riješeno odobrenim `ci_fallback` |
 | S1 | Temelj: tokeni + 3-state tema + primitive | ✅ **ZAVRŠEN** | `ae87acf` | **`43100889990`** | ✅ **5/5** | **203/203** | **279,1 KiB (+2,2)** | 140/140 source-only kontrastnih parova (odluka `use_140_four`); 4 nova testa + 4 CI koraka `success`; R2 potvrđen `dark_yes`; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute, i dalje samo na default `classic` |
 | S2 | Javni shell + Početna + Usluge + Detalj | ✅ **ZAVRŠEN** | `d1fb55d` | **`43110763869`** | ✅ **5/5** | **204/204** | **279,9 KiB (+0,8)** | `dopuna_ssot`: NEJRA §10 + `test:public-aurum-hero-contrast` + CI korak; Aurum-only CSS, 6 S1 primitiva, `aria-current`, klasični markup/API/flagovi netaknuti; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute na default `classic`, artifact `13896851237` |
-| S3 | Javni sadržaj (blog, galerija, kontakt, klijenti) | ⬜ | — | — | ⬜ | — | — | |
+| S3 | Javni sadržaj (blog, galerija, kontakt, klijenti) | ✅ **ZAVRŠEN** | `a12cf5b` | **`43116167107`** | ✅ **5/5** | **204/204** | **280,9 KiB (+1,0)** | `approve_s3`; 5 ruta + 2 dijeljene blog komponente u `isAurum` grani, 164 Aurum-only CSS linije, `DialogDescription`, `fieldset/legend`, `aria-describedby`, 11 novih BS/EN ključeva (2728/2728); API/parser/flagovi/`PublicFeatureGate`/`components/ui/*`/`media-image.tsx` 0 diff; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute na default `classic`, artifact `13899570263`; 1 source-contract regex proširen uz obrazloženje u §10 plana |
 | S4 | Javni tokovi (rezervacija, profil, token…) | ⬜ | — | — | ⬜ | — | — | najstroži paritet FSM-a |
 | S5 | Auth + onboarding + NotFound | ⬜ | — | — | ⬜ | — | — | pitanje: mjesto ThemeSwitcher-a |
 | S6 | Admin shell + Dashboard + Rezervacije + kalendar | ⬜ | — | — | ⬜ | — | — | pitanje: grupisanje navigacije |
@@ -60,8 +60,8 @@
 | 58 deklaracija ruta radi; stari URL-ovi + `?tab=` očuvani | ✅ **S2** | 3 javne rute + shell; `git diff` bez izmjena rutera |
 | API ugovori, `queryKeys`, socket eventi, guardovi netaknuti | ✅ **S2** | Q10; `git diff -U0 -- frontend/src` bez API/`queryKey`/`*RequestIdRef`/flagova |
 | Podaci, iznosi, datumi, statusi, sort, paginacija, zbir netaknuti | ✅ **S2** | `features/public-catalog/*` i `data/*.mjs` 0 diff; paritet testi zeleni |
-| BS/EN paritet; bez hard-coded stringova | ✅ **S2** | `check_i18n.py --strict` 2717/2717; S2 ne uvodi novi vidljivi string (koristi postojeće ključeve) |
-| Bez tvrdih boja; samo semantički tokeni | ✅ **S2** | Novi Aurum CSS isključivo `hsl(var(--*))` + `--nejra-hero-*` iz `const T`; legacy hex u klasičnom TSX-u namjerno zadržan radi pariteta |
+| BS/EN paritet; bez hard-coded stringova | ✅ **S2 + S3** | `check_i18n.py --strict` **2728/2728** nakon 11 novih S3 ključeva; S2 nije uvodio nove stringove |
+| Bez tvrdih boja; samo semantički tokeni | ✅ **S2 + S3** | Novi Aurum CSS isključivo `hsl(var(--*))` + `--nejra-hero-*` iz `const T`; S3 `git diff` bez novog hard-coded hexa; legacy hex u klasičnom TSX-u namjerno zadržan radi pariteta |
 | Bez novih npm zavisnosti | ✅ **S2** | Q10; `frontend/package-lock.json` 0 diff |
 | `/mobile`, `/backend`, `.env`, migracije, druge grane netaknute | ✅ **S2** | `git diff --stat` u STOP-sažetku |
 | Code hygiene: produkcijski fajlovi ~100–150 ln, bez mrtvog koda | ⬜ | S8 razbijanje + S11 brisanje |

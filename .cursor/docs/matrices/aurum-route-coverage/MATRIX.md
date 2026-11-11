@@ -16,17 +16,17 @@
 | 1 | `/` | `pages/public/PublicHome.tsx` | S2 | `test:public-home-accessibility`, `test:public-home-before-after-recovery`, `test:public-home-featured-review-recovery`, `test:public-aurum-hero-contrast` | ✅ **S2** (`43110763869` / `d1fb55d`) |
 | 2 | `/usluge` | `pages/public/PublicServices.tsx` | S2 | `test:public-services-redesign`, `test:public-services-recovery`, `test:public-catalog-i18n` | ✅ **S2** (`43110763869` / `d1fb55d`); `FilterBar`/`EmptyState`/`ErrorState`/`TableSkeleton` u Aurum grani |
 | 3 | `/usluge/:serviceId` | `pages/public/PublicServiceDetail.tsx` | S2 | `test:public-service-detail-recovery`, `test:before-after-i18n` | ✅ **S2** (`43110763869` / `d1fb55d`); `PageHeader`/`StatusBadge` u Aurum grani |
-| 4 | `/blog` | `pages/public/PublicBlogList.tsx` (feature gate) | S3 | `test:public-blog-list-i18n`, `test:public-blog-list-recovery`, `test:public-blog-list-accessibility` | ⬜ |
-| 5 | `/blog/:slug` | `pages/public/PublicBlogPost.tsx` (feature gate) | S3 | `test:public-blog-post-i18n`, `test:public-blog-post-read-recovery`, `test:public-blog-share-accessibility`, `test:public-blog-comments-*` | ⬜ |
-| 6 | `/galerija` | `pages/public/PublicGallery.tsx` (feature gate) | S3 | `test:public-gallery-accessibility` | ⬜ |
-| 7 | `/kontakt` | `pages/public/PublicContact.tsx` | S3 | `test:public-contact-i18n`, `test:public-contact-accessibility` | ⬜ |
+| 4 | `/blog` | `pages/public/PublicBlogList.tsx` (feature gate) | S3 | `test:public-blog-list-i18n`, `test:public-blog-list-recovery`, `test:public-blog-list-accessibility` | ✅ **S3** (`43116167107` / `a12cf5b`); `EmptyState`/`ErrorState`, `data-aurum-surface`, Aurum hero |
+| 5 | `/blog/:slug` | `pages/public/PublicBlogPost.tsx` (feature gate) | S3 | `test:public-blog-post-i18n`, `test:public-blog-post-read-recovery`, `test:public-blog-share-accessibility`, `test:public-blog-comments-*` | ✅ **S3** (`43116167107` / `a12cf5b`); `data-aurum-article*`, share `aria-label`, `fieldset/legend` |
+| 6 | `/galerija` | `pages/public/PublicGallery.tsx` (feature gate) | S3 | `test:public-gallery-accessibility` | ✅ **S3** (`43116167107` / `a12cf5b`); `DialogDescription`, ikona kategorije, `data-aurum-lightbox` |
+| 7 | `/kontakt` | `pages/public/PublicContact.tsx` | S3 | `test:public-contact-i18n`, `test:public-contact-accessibility` | ✅ **S3** (`43116167107` / `a12cf5b`); `PageHeader`, 3 kartice, `autoComplete="name"` |
 | 8 | `/rezervacija` | `pages/public/PublicReserve.tsx` | S4 | `test:public-reservation-accessibility`, `test:reservation-errors`, `test:public-reservation-error` | ⬜ |
 | 9 | `/moje-rezervacije` | `pages/public/MyReservations.tsx` | S4 | `test:my-reservations-recovery`, `test:client-reservation-errors` | ⬜ |
 | 10 | `/moje-rezervacije/:id` | `pages/public/MyReservationDetail.tsx` | S4 | `test:my-reservation-detail-recovery` | ⬜ |
 | 11 | `/moj-termin/:token` | `pages/public/PublicReservationView.tsx` | S4 | `test:public-reservation-view-recovery` | ⬜ |
 | 12 | `/unsubscribe` | `pages/public/CampaignUnsubscribe.tsx` | S4 | i18n paritet + `role=status` | ⬜ |
 | 13 | `/profil` | `pages/Profile.tsx` (koristi i stylist meni) | S4 | `test:profile-*`, `test:profile-api-errors` | ⬜ |
-| 14 | `/zadovoljni-klijenti` | `pages/public/PublicSatisfiedClients.tsx` (feature gate) | S3 | `test:satisfied-clients-read-recovery` | ⬜ |
+| 14 | `/zadovoljni-klijenti` | `pages/public/PublicSatisfiedClients.tsx` (feature gate) | S3 | `test:satisfied-clients-read-recovery` | ✅ **S3** (`43116167107` / `a12cf5b`); `EmptyState` sa sljedećim korakom, `data-aurum-satisfied-card` |
 
 ---
 
