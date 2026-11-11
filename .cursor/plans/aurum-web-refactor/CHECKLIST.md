@@ -1,6 +1,6 @@
 # CHECKLIST — Aurum web refaktor
 
-**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (S1 implementiran; CI 5/5 se upisuje u završnom evidencijskom commitu)
+**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (S1 završen: `ae87acf` / run `43100889990` / 5/5)
 **Legenda:** ✅ izmjereno/provjereno · 🟡 u kodu ili planu, nije provjereno u renderu · ❌ nije zadovoljeno · ➖ nije primjenjivo · ⬜ nije započeto
 
 ---
@@ -20,7 +20,7 @@
 | Seg | Naziv | Status | Commit | CI run id | 5/5 | Testova | Bundle | Napomena |
 |---|---|---|---|---|---|---|---|---|
 | S0 | Dizajn dokumenti + popravka CI baselinea | ✅ **ZAVRŠEN** (S1 naknadno eksplicitno odobren) | `fa6d73a` + `bbd7ca5` + `3ed3069` | **`43043182552`** + `43046250037` | ✅ **5/5** | **199/199** | 276,9 KiB | rendered axe **252/252**, 0 skipped, 32 rute; prethodna 2 runa 4/5 zbog `apt` DNS-a, riješeno odobrenim `ci_fallback` |
-| S1 | Temelj: tokeni + 3-state tema + primitive | 🟡 **IMPLEMENTIRAN — 203/203 lokalno, CI 5/5 u toku** | *upisuje se nakon runa* | *upisuje se nakon runa* | 🟡 | **203/203** | **279,1 KiB (+2,2)** | 140/140 kontrastnih parova (odluka `use_140_four`); 4 nova testa; R2 potvrđen `dark_yes`; rendered axe i dalje samo na default `classic` |
+| S1 | Temelj: tokeni + 3-state tema + primitive | ✅ **ZAVRŠEN** | `ae87acf` | **`43100889990`** | ✅ **5/5** | **203/203** | **279,1 KiB (+2,2)** | 140/140 source-only kontrastnih parova (odluka `use_140_four`); 4 nova testa + 4 CI koraka `success`; R2 potvrđen `dark_yes`; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute, i dalje samo na default `classic` |
 | S2 | Javni shell + Početna + Usluge + Detalj | ⬜ | — | — | ⬜ | — | — | |
 | S3 | Javni sadržaj (blog, galerija, kontakt, klijenti) | ⬜ | — | — | ⬜ | — | — | |
 | S4 | Javni tokovi (rezervacija, profil, token…) | ⬜ | — | — | ⬜ | — | — | najstroži paritet FSM-a |

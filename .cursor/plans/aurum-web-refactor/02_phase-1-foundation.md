@@ -1,6 +1,6 @@
 # S1 — Temelj: tokeni, 3-state tema, novi dizajn-sistem
 
-**Status:** ✅ **S1 ODOBREN I IMPLEMENTIRAN** (odluka vlasnika 2026-11-11: „Možeš nastaviti, odobravam S1"). Lokalno: **203/203** `test:*`, **140/140** kontrastnih parova, build **279,1 / 300 KiB** (+2,2 KiB), `typecheck:e2e` 0, 5 Python gate-ova ✅, `git diff --check` čist. **CI 5/5 se bilježi u završnom evidencijskom commitu.** · **Tip:** jedini segment koji uvodi **novi feature** (izbornik teme, Q8) i postavlja sloj koji S2–S10 konzumiraju.
+**Status:** ✅ **S1 ZAVRŠEN (5/5 CI `43100889990`)** (odluka vlasnika 2026-11-11: „Možeš nastaviti, odobravam S1"). Lokalno: **203/203** `test:*`, **140/140** kontrastnih parova, build **279,1 / 300 KiB** (+2,2 KiB), `typecheck:e2e` 0, 5 Python gate-ova ✅, `git diff --check` čist. **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. · **Tip:** jedini segment koji uvodi **novi feature** (izbornik teme, Q8) i postavlja sloj koji S2–S10 konzumiraju.
 
 ---
 
@@ -98,7 +98,7 @@ U kodu uspostaviti ono što je `NEJRA – …html` (S0, §10–§12) proglasio j
 ## 7. CI provjere
 
 Lokalno: 5 Python provjera + puna `test:*` petlja (**203/203**) + `npm run build` (budžet ≤300 KiB; izmjeriti delta novog CSS/JS) + `typecheck:e2e` + `git diff --check`.
-Push → `gh run watch` → **5/5 success**. Posebno paziti:
+Push → `gh run watch` → **5/5 success**. **Ostvareno:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. Posebno paziti:
 
 - `repo-checks`: `check_ui_contrast.py` s 140 parova, `check_i18n.py` s novim ključevima, `check_ci_index.py` sa 4 nova koraka.
 - `frontend`: `npm run build` + Docker build (root context) + svi test koraci.
@@ -114,7 +114,7 @@ Push → `gh run watch` → **5/5 success**. Posebno paziti:
 - ✅ 140/140 kontrastnih parova; BS/EN paritet; 203/203 testova; build unutar budžeta.
 - ✅ Nove primitive postoje, stari šabloni još rade (migracija je S6–S10); nema mrtvog koda koji se više ne koristi, a nije planiran za brisanje u S11.
 - 🟡 Rendered a11y **Aurum stanja** još nije provjerena (axe u CI pokriva default); S11 dodaje pokrivenost za sva 3 stanja.
-- ✅ Commit sha + run id + 5/5 + delta bundle-a u evidenciji.
+- ✅ Commit sha + run id + 5/5 + delta bundle-a u evidenciji: `ae87acf` / `43100889990` / 5/5 / **+2,2 KiB** (276,9 → 279,1 KiB gzip).
 - **STOP** → pitanje: „Odobravaš li S2 (javni shell + Početna + Usluge + Detalj)?" R2 je već potvrđen (`dark_yes`) i ne traži se ponovo.
 
 ---
@@ -136,4 +136,4 @@ Push → `gh run watch` → **5/5 success**. Posebno paziti:
 
 **Fajlovi.** Novo: `features/shell/theme/{theme-state.mjs,theme-state.d.mts,theme-context.tsx,theme-switcher.tsx}` + 4 testa; `features/shell/aurum/ui/` 8 primitiva (`page-header`, `stat-card`, `filter-bar`, `data-table`, `status-badge`, `data-state`, `confirm-dialog`, `form-section`). Izmjena: `providers.tsx`, `SettingsContext.tsx`, `globals.css`, `tailwind.config.js`, 3 layouta, `SettingsAppearance.tsx`, `bs.json`/`en.json` (6 novih ključeva, 2717/2717), `check_ui_contrast.py`, `frontend/package.json` (4 skripte → 203), `ci.yml` (4 koraka → 419 `run` koraka). Stari `features/shell/admin/ui/*` **ostaju** do S11. Nijedna ruta, API, `queryKey`, socket, guard, iznos, datum, status, filter, sort, paginacija ni zbir nije diran; `buildBrandColorVariables` i `test:brand-colors` netaknuti; bez novih npm zavisnosti, bez `/mobile`, `/backend`, `.env`, migracija.
 
-**Lokalni dokazi:** 203/203 `test:*`; 4 nova testa 5/5, 6/6, 5/5, 8/8; 5 Python gate-ova PASS (`check_repo_hygiene` 1772, `check_ci_index` 384/387, `check_doc_links` 685/222, `check_i18n --strict` 2717/2717, `check_ui_contrast --strict` 140/140); `npm run build` 279,1/300 KiB (analitika 114,7/140, kalendar 100,0/125), delta **+2,2 KiB** prema S0 276,9 KiB; `npm run lint` 0 grešaka; `typecheck:e2e` 0; `git diff --check` čist. Rendered axe u CI i dalje pokriva **default classic**; axe za sva 3 stanja ostaje S11.
+**Lokalni dokazi:** 203/203 `test:*`; 4 nova testa 5/5, 6/6, 5/5, 8/8; 5 Python gate-ova PASS (`check_repo_hygiene` **1788 nakon S1 commit-a**, `check_ci_index` 384/387, `check_doc_links` 687/222, `check_i18n --strict` 2717/2717, `check_ui_contrast --strict` 140/140); `npm run build` 279,1/300 KiB (analitika 114,7/140, kalendar 100,0/125), delta **+2,2 KiB** prema S0 276,9 KiB; `npm run lint` 0 grešaka; `typecheck:e2e` 0; `git diff --check` čist. **CI dokaz:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. Rendered axe u CI i dalje pokriva **default classic**; axe za sva 3 stanja ostaje S11. `140/140` je source-only, a CI log i dalje bilježi nepotpune `1.4.3`/`2.5.3` i poznate `1.4.6` AAA padove — ne tvrdi se WCAG 2.2/AAA usklađenost.

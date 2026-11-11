@@ -1,6 +1,6 @@
 # Plan — Aurum web refaktor: javne stranice + svi dashboardi
 
-**Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0 ZAVRŠEN (5/5 CI) · S1 ODOBREN I IMPLEMENTIRAN (203/203 lokalno, 140/140 kontrast, CI 5/5 u toku).** S2–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje. U S0 nije diran produkcijski UI kod; S1 jeste uveo jedini novi feature (izbornik teme) u `frontend/src/`.
+**Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0 ZAVRŠEN (5/5 CI) · S1 ZAVRŠEN (5/5 CI `43100889990` na `ae87acf`; 203/203 lokalno, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`).** S2–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje. U S0 nije diran produkcijski UI kod; S1 jeste uveo jedini novi feature (izbornik teme) u `frontend/src/`.
 
 **Datum:** 2026-11-11
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0`
@@ -148,7 +148,7 @@ Kontrolna lista svih segmenata: [CHECKLIST.md](CHECKLIST.md). Evidencija: [CHANG
 | 3 | `python3 scripts/check_doc_links.py` | ✅ | `repo-checks` |
 | 4 | `python3 scripts/check_i18n.py --strict` | ✅ | `repo-checks` |
 | 5 | `python3 scripts/check_ui_contrast.py --strict` | ✅ | `repo-checks` |
-| 6 | Sve `test:*` skripte iz `frontend/package.json` (198+ nakon novih) | ✅ puna petlja | `frontend` (svaka ima svoj korak) |
+| 6 | Sve `test:*` skripte iz `frontend/package.json` (**203 nakon S1**) | ✅ puna petlja 203/203 | `frontend` (svaka ima svoj korak) |
 | 7 | `cd frontend && npm run build` (`tsc -b` + Vite + `check-bundle-budget.mjs`, ≤300 KiB gzip) | ✅ | `frontend` |
 | 8 | `cd frontend && npm run typecheck:e2e` | ✅ | `frontend` |
 | 9 | Frontend Docker image build (root context) | ➖ samo u CI | `frontend` |
@@ -157,7 +157,7 @@ Kontrolna lista svih segmenata: [CHECKLIST.md](CHECKLIST.md). Evidencija: [CHANG
 | 12 | `cd mobile && npm run typecheck` + `test:socket-recovery` | ➖ samo u CI | `mobile` |
 | 13 | `git diff --check HEAD` | ✅ | dio provjere 1 |
 
-Napomena uz 11: `frontend/scripts/run-a11y-routes.mjs` u sandboxu **namjerno ne tvrdi prolaz** ako Chromium nije instaliran. Zato se rendered a11y tvrdnje označavaju 🟡 dok se ne vidi zelen `a11y-e2e` u konkretnom CI runu; S11 dodaje axe pokrivenost i za Aurum stanja.
+Napomena uz 11: `frontend/scripts/run-a11y-routes.mjs` u sandboxu **namjerno ne tvrdi prolaz** ako Chromium nije instaliran. Zelen `a11y-e2e` je ostvaren u S1 runu **`43100889990`** na `ae87acf` (**252 passed | 0 failed | 0 skipped** / 32 rute), ali isključivo na **default `classic`**; rendered tvrdnje za Aurum stanja ostaju 🟡 do S11. `140/140` kontrastnih parova je source-only dokaz, ne rendered audit.
 
 ---
 
@@ -180,7 +180,7 @@ Napomena uz 11: `frontend/scripts/run-a11y-routes.mjs` u sandboxu **namjerno ne 
 | # | Rizik / pretpostavka | Kako se tretira |
 |---|---|---|
 | R1 | U sandboxu nema Chromium-a/čitača ekrana → nema rendered dokaza | Sve rendered tvrdnje 🟡 dok `a11y-e2e` ne bude zelen; S11 proširuje axe na 3 stanja teme |
-| R2 | `.dark` je uspavan; `dark:` klase u 85 fajlova nikad nisu aktivirane | ✅ **Potvrđeno odlukom `dark_yes` (2026-11-11):** S1 dodjeljuje `.dark` + `data-skin="aurum"` za `Aurum tamna`; Aurum tokeni moraju imati veću specifičnost od `.dark` bloka — mjeri se kontrast skriptom i axe-om |
+| R2 | `.dark` je uspavan; `dark:` klase u 85 fajlova nikad nisu aktivirane | ✅ **Potvrđeno odlukom `dark_yes` (2026-11-11):** S1 dodjeljuje `.dark` + `data-skin="aurum"` za `Aurum tamna`; Aurum tokeni moraju imati veću specifičnost od `.dark` bloka — `check_ui_contrast.py --strict` daje **140/140** (source-only); rendered axe za Aurum stanja dolazi tek u S11 |
 | R3 | Runtime brand override piše inline `--brand-*` na `<html>` i time bi pobjedio CSS | S1 gasi `setProperty` dok je `skin=aurum` i uklanja već postavljene inline varijable; `test:brand-colors` ostaje zelen; napomena u Postavke → Izgled (Q9) |
 | R4 | Q4 = zamjena šablona/tokena; ~198 source-contract testova čita mark-up | Svaki pogođeni test se ažurira uz obrazloženje u `CHANGELOG.md`, nikad se ne briše; `check_ci_index.py` ostaje zelen |
 | R5 | `check_ui_contrast.py` parsira samo `:root` i `.dark` jednostavnim regexom | S1 proširuje parser na nove selektore (`[data-skin="aurum"]`, `.dark[data-skin="aurum"]`) s naslijeđenim `:root` vrijednostima; bez novih zavisnosti |

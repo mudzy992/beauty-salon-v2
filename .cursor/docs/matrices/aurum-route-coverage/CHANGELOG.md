@@ -26,4 +26,4 @@
 
 **Zašto:** S1 je „temelj" koji S2–S10 konzumiraju; `ThemeSwitcher` je montiran u 3 shella, ali stil i migracija ekrana dolaze tek u njihovim segmentima. Matrica ne smije tvrditi da je ruta obrađena ako njen ekran nije diran.
 
-**Status:** ✅ lokalni dokazi (203/203 `test:*`, 140/140 kontrast, 2717/2717 i18n, 5 Python gate-ova, build 279,1/300 KiB, `typecheck:e2e` 0); 🟡 rendered axe za Aurum stanja do S11. CI run id / commit sha upisuju se u završnom evidencijskom commitu.
+**Status:** ✅ lokalni dokazi (203/203 `test:*`, 140/140 kontrast, 2717/2717 i18n, 5 Python gate-ova, build 279,1/300 KiB, `typecheck:e2e` 0); 🟡 rendered axe za Aurum stanja do S11. **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`.

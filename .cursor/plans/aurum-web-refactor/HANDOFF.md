@@ -1,8 +1,8 @@
 # HANDOFF — Aurum web refaktor
 
-**Stanje:** ✅ **S0 ZAVRŠEN (5/5) → S1 EKSPLICITNO ODOBREN I IMPLEMENTIRAN.** Plan je odobren (`approve_s0`); vlasnik je 2026-11-11 rekao „Možeš nastaviti, odobravam S1 - Temelj: tokeni + 3-state tema + primitive". S1 je realizovan po [02_phase-1-foundation.md](02_phase-1-foundation.md).
+**Stanje:** ✅ **S0 ZAVRŠEN (5/5) → S1 EKSPLICITNO ODOBREN, IMPLEMENTIRAN I ZAVRŠEN (5/5).** Plan je odobren (`approve_s0`); vlasnik je 2026-11-11 rekao „Možeš nastaviti, odobravam S1 - Temelj: tokeni + 3-state tema + primitive". S1 je realizovan po [02_phase-1-foundation.md](02_phase-1-foundation.md).
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commiti:** `fa6d73a` (dizajn) + `bbd7ca5` (CI fallback) + `3ed3069` (konačna evidencija)
-**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **Datum:** 2026-11-11 · **S1 CI:** bilježi se u završnom evidencijskom commitu · **Sljedeći korak:** nakon 5/5 → **STOP** → pitanje „Odobravaš li S2?". R2 je već riješeno (`dark_yes`).
+**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1 commit:** `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`) · **S1 CI:** `43100889990` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`) · **Datum:** 2026-11-11 · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S2?". R2 je već riješeno (`dark_yes`).
 
 ---
 
@@ -134,8 +134,10 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Implementirano:** `features/shell/theme/` (čista state mašina + `ThemeProvider`/`useTheme` + `ThemeSwitcher` + 4 nova testa), `features/shell/aurum/ui/` (8 novih primitiva), 2 Aurum CSS bloka s 12 tačnih NEJRA hexova, `fontFamily.serif`, `ThemeProvider` iznad `SettingsProvider`, Q9 guard u `SettingsContext.tsx`, i18n napomena u `SettingsAppearance.tsx`, 6 novih BS/EN ključeva, 4 `test:*` skripte (203 ukupno), 4 nova CI koraka, `check_ui_contrast.py` na 140 parova. Stari `features/shell/admin/ui/*` i dalje rade i brišu se tek u S11.
 
-**Lokalno izmjereno:** 203/203 `test:*`; 4 nova testa 5/5 + 6/6 + 5/5 + 8/8; 5 Python gate-ova PASS (`check_ui_contrast.py --strict` **140/140**, `check_i18n.py --strict` **2717/2717**, `check_ci_index.py` **384/387**, `check_doc_links.py` 685/222, `check_repo_hygiene.py` 1772); `npm run build` **279,1 / 300 KiB** (delta **+2,2 KiB** prema S0 276,9 KiB; analytics 114,7/140, calendar 100,0/125); `npm run lint` 0 grešaka; `typecheck:e2e` 0; `git diff --check` čist.
+**Lokalno izmjereno:** 203/203 `test:*`; 4 nova testa 5/5 + 6/6 + 5/5 + 8/8; 5 Python gate-ova PASS (`check_ui_contrast.py --strict` **140/140**, `check_i18n.py --strict` **2717/2717**, `check_ci_index.py` **384/387**, `check_doc_links.py` **687/222**, `check_repo_hygiene.py` **1788 nakon S1 commit-a** (prije 1772)); `npm run build` **279,1 / 300 KiB** (delta **+2,2 KiB** prema S0 276,9 KiB; analytics 114,7/140, calendar 100,0/125); `npm run lint` 0 grešaka; `typecheck:e2e` 0; `git diff --check` čist.
+
+**CI dokaz:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. `140/140` ostaje source-only; CI log i dalje ima nepotpune `1.4.3`/`2.5.3` i poznate `1.4.6` AAA padove, pa se ne tvrdi WCAG 2.2/AAA usklađenost.
 
 **Šta još NIJE dokazano (ostaje 🟡 do S11):** rendered axe nad `aurum-light` / `aurum-dark` (CI axe pokriva samo default `classic`), zoom/reflow 320 px, čitač ekrana, fizički uređaj, `1.4.6` AAA. `test:theme-ssot-sync` i `check_ui_contrast.py` su **source-only** dokazi.
 
-**Za S2:** `ThemeSwitcher` je već u `public-layout.tsx` (desktop + drawer), `admin-chrome.tsx` i `StylistLayout.tsx`; nove primitive čekaju potrošače u S6–S10. Ne startati S2 bez 5/5 CI i eksplicitnog odobrenja.
+**Za S2:** `ThemeSwitcher` je već u `public-layout.tsx` (desktop + drawer), `admin-chrome.tsx` i `StylistLayout.tsx`; nove primitive čekaju potrošače u S6–S10. CI 5/5 je ostvaren; S2 se ne starta bez eksplicitnog odobrenja vlasnika.

@@ -1,6 +1,6 @@
 # MATRIX — Pokrivenost ruta Aurum refaktorom
 
-**Status:** 🟡 **PLAN (K0) — nijedna ruta još nije refaktorisana.**
+**Status:** 🟡 **PLAN (K0) — nijedna ruta još nije refaktorisana.** S1 je završen (`ae87acf`, run `43100889990`, 5/5; default-classic axe 252/252 / 32 rute), ali po ugovoru nije dirao nijedan ekran.
 **Izvor inventara (izmjeren 2026-11-11):** `frontend/src/app/router.tsx`, `app/routes/public.routes.tsx`, `app/routes/admin.routes.tsx`; unakrsno `docs/audit/UX_UI_ROUTE_INVENTORY.md`.
 **Ukupno:** **58 deklaracija ruta** = javne 14 + auth/izuzeci 8 + admin 24 + stylist 12.
 **Vlasnik plana:** `.cursor/plans/aurum-web-refactor/` · **Ažurirano:** 2026-11-11
@@ -112,7 +112,7 @@
 | Kontrast skript | `scripts/check_ui_contrast.py` | S1 | ✅ **140/140** (80 klasičnih + 60 Aurum; odluka `use_140_four`) |
 | Dizajn dokumenti | `docs/design/*` (3) | S0 | ✅ NEJRA 14 sekcija + v2/v3 koncepti; `test:design-spec` 2/2 |
 | CI (S0 dio) | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0 | ✅ `test:design-spec` korak + odobreni `ci_fallback`; run `43043182552` 5/5, rendered axe 252/252 |
-| CI (S1 dio) | `.github/workflows/ci.yml`, `frontend/package.json` | S1 | ✅ **4 nova koraka** + 4 skripte; `check_ci_index.py` 384/387; 203/203 `test:*`; CI 5/5 se upisuje nakon runa |
+| CI (S1 dio) | `.github/workflows/ci.yml`, `frontend/package.json` | S1 | ✅ **4 nova koraka** + 4 skripte; `check_ci_index.py` 384/387; 203/203 `test:*`; run **`43100889990`** na `ae87acf` = **5/5 success**, default-classic axe 252/252 / 32 rute |
 | CI (S11 dio) | `.github/workflows/ci.yml` | S11 | ⬜ rendered axe za 3 stanja teme |
 | Dokumentacija | `docs/audit/CI.md`, `docs/codebase-map/FRONTEND.md`, `docs/audit/UX_UI_ROUTE_INVENTORY.md`, `SOURCE_OF_TRUTH.md` | S11 | ⬜ |
 

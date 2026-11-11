@@ -1,6 +1,6 @@
 # S2 — Javni shell + Početna + Usluge + Detalj usluge
 
-**Status:** 🟡 **S1 je implementiran; S2 čeka eksplicitno odobrenje nakon S1 STOP-a** · **Prvi segment koji konzumira nove tokene i primitive.**
+**Status:** 🟡 **S1 završen (5/5 CI `43100889990` na `ae87acf`); S2 čeka eksplicitno odobrenje nakon S1 STOP-a** · **Prvi segment koji konzumira nove tokene i primitive.**
 
 ---
 
@@ -12,7 +12,7 @@ Refaktor javnog omotača i kataloškog dijela prema NEJRA §07 (javno iskustvo),
 
 ## 2. Ulaz
 
-S1 završen (5/5 zeleno); `ThemeSwitcher` već u `public-layout.tsx`; nove primitive u `features/shell/aurum/ui/`; NEJRA §09 ima retke za 4 ekrana ovog segmenta. Potvrđena pretpostavka R2.
+S1 završen (5/5, run `43100889990`, commit `ae87acf`); `ThemeSwitcher` već u `public-layout.tsx`; nove primitive u `features/shell/aurum/ui/`; NEJRA §09 ima retke za 4 ekrana ovog segmenta. Potvrđena pretpostavka R2.
 
 ---
 

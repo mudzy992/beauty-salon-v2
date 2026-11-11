@@ -1,6 +1,6 @@
 # MATRIX — Aurum theme / skin sustav
 
-**Status:** ✅ **S1 IMPLEMENTIRAN (2026-11-11).** Runtime logika postoji i lokalno je izmjerena: `features/shell/theme/*`, `ThemeProvider` iznad `SettingsProvider`, `ThemeSwitcher` u 3 shella, 2 Aurum CSS bloka, `check_ui_contrast.py --strict` **140/140**, 4 nova `test:*` (203/203 ukupno). **CI 5/5 se upisuje u završnom evidencijskom commitu.** Rendered axe za `aurum-light`/`aurum-dark` i dalje 🟡 do S11 — ovo je source-only + default-classic rendered dokaz, ne potvrda sva 3 stanja u browseru.
+**Status:** ✅ **S1 ZAVRŠEN (2026-11-11, 5/5 CI `43100889990`).** Runtime logika postoji i lokalno je izmjerena: `features/shell/theme/*`, `ThemeProvider` iznad `SettingsProvider`, `ThemeSwitcher` u 3 shella, 2 Aurum CSS bloka, `check_ui_contrast.py --strict` **140/140**, 4 nova `test:*` (203/203 ukupno). **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. Rendered axe za `aurum-light`/`aurum-dark` i dalje 🟡 do S11 — ovo je source-only + default-classic rendered dokaz, ne potvrda sva 3 stanja u browseru.
 **Vlasnik:** `.cursor/plans/aurum-web-refactor/` · **Izvori odluka:** `00_overview.md` §2, `02_phase-1-foundation.md`
 **Ažurirano:** 2026-11-11
 
@@ -98,6 +98,7 @@ A11y ugovor izbornika: `role="group"` + i18n `aria-label`, 3× `button[aria-pres
 | `check_i18n.py --strict` | novi `shell.theme.*` + `adminSettings.appearance.aurumNote` u BS+EN | `repo-checks` | ✅ **2717/2717** |
 | `check_ci_index.py` | 203 frontend `test:*` skripti, svaka ima CI korak | `repo-checks` | ✅ **384/387** |
 | `test:a11y-routes` (CI) | rendered axe za 3 stanja | `a11y-e2e`, **S11** | 🟡 (S1: samo default `classic`) |
+| CI S1 cjelina | 5 poslova + 4 nova S1 koraka | `43100889990`, `ae87acf` | ✅ **5/5 success**; default-classic axe **252/252** / 32 rute |
 
 ---
 
@@ -114,4 +115,4 @@ A11y ugovor izbornika: `role="group"` + i18n `aria-label`, 3× `button[aria-pres
 
 ✅ izmjereno · 🟡 zadovoljeno u planu/kodu, nije provjereno u renderu · ❌ nije zadovoljeno · ➖ nije primjenjivo · ⬜ nije započeto.
 
-**Trenutno (S1):** state mašina, provider, switcher, CSS tokeni, Q9 precedencija, kontrast, i18n i 4 nova testa/CI koraka su ✅ (lokalno izmjereno; CI 5/5 se upisuje nakon runa). 🟡 ostaju: rendered axe za `aurum-light`/`aurum-dark`, zoom/reflow, čitač ekrana, `forced-colors` ručna provjera i `1.4.6` AAA — sve do S11. U sandboxu `test:a11y-routes` ispisuje `SKIPPED` i ne tvrdi prolaz; CI `a11y-e2e` rendered axe trenutno pokriva isključivo **default `classic`**.
+**Trenutno (S1):** state mašina, provider, switcher, CSS tokeni, Q9 precedencija, kontrast, i18n i 4 nova testa/CI koraka su ✅ (lokalno izmjereno; CI **5/5 `43100889990`** na `ae87acf`, 4 nova S1 koraka `success`). 🟡 ostaju: rendered axe za `aurum-light`/`aurum-dark`, zoom/reflow, čitač ekrana, `forced-colors` ručna provjera i `1.4.6` AAA — sve do S11. U sandboxu `test:a11y-routes` ispisuje `SKIPPED` i ne tvrdi prolaz; CI `a11y-e2e` rendered axe trenutno pokriva isključivo **default `classic`** (**252 passed | 0 failed | 0 skipped** nad 32 rute). `140/140` je source-only; u CI logu ostaju nepotpuni `1.4.3`/`2.5.3` i poznati `1.4.6` AAA padovi.
