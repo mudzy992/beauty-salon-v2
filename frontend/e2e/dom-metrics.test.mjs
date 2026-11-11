@@ -14,6 +14,7 @@ import {
   hasVisibleFocusIndicator,
   invalidWithoutDescription,
   requiredNotMarked,
+  visibleTextNotInName,
   describeImageInventory,
   imageBearingInventory,
   labelInNameViolations,
@@ -659,4 +660,87 @@ test('describeImageInventory imenuje canvas prekršajem i stavlja ga ispred rast
 test('describeImageInventory javlja i kad canvas prolazi — prazan ishod nije tišina', () => {
   const out = describeImageInventory(inventory({ img: 3 }))
   assert.match(out, /canvas 0 — odlučivo prolazi/)
+})
+
+// ── 2.5.3 Label in Name — mjera koja sama presuđuje, jer axe ovo vraća kao incomplete ──
+
+test('visibleTextNotInName: vidljivi inicijal koji JE dio imena nije nalaz', () => {
+  makeDom(`
+    <button id="meni" aria-label="Admin meni, C"><span class="font-semibold">C</span></button>
+  `)
+  assert.deepEqual(visibleTextNotInName(), [], '„C" je dio „Admin meni, C" — nema prekršaja')
+})
+
+test('visibleTextNotInName: vidljivi tekst koji NIJE dio imena je nalaz', () => {
+  makeDom(`
+    <button id="meni" aria-label="Admin meni"><span class="font-semibold">NJ</span></button>
+  `)
+  const out = visibleTextNotInName()
+  assert.equal(out.length, 1)
+  assert.equal(out[0].element, 'button#meni')
+  assert.equal(out[0].visible, 'nj')
+  assert.equal(out[0].name, 'admin meni')
+})
+
+test('visibleTextNotInName: aria-hidden tekst se ne broji kao vidljiv', () => {
+  makeDom(`
+    <button id="meni" aria-label="Admin meni"><span aria-hidden="true">NJ</span></button>
+  `)
+  assert.deepEqual(
+    visibleTextNotInName(),
+    [],
+    'skriveno od čitača — oko ga i dalje vidi, ali to pokriva zasebna provjera, ne ova',
+  )
+})
+
+test('visibleTextNotInName: alt na slici nije vidljivi tekst (jer je atribut, ne čvor)', () => {
+  makeDom(`
+    <button id="meni" aria-label="Admin meni, C"><img alt="Profil za Nejru" src="/a.png"></button>
+  `)
+  assert.deepEqual(
+    visibleTextNotInName(),
+    [],
+    'alt čita čitač ekrana, oko ga ne vidi; ovo čuva mjeru ako neko sutra počne čitati atribute',
+  )
+})
+
+test('visibleTextNotInName: sr-only tekst se ne broji kao vidljiv', () => {
+  makeDom(`
+    <button id="meni" aria-label="Zatvori">
+      <span style="position:absolute;width:1px;height:1px;clip:rect(0,0,0,0)">dijalog</span>
+      Zatvori
+    </button>
+  `)
+  assert.deepEqual(
+    visibleTextNotInName(),
+    [],
+    'vidljivo je samo „Zatvori", a to je i ime — sr-only dio ne smije srušiti mjeru',
+  )
+})
+
+test('visibleTextNotInName: landmark s aria-label NIJE nalaz, jer 2.5.3 govori o kontrolama', () => {
+  makeDom(`
+    <nav aria-label="Glavna navigacija">
+      <a href="/usluge">Usluge</a>
+      <a href="/galerija">Galerija</a>
+    </nav>
+  `)
+  assert.deepEqual(
+    visibleTextNotInName(),
+    [],
+    'nav sadrži sav tekst navigacije; da je u opsegu, ovo bi bio lažni pozitivni',
+  )
+})
+
+test('visibleTextNotInName: svaka vrsta kontrole je u opsegu, ne samo button', () => {
+  makeDom(`
+    <a id="link" href="/x" aria-label="Detalji">Detalji o rezervaciji</a>
+    <div id="tab" role="tab" aria-label="Pregled">Pregled mjeseca</div>
+  `)
+  const out = visibleTextNotInName()
+  assert.deepEqual(
+    out.map((v) => v.element),
+    ['a#link', 'div#tab'],
+    'link i tab s ulogom moraju biti provjereni, ne samo <button>',
+  )
 })

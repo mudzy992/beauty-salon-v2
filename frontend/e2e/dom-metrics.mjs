@@ -517,3 +517,97 @@ export function describeImageInventory(inventory) {
 
   return parts.join(' · ')
 }
+
+/**
+ * Vidljivi tekst koji NIJE dio pristupačnog imena — 2.5.3 Label in Name.
+ *
+ * ── Zašto ovo postoji pored axe-a ──────────────────────────────────────────
+ * Axe pravilo `label-content-name-mismatch` na 22 admin/stylist rute vraća
+ * **incomplete** s porukom „Unable to determine if the visible text is part of the
+ * accessible name" — to nije nalaz nego nesigurnost, pa se ne može ni potvrditi ni
+ * opovrgnuti. U jsdom-u je još gore: izmjereno 2026-11-08 nad pet varijanti markupa,
+ * axe tu vraća `INCOMPLETE: Axe encountered an error`, dakle pada, pa se ponašanje iz
+ * Chromiuma ne može reproducirati lokalno. Isti eksperiment je pokazao da je pravilo
+ * `INAPPLICABLE` kad dugme nema vidljivog teksta (samo `<img>`), kad je prazno i kad je
+ * skriveno — što znači da su na rutama inicijali stvarno vidljivi.
+ *
+ * Zato ova mjera računa oba teksta sama: vidljivi tekst elementa (bez `aria-hidden`,
+ * bez `sr-only`, bez `alt` na slici — oko ga ne vidi) i `aria-label`. Ako ime ne sadrži
+ * vidljivi tekst, glasovni korisnik koji izgovori ono što vidi ne pogađa kontrolu.
+ *
+ * Namjerno je samodostatna: Playwright u preglednik šalje samo `fn.toString()`.
+ */
+export function visibleTextNotInName() {
+  const norm = (value) => String(value ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+
+  const isScreenOnly = (el) => {
+    const cs = getComputedStyle(el)
+    // `sr-only` u ovom repu: apsolutno pozicioniran, 1px, odsječen.
+    return (
+      cs.position === 'absolute' &&
+      (cs.width === '1px' || cs.height === '1px' || (cs.clip && cs.clip !== 'auto'))
+    )
+  }
+
+  // Samo **kontrole**, ne bilo koji element s `aria-label`. 2.5.3 govori o kontrolama, a
+  // `<nav aria-label="Glavna navigacija">` sadrži sav tekst navigacije — da je i on u
+  // opsegu, mjera bi prijavila sedam landmarka iz `src/` koji nisu nikakav prekršaj.
+  // 🔴 Sufiks se dodaje PO DIJELU: `a, b[aria-label]` znači „a ILI b s aria-label", pa bi
+  // `button, a[href][aria-label]` tražio atribut samo na linkovima.
+  const controls = [
+    'button',
+    'a[href]',
+    'input',
+    'select',
+    'textarea',
+    'summary',
+    '[role="button"]',
+    '[role="link"]',
+    '[role="tab"]',
+    '[role="menuitem"]',
+    '[role="menuitemcheckbox"]',
+    '[role="menuitemradio"]',
+    '[role="checkbox"]',
+    '[role="radio"]',
+    '[role="option"]',
+    '[role="switch"]',
+    '[role="combobox"]',
+  ]
+    .map((part) => `${part}[aria-label]`)
+    .join(', ')
+
+  const out = []
+  for (const el of document.querySelectorAll(controls)) {
+    if (el.getAttribute('aria-hidden') === 'true') continue
+
+    let visible = ''
+    const walk = (node) => {
+      for (const child of node.childNodes) {
+        if (child.nodeType === 3) {
+          visible += child.textContent
+          continue
+        }
+        if (child.nodeType !== 1) continue
+        if (child.getAttribute('aria-hidden') === 'true') continue
+        // `<img>` ne treba izuzetak: `alt` je atribut, a ne tekstualni čvor, pa ga obilazak
+        // ionako ne čita. Mutacijska provjera M38 je to dokazala — uklanjanje izuzetka nije
+        // srušilo nijedan test, jer grana nikad nije ništa mijenjala.
+        if (isScreenOnly(child)) continue
+        walk(child)
+      }
+    }
+    walk(el)
+
+    const text = norm(visible)
+    if (!text) continue
+    const name = norm(el.getAttribute('aria-label'))
+    if (name.includes(text)) continue
+
+    out.push({
+      element: `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ''}`,
+      visible: text.slice(0, 40),
+      name: name.slice(0, 60),
+    })
+  }
+  return out
+}

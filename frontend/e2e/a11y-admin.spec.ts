@@ -15,6 +15,7 @@ import {
   activeElementLabel,
   focusableSnapshot,
   describeImageInventory,
+  visibleTextNotInName,
   imageBearingInventory,
   probeFocusability,
   invalidWithoutDescription,
@@ -374,5 +375,39 @@ for (const route of ADMIN_ROUTES) {
       counts.canvas,
       `${route.path}: ${counts.canvas} <canvas> — tekst u platnu je nevidljiv za AT`,
     ).toBe(0)
+  })
+}
+
+// ── 2.5.3 Label in Name — mjera koja sama presuđuje ─────────────────────────
+//
+// Axe pravilo `label-content-name-mismatch` na 22 admin/stylist rute vraća
+// **incomplete** s porukom „Unable to determine if the visible text is part of the
+// accessible name" — to nije nalaz nego nesigurnost, pa se ne može ni potvrditi ni
+// opovrgnuti. `visibleTextNotInName` računa oba teksta sama i presuđuje: vidljivi
+// tekst mora biti dio `aria-label`-a, jer glasovni korisnik izgovara ono što vidi.
+for (const route of ADMIN_ROUTES) {
+  test(`2.5.3 admin: vidljivi tekst je dio pristupačnog imena — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const violations = await page.evaluate(visibleTextNotInName)
+
+    if (violations.length) {
+      process.stdout.write(
+        `::error title=2.5.3 ${route.path}::` +
+          violations
+            .map((v) => `${v.element}: vidljivo „${v.visible}“ nije dio imena „${v.name}“`)
+            .join(' | ')
+            .replace(/%/g, '%25')
+            .replace(/\r/g, '%0D')
+            .replace(/\n/g, '%0A') +
+          '\n',
+      )
+    }
+
+    expect(
+      violations,
+      `${route.path}: vidljivi tekst nije dio pristupačnog imena — glasovni korisnik koji ` +
+        'izgovori ono što vidi ne pogađa kontrolu',
+    ).toEqual([])
   })
 }
