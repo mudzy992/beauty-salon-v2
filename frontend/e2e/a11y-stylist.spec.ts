@@ -10,6 +10,8 @@ import { expect, test } from '@playwright/test'
 import { settleAnimations } from './settle'
 import { existsSync, readFileSync } from 'node:fs'
 
+import { activeElementLabel, focusableSnapshot } from './dom-metrics.mjs'
+import { analyzeTabTraversal, describeTraversal, tabPressesFor } from './tab-traversal.mjs'
 import { STYLIST_STATUS, type AdminStatus } from './auth-paths'
 
 /**
@@ -114,3 +116,58 @@ test('2.4.1 stylist: skip-link je prvi fokusabilni element', async ({ page }) =>
   const focused = page.locator(':focus')
   await expect(focused).toHaveClass(/skip-link/)
 })
+
+/** Glasan nalaz: test koji pada mora sam imenovati šta pada. */
+function reportStylist(title: string, detail: string): void {
+  const encoded = detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  process.stdout.write(`::error title=${title}::${encoded}\n`)
+}
+
+// ── 2.1.1 / 2.1.2 / 2.4.3 — stvarni Tab-prolazak kroz stylist ─────────────────
+//
+// Javne rute ovo mjere u `wcag-rendered.spec.ts`; stylist dosad NIJE bio pokriven, pa su
+// 2.1.1 i 2.4.3 stajali na 🟡 upravo zbog toga. Bilježi se NIZ fokusiranih elemenata, ne
+// skup: skup dokazuje dostižnost (2.1.1) a baca redoslijed, koji traži 2.4.3.
+//
+// Indikator fokusa se ovdje NAMJERNO ne provjerava po elementu (2.4.7 je dokazan nad
+// izvorom, `focus-visible` ×162) — time je jedan round-trip po pritisku manje na stranicama
+// koje imaju i po stotinjak fokusabilnih elemenata.
+for (const route of STYLIST_ROUTES) {
+  test(`2.1.1/2.4.3 stylist: Tab-prolazak — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const expected: string[] = await page.evaluate(focusableSnapshot)
+    const visited: (string | null)[] = []
+    for (let i = 0; i < tabPressesFor(expected.length); i += 1) {
+      await page.keyboard.press('Tab')
+      visited.push(await page.evaluate(activeElementLabel))
+    }
+
+    const traversal = analyzeTabTraversal({ expected, visited })
+
+    if (traversal.unvisited.length) {
+      reportStylist(`2.1.1 ${route.path} — Tab ne doseže`, describeTraversal(traversal))
+    }
+    expect(
+      traversal.unvisited,
+      `${route.path}: Tab ne doseže ${traversal.unvisited.length} fokusabilnih elemenata`,
+    ).toEqual([])
+
+    // 2.1.2: fokus se ne smije zaglaviti. Dosad dokazano samo iz izvora („Radix fokus
+    // trap"); sada je izmjereno pritiscima Tab.
+    if (traversal.stuckAt) {
+      reportStylist(`2.1.2 ${route.path} — fokus zaglavljen`, describeTraversal(traversal))
+    }
+    expect(traversal.stuckAt, `${route.path}: fokus zaglavljen na "${traversal.stuckAt}"`).toBe(null)
+
+    // 2.4.3: redoslijed fokusa prati DOM redoslijed. Pozitivni `tabindex` i vizuelno
+    // preslagivanje bez preslagivanja DOM-a isplivaju upravo ovdje.
+    if (traversal.orderMismatch) {
+      reportStylist(`2.4.3 ${route.path} — redoslijed fokusa`, describeTraversal(traversal))
+    }
+    expect(
+      traversal.orderMismatch,
+      `${route.path}: redoslijed fokusa ne prati DOM — ${describeTraversal(traversal)}`,
+    ).toBe(null)
+  })
+}

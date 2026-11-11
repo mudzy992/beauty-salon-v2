@@ -11,10 +11,13 @@ import { settleAnimations } from './settle'
 import { existsSync, readFileSync } from 'node:fs'
 
 import {
+  activeElementLabel,
+  focusableSnapshot,
   invalidWithoutDescription,
   labelInNameViolations,
   requiredNotMarked,
 } from './dom-metrics.mjs'
+import { analyzeTabTraversal, describeTraversal, tabPressesFor } from './tab-traversal.mjs'
 import { ADMIN_STATUS, type AdminStatus } from './auth-paths'
 
 /**
@@ -237,5 +240,54 @@ for (const route of ADMIN_ROUTES) {
       reportAdmin(`3.3.2 ${route.path} — obavezno bez required`, bad.slice(0, 4).map((b) => `${b.element} „${b.label}"`).join(' | '))
     }
     expect(bad, `${route.path}: vidljiva oznaka obaveznog bez programskog oznake`).toEqual([])
+  })
+}
+
+// ── 2.1.1 / 2.1.2 / 2.4.3 — stvarni Tab-prolazak kroz admin ─────────────────
+//
+// Javne rute ovo mjere u `wcag-rendered.spec.ts`; admin dosad NIJE bio pokriven, pa su
+// 2.1.1 i 2.4.3 stajali na 🟡 upravo zbog toga. Bilježi se NIZ fokusiranih elemenata, ne
+// skup: skup dokazuje dostižnost (2.1.1) a baca redoslijed, koji traži 2.4.3.
+//
+// Indikator fokusa se ovdje NAMJERNO ne provjerava po elementu (2.4.7 je dokazan nad
+// izvorom, `focus-visible` ×162) — time je jedan round-trip po pritisku manje na stranicama
+// koje imaju i po stotinjak fokusabilnih elemenata.
+for (const route of ADMIN_ROUTES) {
+  test(`2.1.1/2.4.3 admin: Tab-prolazak — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const expected: string[] = await page.evaluate(focusableSnapshot)
+    const visited: (string | null)[] = []
+    for (let i = 0; i < tabPressesFor(expected.length); i += 1) {
+      await page.keyboard.press('Tab')
+      visited.push(await page.evaluate(activeElementLabel))
+    }
+
+    const traversal = analyzeTabTraversal({ expected, visited })
+
+    if (traversal.unvisited.length) {
+      reportAdmin(`2.1.1 ${route.path} — Tab ne doseže`, describeTraversal(traversal))
+    }
+    expect(
+      traversal.unvisited,
+      `${route.path}: Tab ne doseže ${traversal.unvisited.length} fokusabilnih elemenata`,
+    ).toEqual([])
+
+    // 2.1.2: fokus se ne smije zaglaviti. Dosad dokazano samo iz izvora („Radix fokus
+    // trap"); sada je izmjereno pritiscima Tab.
+    if (traversal.stuckAt) {
+      reportAdmin(`2.1.2 ${route.path} — fokus zaglavljen`, describeTraversal(traversal))
+    }
+    expect(traversal.stuckAt, `${route.path}: fokus zaglavljen na "${traversal.stuckAt}"`).toBe(null)
+
+    // 2.4.3: redoslijed fokusa prati DOM redoslijed. Pozitivni `tabindex` i vizuelno
+    // preslagivanje bez preslagivanja DOM-a isplivaju upravo ovdje.
+    if (traversal.orderMismatch) {
+      reportAdmin(`2.4.3 ${route.path} — redoslijed fokusa`, describeTraversal(traversal))
+    }
+    expect(
+      traversal.orderMismatch,
+      `${route.path}: redoslijed fokusa ne prati DOM — ${describeTraversal(traversal)}`,
+    ).toBe(null)
   })
 }
