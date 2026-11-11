@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NEJRA – beauty salon · Referentni dokument</title>
+<style id="tok"></style>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--serif:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+*,*:before,*:after{box-sizing:inherit}
+html{scroll-padding-top:70px;scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--text);font:16px/1.6 var(--sans)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.15;margin:0 0 .5em}
+h2{font-size:clamp(1.7rem,4vw,2.4rem)}h3{font-size:1.2rem}
+p{margin:0 0 1em}.muted{color:var(--muted)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+section.doc{padding:64px 0;border-top:1px solid var(--soft)}
+.num{font:600 .8rem var(--sans);letter-spacing:.2em;color:var(--brand);display:block;margin-bottom:8px}
+nav.top{position:sticky;top:0;z-index:20;background:var(--page);border-bottom:1px solid var(--border);padding-top:env(safe-area-inset-top,0px)}
+nav.top .wrap{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-top:8px;padding-bottom:8px}
+nav.top a{color:var(--text);text-decoration:none;font-size:.85rem;padding:6px 10px;border-radius:8px;white-space:nowrap}
+nav.top a:hover{background:var(--soft)}
+.logo{font:700 1.05rem var(--serif);letter-spacing:.18em;color:var(--brand);margin-right:auto;white-space:nowrap}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card{background:var(--surface);border:1px solid var(--soft);border-radius:16px;padding:20px}
+.card.rec{border:2px solid var(--brand)}
+.tag{display:inline-block;font-size:.75rem;padding:2px 10px;border-radius:99px;background:var(--soft);color:var(--text)}
+.btn{font:600 .95rem var(--sans);min-height:44px;padding:0 20px;border-radius:12px;border:1.5px solid var(--brand);background:var(--brand);color:var(--onbrand);cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--brand)}
+.btn.acc{background:var(--accent);border-color:var(--accent);color:var(--page)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label{display:block;font-size:.85rem;font-weight:600;margin-bottom:4px}
+input,select{width:100%;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+input[aria-invalid=true]{border-color:var(--err)}
+.err{color:var(--err);font-size:.82rem;min-height:1.2em;margin:4px 0 0}
+.sw{position:relative;width:52px;height:30px;border-radius:99px;border:1.5px solid var(--border);background:var(--soft);cursor:pointer;padding:0}
+.sw:after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:var(--muted);transition:.2s}
+.sw[aria-checked=true]{background:var(--brand);border-color:var(--brand)}
+.sw[aria-checked=true]:after{left:25px;background:var(--onbrand)}
+.st{display:inline-flex;gap:6px;align-items:center;font-size:.8rem;font-weight:600;padding:2px 10px;border-radius:99px;border:1.5px solid currentColor}
+.st:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.s-ok{color:var(--ok)}.s-warn{color:var(--warn)}.s-err{color:var(--err)}.s-mut{color:var(--muted)}
+.tw{overflow-x:auto;border:1px solid var(--soft);border-radius:12px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--soft);white-space:nowrap}
+th{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+dialog{border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--text);max-width:420px;padding:24px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,100px);background:var(--text);color:var(--page);padding:12px 20px;border-radius:12px;transition:.3s;z-index:50}
+#toast.on{transform:translate(-50%,0)}
+.kpi{font:600 2rem var(--serif);color:var(--brand)}
+.bar{height:10px;border-radius:6px;background:var(--brand);margin:4px 0 10px}
+.chips button{min-height:40px;padding:0 14px;border-radius:99px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font:inherit}
+.chips button[aria-pressed=true]{background:var(--brand);color:var(--onbrand);border-color:var(--brand)}
+/* hero – uvijek filmski tamno */
+.hero{position:relative;min-height:440px;border-radius:24px;overflow:hidden;color:#F5EDE0;padding:56px 32px;display:flex;flex-direction:column;justify-content:center;background:radial-gradient(ellipse at 75% 20%,rgba(212,175,106,.35),transparent 55%),radial-gradient(ellipse at 10% 90%,rgba(155,61,79,.35),transparent 50%),#0E0B08}
+.hero:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 60px,rgba(212,175,106,.05) 60px 61px);animation:drift 14s linear infinite}
+@keyframes drift{to{background-position:300px 0}}
+.hero>*{position:relative;z-index:1}
+.hero h1{font-size:clamp(2.2rem,6vw,4rem);max-width:12em;margin-bottom:.3em}
+.hero em{color:#D4AF6A;font-style:normal}
+.hero .btn{background:#D4AF6A;border-color:#D4AF6A;color:#1A1204;align-self:flex-start;font-size:1.05rem;padding:0 32px;min-height:52px}
+.steps{display:flex;gap:6px;margin-bottom:16px}.steps i{flex:1;height:5px;border-radius:4px;background:var(--soft)}.steps i.on{background:var(--brand)}
+.opt{display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font:inherit;cursor:pointer}
+.opt[aria-pressed=true]{border-color:var(--brand);background:var(--soft);box-shadow:inset 0 0 0 1px var(--brand)}
+.gal{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.gal div{aspect-ratio:1;border-radius:14px;display:flex;align-items:flex-end;padding:10px;font-size:.8rem;color:#F5EDE0}
+ul.chk{list-style:none;padding:0}ul.chk li{padding:8px 0;border-bottom:1px solid var(--soft)}ul.chk input{width:22px;min-height:22px;margin-right:10px;vertical-align:middle}
+code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<nav class="top"><div class="wrap"><span class="logo">NEJRA</span>
+<a href="#s1">01</a><a href="#s2">02</a><a href="#s3">03</a><a href="#s4">04</a><a href="#s5">05</a><a href="#s6">06</a><a href="#s7">07</a><a href="#s8">08</a>
+<button class="btn ghost" id="themeBtn" style="min-height:36px;padding:0 14px" aria-label="Promijeni temu">◐ Tema</button></div></nav>
+
+<header class="wrap" style="padding-top:56px;padding-bottom:40px">
+<span class="num">REFERENTNI DOKUMENT · v1 · ILUSTRATIVNI PODACI</span>
+<h1 style="font-size:clamp(2.4rem,7vw,4.5rem)">NEJRA <span style="color:var(--brand)">Aurum</span></h1>
+<p class="muted" style="max-width:36em;font-size:1.1rem">Dizajn sistem i iskustvo aplikacije za beauty salon NEJRA – javna stranica, admin, uloge i smjernice za implementaciju. Ovaj dokument je živ: prebacite temu, isprobajte komponente, filtrirajte dashboard i napravite rezervaciju.</p>
+</header>
+
+<main class="wrap">
+
+<section class="doc" id="s1"><span class="num">01</span><h2>Urednički zaključak</h2>
+<p class="muted">Tri nezavisna prijedloga identiteta, jedan preporučeni pravac.</p>
+<div class="grid">
+<div class="card rec"><span class="tag">Preporuka</span><h3>A · Aurum Noir</h3><p>Topla tamnina i antičko zlato. Filmski hero, serifni naslovi, svijetla i tamna tema jednako važne. Luksuz bez hladnoće.</p></div>
+<div class="card"><h3>B · Atelier Ivory</h3><p>Svijetla, galerijska estetika slonovače sa tankim zlatnim linijama. Čista, ali manje dramatična na javnoj stranici.</p></div>
+<div class="card"><h3>C · Rosé Studio</h3><p>Puderasto roze i bronza, mekano i prisno. Dobra za mlađu publiku, slabija u prenošenju premium dojma.</p></div></div>
+<p style="margin-top:20px"><strong>Preporučeni pravac: A – Aurum Noir.</strong> Jedini koji istovremeno daje „wow“ na javnoj stranici i mirnu, čitljivu radnu površinu u adminu; zlato se koristi štedljivo, samo za akciju i brend.</p></section>
+
+<section class="doc" id="s2"><span class="num">02</span><h2>Brend i vizuelni jezik</h2>
+<div class="grid">
+<div class="card"><h3>Ideja</h3><p>„Zlatni sat“: trenutak kada svjetlo padne na lice. Salon kao mjesto pažnje, ne gužve.</p></div>
+<div class="card"><h3>Karakter</h3><p>Smiren, siguran, topao. Kratke rečenice, jedan poziv na akciju po ekranu, puno zraka.</p></div>
+<div class="card"><h3>Tipografija</h3><p style="font:600 1.6rem var(--serif)">Palatino / Georgia</p><p class="muted">Naslovi (serif, razmak slova uz logotip). Tijelo: sistemski sans za čitljivost i brzinu. Bez vanjskih fontova.</p></div>
+<div class="card"><h3>Oblik</h3><p>Radijus 12–16 px, tanke linije od 1–1,5 px, zlatni gradijent samo u herou. Ikonice linijske, bez punih ispuna.</p></div></div></section>
+
+<section class="doc" id="s3"><span class="num">03</span><h2>Dizajn tokeni</h2>
+<p class="muted">Paleta „Aurum“ – semantički tokeni za obje teme. Omjeri ispod izračunati su u stvarnom vremenu po WCAG 2.2 formuli relativne luminancije iz istih vrijednosti koje stranica koristi.</p>
+<div class="row" id="swatches" style="margin-bottom:20px"></div>
+<div class="tw"><table><thead><tr><th>Tema</th><th>Par</th><th>Omjer</th><th>Cilj</th><th>Status</th></tr></thead><tbody id="ctb"></tbody></table></div>
+<p class="muted" style="margin-top:12px">Pravila: običan tekst ≥ 4,5:1, veliki tekst i UI elementi (okviri, fokus) ≥ 3:1. Status nikad samo bojom – uvijek tačka + tekst.</p></section>
+
+<section class="doc" id="s4"><span class="num">04</span><h2>Dizajn sistem</h2>
+<p class="muted">Živi katalog komponenti. Pravila: minimalna ciljna površina 44 px, vidljiv fokus, greške uz polje, potvrda prije destruktivne radnje.</p>
+<h3>Dugmad</h3><div class="row" style="margin-bottom:24px"><button class="btn">Primarno</button><button class="btn ghost">Sekundarno</button><button class="btn acc">Akcent</button><button class="btn" disabled>Onemogućeno</button></div>
+<div class="grid" style="margin-bottom:24px">
+<div><h3>Forma s validacijom</h3>
+<label for="fn">Ime i prezime</label><input id="fn" autocomplete="off"><p class="err" id="fne"></p>
+<label for="fp">Telefon (+387…)</label><input id="fp" inputmode="tel"><p class="err" id="fpe"></p>
+<button class="btn" id="fs">Pošalji</button></div>
+<div><h3>Prekidači</h3>
+<div class="row"><button class="sw" role="switch" aria-checked="true" aria-label="SMS podsjetnik"></button>SMS podsjetnik</div><br>
+<div class="row"><button class="sw" role="switch" aria-checked="false" aria-label="Online rezervacije"></button>Online rezervacije</div>
+<h3 style="margin-top:24px">Statusi</h3><div class="row"><span class="st s-ok">Potvrđeno</span><span class="st s-warn">Na čekanju</span><span class="st s-err">Otkazano</span><span class="st s-mut">Završeno</span></div></div></div>
+<h3>Tabela</h3><div class="tw" style="margin-bottom:24px"><table><thead><tr><th>Usluga</th><th>Trajanje</th><th>Cijena</th></tr></thead><tbody><tr><td>Njega lica</td><td>60 min</td><td>70 KM</td></tr><tr><td>Manikir gel</td><td>50 min</td><td>40 KM</td></tr></tbody></table></div>
+<div class="row"><button class="btn ghost" id="dlgBtn">Otvori dijalog</button><button class="btn ghost" id="toastBtn">Prikaži toast</button></div>
+<dialog id="dlg"><h3>Otkazati termin?</h3><p class="muted">Klijentica će dobiti obavijest. Radnja se može poništiti 10 minuta.</p><div class="row"><button class="btn acc" id="dok">Otkaži termin</button><button class="btn ghost" id="dno">Odustani</button></div></dialog></section>
+
+<section class="doc" id="s5"><span class="num">05</span><h2>Admin iskustvo</h2>
+<p class="muted">Dashboard odgovara na tri pitanja: šta se danas dešava, šta traži pažnju, kako salon posluje. Filteri su radni.</p>
+<div class="row" style="margin-bottom:16px"><div style="flex:1;min-width:160px"><label for="fst">Stilista</label><select id="fst"><option value="">Sve</option><option>Amra</option><option>Lejla</option><option>Selma</option></select></div>
+<div style="flex:1;min-width:160px"><label for="fss">Status</label><select id="fss"><option value="">Svi</option><option>Potvrđeno</option><option>Na čekanju</option><option>Završeno</option><option>Otkazano</option></select></div>
+<div style="flex:1;min-width:160px"><label for="fq">Pretraga klijenta</label><input id="fq" placeholder="npr. Dina"></div></div>
+<div class="grid" style="margin-bottom:16px">
+<div class="card"><span class="muted">Danas</span><div class="kpi" id="k1"></div><span class="muted">termina</span></div>
+<div class="card"><span class="muted">Traži pažnju</span><div class="kpi" id="k2"></div><span class="muted">na čekanju / otkazano</span></div>
+<div class="card"><span class="muted">Prihod</span><div class="kpi" id="k3"></div><span class="muted">potvrđeno + završeno</span></div></div>
+<div class="grid" style="grid-template-columns:2fr 1fr"><div class="tw"><table><thead><tr><th>Vrijeme</th><th>Klijent</th><th>Usluga</th><th>Stilista</th><th>Status</th></tr></thead><tbody id="atb"></tbody></table></div>
+<div class="card"><h3>Prihod po stilisti</h3><div id="bars"></div></div></div>
+<h3 style="margin-top:24px">Moduli i pravila</h3>
+<p>Pregled · Termini · Klijenti · Usluge · Osoblje · Galerija · Izvještaji · Postavke. Pravila: termin se ne može preklopiti kod iste stiliste; otkazivanje traži potvrdu; promjene statusa bilježe se s vremenom i korisnikom; prazna stanja uvijek nude sljedeći korak.</p></section>
+
+<section class="doc" id="s6"><span class="num">06</span><h2>Uloge i radni tokovi</h2>
+<div class="grid">
+<div class="card"><h3>Admin</h3><p>Vidi sve: termine, osoblje, usluge, izvještaje i postavke. Odobrava i otkazuje.</p></div>
+<div class="card"><h3>Stilista</h3><p>Vidi i vodi vlastiti raspored, mijenja status termina na „Završeno“, bilježi napomene.</p></div>
+<div class="card"><h3>Klijent</h3><p>Rezerviše, pregleda i otkazuje vlastite termine, prima podsjetnik.</p></div></div>
+<h3 style="margin-top:24px">Tok rezervacije</h3>
+<p><span class="tag">1 Klijent bira uslugu i termin</span> → <span class="tag">2 Na čekanju</span> → <span class="tag">3 Admin/stilista potvrđuje</span> → <span class="tag">4 Podsjetnik</span> → <span class="tag">5 Završeno</span> (ili <span class="tag">Otkazano</span> u koraku 2–4).</p></section>
+
+<section class="doc" id="s7"><span class="num">07</span><h2>Javno iskustvo</h2>
+<div class="hero"><span style="letter-spacing:.3em;font-size:.8rem;color:#D4AF6A">BEAUTY SALON · SARAJEVO</span><h1>Ljepota u <em>pravom svjetlu</em></h1><p style="max-width:30em;opacity:.9">Njega lica, kose i noktiju u smirenom prostoru. Termin za nekoliko dodira.</p><a href="#book" class="btn" style="display:inline-flex;align-items:center;text-decoration:none">Rezerviši termin</a></div>
+<h3 style="margin-top:32px">Katalog</h3>
+<div class="grid" id="cat"></div>
+<h3 style="margin-top:32px" id="book">Rezervacija u koracima</h3>
+<div class="card" style="max-width:520px"><div class="steps" id="stp"><i></i><i></i><i></i><i></i></div><div id="bk"></div></div>
+<h3 style="margin-top:32px">Galerija</h3>
+<div class="gal"><div style="background:linear-gradient(160deg,#D4AF6A,#3A2A10)">Gel manikir</div><div style="background:linear-gradient(160deg,#9B3D4F,#1A0D10)">Šminka večernja</div><div style="background:linear-gradient(160deg,#8C7D63,#0E0B08)">Pramenovi</div><div style="background:linear-gradient(160deg,#E8A89A,#2A1410)">Njega lica</div></div>
+<div class="grid" style="margin-top:32px"><div class="card"><h3>Kontakt</h3><p>Ulica Primjer 12, Sarajevo<br>+387 33 000 000<br>info@nejra.example</p></div><div class="card"><h3>Radno vrijeme</h3><p>Pon–Pet 09–19<br>Sub 09–15<br>Ned zatvoreno</p></div><div class="card"><h3>Pristup</h3><p>Ulaz bez stepenica, tamna i svijetla tema, tastaturna navigacija, smanjeno kretanje poštovano.</p></div></div></section>
+
+<section class="doc" id="s8"><span class="num">08</span><h2>Smjernice za implementaciju</h2>
+<h3>Šta se ne smije izgubiti</h3>
+<p>Jedna jasna akcija po ekranu · kontrast iz tabele (03) · status uz tekst, ne samo bojom · fokus i 44 px ciljevi · obje teme ravnopravne · potvrda prije otkazivanja · tokeni kao jedini izvor boja.</p>
+<h3>Kontrolna lista</h3>
+<ul class="chk"><li>Tokeni su u kodu pod semantičkim imenima, bez tvrdih boja u komponentama</li><li>Obje teme prolaze AA za sve parove</li><li>Forme imaju poruke greške uz polje</li><li>Prazna, učitavanje i greška stanja postoje za svaki modul</li><li>Ulogama su dodijeljena prava prema sekciji 06</li></ul>
+<h3 style="margin-top:32px">Odluka za potvrdu</h3>
+<div class="card"><ul class="chk" id="dec"><li><label style="font-weight:400"><input type="checkbox">Naziv: <strong>NEJRA – beauty salon</strong> (pravac „Aurum Noir“)</label></li><li><label style="font-weight:400"><input type="checkbox">Paleta: ugljeno-crna, slonovača, antičko zlato, rosé akcent</label></li><li><label style="font-weight:400"><input type="checkbox">Tipografija: Palatino/Georgia + sistemski sans</label></li><li><label style="font-weight:400"><input type="checkbox">Teme: svijetla i tamna, obje AA</label></li><li><label style="font-weight:400"><input type="checkbox">Moduli: Pregled, Termini, Klijenti, Usluge, Osoblje, Galerija, Izvještaji, Postavke</label></li></ul>
+<button class="btn" id="appr" disabled>Odobravam pravac</button> <span id="apm" class="muted"></span></div></section>
+</main>
+<footer class="wrap muted" style="padding:32px 20px 56px">NEJRA Aurum · referentni dokument · svi podaci su ilustrativni.</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const T={
+light:{page:'#FAF6EF',surface:'#FFFFFF',text:'#1F1810',muted:'#6B5D49',brand:'#7A5A12',onbrand:'#FFF8E8',accent:'#9B3D4F',border:'#8C7D63',soft:'#EFE6D4',ok:'#2F6B3A',warn:'#8A5200',err:'#B3261E'},
+dark:{page:'#0E0B08',surface:'#1A1510',text:'#F5EDE0',muted:'#B7A98F',brand:'#D4AF6A',onbrand:'#1A1204',accent:'#E8A89A',border:'#7D6F58',soft:'#2A2217',ok:'#7FD18F',warn:'#F0B35A',err:'#FF9A92'}};
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const L=h=>{const c=[1,3,5].map(i=>parseInt(h.substr(i,2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+const CR=(a,b)=>{const x=L(a),y=L(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+const css=n=>n+'{'+Object.entries(T[n==='light'?'light':'dark']).map(([k,v])=>'--'+k+':'+v).join(';')+'}';
+$('#tok').textContent=':root,:root[data-theme=light]{'+Object.entries(T.light).map(([k,v])=>'--'+k+':'+v).join(';')+'}:root[data-theme=dark]{'+Object.entries(T.dark).map(([k,v])=>'--'+k+':'+v).join(';')+';color-scheme:dark}';
+let theme=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+const setTheme=t=>{theme=t;document.documentElement.dataset.theme=t};setTheme(theme);
+$('#themeBtn').onclick=()=>setTheme(theme==='dark'?'light':'dark');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2400)}
+/* kontrast */
+const pairs=[['text','page',4.5,'Tekst'],['text','surface',4.5,'Tekst na kartici'],['muted','page',4.5,'Prigušeni tekst'],['muted','surface',4.5,'Prigušeni tekst na kartici'],['brand','page',4.5,'Brend (link/naslov)'],['onbrand','brand',4.5,'Tekst na primarnom dugmetu'],['accent','page',4.5,'Akcent'],['ok','surface',4.5,'Status: uspjeh'],['warn','surface',4.5,'Status: upozorenje'],['err','surface',4.5,'Status: greška'],['border','page',3,'Okvir / UI']];
+let h='',sw='';
+for(const th of ['light','dark']){for(const[a,b,g,n]of pairs){const r=CR(T[th][a],T[th][b]);h+='<tr><td>'+(th==='light'?'Svijetla':'Tamna')+'</td><td>'+n+' <code>'+a+'/'+b+'</code></td><td><strong>'+r.toFixed(2)+':1</strong></td><td>≥ '+g+':1</td><td><span class="st '+(r>=g?'s-ok':'s-err')+'">'+(r>=g?'Prolazi':'Pada')+'</span></td></tr>'}}
+$('#ctb').innerHTML=h;
+for(const k of ['page','surface','text','muted','brand','accent','border'])sw+='<div style="text-align:center;font-size:.75rem"><div style="width:70px;height:50px;border-radius:10px;border:1px solid var(--border);background:var(--'+k+')"></div>'+k+'</div>';
+$('#swatches').innerHTML=sw;
+/* komponente */
+$$('.sw').forEach(b=>b.onclick=()=>b.setAttribute('aria-checked',b.getAttribute('aria-checked')!=='true'));
+$('#fs').onclick=()=>{const n=$('#fn'),p=$('#fp');let ok=true;
+const v=(el,e,c,m)=>{const bad=!c;el.setAttribute('aria-invalid',bad);$(e).textContent=bad?m:'';if(bad)ok=false};
+v(n,'#fne',n.value.trim().split(/\s+/).length>=2,'Unesite ime i prezime.');
+v(p,'#fpe',/^\+387[\d\s]{7,12}$/.test(p.value.trim()),'Format: +387 61 000 000');
+if(ok)toast('Forma je ispravna – poslano.')};
+$('#dlgBtn').onclick=()=>$('#dlg').showModal();$('#dno').onclick=()=>$('#dlg').close();
+$('#dok').onclick=()=>{$('#dlg').close();toast('Termin otkazan.')};$('#toastBtn').onclick=()=>toast('Promjene su sačuvane.');
+/* admin */
+const A=[['09:00','Dina K.','Njega lica','Amra','Završeno',70],['10:30','Emina H.','Manikir gel','Lejla','Potvrđeno',40],['11:00','Lana M.','Pramenovi','Selma','Na čekanju',120],['13:00','Sara B.','Šminkanje','Amra','Potvrđeno',60],['14:30','Adna P.','Šišanje i feniranje','Selma','Otkazano',45],['16:00','Dina K.','Manikir gel','Lejla','Na čekanju',40],['17:00','Maja T.','Njega lica','Amra','Završeno',70]];
+const cls={'Potvrđeno':'s-ok','Na čekanju':'s-warn','Otkazano':'s-err','Završeno':'s-mut'};
+function adm(){const s=$('#fst').value,t=$('#fss').value,q=$('#fq').value.toLowerCase();
+const r=A.filter(x=>(!s||x[3]===s)&&(!t||x[4]===t)&&x[1].toLowerCase().includes(q));
+$('#k1').textContent=r.length;$('#k2').textContent=r.filter(x=>x[4]==='Na čekanju'||x[4]==='Otkazano').length;
+const rev=r.filter(x=>x[4]==='Potvrđeno'||x[4]==='Završeno');$('#k3').textContent=rev.reduce((a,x)=>a+x[5],0)+' KM';
+$('#atb').innerHTML=r.length?r.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td>'+x[3]+'</td><td><span class="st '+cls[x[4]]+'">'+x[4]+'</span></td></tr>').join(''):'<tr><td colspan="5" class="muted">Nema termina za odabrane filtere.</td></tr>';
+const by={};rev.forEach(x=>by[x[3]]=(by[x[3]]||0)+x[5]);const mx=Math.max(1,...Object.values(by));
+$('#bars').innerHTML=Object.keys(by).length?Object.entries(by).map(([k,v])=>'<div>'+k+' · '+v+' KM<div class="bar" style="width:'+(v/mx*100)+'%"></div></div>').join(''):'<p class="muted">Nema prihoda.</p>'}
+['#fst','#fss','#fq'].forEach(i=>$(i).oninput=adm);adm();
+/* katalog + rezervacija */
+const S=[['Njega lica',70,'60 min'],['Manikir gel',40,'50 min'],['Šminkanje',60,'45 min'],['Pramenovi',120,'150 min']];
+$('#cat').innerHTML=S.map(s=>'<div class="card"><h3>'+s[0]+'</h3><p class="muted">'+s[2]+'</p><strong style="color:var(--brand)">'+s[1]+' KM</strong></div>').join('');
+const B={st:0,s:null,w:null,t:null};
+const slots=['09:00','11:00','13:30','16:00'];
+function bk(){$$('#stp i').forEach((e,i)=>e.classList.toggle('on',i<=B.st));const el=$('#bk');
+if(B.st===0){el.innerHTML='<h3>1. Odaberite uslugu</h3>'+S.map((s,i)=>'<button class="opt" aria-pressed="'+(B.s===i)+'" data-s="'+i+'">'+s[0]+' · '+s[1]+' KM</button>').join('')+'<button class="btn" id="nx" '+(B.s===null?'disabled':'')+'>Dalje</button>';
+$$('[data-s]').forEach(b=>b.onclick=()=>{B.s=+b.dataset.s;bk()})}
+else if(B.st===1){el.innerHTML='<h3>2. Stilista i termin</h3><div class="row chips" style="margin-bottom:12px">'+['Amra','Lejla','Selma'].map(n=>'<button aria-pressed="'+(B.w===n)+'" data-w="'+n+'">'+n+'</button>').join('')+'</div><div class="row chips" style="margin-bottom:16px">'+slots.map(n=>'<button aria-pressed="'+(B.t===n)+'" data-t="'+n+'">'+n+'</button>').join('')+'</div><div class="row"><button class="btn ghost" id="bk0">Nazad</button><button class="btn" id="nx" '+(B.w&&B.t?'':'disabled')+'>Dalje</button></div>';
+$$('[data-w]').forEach(b=>b.onclick=()=>{B.w=b.dataset.w;bk()});$$('[data-t]').forEach(b=>b.onclick=()=>{B.t=b.dataset.t;bk()})}
+else if(B.st===2){el.innerHTML='<h3>3. Vaši podaci</h3><label for="bn">Ime i prezime</label><input id="bn"><p class="err" id="bne"></p><label for="bp">Telefon</label><input id="bp" inputmode="tel" placeholder="+387 61 000 000"><p class="err" id="bpe"></p><div class="row"><button class="btn ghost" id="bk1">Nazad</button><button class="btn" id="nx">Dalje</button></div>';
+$('#bk1').onclick=()=>{B.st=1;bk()}}
+else{el.innerHTML='<h3>4. Potvrda</h3><p><strong>'+S[B.s][0]+'</strong> · '+S[B.s][1]+' KM<br>'+B.w+' · '+B.t+'<br>'+B.n+'</p><p><span class="st s-warn">Na čekanju</span> Salon će potvrditi termin.</p><div class="row"><button class="btn" id="fin">Pošalji rezervaciju</button></div>';
+$('#fin').onclick=()=>{toast('Rezervacija poslana.');Object.assign(B,{st:0,s:null,w:null,t:null});bk()}}
+if($('#bk0'))$('#bk0').onclick=()=>{B.st=0;bk()};
+if($('#nx'))$('#nx').onclick=()=>{if(B.st===2){const n=$('#bn').value.trim(),p=$('#bp').value.trim();const a=n.split(/\s+/).length>=2,b=/^\+387[\d\s]{7,12}$/.test(p);
+$('#bne').textContent=a?'':'Unesite ime i prezime.';$('#bpe').textContent=b?'':'Format: +387 61 000 000';if(!(a&&b))return;B.n=n+', '+p}B.st++;bk()}}
+bk();
+/* odluka */
+const cs=$$('#dec input'),ap=$('#appr');cs.forEach(c=>c.onchange=()=>ap.disabled=!cs.every(x=>x.checked));
+ap.onclick=()=>{$('#apm').textContent='Pravac odobren – '+new Date().toLocaleDateString('bs');toast('Odobrenje zabilježeno.')};
+</script>
+</body>
+</html>
