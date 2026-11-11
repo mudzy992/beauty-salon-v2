@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>NEJRA – beauty salon · Referentni dokument</title>
+<title>NEJRA Aurum – beauty salon · Referentni dokument (puna specifikacija)</title>
 <style id="tok"></style>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--serif:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
@@ -70,18 +70,27 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 .gal div{aspect-ratio:1;border-radius:14px;display:flex;align-items:flex-end;padding:10px;font-size:.8rem;color:#F5EDE0}
 ul.chk{list-style:none;padding:0}ul.chk li{padding:8px 0;border-bottom:1px solid var(--soft)}ul.chk input{width:22px;min-height:22px;margin-right:10px;vertical-align:middle}
 code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
+/* §09–§14 — tabele pune specifikacije */
+#routes td,#routes th{white-space:normal;vertical-align:top}
+#routes td:first-child{white-space:nowrap;font:600 .8rem ui-monospace,SFMono-Regular,Menlo,monospace}
+.tight td,.tight th{padding:7px 10px;font-size:.82rem}
+.spec-note{font-size:.85rem;color:var(--muted);margin-top:12px}
+.seg{display:inline-block;font:600 .72rem var(--sans);padding:2px 8px;border-radius:6px;background:var(--soft);color:var(--text);white-space:nowrap}
+.toktable td:nth-child(3){font-variant-numeric:tabular-nums}
+#templates td:first-child{font-weight:600;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
 <nav class="top"><div class="wrap"><span class="logo">NEJRA</span>
-<a href="#s1">01</a><a href="#s2">02</a><a href="#s3">03</a><a href="#s4">04</a><a href="#s5">05</a><a href="#s6">06</a><a href="#s7">07</a><a href="#s8">08</a>
+<a href="#s1">01</a><a href="#s2">02</a><a href="#s3">03</a><a href="#s4">04</a><a href="#s5">05</a><a href="#s6">06</a><a href="#s7">07</a><a href="#s8">08</a><a href="#s9">09</a><a href="#s10">10</a><a href="#s11">11</a><a href="#s12">12</a><a href="#s13">13</a><a href="#s14">14</a>
 <button class="btn ghost" id="themeBtn" style="min-height:36px;padding:0 14px" aria-label="Promijeni temu">◐ Tema</button></div></nav>
 
 <header class="wrap" style="padding-top:56px;padding-bottom:40px">
-<span class="num">REFERENTNI DOKUMENT · v1 · ILUSTRATIVNI PODACI</span>
+<span class="num">REFERENTNI DOKUMENT · PUNA SPECIFIKACIJA · JEDINI IZVOR ISTINE</span>
 <h1 style="font-size:clamp(2.4rem,7vw,4.5rem)">NEJRA <span style="color:var(--brand)">Aurum</span></h1>
 <p class="muted" style="max-width:36em;font-size:1.1rem">Dizajn sistem i iskustvo aplikacije za beauty salon NEJRA – javna stranica, admin, uloge i smjernice za implementaciju. Ovaj dokument je živ: prebacite temu, isprobajte komponente, filtrirajte dashboard i napravite rezervaciju.</p>
+<p class="muted" style="max-width:44em">Sekcije 09–14 proširuju dokument u <strong>punu specifikaciju</strong>: mapa svih 58 deklaracija ruta, tokeni za 3 stanja teme s izračunatim kontrastom, katalog šablona, ugovor izbornika teme, paritet i CI matrica. Ovaj dokument je <strong>jedini izvor istine</strong> za refaktor; datoteke <code>referentni-prijedlog-v2.html</code> i <code>referentni-prijedlog-v3.html</code> su samo ilustrovani vizuelni koncepti i nisu specifikacija.</p>
 </header>
 
 <main class="wrap">
@@ -163,6 +172,170 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <h3 style="margin-top:32px">Odluka za potvrdu</h3>
 <div class="card"><ul class="chk" id="dec"><li><label style="font-weight:400"><input type="checkbox">Naziv: <strong>NEJRA – beauty salon</strong> (pravac „Aurum Noir“)</label></li><li><label style="font-weight:400"><input type="checkbox">Paleta: ugljeno-crna, slonovača, antičko zlato, rosé akcent</label></li><li><label style="font-weight:400"><input type="checkbox">Tipografija: Palatino/Georgia + sistemski sans</label></li><li><label style="font-weight:400"><input type="checkbox">Teme: svijetla i tamna, obje AA</label></li><li><label style="font-weight:400"><input type="checkbox">Moduli: Pregled, Termini, Klijenti, Usluge, Osoblje, Galerija, Izvještaji, Postavke</label></li></ul>
 <button class="btn" id="appr" disabled>Odobravam pravac</button> <span id="apm" class="muted"></span></div></section>
+
+<section class="doc" id="s9"><span class="num">09</span><h2>Mapa ekrana — svih 58 deklaracija ruta</h2>
+<p class="muted">Jedini izvor za ovu mapu je kod: <code>frontend/src/app/router.tsx</code>, <code>app/routes/public.routes.tsx</code> i <code>app/routes/admin.routes.tsx</code>, unakrsno provjeren s <code>docs/audit/UX_UI_ROUTE_INVENTORY.md</code>. Ilustrativni podaci iz sekcija 05–07 <strong>nisu</strong> ovdje pretvoreni u stvarne podatke. Stanja: <strong>L</strong> učitavanje · <strong>E</strong> prazno · <strong>G</strong> greška s retry · <strong>S</strong> uspjeh.</p>
+<div class="row" style="margin-bottom:14px"><span class="tag">Javne 14</span><span class="tag">Auth / izuzeci 8</span><span class="tag">Admin 24</span><span class="tag">Stylist 12</span><span class="tag">Ukupno 58</span></div>
+<div class="tw"><table id="routes"><thead><tr><th>Ruta</th><th>Ekran / izvor</th><th>Skup / uloga</th><th>Stanja</th><th>Prijelom</th><th>Segment</th></tr></thead><tbody>
+<tr><td>/</td><td>PublicHome</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S2</span></td></tr>
+<tr><td>/usluge</td><td>PublicServices</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S2</span></td></tr>
+<tr><td>/usluge/:serviceId</td><td>PublicServiceDetail</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S2</span></td></tr>
+<tr><td>/blog</td><td>PublicBlogList · feature gate</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S3</span></td></tr>
+<tr><td>/blog/:slug</td><td>PublicBlogPost · feature gate</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S3</span></td></tr>
+<tr><td>/galerija</td><td>PublicGallery · feature gate</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S3</span></td></tr>
+<tr><td>/kontakt</td><td>PublicContact</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S3</span></td></tr>
+<tr><td>/rezervacija</td><td>PublicReserve · 4 koraka</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S4</span></td></tr>
+<tr><td>/moje-rezervacije</td><td>MyReservations</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S4</span></td></tr>
+<tr><td>/moje-rezervacije/:id</td><td>MyReservationDetail</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S4</span></td></tr>
+<tr><td>/moj-termin/:token</td><td>PublicReservationView</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S4</span></td></tr>
+<tr><td>/unsubscribe</td><td>CampaignUnsubscribe</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S4</span></td></tr>
+<tr><td>/profil</td><td>Profile · koristi i stylist meni</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S4</span></td></tr>
+<tr><td>/zadovoljni-klijenti</td><td>PublicSatisfiedClients · feature gate</td><td>javna</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S3</span></td></tr>
+<tr><td>/login</td><td>Login · PublicOnlyRoute</td><td>auth</td><td>L · E · G · S · busy</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/register</td><td>Register · PublicOnlyRoute</td><td>auth</td><td>L · E · G · S · busy</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/reset-password</td><td>ResetPassword</td><td>auth</td><td>L · E · G · S · busy</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/force-change-password</td><td>ForceChangePassword · ProtectedRoute</td><td>auth</td><td>L · E · G · S · busy</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/onboarding/gender</td><td>OnboardingGender · ProtectedRoute</td><td>auth</td><td>L · E · G · S · busy</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/onboarding/email</td><td>OnboardingEmail · ProtectedRoute</td><td>auth</td><td>L · E · G · S · busy</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/admin/reservations/calendar</td><td>ReservationsCalendar · fullscreen, izvan layouta</td><td>izuzetak</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S6</span></td></tr>
+<tr><td>*</td><td>NotFound</td><td>izuzetak</td><td>L · E · G · S · retry</td><td>320 px · 400%</td><td><span class="seg">S5</span></td></tr>
+<tr><td>/admin</td><td>Dashboard</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S6</span></td></tr>
+<tr><td>/admin/users</td><td>Users</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/salon</td><td>Salon</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/services</td><td>Services</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/services/:serviceId/work-gallery</td><td>ServiceWorkGallery</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/stylists</td><td>Stylists</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/reservations</td><td>Reservations</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S6</span></td></tr>
+<tr><td>/admin/daily-log</td><td>DailyLog</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S7</span></td></tr>
+<tr><td>/admin/finance</td><td>Finance · KIF/KUF</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S7</span></td></tr>
+<tr><td>/admin/debtors</td><td>Navigate → /admin/finance?tab=debtors</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S7</span></td></tr>
+<tr><td>/admin/blog</td><td>Blog</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/gallery</td><td>Gallery</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/reviews</td><td>Reviews</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/settings</td><td>SettingsHub · 7 tabova</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/settings/operations</td><td>TabRedirect → ?tab=operations</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/settings/appearance</td><td>TabRedirect → ?tab=appearance</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/settings/seo</td><td>TabRedirect → ?tab=seo</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/app-releases</td><td>TabRedirect → ?tab=releases</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/notifications</td><td>TabRedirect → ?tab=notifications</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/email-settings</td><td>TabRedirect → ?tab=email</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S9</span></td></tr>
+<tr><td>/admin/analytics</td><td>AnalyticsHub · 3 taba</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/client-analytics</td><td>TabRedirect → ?tab=clients</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/stylist-analytics</td><td>TabRedirect → ?tab=stylists</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S8</span></td></tr>
+<tr><td>/admin/loyalty</td><td>Loyalty</td><td>admin</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S7</span></td></tr>
+<tr><td>/stylist</td><td>Navigate → /stylist/inbox</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/inbox</td><td>StylistInboxPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/workbook</td><td>WorkbookListPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/workbook/new</td><td>WorkbookNewEntryPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/workbook/reschedule-preview/:reservationId</td><td>WorkbookReschedulePreviewPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/workbook/:entryId</td><td>WorkbookDetailPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/schedule</td><td>StylistSchedulePage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/schedule/new</td><td>StylistDirectBookingPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/schedule/:reservationId</td><td>StylistReservationDetailPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/debts</td><td>StylistDebtsPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/stats</td><td>StylistStatsPage</td><td>stylist</td><td>L · E · G · S · retry</td><td>320 px · kartice &lt;640</td><td><span class="seg">S10</span></td></tr>
+<tr><td>/stylist/profile</td><td>Navigate → /profil</td><td>redirect</td><td>➖ redirect</td><td>➖</td><td><span class="seg">S10</span></td></tr>
+</tbody></table></div>
+<p class="spec-note">Redirecti (<code>&lt;Navigate replace&gt;</code> i <code>TabRedirect</code>) nemaju vlastiti ekran, ali svaki stari URL i dalje mora raditi, uključujući <code>?tab=</code> deep-linkove. Svaki ekran ima jedan <code>&lt;h1&gt;</code>, landmark-e, vidljiv fokus, poruku greške uz polje i prazno stanje sa sljedećim korakom.</p></section>
+
+<section class="doc" id="s10"><span class="num">10</span><h2>Dizajn tokeni za 3 stanja teme</h2>
+<p class="muted">Tri ravnopravno specificirana stanja. Klasična svijetla je <strong>default</strong> i zadržava današnji identitet iz koda; Aurum stanja koriste paletu „Aurum Noir" iz sekcije 03. Vrijednosti se nikad ne koriguju bez odobrenja — ako par padne, staje se i pita.</p>
+<div class="tw"><table id="theme-states" class="tight"><thead><tr><th>Stanje</th><th>CSS blok (vlasnik)</th><th>Paleta</th><th>Precedencija boja</th><th>Provjera</th></tr></thead><tbody>
+<tr data-state="classic"><td>1 · Klasična svijetla <span class="tag">default</span></td><td><code>:root</code> (<code>.dark</code> je uspavan)</td><td>bordo <code>#632238</code> · zlato <code>#D4A843</code> · champagne <code>#F5E6CC</code></td><td>runtime override <code>theme_primary</code> i <code>theme_accent</code> su aktivni</td><td><code>check_ui_contrast.py</code> 80/80</td></tr>
+<tr data-state="aurum-light"><td>2 · Aurum svijetla</td><td><code>[data-skin="aurum"][data-mode="light"]</code></td><td>slonovača <code>#FAF6EF</code> · zlato <code>#7A5A12</code> · rosé <code>#9B3D4F</code></td><td>Aurum fiksira paletu; runtime override je neaktivan</td><td>tablica uživo + S1 skript</td></tr>
+<tr data-state="aurum-dark"><td>3 · Aurum tamna</td><td><code>.dark[data-skin="aurum"]</code></td><td>ugljen <code>#0E0B08</code> · zlato <code>#D4AF6A</code> · rosé <code>#E8A89A</code></td><td>Aurum fiksira paletu; runtime override je neaktivan</td><td>tablica uživo + S1 skript</td></tr>
+</tbody></table></div>
+<h3 style="margin-top:28px">Izračunati omjeri kontrasta (uživo, WCAG 2.2)</h3>
+<p class="muted">Računica koristi istu formulu relativne luminancije kao sekcija 03, nad istim vrijednostima koje stranica koristi. Običan tekst ≥ 4,5:1, veliki tekst i UI elementi ≥ 3:1. Status nikad samo bojom – uvijek tačka + tekst.</p>
+<div class="tw"><table id="tok3" class="toktable tight"><thead><tr><th>Stanje</th><th>Par</th><th>Omjer</th><th>Cilj</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+<h3 style="margin-top:28px">Semantički tokeni (jedini izvor boja)</h3>
+<div class="tw"><table class="tight"><thead><tr><th>Token</th><th>Namjena</th><th>Pravilo</th></tr></thead><tbody>
+<tr><td><code>page</code> / <code>surface</code> / <code>soft</code></td><td>pozadina stranice, kartica, prigušena površina</td><td>nikad tvrdi hex u komponenti</td></tr>
+<tr><td><code>text</code> / <code>muted</code></td><td>običan i prigušeni tekst</td><td>≥ 4,5:1 na obje površine</td></tr>
+<tr><td><code>brand</code> / <code>onbrand</code> / <code>accent</code></td><td>akcija, brend, naglašeni detalj</td><td>zlato štedljivo, samo za akciju i brend</td></tr>
+<tr><td><code>border</code> / <code>ok</code> / <code>warn</code> / <code>err</code></td><td>okvir kontrole i statusi</td><td>≥ 3:1 za UI; status uvijek tekst + tačka</td></tr>
+</tbody></table></div>
+<p class="spec-note"><strong>Odluka o precedenciji (Q9):</strong> dok je aktivan bilo koji Aurum skin, Aurum fiksira paletu: runtime override se ne primjenjuje, a u <code>Postavke → Izgled</code> stoji vidljiva lokalizovana napomena. Povratak na klasičnu temu vraća iste korisničke boje bez gubitka postavki.</p></section>
+
+<section class="doc" id="s11"><span class="num">11</span><h2>Dizajn sistem — katalog šablona</h2>
+<p class="muted">Pravila za cijeli sistem: minimalna ciljna površina 44 px (2.5.8 minimum 24 px u gustim tabelama), vidljiv fokus ≥ 3:1, greške uz polje, potvrda prije destruktivne radnje, <code>prefers-reduced-motion</code>, <code>forced-colors</code>, bez gubitka kolona na 320 px.</p>
+<div class="tw"><table id="templates" class="tight"><thead><tr><th>Šablon</th><th>Markup / a11y ugovor</th><th>Primjena</th></tr></thead><tbody>
+<tr><td>PageHeader</td><td>jedan <code>h1</code>, breadcrumb <code>nav</code>, jedan primarni CTA, opis ≤ 60 znakova po redu</td><td>svaki ekran</td></tr>
+<tr><td>StatCard / StatGrid</td><td><code>ul</code>/<code>li</code>, labela + vrijednost + delta, <code>font-variant-numeric:tabular-nums</code>, bez lažnih KPI-ja</td><td>dashboard, analitika, financije</td></tr>
+<tr><td>FilterBar</td><td>vidljive <code>label</code>, <code>aria-pressed</code> na chipovima, rezultat u <code>role="status"</code></td><td>liste, katalog, izvještaji</td></tr>
+<tr><td>DataTable</td><td><code>caption</code>, <code>th scope</code>, <code>aria-sort</code> na dugmetu u zaglavlju, <code>nav</code> + <code>aria-current</code> za paginaciju, jedinstvena imena akcija, kartice ispod 640 px</td><td>sve tabele</td></tr>
+<tr><td>StatusBadge</td><td>tekst + ikona + boja; boja nikad nije jedini nosilac informacije</td><td>statusi rezervacija, dugovanja, recenzija</td></tr>
+<tr><td>Loading / Empty / ErrorState</td><td><code>role="status"</code> / <code>role="alert"</code>, rezervirana visina bez layout shift-a, retry, prazno stanje nudi sljedeći korak</td><td>svaki async ekran</td></tr>
+<tr><td>ConfirmDialog</td><td>Radix <code>DialogTitle</code>/<code>DialogDescription</code>, fokus unutra pri otvaranju, povratak na okidač pri zatvaranju, busy stanje</td><td>brisanje, otkazivanje, financije, uloge</td></tr>
+<tr><td>Toast</td><td><code>role="status"</code> / <code>aria-live="polite"</code>, bez otimanja fokusa, podesivo trajanje (2.2.2)</td><td>sve povratne poruke</td></tr>
+<tr><td>FormSection / FormField</td><td><code>fieldset</code>/<code>legend</code>, <code>aria-describedby</code>, <code>aria-invalid</code>, <code>required</code> vidljivo + programski, sažetak grešaka s linkovima, <code>autocomplete</code></td><td>sve forme</td></tr>
+<tr><td>ResponsiveDialog / Drawer</td><td>ista Radix semantika na desktopu i mobilnom, <code>aria-expanded</code>/<code>aria-controls</code> na okidaču, <code>Esc</code></td><td>mobilni drawer-i, kalendar</td></tr>
+<tr><td>ThemeSwitcher</td><td><code>role="group"</code> + lokalizovan <code>aria-label</code>, 3 × <code>button[aria-pressed]</code>, 44 px mete, <code>role="status"</code> najava</td><td>svi shellovi + ekrani bez layouta</td></tr>
+</tbody></table></div>
+<p class="spec-note">Grafikoni (recharts) uz obavezni tekstualni sažetak i tabelu podataka; kalendar uz listu termina kao alternativu i tastaturnu zamjenu za povlačenje (2.5.7). Sve animacije poštuju smanjeno kretanje.</p></section>
+
+<section class="doc" id="s12"><span class="num">12</span><h2>Izbornik teme — ugovor</h2>
+<div id="theme-spec">
+<div class="grid" style="margin-bottom:20px">
+<div class="card rec"><span class="tag">Default</span><h3>Klasična svijetla</h3><p>Današnji izgled. Bez korisničkog odabira aplikacija izgleda točno kao prije; runtime brand override radi.</p></div>
+<div class="card"><h3>Aurum svijetla</h3><p>Slonovača, antičko zlato, serifni naslovi. Iste komponente, drugi tokeni; podaci i ponašanje identični.</p></div>
+<div class="card"><h3>Aurum tamna</h3><p>Ugljeno-crna radna površina, zlatna akcija, rosé akcent. Ista pravila kontrasta, ista struktura.</p></div>
+</div>
+<p><strong>Pravila:</strong> jedan izbornik s tri opcije, bez kombinacije „klasična + tamna". Nepoznata spremljena vrijednost vraća default. Izbor se pamti u <code>localStorage</code> (ključ <code>nejra.theme</code>) i primjenjuje na <code>&lt;html&gt;</code> kroz <code>data-skin</code>, <code>data-mode</code>, klasu <code>dark</code>, <code>color-scheme</code> i <code>&lt;meta name="theme-color"&gt;</code>. <code>&lt;html lang&gt;</code> i dalje prati BS/EN i18n.</p>
+<p><strong>Pozicije:</strong> javni header i mobilni drawer · admin header · stylist header · auth/onboarding kartice · fullscreen kalendar (izvan layouta). Na istom relativnom mjestu na svim ekranima (3.2.6).</p>
+<p><strong>Pristupačnost:</strong> vidljiv tekst je dio pristupačnog imena (2.5.3), fokus ostaje na kliknutom dugmetu, promjena se najavljuje <code>role="status"</code>, bez otimanja fokusa, bez oslanjanja isključivo na boju. Svi natpisi, <code>aria-label</code> i najave idu kroz i18n ključeve u <code>bs.json</code> i <code>en.json</code>.</p>
+<p><strong>Precedencija:</strong> Aurum fiksira paletu; <code>Postavke → Izgled</code> prikazuje napomenu da korisničke primarne/akcent boje nisu aktivne dok je Aurum odabran. Povratak na klasičnu temu ih vraća.</p>
+</div></section>
+
+<section class="doc" id="s13"><span class="num">13</span><h2>Paritet i CI verifikacija</h2>
+<div id="parity">
+<h3>Šta se ne smije promijeniti</h3>
+<ul class="chk">
+<li>Svih 58 deklaracija ruta radi; stari URL-ovi ostaju <code>&lt;Navigate replace&gt;</code> / <code>TabRedirect</code>; <code>?tab=</code> deep-linkovi rade.</li>
+<li>API ugovori: isti endpointi, query parametri, payload-i, <code>queryKeys</code>, socket događaji, role guardovi.</li>
+<li>Podaci: svaki broj, iznos, datum, status, filter, sortiranje, paginacija, zbir i badge prikazuje iste vrijednosti; BS/EN formatiranje se ne mijenja.</li>
+<li>Finansijski proračuni, KIF/KUF, dugovanja, loyalty bodovi, FSM rezervacija, dostupnost, idempotency ključevi — netaknuti.</li>
+<li>i18n: svaki novi string u <code>bs.json</code> <strong>i</strong> <code>en.json</code>; <code>check_i18n.py --strict</code>; bez hard-coded stringova.</li>
+<li>Bez novih npm zavisnosti; bez diranja <code>/mobile</code>, <code>/backend</code>, <code>.env</code> i migracija.</li>
+<li>Postojeći testovi se nikad ne brišu niti slabe; ažuriranje samo uz obrazloženje u CHANGELOG-u; svaki novi <code>test:*</code> dobija CI korak.</li>
+<li>Jedini novi feature u cijelom refaktoru je izbornik teme iz sekcije 12.</li>
+</ul>
+<h3 style="margin-top:24px">Legenda dokaza</h3>
+<p><span class="st s-ok">✅ izmjereno</span> <span class="st s-warn">🟡 u kodu, nije provjereno u renderu</span> <span class="st s-err">❌ nije zadovoljeno</span> <span class="st s-mut">➖ nije primjenjivo</span>. Rendered a11y dokaz dolazi isključivo iz CI posla <code>a11y-e2e</code>; u sandboxu bez Chromium-a se ne tvrdi prolaz.</p>
+</div>
+<h3 style="margin-top:24px">CI matrica — sve provjere</h3>
+<div class="tw"><table id="ci-matrix" class="tight"><thead><tr><th>#</th><th>Provjera</th><th>Lokalno</th><th>CI posao</th></tr></thead><tbody>
+<tr><td>1–5</td><td><code>check_repo_hygiene.py</code> · <code>check_ci_index.py</code> · <code>check_doc_links.py</code> · <code>check_i18n.py --strict</code> · <code>check_ui_contrast.py --strict</code></td><td>✅</td><td><code>repo-checks</code></td></tr>
+<tr><td>6</td><td>Sve <code>test:*</code> skripte iz <code>frontend/package.json</code></td><td>✅</td><td><code>frontend</code></td></tr>
+<tr><td>7–8</td><td><code>npm run build</code> (tsc + Vite + budžet ≤ 300 KiB) · <code>typecheck:e2e</code></td><td>✅</td><td><code>frontend</code></td></tr>
+<tr><td>9</td><td>Frontend Docker image (root context)</td><td>➖</td><td><code>frontend</code></td></tr>
+<tr><td>10</td><td>Prisma generate/validate, migracije na disposable PostgreSQL, build, DB-backed HTTP, Jest</td><td>➖</td><td><code>backend</code></td></tr>
+<tr><td>11</td><td>Rendered axe nad 32 rute za 3 stanja teme (Chromium + PostgreSQL + Redis)</td><td>🟡</td><td><code>a11y-e2e</code></td></tr>
+<tr><td>12</td><td><code>npm run typecheck</code> + <code>test:socket-recovery</code></td><td>➖</td><td><code>mobile</code></td></tr>
+<tr><td>13</td><td><code>git diff --check HEAD</code></td><td>✅</td><td><code>repo-checks</code></td></tr>
+</tbody></table></div>
+<p class="spec-note">Svaki od 12 segmenata završava <code>commit</code> + <code>push</code> na granu + <code>gh run watch</code> do <strong>5/5 success</strong>, ažuriranjem CHECKLIST/CHANGELOG/HANDOFF/matrica i eksplicitnim STOP-om za odobrenje sljedećeg segmenta.</p></section>
+
+<section class="doc" id="s14"><span class="num">14</span><h2>Kontrolna lista implementacije</h2>
+<p class="muted">Dvanaest segmenata; nijedan ne počinje dok prethodni nema zelen CI i odobrenje. Gumb „Odobravam pravac" u sekciji 08 ostaje potvrda dizajnerskog pravca.</p>
+<div class="tw"><table class="tight"><thead><tr><th>Segment</th><th>Obim</th><th>Kapija</th></tr></thead><tbody>
+<tr><td><span class="seg">S0</span></td><td>Dizajn dokumenti + popravka CI baselinea</td><td>prvi zeleni run 5/5</td></tr>
+<tr><td><span class="seg">S1</span></td><td>Temelj: tokeni, 3-state tema, nove primitive</td><td>140/140 kontrast, 203/203 testa</td></tr>
+<tr><td><span class="seg">S2</span></td><td>Javni shell + Početna + Usluge + Detalj</td><td>5/5 + budžet</td></tr>
+<tr><td><span class="seg">S3</span></td><td>Javni sadržaj: blog, galerija, kontakt, klijenti</td><td>5/5</td></tr>
+<tr><td><span class="seg">S4</span></td><td>Javni tokovi: rezervacija, profil, token, odjava</td><td>FSM paritet</td></tr>
+<tr><td><span class="seg">S5</span></td><td>Auth + onboarding + NotFound</td><td>5/5</td></tr>
+<tr><td><span class="seg">S6</span></td><td>Admin shell + Dashboard + Rezervacije + kalendar</td><td><code>dashboard-stat-parity</code></td></tr>
+<tr><td><span class="seg">S7</span></td><td>Dnevna knjiga, Finansije, Lojalnost</td><td>finansijski paritet</td></tr>
+<tr><td><span class="seg">S8</span></td><td>Analitika, Korisnici, Salon, Usluge, Frizeri</td><td>razbijanje fajlova</td></tr>
+<tr><td><span class="seg">S9</span></td><td>Sadržaj + Postavke hub (7 tabova)</td><td><code>?tab=</code> paritet</td></tr>
+<tr><td><span class="seg">S10</span></td><td>Stylist portal (10 ekrana + 2 redirecta)</td><td>tamni kontrast</td></tr>
+<tr><td><span class="seg">S11</span></td><td>Rendered a11y za 3 stanja, reflow, docs, dead code</td><td>58/58 + konačni 5/5</td></tr>
+</tbody></table></div>
+<h3 style="margin-top:24px">Šta se ne smije izgubiti</h3>
+<p>Jedna jasna akcija po ekranu · kontrast iz tabele (03 i 10) · status uz tekst, ne samo bojom · fokus i 44 px ciljevi · obje Aurum teme ravnopravne s klasičnom · potvrda prije otkazivanja · tokeni kao jedini izvor boja · paritet iz sekcije 13.</p>
+<ul class="chk" id="impl"><li><label style="font-weight:400"><input type="checkbox">Tokeni su u kodu pod semantičkim imenima, bez tvrdih boja u komponentama</label></li><li><label style="font-weight:400"><input type="checkbox">Sva 3 stanja prolaze AA za sve parove</label></li><li><label style="font-weight:400"><input type="checkbox">Forme imaju poruke greške uz polje</label></li><li><label style="font-weight:400"><input type="checkbox">Prazna, učitavanje i greška stanja postoje za svaki modul</label></li><li><label style="font-weight:400"><input type="checkbox">58/58 ruta refaktorisano, stari URL-ovi rade</label></li><li><label style="font-weight:400"><input type="checkbox">CI 5/5 zeleno za svaki segment, bez izmišljenih ✅ tvrdnji</label></li></ul>
+</section>
 </main>
 <footer class="wrap muted" style="padding:32px 20px 56px">NEJRA Aurum · referentni dokument · svi podaci su ilustrativni.</footer>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -228,6 +401,12 @@ bk();
 /* odluka */
 const cs=$$('#dec input'),ap=$('#appr');cs.forEach(c=>c.onchange=()=>ap.disabled=!cs.every(x=>x.checked));
 ap.onclick=()=>{$('#apm').textContent='Pravac odobren – '+new Date().toLocaleDateString('bs');toast('Odobrenje zabilježeno.')};
+/* §10 — uživo izračunati omjeri za dva Aurum stanja (klasično stanje provjerava check_ui_contrast.py). */
+const T3=[['aurum-light',T.light],['aurum-dark',T.dark]];
+let h3='';
+for(const[st,tk]of T3){for(const[a,b,g,n]of pairs){const r=CR(tk[a],tk[b]);
+h3+='<tr data-state="'+st+'"><td>'+st+'</td><td>'+n+' <code>'+a+'/'+b+'</code></td><td><strong>'+r.toFixed(2)+':1</strong></td><td>≥ '+g+':1</td><td><span class="st '+(r>=g?'s-ok':'s-err')+'">'+(r>=g?'Prolazi':'Pada')+'</span></td></tr>'}}
+$('#tok3 tbody').innerHTML=h3;
 </script>
 </body>
 </html>
