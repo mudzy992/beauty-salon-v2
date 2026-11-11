@@ -52,6 +52,25 @@ test('1.3.1 — data table names itself and scopes its headers', () => {
   assert.match(dataTable, /scope="col"/)
   assert.match(dataTable, /data-label=\{t\(column\.headerKey\)\}/)
 })
+test('1.3.1 — prazna tabela ne ostavlja zaglavlja bez podatkovne ćelije (th-has-data-cells)', () => {
+  // Axe je na `/admin` javio 2 nepotpuna čvora „Table data cells are missing or empty"
+  // (run 42989950774): prazan `<tbody>` ostavlja `<th>` bez ijedne podatkovne ćelije.
+  assert.ok(dataTable.includes('<tfoot>'), 'prazno stanje mora biti unutar tabele')
+  const tfoot = dataTable.slice(dataTable.indexOf('<tfoot>'), dataTable.indexOf('</tfoot>'))
+  assert.match(tfoot, /<td colSpan=\{columns\.length\}/, 'ćelija se proteže preko svih kolona')
+  assert.match(
+    tfoot,
+    /\{empty \?\? <EmptyState title=\{t\('table\.noResults'\)\} \/>\}/,
+    'poruka o praznom stanju je sadržaj te ćelije',
+  )
+  assert.ok(
+    dataTable.indexOf('</tfoot>') < dataTable.indexOf('</table>'),
+    'prazno stanje ne smije lebdjeti izvan tabele',
+  )
+  // Staro rješenje — poruka u `<div>` ispod tabele — ne smije se vratiti, jer tada `<th>`
+  // opet nema podatkovnu ćeliju.
+  assert.equal((dataTable.match(/<div className="mt-3">/g) ?? []).length, 0)
+})
 
 test('1.4.1 — status is never conveyed by colour alone', () => {
   assert.match(statusBadge, /<Icon aria-hidden/)

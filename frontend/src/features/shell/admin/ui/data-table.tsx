@@ -61,7 +61,8 @@ const SortIndicator = ({
 /**
  * Tabela s ugrađenom pristupačnošću.
  *
- * WCAG 1.3.1 — `<caption>` daje ime, `scope="col"` povezuje zaglavlja s ćelijama.
+ * WCAG 1.3.1 — `<caption>` daje ime, `scope="col"` povezuje zaglavlja s ćelijama, a prazno
+ * stanje je `<td colSpan>` u `<tfoot>` da zaglavlja nikad ne ostanu bez podatkovne ćelije.
  * WCAG 4.1.2 — sortirajuće zaglavlje nosi `aria-sort`, a dugme tekstualno ime.
  * WCAG 1.4.1 — smjer sortiranja nije samo strelica: `aria-sort` je programski.
  * Ispod 640px tabela prelazi u card prikaz (`.data-table` u globals.css), pri čemu
@@ -154,12 +155,24 @@ export function DataTable<T>({
             </tr>
           ))}
         </tbody>
+        {rows.length === 0 ? (
+          /* WCAG 1.3.1 — `th-has-data-cells`. Prazan `<tbody>` ostavlja `<th>` bez ijedne
+             podatkovne ćelije, pa axe javlja nepotpun nalaz: run 42989950774, dvije tabele
+             na `/admin`, „Table data cells are missing or empty". Poruka o praznom stanju
+             zato ide U tabelu kao ćelija preko svih kolona — čitač ekrana je čita u
+             kontekstu tabele, a ne kao tekst koji lebdi ispod nje.
+             `<tfoot>`, ne `<tbody>`: card prikaz ispod 640px (`src/index.css:38-44`)
+             pretvara `tbody td` u flex red s `content: attr(data-label)`, pa bi poruka
+             tamo dobila praznu pseudolabelu i raspored koji joj ne pripada. */
+          <tfoot>
+            <tr>
+              <td colSpan={columns.length} className="border-0">
+                {empty ?? <EmptyState title={t('table.noResults')} />}
+              </td>
+            </tr>
+          </tfoot>
+        ) : null}
       </table>
-      {rows.length === 0 ? (
-        <div className="mt-3">
-          {empty ?? <EmptyState title={t('table.noResults')} />}
-        </div>
-      ) : null}
     </div>
   )
 }

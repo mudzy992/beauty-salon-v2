@@ -2358,3 +2358,50 @@ iz nekog drugog razloga.
 
 Mutacije 4/4 uhvaćene: **M29** `aria-label` uklonjen, **M30** ime taba bez konteksta,
 **M31** preuski obrazac (13 od 17 linkova), **M32** `tabContext` uklonjen iz `bs.json`.
+
+## 2026-11-08 — 1.3.1: dvije „prazne tabele" na `/admin` nisu bile bezopasan nalaz
+
+`th-has-data-cells` je od početka mjerenja javljao **NEPOTPUNO** (`passed 6, incomplete 1`,
+2 čvora) na `/admin`, s porukom „Table data cells are missing or empty". Red 1.3.1 je u
+matrici stajao na ✅, pa je postojala proturječnost: kriterij označen kao dokazan, a mjera na
+istoj ruti javlja čvorove koje nije mogla presuditi.
+
+Uzrok je u zajedničkoj komponenti `features/shell/admin/ui/data-table.tsx`: kad
+`rows.length === 0`, `<tbody>` se renderuje **prazan**, a poruka o praznom stanju
+(`EmptyState`) stajala je u `<div className="mt-3">` **ispod** tabele. `<th>` s
+`scope="col"` tako nema nijednu podatkovnu ćeliju. Na `/admin` su to dvije tabele
+(`DashboardRecentReservations` i `OutboxEventsTable`), obje preko `DataTable`-a.
+
+Popravka: poruka ide **u** tabelu, kao `<td colSpan={columns.length}>` unutar `<tfoot>`.
+Čitač ekrana je tada čita u kontekstu tabele, a ne kao tekst koji lebdi ispod nje.
+
+**Zašto `<tfoot>`, a ne `<tbody>`:** card prikaz ispod 640px (`src/index.css:38-44`)
+pretvara `table.data-table tbody td` u flex red i dodaje `td::before { content:
+attr(data-label) }`. Poruka u `<tbody>` bi na mobitelu dobila praznu pseudolabelu i
+`justify-between` raspored koji joj ne pripada. `<tfoot>` taj CSS ne dira.
+
+`test:dashboard-a11y` 9 → **10** (`1.3.1 — prazna tabela ne ostavlja zaglavlja bez
+podatkovne ćelije`): traži `<tfoot>`, `colSpan={columns.length}`, sadržaj ćelije, redoslijed
+`</tfoot>` prije `</table>`, i asertira da se staro rješenje s `<div className="mt-3">` ne
+vrati. Mutacije 3/3: **M33** prazno stanje nije u `<tfoot>`, **M34** ćelija se ne proteže
+preko kolona, **M35** ćelija postoji ali je prazna.
+
+Popravka je u zajedničkoj komponenti, pa vrijedi za svaku tabelu koja koristi `DataTable`,
+ne samo za dvije na `/admin`.
+
+### Neočekivana potvrda: `th-has-data-cells` je izašao iz nepotpunih i u jsdom-u
+
+`test:axe-render-a11y` ima **pozitivnu kontrolu** koja asertira točan skup pravila koja
+jsdom ne može evaluirati, uz poruku „promijenio se skup — ažuriraj dokumentaciju". Test je
+pao i time sam dokazao popravku: skup se smanjio s tri na **dva** (`color-contrast`,
+`label-content-name-mismatch`), jer `th-has-data-cells` više nije nepotpuno — izmjereno
+**35 scenarija, 32 PASS** (bilo 31), **2 INCOMPLETE** (bilo 3). Dodana je i asertcija u
+oba smjera: pravilo mora biti odlučivo **prolaz**, ne nepotpuno i ne odsutno.
+
+Mutacija **M36** (`{false ? (` umjesto `{rows.length === 0 ? (`, dakle `<tfoot>` se nikad
+ne renderuje) ruši taj test na asertciji — 4 pass / 1 fail.
+
+**Pouka o mutacijama nad TSX-om:** prva verzija M33 (`<tfoot>` → `<tfootX>`) također je
+„srušila" ovaj test, ali porukom `Build failed with 1 error` — harness transpilira TSX, pa
+nepostojeći element pada prije nego što ijedna asertcija izvrši. Mutacija koja pada na
+build grešci ne dokazuje ništa o mjeri; mora biti validan kod koji mijenja **ponašanje**.

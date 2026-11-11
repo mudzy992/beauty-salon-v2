@@ -24,12 +24,14 @@ import { loadScenarios } from './render-harness.mjs'
  * Ali axe ne treba preglednik — treba DOM. `render-harness.mjs` već proizvodi
  * pravi markup (`renderToStaticMarkup`), a `jsdom` daje DOM. `axe-core@4.14.0`
  * je već bio instaliran kroz Q4. Izmjereno 2026-11-10: **35 scenarija, 31
- * pravilo PASS, 84 INAPPLICABLE, 3 INCOMPLETE**.
+ * pravilo PASS, 84 INAPPLICABLE, 3 INCOMPLETE**. Izmjereno 2026-11-08 nakon
+ * popravke prazne tabele u `DataTable`-u: **35 scenarija, 32 PASS, 2 INCOMPLETE** —
+ * `th-has-data-cells` je prešao iz nepotpunih u odlučivo prolaz.
  *
  * ── Šta ovo NE dokazuje (bez uljepšavanja) ───────────────────────────────────
- * `jsdom` nema raspored, pa axe ova tri pravila vraća kao **INCOMPLETE**, ne kao
- * prolaz: `color-contrast`, `label-content-name-mismatch` (WCAG 2.5.3),
- * `th-has-data-cells`. Znači **1.4.3/1.4.6 kontrast, 2.5.3, 2.5.8 Target Size,
+ * `jsdom` nema raspored, pa axe ova dva pravila vraća kao **INCOMPLETE**, ne kao
+ * prolaz: `color-contrast`, `label-content-name-mismatch` (WCAG 2.5.3).
+ * Znači **1.4.3/1.4.6 kontrast, 2.5.3, 2.5.8 Target Size,
  * 1.4.10 Reflow, 1.4.12 Text Spacing i 2.4.3 Focus Order ostaju nepokriveni** —
  * kontrast i dalje čuva `check_ui_contrast.py --strict`, ostalo ručna provjera.
  * Ne pokriva ni `/admin/**` rute ni stanje s podacima: harness renderuje šablone
@@ -145,9 +147,18 @@ test('pozitivna kontrola: axe je stvarno evaluirao pravila, nije prošao prazno'
   // Ako jsdom ikad dobije raspored, ovaj skup se mijenja — i to treba vidjeti.
   assert.deepEqual(
     [...allIncomplete].sort(),
-    ['color-contrast', 'label-content-name-mismatch', 'th-has-data-cells'],
+    ['color-contrast', 'label-content-name-mismatch'],
     'promijenio se skup pravila koja jsdom NE može evaluirati — ažuriraj dokumentaciju ' +
       'iznad (šta ovaj test dokazuje, a šta ne)',
+  )
+  // `th-has-data-cells` je 2026-11-08 IZAŠAO s gornjeg popisa: prazna tabela u
+  // `DataTable`-u dobila je `<td colSpan>` u `<tfoot>`, pa pravilo više nije nepotpuno ni
+  // u jsdom-u. To je dokaz da je popravka stvarna, a ne da je mjera oslabila — i čuva se
+  // u oba smjera: pravilo mora biti odlučivo PROLAZ, ne nepotpuno i ne odsutno.
+  assert.ok(
+    allPassed.has('th-has-data-cells'),
+    'th-has-data-cells mora biti odlučivo prolaz — ako je opet nepotpuno, prazna tabela ' +
+      'je ostala bez podatkovne ćelije',
   )
 })
 
