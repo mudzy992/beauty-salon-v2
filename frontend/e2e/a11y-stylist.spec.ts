@@ -14,6 +14,7 @@ import {
   activeElementIsSegmentedInput,
   activeElementLabel,
   focusableSnapshot,
+  imageBearingInventory,
   probeFocusability,
 } from './dom-metrics.mjs'
 import { analyzeTabTraversal, describeTraversal, tabPressesFor } from './tab-traversal.mjs'
@@ -221,5 +222,40 @@ for (const route of STYLIST_ROUTES) {
       traversal.orderMismatch,
       `${route.path}: redoslijed fokusa ne prati DOM — ${describeTraversal(traversal)}`,
     ).toBe(null)
+  })
+}
+
+// ── 1.4.5 Images of text — popis mjesta gdje bi tekst mogao biti slika ───────
+//
+// Da li neka **raster slika** sadrži tekst ne može se znati bez OCR-a ili čovjeka, pa ovo
+// NE tvrdi usaglašenost. Mjeri se popis, da „nije provjereno" postane konačan i imenovan
+// skup. Tvrdi se samo ono što je odlučivo: `<canvas>` mora biti 0, jer tekst u platnu je
+// nevidljiv za AT a 1.4.5 za to nema izuzetak.
+//
+// Anotacija se ispisuje samo kad ima nečeg što vrijedi pogledati (`svg text`, `canvas`,
+// `background-image` s URL-om) — `<img>` i `role="img"` su očekivani i pokriveni pod 1.1.1.
+for (const route of STYLIST_ROUTES) {
+  test(`1.4.5 stylist: popis mjesta gdje tekst može biti slika — ${route.name} (${route.path})`, async ({ page }) => {
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+
+    const inventory = await page.evaluate(imageBearingInventory, 4)
+    const { counts } = inventory
+
+    if (counts.svgText > 0 || counts.canvas > 0 || counts.bgImage > 0) {
+      const detail = [
+        `svg text ${counts.svgText}: ${inventory.samples.svgText.map((s) => `${s.where} „${s.text}“`).join(' | ')}`,
+        `canvas ${counts.canvas}: ${inventory.samples.canvas.map((s) => `${s.where} ${s.width}×${s.height}`).join(' | ')}`,
+        `bg-image ${counts.bgImage}: ${inventory.samples.bgImage.map((s) => `${s.where} ${s.value}`).join(' | ')}`,
+      ].join(' · ')
+      process.stdout.write(
+        `::notice title=1.4.5 ${route.path}::` +
+          `${detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}\n`,
+      )
+    }
+
+    expect(
+      counts.canvas,
+      `${route.path}: ${counts.canvas} <canvas> — tekst u platnu je nevidljiv za AT`,
+    ).toBe(0)
   })
 }

@@ -40,6 +40,25 @@ export type FocusProbe = {
  * prijavljuje činjenice uz nalaz.
  */
 export function probeFocusability(labels: string[]): FocusProbe[]
+
+/** Popis mjesta gdje bi tekst mogao biti renderovan kao slika (1.4.5). */
+export type ImageBearingInventory = {
+  counts: { img: number; roleImg: number; svgText: number; canvas: number; bgImage: number }
+  samples: {
+    img: { where: string; src: string; alt: string }[]
+    roleImg: { where: string; name: string }[]
+    svgText: { where: string; text: string }[]
+    canvas: { where: string; width: number; height: number }[]
+    bgImage: { where: string; value: string }[]
+  }
+}
+
+/**
+ * Mjeri gdje bi tekst mogao biti slika. Ne dokazuje usaglašenost s 1.4.5 — da li raster
+ * slika sadrži tekst zna samo OCR ili čovjek — ali pretvara „nije provjereno" u konačan,
+ * imenovan skup.
+ */
+export function imageBearingInventory(limit?: number): ImageBearingInventory
 export function landmarkSnapshot(): Landmark[]
 
 export type OverflowingElement = {

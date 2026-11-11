@@ -14,6 +14,7 @@ import {
   hasVisibleFocusIndicator,
   invalidWithoutDescription,
   requiredNotMarked,
+  imageBearingInventory,
   labelInNameViolations,
   landmarkSnapshot,
   probeFocusability,
@@ -136,6 +137,66 @@ test('focusableSnapshot preskače tabindex="-1" na SVAKOJ vrsti elementa', () =>
   assert.equal(found.some((f) => f.includes('neaktivni-tab')), false, 'button tabindex="-1" NIJE u nizu')
   assert.equal(found.some((f) => f.includes('link-s-idx')), false, 'a tabindex="-1" NIJE u nizu')
   assert.equal(found.some((f) => f.includes('kontejner-minus')), false, 'div tabindex="-1" NIJE u nizu')
+})
+
+test('imageBearingInventory broji svaku vrstu mjesta gdje tekst može biti slika', () => {
+  const doc = makeDom(`
+    <img id="slika" src="/a/b/rad.jpg" alt="Rad na kosi" />
+    <div id="zvijezde" role="img" aria-label="4 od 5"></div>
+    <svg id="graf"><text>Prihodi</text><text>Rashodi</text></svg>
+    <canvas id="platno" width="300" height="150"></canvas>
+    <p id="obican">Tekst</p>
+  `)
+  for (const el of doc.querySelectorAll('img, div, svg, canvas, p')) setBox(el, {})
+  // jsdom nema pozadinske slike po defaultu; jedna se postavi ručno.
+  const saPozadinom = doc.querySelector('#obican')
+  const original = globalThis.getComputedStyle
+  globalThis.getComputedStyle = (el) => {
+    const cs = original(el)
+    if (el === saPozadinom) {
+      return new Proxy(cs, {
+        get: (t, k) => (k === 'backgroundImage' ? 'url("/logo.png")' : t[k]),
+      })
+    }
+    return cs
+  }
+
+  const out = imageBearingInventory()
+  assert.deepEqual(out.counts, { img: 1, roleImg: 1, svgText: 2, canvas: 1, bgImage: 1 })
+  assert.equal(out.samples.img[0].src, '/a/b/rad.jpg')
+  assert.equal(out.samples.img[0].alt, 'Rad na kosi')
+  assert.equal(out.samples.roleImg[0].name, '4 od 5')
+  assert.deepEqual(
+    out.samples.svgText.map((t) => t.text),
+    ['Prihodi', 'Rashodi'],
+    'tekst unutar SVG-a je tekst renderovan kao grafika',
+  )
+  assert.equal(out.samples.canvas[0].width, 300)
+  assert.equal(out.samples.bgImage[0].value, 'url("/logo.png")')
+  globalThis.getComputedStyle = original
+})
+
+test('imageBearingInventory — gradijent se ne broji kao slika', () => {
+  const doc = makeDom('<div id="traka">Naslov</div>')
+  setBox(doc.querySelector('#traka'), {})
+  const original = globalThis.getComputedStyle
+  globalThis.getComputedStyle = (el) =>
+    new Proxy(original(el), {
+      get: (t, k) => (k === 'backgroundImage' ? 'linear-gradient(90deg, #fff, #000)' : t[k]),
+    })
+  const out = imageBearingInventory()
+  assert.equal(out.counts.bgImage, 0, 'u gradijentu nema teksta, pa nije kandidat za 1.4.5')
+  assert.deepEqual(out.counts, { img: 0, roleImg: 0, svgText: 0, canvas: 0, bgImage: 0 })
+  globalThis.getComputedStyle = original
+})
+
+test('imageBearingInventory poštuje granicu uzoraka, ali broji sve', () => {
+  const html = Array.from({ length: 9 }, (_, i) => `<img id="s${i}" src="/${i}.jpg" alt="" />`).join('')
+  const doc = makeDom(html)
+  for (const el of doc.querySelectorAll('img')) setBox(el, {})
+  const out = imageBearingInventory(3)
+  assert.equal(out.counts.img, 9, 'broj je stvaran, ne odsječen')
+  assert.equal(out.samples.img.length, 3, 'uzorci su ograničeni da anotacija ne bude odsječena')
 })
 
 test('probeFocusability pita DOM direktno, ne zaključuje iz atributa', () => {

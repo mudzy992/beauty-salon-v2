@@ -34,3 +34,7 @@ id_ecdsa
 /frontend/playwright-report/
 # Prijava za e2e: sadrži STVARAN JWT token, nikad ne smije u Git.
 /frontend/e2e/.auth/
+
+# TypeScript incrementalni build artefakti: mijenjaju se pri svakoj provjeri tipova i ne
+# nose sadrzaj koji vrijedi pamtiti u historiji.
+*.tsbuildinfo

@@ -395,3 +395,83 @@ export function requiredNotMarked() {
   }
   return out
 }
+
+/**
+ * Popis svih mjesta gdje bi tekst mogao biti renderovan kao slika — 1.4.5.
+ *
+ * ── Zašto ovo postoji ──────────────────────────────────────────────────────
+ * 1.4.5 je bio jedini kriterij u matrici za koji se tvrdilo da „mjerni aparat ne postoji“.
+ * To je bilo pola tačno: da li neka **raster slika** sadrži tekst ne može se znati bez OCR-a
+ * ili čovjeka. Ali popis mjesta gdje bi tekst mogao biti slika **može** se izmjeriti, i bez
+ * njega se ne zna ni koliko je toga za procijeniti. Mjera dakle ne dokazuje usaglašenost —
+ * ona pretvara „nije provjereno“ u konačan, imenovan skup.
+ *
+ * ── Šta broji ──────────────────────────────────────────────────────────────
+ * `<img>` i `[role="img"]` (raster/SVG koji može nositi tekst), `svg text` (tekst koji
+ * jeste renderovan kao grafika), `<canvas>` (tekst u njemu je nevidljiv za AT i za to
+ * 1.4.5 nema izuzetak) i `background-image` s URL-om (gradijenti se ne broje — u njima
+ * nema teksta).
+ *
+ * Namjerno je samodostatna: Playwright u preglednik šalje samo `fn.toString()`, bez opsega
+ * modula.
+ */
+export function imageBearingInventory(limit = 4) {
+  const clip = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+  const describe = (el) => {
+    const tag = el.tagName.toLowerCase()
+    const id = el.id ? `#${el.id}` : ''
+    const cls = (typeof el.className === 'string' ? el.className : '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((c) => `.${c}`)
+      .join('')
+    return `${tag}${id}${cls}`
+  }
+
+  const img = []
+  for (const el of document.querySelectorAll('img')) {
+    img.push({ where: describe(el), src: clip(el.getAttribute('src'), 60), alt: clip(el.getAttribute('alt'), 40) })
+  }
+
+  const roleImg = []
+  for (const el of document.querySelectorAll('[role="img"]')) {
+    roleImg.push({ where: describe(el), name: clip(el.getAttribute('aria-label') ?? el.textContent, 40) })
+  }
+
+  const svgText = []
+  for (const el of document.querySelectorAll('svg text')) {
+    svgText.push({ where: describe(el.closest('svg') ?? el), text: clip(el.textContent, 30) })
+  }
+
+  const canvas = []
+  for (const el of document.querySelectorAll('canvas')) {
+    canvas.push({ where: describe(el), width: el.width, height: el.height })
+  }
+
+  const bgImage = []
+  for (const el of document.querySelectorAll('*')) {
+    const value = getComputedStyle(el).backgroundImage
+    if (!value || value === 'none') continue
+    // Gradijent nije slika s tekstom; zanimaju nas samo stvarne slike (`url(...)`).
+    if (!value.includes('url(')) continue
+    bgImage.push({ where: describe(el), value: clip(value, 60) })
+  }
+
+  return {
+    counts: {
+      img: img.length,
+      roleImg: roleImg.length,
+      svgText: svgText.length,
+      canvas: canvas.length,
+      bgImage: bgImage.length,
+    },
+    samples: {
+      img: img.slice(0, limit),
+      roleImg: roleImg.slice(0, limit),
+      svgText: svgText.slice(0, limit),
+      canvas: canvas.slice(0, limit),
+      bgImage: bgImage.slice(0, limit),
+    },
+  }
+}

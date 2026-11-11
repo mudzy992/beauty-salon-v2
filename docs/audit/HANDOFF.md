@@ -2143,7 +2143,7 @@ Za **2.5.5** (Target Size Enhanced) i **2.4.13** (Focus Appearance) axe 4.14.0 *
 pravila** — provjereno preko `getRules([])`. Ta dva AAA kriterija zaista nisu mjerljiva
 ovim alatom, i to je sada utvrđeno, a ne pretpostavljeno.
 
-## 2026-11-08 — Tab-prolazak izmjeren na 33 rute; 2.1.1 i 2.4.3 🟡 → ✅
+## 2026-11-08 — Tab-prolazak izmjeren na 32 rute; 2.1.1 i 2.4.3 🟡 → ✅
 
 `MATRIX.md` je 2.1.1 i 2.4.3 držala na 🟡 („u kodu, nije verifikovano u renderu"), a 2.1.2
 na ✅ uz dokaz koji je bio **samo iz izvora**. Sve tri tvrdnje govore o onome što se desi
@@ -2153,7 +2153,7 @@ u **Set**, a skup baca redoslijed — upravo ono što 2.4.3 traži.
 
 Novo `e2e/tab-traversal.mjs` (`analyzeTabTraversal`, `tabPressesFor`, `describeTraversal`)
 iz istog niza pritisaka daje tri tvrdnje: `unvisited` (2.1.1), `stuckAt` (2.1.2),
-`orderMismatch` (2.4.3). Pokriveno **33 rute**: 9 javnih + 15 admin + 9 stylist.
+`orderMismatch` (2.4.3). Pokriveno **32 rute**: 9 javnih + 15 admin + 8 stylist.
 
 ### Četiri klase lažnih pozitivnih u mjeri (svaka je pala na CI prije nego je ispravljena)
 
@@ -2186,7 +2186,7 @@ Elementi na kojima fokus ne ostane nisu zasebni tab-stopovi i ne presuđuju se; 
 ostane a Tab ih preskače ostaju prekršaj. Dokaz iz sonde ide uz nalaz u anotaciju.
 
 **Rezultat: run `42976330528` success, 180 passed / 0 failed / 0 skipped, 0 nalaza za
-2.1.1, 2.1.2 i 2.4.3 na svih 33 rute.**
+2.1.1, 2.1.2 i 2.4.3 na svih 32 rute.**
 
 ### Šta ostaje i šta mjera NE dokazuje
 
@@ -2241,4 +2241,47 @@ potvrđuje tek rendered test, a kalendar u CI radi bez poslovnih podataka, pa bi
 praznim kalendarom bila prazna — a prazan ishod nije dokaz prolaza.
 
 Stanje matrice: ✅ 41 · ➖ 7 · 🟡 1 · ✅/❌ 1 · ➖/⚠️ 1 · ❌ 0 (51 redova). Preostaje samo
-`1.4.5` (tekst kao slika) — jedini kriterij za koji mjerni aparat u ovom repu ne postoji.
+`1.4.5` (tekst kao slika) — vidi sljedeći odjeljak za to šta je od njega ipak izmjerljivo.
+
+## 2026-11-08 — 1.4.5 dobio inventar; red ostaje 🟡 i zašto
+
+`1.4.5` je bio zadnji 🟡 u matrici, uz tvrdnju da je to „jedini kriterij za koji mjerni
+aparat u ovom repu stvarno ne postoji“. To je bilo pola tačno. Da li neka **raster slika**
+sadrži tekst ne može se znati bez OCR-a ili čovjeka, i tu mjere nema — axe 4.14.0 nema
+nijedno pravilo za 1.4.5 (provjereno preko `getRules([])`). Ali **popis mjesta gdje bi tekst
+mogao biti slika** se može izmjeriti, a bez njega se nije znalo ni koliko je toga za
+procijeniti.
+
+`imageBearingInventory(limit = 4)` u `e2e/dom-metrics.mjs` broji pet vrsta nosilaca slike:
+`<img>`, `[role="img"]`, `svg text`, `<canvas>` i `background-image` s `url(...)`. Gradijent
+se namjerno ne broji — u njemu nema teksta. Vraća i `counts` i `samples`, jer broj bez
+primjera ne govori šta treba pogledati.
+
+Vezano u tri speka (`wcag-rendered`, `a11y-admin`, `a11y-stylist`) = **32 nova testa** na
+32 rute; `npx playwright test --list` 180 → **212 u 5 fajlova**. `test:dom-metrics` 39 → **42**.
+
+**Tvrdi se samo `counts.canvas === 0`** — to je jedino što je odlučivo bez OCR-a: tekst
+nacrtan u platnu je nevidljiv za AT, a 1.4.5 za to nema izuzetak. Anotacija u CI ide samo
+kad postoji `svg text`, `canvas` ili `background-image` s URL-om, da mjera ne proizvodi šum
+na rutama gdje su `<img>` i `role="img"` očekivani i već pokriveni pod 1.1.1.
+
+**Zašto red ostaje 🟡, javno:** mjera nabraja gdje bi tekst mogao biti slika, ali ne čita
+piksele. Usaglašenost s 1.4.5 se **ne** tvrdi. Ono što se promijenilo je da „nije
+provjereno“ više nije otvorena pretpostavka nego konačan, imenovan skup.
+
+Mutacije 3/3 uhvaćene: **M23** `canvas: 0` umjesto brojanja, **M24** uklonjen filter po
+`url(` (gradijent bi se brojao kao slika), **M25** `Math.min(img.length, limit)` — granica
+uzorka bi rezala i brojanje.
+
+### Pouka: `git checkout --` nad nekomitovanim radom
+
+Mutacije su se vraćale s `git checkout -- <fajl>`, a to vraća na **HEAD**. Funkcija
+`imageBearingInventory` još nije bila komitovana, pa je prva mutacija obrisala cijelu
+funkciju: sljedeće dvije nisu ni našle svoj obrazac (`OBRAZAC NIJE JEDINSTVEN (0)`), a test
+je pao na `does not provide an export named 'imageBearingInventory'`. Prvi izvještaj
+„mutacije 3/3“ bio je neistinit — prošla je jedna, i to na pogrešan način.
+
+Dvije pouke iz toga. Prva: vraćanje mutacije ide iz **backupa radne kopije**, ne iz Gita,
+dok rad nije komitovan. Druga: mutacijski helper mora ispisati potvrdu da je obrazac
+stvarno zamijenjen, jer `AssertionError` u `stderr`-u ne prekida bash funkciju — helper
+nastavi, pokrene testove nad nepromijenjenim fajlom i javi prolaz.
