@@ -166,10 +166,10 @@ for (const route of STYLIST_ROUTES) {
     }
 
     // Drugi snimak, na kraju prolaska: fokusabilnost se može promijeniti dok Tab ide kroz
-    // stranicu (Radix tablista je jedan tab-stop, pa njen kontejner ima `tabindex="0"` dok
-    // je fokus izvan grupe a `-1"` čim fokus uđe). Presuđuje se samo o elementima koji su
-    // fokusabilni u OBA snimka — inače bi mjera tražila prekršaj tamo gdje ga nema
-    // (izmjereno na runu 42968367610: `/admin/finance` i `/admin/users`).
+    // stranicu, a o elementu koji više nije u tab nizu nema se šta presuđivati.
+    // NAPOMENA: ovo NE rješava preostala 2 nalaza na kontejneru Radix tabliste
+    // (`/admin/finance`, `/admin/users`) — run 42969095988 pokazuje da je kontejner i
+    // dalje u drugom snimku, pa uzrok nije promjenjiva fokusabilnost.
     const stillFocusable: string[] = await page.evaluate(focusableSnapshot)
     const traversal = analyzeTabTraversal({ expected, visited, stillFocusable })
 

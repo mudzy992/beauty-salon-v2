@@ -34,8 +34,13 @@
  *   Fokusabilnost se može promijeniti tokom prolaska: Radix tablista je jedan tab-stop, pa
  *   njen kontejner ima `tabindex="0"` dok je fokus izvan grupe, a `-1` čim fokus uđe u nju.
  *   Bez ovoga bi mjera tražila element koji u tom trenutku više nije u tab nizu — lažni
- *   prekršaj (izmjereno na runu 42968367610: `/admin/finance` i `/admin/users`, oba na
- *   kontejneru tabliste). Presuđuje se samo o elementima fokusabilnim u OBA snimka.
+ *   prekršaj. Presuđuje se samo o elementima fokusabilnim u OBA snimka.
+ *
+ *   ⚠️ Ovo je ISPRAVAN čuvar, ali NE rješava nalaze s runa 42968367610
+ *   (`/admin/finance`, `/admin/users` — kontejner Radix tabliste). Run 42969095988 to
+ *   pokazuje: kontejner je i dalje u drugom snimku (inače bi bio prijavljen pod
+ *   `becameUnfocusable`), pa ga Tab ipak ne doseže. Uzrok dakle NIJE promjenjiva
+ *   fokusabilnost i još nije utvrđen.
  * @returns {{
  *   expectedCount: number,
  *   stableCount: number,
