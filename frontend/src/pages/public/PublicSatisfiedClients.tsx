@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
@@ -7,7 +7,9 @@ import api from '../../api/client'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { Button } from '../../components/ui/button'
-import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
+import { EmptyState, ErrorState } from '../../features/shell/aurum/ui/data-state'
 import {
   parsePublicSatisfiedClientsPage,
   type PublicSatisfiedClientsPair,
@@ -18,6 +20,9 @@ const PAGE_SIZE = 12
 
 export default function PublicSatisfiedClients() {
   const { t } = useTranslation()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
+  const navigate = useNavigate()
   const [items, setItems] = useState<PublicSatisfiedClientsPair[]>([])
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -84,37 +89,56 @@ export default function PublicSatisfiedClients() {
   }, [hasMore, loading, loadingMore, loadError, offset, loadPage])
 
   return (
-    <div className="py-12 sm:py-16 bg-white min-h-[60vh]">
+    <div data-aurum-page="satisfied-clients" className={`py-12 sm:py-16 bg-white min-h-[60vh] ${isAurum ? publicAurum.page : ''}`}>
       <div className={publicPage.container}>
         <div className="max-w-2xl mb-10 md:mb-12">
           <div className={publicHeader.kicker}>{t('public.satisfiedClients.kicker')}</div>
-          <h1 className={`${publicHeader.title} mt-2`}>{t('public.satisfiedClients.title')}</h1>
+          <h1 className={`${publicHeader.title} mt-2 ${isAurum ? publicAurum.heading : ''}`}>{t('public.satisfiedClients.title')}</h1>
           <p className={`${publicHeader.subtitle} mt-3`}>
             {t('public.satisfiedClients.description')}
           </p>
         </div>
 
         {loading && items.length === 0 ? (
-          <div role="status" aria-live="polite" className="py-16 text-center text-slate-600">
+          <div role="status" aria-live="polite" data-aurum-skeleton className="py-16 text-center text-slate-600">
             {t('public.satisfiedClients.loading')}
           </div>
         ) : items.length === 0 ? (
-          <div className="py-12 text-center">
-            {loadError ? (
-              <div role="alert" className="text-slate-600">
-                <p>{t('public.satisfiedClients.loadFailed')}</p>
-                <Button
-                  variant="outline"
-                  className="mt-3"
-                  onClick={() => void loadPage(0, false)}
-                >
-                  {t('public.satisfiedClients.retry')}
-                </Button>
-              </div>
+          isAurum ? (
+            loadError ? (
+              <ErrorState
+                title={t('public.satisfiedClients.loadFailed')}
+                onRetry={() => void loadPage(0, false)}
+              />
             ) : (
-              <p className="text-slate-500">{t('public.satisfiedClients.empty')}</p>
-            )}
-          </div>
+              <EmptyState
+                title={t('public.satisfiedClients.empty')}
+                description={t('public.satisfiedClients.emptyHint')}
+                action={
+                  <Button variant="outline" onClick={() => navigate('/usluge')}>
+                    {t('public.satisfiedClients.emptyAction')}
+                  </Button>
+                }
+              />
+            )
+          ) : (
+            <div className="py-12 text-center">
+              {loadError ? (
+                <div role="alert" className="text-slate-600">
+                  <p>{t('public.satisfiedClients.loadFailed')}</p>
+                  <Button
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => void loadPage(0, false)}
+                  >
+                    {t('public.satisfiedClients.retry')}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-slate-500">{t('public.satisfiedClients.empty')}</p>
+              )}
+            </div>
+          )
         ) : (
           <>
             <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:thin]">
@@ -126,7 +150,7 @@ export default function PublicSatisfiedClients() {
                   transition={{ duration: 0.3 }}
                   className="snap-center shrink-0 w-[min(88vw,20rem)] md:shrink md:w-auto"
                 >
-                  <div className="rounded-2xl border border-slate-200/80 bg-white p-2 shadow-soft">
+                  <div data-aurum-satisfied-card className="rounded-2xl border border-slate-200/80 bg-white p-2 shadow-soft">
                     <BeforeAfterSlider
                       beforeSrc={getUploadUrl(
                         pair.before.pathMedium ??

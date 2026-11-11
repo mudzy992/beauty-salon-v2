@@ -12,7 +12,9 @@ import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { formatSalonWorkingHours, type SalonHoursRow } from '../../utils/format-salon-hours'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
+import { PageHeader } from '../../features/shell/aurum/ui/page-header'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
 import { ExternalLink } from 'lucide-react'
@@ -22,6 +24,8 @@ const MotionDiv = motion.div
 export default function PublicContact() {
   const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const toast = useAppToast()
   const [workingHours, setWorkingHours] = useState<SalonHoursRow[]>()
   const [hoursLoading, setHoursLoading] = useState(true)
@@ -98,26 +102,32 @@ export default function PublicContact() {
   }
 
   return (
-    <div className="bg-white min-h-screen pb-20">
+    <div data-aurum-page="contact" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <Seo
         title={t('public.contact.seoTitle')}
         description={description}
         canonicalUrl={canonicalPath}
         jsonLd={jsonLd}
       />
-      <div className={`${publicPageHero.section} relative overflow-hidden`}>
+      <div data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
           style={{ backgroundImage: cssBackgroundImage(contactBg) }}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
         <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
-          <h1 className={publicHeader.title}>
-            {contactTitle}
-          </h1>
-          <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
-            {contactSubtitle}
-          </p>
+          {isAurum ? (
+            <PageHeader title={contactTitle} description={contactSubtitle} className="text-center" />
+          ) : (
+            <>
+              <h1 className={publicHeader.title}>
+                {contactTitle}
+              </h1>
+              <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
+                {contactSubtitle}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -128,7 +138,7 @@ export default function PublicContact() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card className="rounded-2xl border-slate-200/80 shadow-soft">
+            <Card data-aurum-surface data-aurum-contact-card="form" className="rounded-2xl border-slate-200/80 shadow-soft">
               <CardContent className="p-8">
                 <h2 className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
                   {t('public.contact.formTitle')}
@@ -140,6 +150,7 @@ export default function PublicContact() {
                       id="fullName"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      autoComplete="name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -161,7 +172,7 @@ export default function PublicContact() {
                       onChange={(e) => setMessage(e.target.value)}
                     />
                   </div>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} data-aurum-cta="primary">
                     {loading ? t('public.contact.sending') : t('public.contact.send')}
                   </Button>
                 </form>
@@ -175,7 +186,7 @@ export default function PublicContact() {
             transition={{ duration: 0.5 }}
           >
             <div className="space-y-8">
-              <Card className="rounded-2xl border-slate-200/80 shadow-soft">
+              <Card data-aurum-surface data-aurum-contact-card="info" className="rounded-2xl border-slate-200/80 shadow-soft">
                 <CardContent className="p-8">
                   <h2 className="text-base font-semibold tracking-tight text-slate-950 mb-4">
                     {t('public.contact.info')}
@@ -263,6 +274,8 @@ export default function PublicContact() {
                 </CardContent>
               </Card>
               
+              <div data-aurum-contact-card="access">
+                {isAurum ? <h2 className="sr-only">{t('public.contact.access')}</h2> : null}
               {getSetting('public_contact_map_embed', '') ? (
                 <div className="rounded-2xl overflow-hidden shadow-soft h-[300px] bg-white border border-slate-200/80">
                   <iframe
@@ -282,6 +295,7 @@ export default function PublicContact() {
                   <div className="text-sm">{t('public.contact.mapLocation')}</div>
                 </div>
               )}
+              </div>
             </div>
           </MotionDiv>
         </div>

@@ -22,8 +22,14 @@ export function PublicBlogShare({ title, shareUrl, copied, onShare, onCopy }: Pr
     { href: `https://wa.me/?text=${encodedUrl}`, label: 'WhatsApp' },
   ]
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-2">
-      <Button type="button" variant="outline" size="sm" onClick={onShare}>
+    <div data-aurum-share className="mb-6 flex flex-wrap items-center gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label={t('public.blogShare.shareArticle', { title })}
+        onClick={onShare}
+      >
         <Share2 className="mr-2 h-4 w-4" aria-hidden />
         {t('public.blogShare.share')}
       </Button>

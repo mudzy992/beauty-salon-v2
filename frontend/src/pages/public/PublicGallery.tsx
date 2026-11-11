@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ExternalLink } from 'lucide-react'
+import { AlertCircle, ExternalLink, Images } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
+import { EmptyState } from '../../features/shell/aurum/ui/data-state'
 import { MediaImage } from '../../components/media-image'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { getUploadUrl } from '../../utils/uploadUrl'
@@ -14,6 +17,7 @@ import { Button } from '../../components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from '../../components/ui/dialog'
 
@@ -55,6 +59,8 @@ const fadeScale = {
 export default function PublicGallery() {
   const { t } = useTranslation()
   const { getSetting } = useSettings()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const [categories, setCategories] = useState<GalleryCategory[]>([])
   const [consentedPairs, setConsentedPairs] = useState<ConsentedBeforeAfterPair[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,15 +123,15 @@ export default function PublicGallery() {
   const galleryBg = getSetting('public_gallery_bg', '')
 
   return (
-    <div className="bg-white min-h-screen pb-20">
-      <div className={`${publicPageHero.section} relative overflow-hidden`}>
+    <div data-aurum-page="gallery" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+      <div data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
           style={{ backgroundImage: cssBackgroundImage(galleryBg) }}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
         <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
-          <h1 className={publicHeader.title}>
+          <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>
             {getSetting('public_gallery_title', t('public.gallery.titleFallback'))}
           </h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
@@ -139,7 +145,7 @@ export default function PublicGallery() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">{t('public.gallery.loading')}</div>
+          <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-slate-600">{t('public.gallery.loading')}</div>
         ) : (
           <div>
             {categoryLoadError ? (
@@ -148,6 +154,7 @@ export default function PublicGallery() {
                 role="alert"
               >
                 <p className="text-sm text-amber-900">
+                  <AlertCircle className="mr-2 inline h-4 w-4" aria-hidden="true" />
                   {t('public.gallery.categoryLoadFailed')}
                 </p>
                 <Button variant="outline" className="mt-3" onClick={() => void loadCategories()}>
@@ -161,6 +168,7 @@ export default function PublicGallery() {
                 role="alert"
               >
                 <p className="text-sm text-amber-900">
+                  <AlertCircle className="mr-2 inline h-4 w-4" aria-hidden="true" />
                   {t('public.gallery.beforeAfterLoadFailed')}
                 </p>
                 <Button
@@ -207,7 +215,17 @@ export default function PublicGallery() {
             ) : null}
 
             {sortedCategories.length === 0 ? (
-              consentedPairs.length === 0 && !categoryLoadError && !pairsLoadError ? (
+              isAurum && consentedPairs.length === 0 && !categoryLoadError && !pairsLoadError ? (
+                <EmptyState
+                  title={t('common.noData')}
+                  description={t('public.gallery.emptyHint')}
+                  action={
+                    <Button asChild variant="outline">
+                      <Link to="/kontakt">{t('public.gallery.emptyAction')}</Link>
+                    </Button>
+                  }
+                />
+              ) : consentedPairs.length === 0 && !categoryLoadError && !pairsLoadError ? (
                 <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
               ) : null
             ) : (
@@ -215,6 +233,7 @@ export default function PublicGallery() {
                 {sortedCategories.map((cat) => (
                   <div key={cat.id} className="mb-16">
                     <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 mb-8 border-b border-slate-200/80">
+                      <Images className="mr-2 inline h-5 w-5" aria-hidden="true" />
                       {cat.name}
                     </h2>
 
@@ -309,10 +328,13 @@ export default function PublicGallery() {
         }}
       >
         {lightbox ? (
-          <DialogContent className="max-h-[90vh] max-w-[90vw] overflow-visible border-0 bg-black/90 p-4 text-white shadow-none sm:rounded-2xl">
+          <DialogContent data-aurum-lightbox className="max-h-[90vh] max-w-[90vw] overflow-visible border-0 bg-black/90 p-4 text-white shadow-none sm:rounded-2xl">
             <DialogTitle className="sr-only">
               {t('public.gallery.openImage')}: {lightbox.categoryName}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('public.gallery.lightboxDescription', { category: lightbox.categoryName })}
+            </DialogDescription>
             <div className="relative">
               <MediaImage
                 src={lightbox.src}

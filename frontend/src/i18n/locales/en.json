@@ -2902,7 +2902,9 @@
       "retry": "Try again",
       "loadingMore": "Loading…",
       "loadMore": "Load more transformations",
-      "backHome": "Back to home"
+      "backHome": "Back to home",
+      "emptyHint": "No transformations published yet. See what we offer.",
+      "emptyAction": "Explore services"
     },
     "gallery": {
       "titleFallback": "Our Work Gallery",
@@ -2917,7 +2919,10 @@
       "noConsentedPairs": "There are currently no pairs with active consent for both photos.",
       "openImage": "Open image",
       "openOriginal": "Open original in a new window",
-      "close": "Close"
+      "close": "Close",
+      "lightboxDescription": "Photo from category {{category}}. Press Esc to close.",
+      "emptyHint": "The gallery is not populated yet. Get in touch for more information.",
+      "emptyAction": "Contact us"
     },
     "nav": {
       "home": "Home",
@@ -3034,7 +3039,8 @@
       "share": "Share",
       "copied": "Copied",
       "copyLink": "Copy link",
-      "opensInNewTab": "Opens in a new tab"
+      "opensInNewTab": "Opens in a new tab",
+      "shareArticle": "Share – {{title}}"
     },
     "blogComments": {
       "title": "Comments",
@@ -3045,7 +3051,9 @@
       "loadFailed": "Comments could not be loaded right now.",
       "empty": "There are no approved comments yet.",
       "loadingMore": "Loading…",
-      "loadMore": "Load more comments"
+      "loadMore": "Load more comments",
+      "legend": "Your comment",
+      "hint": "Up to 2000 characters. Comments are published after approval."
     },
     "blogList": {
       "subtitleFallback": "News and advice",
@@ -3055,7 +3063,9 @@
       "retry": "Try again",
       "loadingMore": "Loading…",
       "loadMore": "Load more",
-      "readMore": "Read more"
+      "readMore": "Read more",
+      "emptyHint": "No published posts yet. In the meantime, explore our services.",
+      "emptyAction": "Explore services"
     },
     "contact": {
       "title": "Contact",
@@ -3080,7 +3090,8 @@
       "closed": "Closed",
       "social": "Social media",
       "mapTitle": "Google Maps",
-      "mapLocation": "Salon location"
+      "mapLocation": "Salon location",
+      "access": "Directions"
     },
     "footer": {
       "rights": "All rights reserved."

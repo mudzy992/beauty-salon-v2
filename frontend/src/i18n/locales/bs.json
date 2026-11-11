@@ -2899,7 +2899,9 @@
       "retry": "Pokušaj ponovo",
       "loadingMore": "Učitavanje…",
       "loadMore": "Učitaj još transformacija",
-      "backHome": "Nazad na početnu"
+      "backHome": "Nazad na početnu",
+      "emptyHint": "Transformacije još nisu objavljene. Pogledajte šta nudimo.",
+      "emptyAction": "Pogledajte usluge"
     },
     "gallery": {
       "titleFallback": "Galerija naših radova",
@@ -2914,7 +2916,10 @@
       "noConsentedPairs": "Trenutno nema parova s aktivnom saglasnošću za obje fotografije.",
       "openImage": "Otvori sliku",
       "openOriginal": "Otvori original u novom prozoru",
-      "close": "Zatvori"
+      "close": "Zatvori",
+      "lightboxDescription": "Fotografija iz kategorije {{category}}. Pritisnite Esc za zatvaranje.",
+      "emptyHint": "Galerija još nije popunjena. Javite nam se za više informacija.",
+      "emptyAction": "Kontaktirajte nas"
     },
     "nav": {
       "home": "Početna",
@@ -3031,7 +3036,8 @@
       "share": "Podijeli",
       "copied": "Kopirano",
       "copyLink": "Kopiraj link",
-      "opensInNewTab": "Otvara se u novoj kartici"
+      "opensInNewTab": "Otvara se u novoj kartici",
+      "shareArticle": "Podijeli – {{title}}"
     },
     "blogComments": {
       "title": "Komentari",
@@ -3042,7 +3048,9 @@
       "loadFailed": "Komentare trenutno nije moguće učitati.",
       "empty": "Nema odobrenih komentara.",
       "loadingMore": "Učitavanje…",
-      "loadMore": "Učitaj još komentara"
+      "loadMore": "Učitaj još komentara",
+      "legend": "Vaš komentar",
+      "hint": "Najviše 2000 znakova. Komentar se objavljuje nakon odobrenja."
     },
     "blogList": {
       "subtitleFallback": "Novosti i savjeti",
@@ -3052,7 +3060,9 @@
       "retry": "Pokušaj ponovo",
       "loadingMore": "Učitavanje…",
       "loadMore": "Učitaj još",
-      "readMore": "Pročitaj više"
+      "readMore": "Pročitaj više",
+      "emptyHint": "Za sada nema objavljenih članaka. U međuvremenu pogledajte naše usluge.",
+      "emptyAction": "Pogledajte usluge"
     },
     "contact": {
       "title": "Kontakt",
@@ -3077,7 +3087,8 @@
       "closed": "Zatvoreno",
       "social": "Društvene mreže",
       "mapTitle": "Google Mapa",
-      "mapLocation": "Lokacija salona"
+      "mapLocation": "Lokacija salona",
+      "access": "Pristup"
     },
     "footer": { "rights": "Sva prava zadržana." },
     "reserve": {

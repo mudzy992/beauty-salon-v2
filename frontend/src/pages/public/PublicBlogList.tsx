@@ -7,7 +7,10 @@ import { ArrowRight, Calendar } from 'lucide-react'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
+import { Button } from '../../components/ui/button'
+import { EmptyState, ErrorState } from '../../features/shell/aurum/ui/data-state'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { blogPostLang } from '../../features/blog/blog-language'
@@ -32,6 +35,8 @@ const fadeUp = {
 export default function PublicBlogList() {
   const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const [posts, setPosts] = useState<PublicBlogListPost[]>([])
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -78,8 +83,8 @@ export default function PublicBlogList() {
   const blogBg = getSetting('public_blog_bg', '')
 
   return (
-    <div className="bg-white min-h-screen pb-20">
-      <div className={`${publicPageHero.section} relative overflow-hidden`}>
+    <div data-aurum-page="blog-list" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+      <div data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
           style={{ backgroundImage: cssBackgroundImage(blogBg) }}
@@ -89,7 +94,7 @@ export default function PublicBlogList() {
           <div className={publicHeader.kicker}>
             {getSetting('public_blog_subtitle', t('public.blogList.subtitleFallback'))}
           </div>
-          <h1 className={`${publicHeader.title} mt-2`}>
+          <h1 className={`${publicHeader.title} mt-2 ${isAurum ? publicAurum.heading : ''}`}>
             {getSetting('public_blog_title', t('public.blogList.titleFallback'))}
           </h1>
         </div>
@@ -100,26 +105,45 @@ export default function PublicBlogList() {
         aria-busy={loading || loadingMore}
       >
         {loading ? (
-          <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">
+          <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-slate-600">
             {t('public.blogList.loading')}
           </div>
         ) : posts.length === 0 ? (
-          <div className="py-12 text-center">
-            {loadError ? (
-              <div role="alert" className="text-slate-600">
-                <p>{t('public.blogList.loadFailed')}</p>
-                <button
-                  type="button"
-                  className="mt-3 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
-                  onClick={() => void loadPage(0, false)}
-                >
-                  {t('public.blogList.retry')}
-                </button>
-              </div>
+          isAurum ? (
+            loadError ? (
+              <ErrorState
+                title={t('public.blogList.loadFailed')}
+                onRetry={() => void loadPage(0, false)}
+              />
             ) : (
-              <div className="text-lg text-slate-500">{t('common.noData')}</div>
-            )}
-          </div>
+              <EmptyState
+                title={t('common.noData')}
+                description={t('public.blogList.emptyHint')}
+                action={
+                  <Button asChild variant="outline">
+                    <Link to="/usluge">{t('public.blogList.emptyAction')}</Link>
+                  </Button>
+                }
+              />
+            )
+          ) : (
+            <div className="py-12 text-center">
+              {loadError ? (
+                <div role="alert" className="text-slate-600">
+                  <p>{t('public.blogList.loadFailed')}</p>
+                  <button
+                    type="button"
+                    className="mt-3 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                    onClick={() => void loadPage(0, false)}
+                  >
+                    {t('public.blogList.retry')}
+                  </button>
+                </div>
+              ) : (
+                <div className="text-lg text-slate-500">{t('common.noData')}</div>
+              )}
+            </div>
+          )
         ) : (
           <>
             <MotionDiv variants={stagger} initial="hidden" animate="visible">
@@ -128,6 +152,7 @@ export default function PublicBlogList() {
                   <MotionDiv
                     key={p.id}
                     variants={fadeUp}
+                    data-aurum-surface
                     className="bg-white rounded-2xl overflow-hidden shadow-soft border border-slate-200/80 hover:shadow-md transition-shadow duration-300"
                   >
                     <Link to={`/blog/${p.slug}`} className="block no-underline">

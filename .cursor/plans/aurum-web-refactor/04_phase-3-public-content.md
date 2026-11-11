@@ -1,6 +1,6 @@
 # S3 — Javni sadržaj: Blog, Galerija, Kontakt, Zadovoljni klijenti
 
-**Status:** 🟡 čeka odobrenje S2 · **Obuhvata 5 javnih ruta + dijeljene blog komponente.**
+**Status:** 🟡 **u toku** (odobrenje `approve_s3`; režim: plan → implementacija → 5/5 CI → evidencija → STOP) · **Obuhvata 5 javnih ruta + dijeljene blog komponente.**
 
 ---
 

@@ -50,13 +50,14 @@ export function PublicBlogComments({
 
   return (
     <>
-      <div className="my-10 h-px bg-slate-200" />
-      <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950">
+      <div data-aurum-comments-rule className="my-10 h-px bg-slate-200" />
+      <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950" data-aurum-comments>
         <MessageCircle className="h-5 w-5 text-slate-500" aria-hidden />
         {t('public.blogComments.title')} {total > 0 && `(${total})`}
       </h2>
       {user ? (
-        <div className="mb-8 space-y-4">
+        <fieldset className="mb-8 space-y-4 border-0 p-0">
+          <legend className="sr-only">{t('public.blogComments.legend')}</legend>
           <Label htmlFor="public-blog-comment">
             {t('public.blogComments.placeholder')}
           </Label>
@@ -66,8 +67,12 @@ export function PublicBlogComments({
             onChange={(e) => onChange(e.target.value)}
             rows={4}
             maxLength={2000}
+            aria-describedby="public-blog-comment-hint"
             className="resize-y"
           />
+          <p id="public-blog-comment-hint" className="mt-1 text-xs text-content-muted">
+            {t('public.blogComments.hint')}
+          </p>
           <Button
             onClick={onSubmit}
             disabled={submitting || !newComment.trim()}
@@ -80,7 +85,7 @@ export function PublicBlogComments({
               {t('public.blogComments.submitting')}
             </span>
           ) : null}
-        </div>
+        </fieldset>
       ) : (
         <div className="py-4 text-slate-600">
           <Link to="/login" state={{ from: `/blog/${slug}` }}>
@@ -91,7 +96,7 @@ export function PublicBlogComments({
         </div>
       )}
       {loading ? (
-        <div role="status" aria-live="polite" className="py-8 text-center text-slate-600">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" data-aurum-skeleton className="py-8 text-center text-slate-600">{t('common.loading')}</div>
       ) : loadError && comments.length === 0 ? (
         <div role="alert" className="text-slate-600">
           <p>{t('public.blogComments.loadFailed')}</p>
@@ -104,7 +109,7 @@ export function PublicBlogComments({
       ) : (
         <div className="space-y-6">
           {comments.map((c) => (
-            <div key={c.id} className="border-b border-slate-100 py-4 last:border-b-0">
+            <div data-aurum-comment key={c.id} className="border-b border-slate-100 py-4 last:border-b-0">
               <div className="mb-2 flex items-center gap-2">
                 <div className="font-semibold text-slate-800">
                   {c.user.firstName} {c.user.lastName}

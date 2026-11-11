@@ -642,3 +642,167 @@
   }
 }
 
+
+/* ── NEJRA §07/§09/§11 · S3 javni sadržaj — SAMO Aurum ────────────────────────
+   /blog, /blog/:slug, /galerija, /kontakt, /zadovoljni-klijenti. Svako pravilo
+   je pod [data-skin="aurum"]; klasični :root/.dark blokovi i TSX markup ostaju
+   netaknuti, pa je default izgled identičan. Boje isključivo iz --aurum-* / HSL
+   semantičkih tokena i --nejra-hero-* (S2, NEJRA §10). Nema novih animacija:
+   globalni prefers-reduced-motion i MotionConfig reducedMotion="user" već važe. */
+
+/* Legacy `text-slate-*` / `bg-slate-*` u S3 rutama prelaze na tokene. Bez ovoga
+   bi `text-slate-950` u aurum-dark pao na ~1.1:1 naspram `surface`. */
+[data-skin="aurum"] [data-aurum-page] [class*="text-slate-9"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-slate-8"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-slate-7"] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page] [class*="text-slate-6"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-slate-5"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-amber-"] {
+  color: hsl(var(--text-muted));
+}
+[data-skin="aurum"] [data-aurum-page] [class*="bg-slate-"],
+[data-skin="aurum"] [data-aurum-page] [class*="bg-amber-"] {
+  background-color: hsl(var(--surface-sunken));
+}
+[data-skin="aurum"] [data-aurum-page] [class*="border-slate-"],
+[data-skin="aurum"] [data-aurum-page] [class*="border-amber-"] {
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-page] [role="alert"] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--danger));
+  color: hsl(var(--text));
+}
+
+/* Javni hero sadržajnih stranica (svijetli, za razliku od filmskog S2 heroja). */
+[data-skin="aurum"] [data-aurum-page-hero] {
+  background-color: hsl(var(--surface-sunken));
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-page-hero] > div[class*="bg-gradient-to-b"] {
+  background-image: linear-gradient(
+    to bottom,
+    hsl(var(--surface-sunken) / 0.95),
+    hsl(var(--surface-sunken) / 0.85),
+    hsl(var(--surface-sunken))
+  );
+}
+
+/* L stanje: jedna `role="status" region s rezervisanom visinom (bez duplikata
+   najave i bez layout shift-a); tekst ostaje čitljiv čitaču ekrana. */
+[data-skin="aurum"] [data-aurum-skeleton] {
+  min-height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--line));
+  border-radius: 0.875rem;
+  background-color: hsl(var(--surface));
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 2rem,
+    hsl(var(--surface-muted) / 0.55) 2rem 2.25rem
+  );
+  color: hsl(var(--text));
+}
+
+/* Kartice i sadržajni blokovi. */
+[data-skin="aurum"] [data-aurum-page] [data-aurum-surface],
+[data-skin="aurum"] [data-aurum-page] [data-aurum-satisfied-card],
+[data-skin="aurum"] [data-aurum-page] [data-aurum-contact-card],
+[data-skin="aurum"] [data-aurum-page] [data-aurum-comment] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-contact-card="access"] {
+  border: 1px solid hsl(var(--line));
+  border-radius: 1rem;
+  overflow: hidden;
+}
+[data-skin="aurum"] [data-aurum-page] [data-aurum-surface]:hover,
+[data-skin="aurum"] [data-aurum-page] [data-aurum-satisfied-card]:hover {
+  border-color: var(--aurum-brand);
+}
+
+/* Članak: serifni naslov na tamnom hero-veu (kontrast izračunat u NEJRA §10),
+   sadržaj u semantičkom tekstu. Markup sanitiziranog HTML-a se NE dira. */
+[data-skin="aurum"] [data-aurum-article-hero] {
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-article-hero-overlay] {
+  background: linear-gradient(
+    to top,
+    rgba(14, 11, 8, 0.85) 0%,
+    rgba(14, 11, 8, 0.55) 60%,
+    rgba(14, 11, 8, 0.25) 100%
+  );
+}
+[data-skin="aurum"] [data-aurum-article-hero] h1 {
+  font-family: var(--font-aurum-serif);
+  color: var(--nejra-hero-text);
+}
+[data-skin="aurum"] [data-aurum-article] {
+  color: hsl(var(--text));
+  line-height: 1.8;
+}
+[data-skin="aurum"] [data-aurum-article] a {
+  color: var(--aurum-brand);
+  text-decoration: underline;
+}
+[data-skin="aurum"] [data-aurum-share] {
+  border-bottom: 1px solid hsl(var(--line));
+  padding-bottom: 1rem;
+}
+[data-skin="aurum"] [data-aurum-comments-rule] {
+  background-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-comments] {
+  color: hsl(var(--text));
+}
+
+/* Imenovani Radix lightbox: tamna kompozicija iz §10 u OBJE Aurum teme. */
+[data-skin="aurum"] [data-aurum-lightbox] {
+  background-color: var(--nejra-hero-page);
+  color: var(--nejra-hero-text);
+  border: 1px solid var(--nejra-hero-gold);
+}
+[data-skin="aurum"] [data-aurum-lightbox] a {
+  color: var(--nejra-hero-text);
+  text-decoration: underline;
+}
+
+/* 2.4.7 / 2.5.5 / 1.4.4 — vidljiv fokus, 44 px mete, reflow na 320 px / 400%. */
+[data-skin="aurum"] [data-aurum-page] {
+  overflow-wrap: anywhere;
+}
+[data-skin="aurum"] [data-aurum-page] img,
+[data-skin="aurum"] [data-aurum-page] iframe {
+  max-width: 100%;
+}
+[data-skin="aurum"] [data-aurum-page] button,
+[data-skin="aurum"] [data-aurum-page] a[href] {
+  min-height: 2.75rem;
+}
+[data-skin="aurum"] [data-aurum-page] :is(a, button, input, textarea, select):focus-visible,
+[data-skin="aurum"] [data-aurum-lightbox] :is(a, button):focus-visible {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 2px;
+}
+
+/* 1.4.1 — u forced-colors stanju granice ne smiju zavisiti od pozadine. */
+@media (forced-colors: active) {
+  [data-skin="aurum"] [data-aurum-page-hero],
+  [data-skin="aurum"] [data-aurum-surface],
+  [data-skin="aurum"] [data-aurum-satisfied-card],
+  [data-skin="aurum"] [data-aurum-contact-card],
+  [data-skin="aurum"] [data-aurum-lightbox],
+  [data-skin="aurum"] [data-aurum-skeleton] {
+    border: 1px solid CanvasText;
+  }
+  [data-skin="aurum"] [data-aurum-page] :is(a, button):focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

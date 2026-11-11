@@ -17,8 +17,11 @@ test('external social links announce that they open in a new tab', () => {
 })
 
 test('share and copy remain explicit button actions', () => {
-  assert.match(shareSource, /<Button type="button" variant="outline" size="sm" onClick=\{onShare\}>/)
+  // S3: `aria-label` iz i18n („Podijeli – {naslov}", WCAG 2.5.3 / jedinstveno ime)
+  // stoji između `size` i `onClick`, pa obrazac dopušta dodatne atribute taga.
+  assert.match(shareSource, /<Button[\s\S]*?type="button"[\s\S]*?variant="outline"[\s\S]*?size="sm"[\s\S]*?onClick=\{onShare\}/)
   assert.match(shareSource, /<Button type="button" variant="ghost" size="sm" onClick=\{onCopy\}>/)
+  assert.match(shareSource, /aria-label=\{t\('public\.blogShare\.shareArticle', \{ title \}\)\}/)
 })
 
 test('cancelling native share does not unexpectedly copy the link', () => {

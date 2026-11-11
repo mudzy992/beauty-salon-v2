@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Calendar } from 'lucide-react'
 
 import { Button } from '../../components/ui/button'
-import { publicPage } from '../../features/shell/public/public-ui'
+import { publicAurum, publicPage } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
+import { ErrorState } from '../../features/shell/aurum/ui/data-state'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
 import { MediaImage } from '../../components/media-image'
@@ -34,7 +36,9 @@ export default function PublicBlogPost() {
   const toast = useAppToast()
   const { user } = useAuth()
   const { t, i18n } = useTranslation()
-  const [post, setPost] = useState<PublicBlogPost | null>(null)
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
+  const [post, setPost] = useState<PublicBlogPost | null>(null);
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [comments, setComments] = useState<BlogComment[]>([])
@@ -164,13 +168,19 @@ export default function PublicBlogPost() {
 
   if (loading) {
     return (
-      <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">
+      <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-slate-600">
         {t('common.loading')}
       </div>
     )
   }
   if (!post) {
-    return (
+    return isAurum ? (
+      loadError ? (
+        <ErrorState title={t('public.blogPost.loadFailed')} onRetry={loadPost} />
+      ) : (
+        <div className="py-20 text-center text-lg">{t('public.blogPost.notFound')}</div>
+      )
+    ) : (
       <div className="py-20 text-center text-lg text-slate-700">
         {loadError ? (
           <div role="alert">
@@ -214,7 +224,7 @@ export default function PublicBlogPost() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div data-aurum-page="blog-post" className={`min-h-screen bg-white pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <Seo
         title={seo.title}
         description={seo.description}
@@ -233,13 +243,13 @@ export default function PublicBlogPost() {
             </span>
           </Link>
         </Button>
-        <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-soft md:min-h-[300px]">
+        <div data-aurum-article-hero className="relative min-h-[220px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-soft md:min-h-[300px]">
           <MediaImage
             src={post.heroImage ? getUploadUrl(post.heroImage) : ''}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+          <div data-aurum-article-hero-overlay className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 flex flex-col items-start p-6 md:p-8">
             <div className="mb-2 flex items-center gap-2 text-sm text-white/85">
               <Calendar className="h-4 w-4" aria-hidden />
@@ -271,6 +281,7 @@ export default function PublicBlogPost() {
               jezik stranice (`document.documentElement.lang`) odnosi na UI, ne na članak. */}
           <div
             lang={blogPostLang(post)}
+            data-aurum-article
             className="blog-content mb-14 text-lg leading-relaxed text-slate-700"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
           />
