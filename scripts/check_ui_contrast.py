@@ -170,13 +170,32 @@ def main() -> int:
     checks: list[tuple[str, tuple[float, float, float], tuple[float, float, float], float]] = []
     root_block = css_block(css, ":root")
     root_raw = raw_css_vars(root_block) if root_block is not None else {}
+    # S1 / NEJRA §10 — dva nova Aurum bloka. `css_block()` escapa selector, pa se
+    # `[data-skin="aurum"][data-mode="light"]` i `.dark[data-skin="aurum"]` čitaju
+    # direktno; naslijeđeni `:root` tokeni se spajaju kao i za `.dark`.
+    # Odluka vlasnika `use_140_four`: uz 26 postojećih web parova svako Aurum
+    # stanje dobija još 4 para iz NEJRA §10 (text/page, muted/page, brand/page,
+    # accent/page) → 30 × 2 = 60 novih parova, ukupno 140 (80 + 60).
+    AURUM_EXTRA_PAIRS = (
+        ("NEJRA §10: text / page", "aurum-text", "aurum-page", TEXT_THRESHOLD),
+        ("NEJRA §10: muted / page", "aurum-muted", "aurum-page", TEXT_THRESHOLD),
+        ("NEJRA §10: brand / page", "aurum-brand", "aurum-page", TEXT_THRESHOLD),
+        ("NEJRA §10: accent / page", "aurum-accent", "aurum-page", TEXT_THRESHOLD),
+    )
+    web_states = (
+        ("web light", ":root", False),
+        ("web dark", ".dark", False),
+        ("aurum light", '[data-skin="aurum"][data-mode="light"]', True),
+        ("aurum dark", '.dark[data-skin="aurum"]', True),
+    )
     root_tokens: dict[str, tuple[float, float, float]] = {}
-    for mode, selector in (("web light", ":root"), ("web dark", ".dark")):
+    for mode, selector, is_aurum in web_states:
         block = css_block(css, selector)
         if block is None:
             print(f"FAIL: CSS selector block not found: {selector}", file=sys.stderr)
             return 2
-        # `.dark` nasljeđuje deklaracije iz `:root` (npr. brand varijable), pa se slojevi spajaju.
+        # `.dark` i oba Aurum bloka nasljeđuju deklaracije iz `:root`
+        # (npr. brand varijable), pa se slojevi spajaju.
         inherited = None if selector == ":root" else root_raw
         tokens = parse_css_vars(block, inherited)
         if selector == ":root":
@@ -212,7 +231,7 @@ def main() -> int:
             ("info-fg / info-bg (status)", "info-fg", "info-bg", TEXT_THRESHOLD),
             ("neutral-fg / neutral-bg (status)", "neutral-fg", "neutral-bg", TEXT_THRESHOLD),
         )
-        for label, foreground, background, threshold in pairs:
+        for label, foreground, background, threshold in pairs + (AURUM_EXTRA_PAIRS if is_aurum else ()):
             if not append_pair(
                 checks,
                 f"{mode}: {label}",

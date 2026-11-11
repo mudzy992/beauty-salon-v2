@@ -1,6 +1,6 @@
 # MATRIX — Aurum theme / skin sustav
 
-**Status:** 🟡 **S0 ZAVRŠEN (5/5 CI `43043182552`), ali runtime logika još nije implementirana.** Ovaj fajl postaje autoritativan tek nakon S1; model 3 stanja, fiksna paleta, kontrast 22/22, ugovor izbornika i potvrđeni R2 (`dark_yes`) dokumentovani su u NEJRA §10/§12 i pokriveni `test:design-spec`, ali se **ne tvrdi da runtime kod radi**.
+**Status:** ✅ **S1 IMPLEMENTIRAN (2026-11-11).** Runtime logika postoji i lokalno je izmjerena: `features/shell/theme/*`, `ThemeProvider` iznad `SettingsProvider`, `ThemeSwitcher` u 3 shella, 2 Aurum CSS bloka, `check_ui_contrast.py --strict` **140/140**, 4 nova `test:*` (203/203 ukupno). **CI 5/5 se upisuje u završnom evidencijskom commitu.** Rendered axe za `aurum-light`/`aurum-dark` i dalje 🟡 do S11 — ovo je source-only + default-classic rendered dokaz, ne potvrda sva 3 stanja u browseru.
 **Vlasnik:** `.cursor/plans/aurum-web-refactor/` · **Izvori odluka:** `00_overview.md` §2, `02_phase-1-foundation.md`
 **Ažurirano:** 2026-11-11
 
@@ -62,13 +62,13 @@ Fokus ostaje na kliknutom dugmetu; bez otimanja fokusa; promjena se najavljuje `
 
 | Skup | Selektor | Provjera |
 |---|---|---|
-| Klasična svijetla | `:root` (netaknut) | `check_ui_contrast.py` — 30 parova |
-| Klasična tamna (uspavana) | `.dark` (netaknut) | `check_ui_contrast.py` — 30 parova |
-| Aurum svijetla | `[data-skin="aurum"][data-mode="light"]` | **+30 parova u S1** |
-| Aurum tamna | `.dark[data-skin="aurum"]` | **+30 parova u S1** |
-| Mobile paleta | `mobile/src/theme/colors.ts` (netaknuta, Q3) | 20 parova |
+| Klasična svijetla | `:root` (netaknut) | `check_ui_contrast.py` — **26** parova |
+| Klasična tamna (uspavana) | `.dark` (netaknut) | `check_ui_contrast.py` — **26** parova |
+| Aurum svijetla | `[data-skin="aurum"][data-mode="light"]` | **30** parova: 26 postojećih + 4 NEJRA §10 (`text/page`, `muted/page`, `brand/page`, `accent/page`) |
+| Aurum tamna | `.dark[data-skin="aurum"]` | **30** parova: ista struktura |
+| Mobile paleta | `mobile/src/theme/colors.ts` (netaknuta, Q3) | **28** parova (22 tema + 6 statusa) |
 
-Ukupno **80 → 140 parova** od S1. `test:theme-ssot-sync` (S1) čita NEJRA §10 i `globals.css` i poništava odstupanje koda od jedinog izvora istine. **Nijedna boja se ne koriguje bez odobrenja** (Q9): ako par padne → STOP + pitanje.
+Ukupno **80 → 140 parova** (52 web klasična + 28 mobile + 60 Aurum), izmjereno **140/140 PASS**. **Ispravka K0 broja:** plan je pisao „30 postojećih", a stvarni parser ih je imao 26; odlukom vlasnika `use_140_four` (2026-11-11) razlika je popunjena s 4 stvarna para iz NEJRA §10 po Aurum stanju, bez izmišljanja boja. `test:theme-ssot-sync` čita NEJRA §10 `const T` i `globals.css` i poništava odstupanje koda od jedinog izvora istine (12 tačnih hexova + izvedeni HSL/raw tokeni). **Nijedna boja se ne koriguje bez odobrenja** (Q9): ako par padne → STOP + pitanje. Rasponi: light 3,73–17,55:1, dark 3,70–16,89:1.
 
 ---
 
@@ -76,9 +76,9 @@ Ukupno **80 → 140 parova** od S1. `test:theme-ssot-sync` (S1) čita NEJRA §10
 
 | Kontekst | Fajl | Segment | Status |
 |---|---|---|---|
-| Javni header + mobilni drawer | `features/shell/public/public-layout.tsx` | S1 (montaža), S2 (stil) | ⬜ |
-| Admin header | `features/shell/admin/admin-chrome.tsx` | S1 (montaža), S6 (stil) | ⬜ |
-| Stylist header | `layouts/StylistLayout.tsx` | S1 (montaža), S10 (stil) | ⬜ |
+| Javni header + mobilni drawer | `features/shell/public/public-layout.tsx` | S1 (montaža), S2 (stil) | ✅ **S1 montirano** (2× `<ThemeSwitcher />`); stil u S2 |
+| Admin header | `features/shell/admin/admin-chrome.tsx` | S1 (montaža), S6 (stil) | ✅ **S1 montirano** unutar `AdminUserMenu`; stil u S6 |
+| Stylist header | `layouts/StylistLayout.tsx` | S1 (montaža), S10 (stil) | ✅ **S1 montirano** prije korisničkog menija; stil u S10 |
 | Auth / onboarding / NotFound | `pages/Login.tsx` i dr. | **S5** (mjesto = otvoreno pitanje O2) | ⬜ |
 | Fullscreen kalendar (izvan layouta) | `pages/ReservationsCalendar.tsx` | **S6** (mjesto = O3) | ⬜ |
 
@@ -90,13 +90,14 @@ A11y ugovor izbornika: `role="group"` + i18n `aria-label`, 3× `button[aria-pres
 
 | Test / provjera | Garancija | CI korak | Status |
 |---|---|---|---|
-| `test:theme-state` | 3 stanja, default, normalize, DOM atributi, localStorage | S1 dodaje u `frontend` | ⬜ |
-| `test:theme-switcher-a11y` | ARIA, i18n, 44 px, fokus, najava | S1 | ⬜ |
-| `test:theme-brand-precedence` | Q9: override samo u classic | S1 | ⬜ |
-| `test:theme-ssot-sync` | `globals.css` = NEJRA §10 | S1 | ⬜ |
-| `check_ui_contrast.py --strict` | 140/140 parova | `repo-checks` | ⬜ |
-| `check_i18n.py --strict` | novi `shell.theme.*` ključevi u BS+EN | `repo-checks` | ⬜ |
-| `test:a11y-routes` (CI) | rendered axe za 3 stanja | `a11y-e2e`, **S11** | 🟡 |
+| `test:theme-state` | 3 stanja, default, normalize, DOM atributi, localStorage | ✅ `Test NEJRA 3-state theme state machine (S1)` | ✅ **5/5** |
+| `test:theme-switcher-a11y` | ARIA, i18n, 44 px, fokus, najava | ✅ `Test NEJRA theme switcher accessibility (S1)` | ✅ **6/6** |
+| `test:theme-brand-precedence` | Q9: override samo u classic | ✅ `Test Aurum brand color precedence (S1)` | ✅ **5/5** |
+| `test:theme-ssot-sync` | `globals.css` = NEJRA §10 | ✅ `Test Aurum CSS tokens against NEJRA SSOT (S1)` | ✅ **8/8** |
+| `check_ui_contrast.py --strict` | 140/140 parova | `repo-checks` | ✅ **140/140** |
+| `check_i18n.py --strict` | novi `shell.theme.*` + `adminSettings.appearance.aurumNote` u BS+EN | `repo-checks` | ✅ **2717/2717** |
+| `check_ci_index.py` | 203 frontend `test:*` skripti, svaka ima CI korak | `repo-checks` | ✅ **384/387** |
+| `test:a11y-routes` (CI) | rendered axe za 3 stanja | `a11y-e2e`, **S11** | 🟡 (S1: samo default `classic`) |
 
 ---
 
@@ -113,4 +114,4 @@ A11y ugovor izbornika: `role="group"` + i18n `aria-label`, 3× `button[aria-pres
 
 ✅ izmjereno · 🟡 zadovoljeno u planu/kodu, nije provjereno u renderu · ❌ nije zadovoljeno · ➖ nije primjenjivo · ⬜ nije započeto.
 
-**Trenutno:** cijela matrica je 🟡/⬜. Rendered potvrda 3 stanja dolazi isključivo iz `a11y-e2e` u S11; u sandboxu `test:a11y-routes` ispisuje `SKIPPED` i ne tvrdi prolaz.
+**Trenutno (S1):** state mašina, provider, switcher, CSS tokeni, Q9 precedencija, kontrast, i18n i 4 nova testa/CI koraka su ✅ (lokalno izmjereno; CI 5/5 se upisuje nakon runa). 🟡 ostaju: rendered axe za `aurum-light`/`aurum-dark`, zoom/reflow, čitač ekrana, `forced-colors` ručna provjera i `1.4.6` AAA — sve do S11. U sandboxu `test:a11y-routes` ispisuje `SKIPPED` i ne tvrdi prolaz; CI `a11y-e2e` rendered axe trenutno pokriva isključivo **default `classic`**.

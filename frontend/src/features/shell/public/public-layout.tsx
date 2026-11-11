@@ -23,6 +23,7 @@ import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils
 import { isPublicFeatureOn } from './public-features'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
+import { ThemeSwitcher } from '../theme/theme-switcher'
 import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs';
 
 type PublicFeatureFlag = 'public_feature_blog' | 'public_feature_gallery' | 'public_feature_reviews'
@@ -201,6 +202,8 @@ export const PublicLayout = () => {
 
           <div className="hidden lg:flex items-center gap-2 flex-none">
             <LanguageSwitcher />
+            {/* NEJRA §12 — isto relativno mjesto u svim shellovima (3.2.6). */}
+            <ThemeSwitcher />
             {!user ? (
               <Link to="/login">
                 <Button size="sm" variant="ghost">
@@ -315,6 +318,12 @@ export const PublicLayout = () => {
                       animated={appLogoAnimated}
                     />
                   )}
+                </div>
+
+                {/* NEJRA §12 — izbornik teme je i u mobilnom draweru, ne samo u
+                    desktop zaglavlju; `role="group"`, ne dodatni <nav> landmark. */}
+                <div className="mt-4">
+                  <ThemeSwitcher />
                 </div>
 
                 <div className="mt-5 grid gap-1 min-h-0 overflow-y-auto -mr-2 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">

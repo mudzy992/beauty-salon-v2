@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useSocketEvent } from './SocketContext';
 import { buildBrandColorVariables } from '../utils/brand-colors.mjs';
+import { useTheme } from '../features/shell/theme/theme-context';
 
 export interface AppSetting {
   key: string;
@@ -27,6 +28,7 @@ function SettingsSocketSync({ onRefresh }: { onRefresh: () => void }) {
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const { skin } = useTheme();
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
@@ -65,9 +67,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    // Q9 / NEJRA §10 — Aurum fiksira paletu. Runtime `theme_primary`/`theme_accent`
+    // override se NE primjenjuje, a inline --brand-* varijable koje je klasična
+    // tema ranije postavila moraju se ukloniti da ne pobjede CSS (inline > blok).
+    // Sama `buildBrandColorVariables` i `test:brand-colors` ostaju netaknuti; pri
+    // povratku na `classic` iste korisničke boje se ponovo primjenjuju.
+    if (skin !== 'classic') {
+      const brandNames: string[] = [];
+      for (let index = 0; index < root.style.length; index += 1) {
+        const name = root.style.item(index);
+        if (name.startsWith('--brand-')) brandNames.push(name);
+      }
+      brandNames.forEach((name) => root.style.removeProperty(name));
+      return;
+    }
     const variables = buildBrandColorVariables(settings.theme_primary, settings.theme_accent);
     Object.entries(variables).forEach(([name, value]) => root.style.setProperty(name, value));
-  }, [settings]);
+  }, [settings, skin]);
 
   const getSetting = (key: string, defaultValue: string) => {
     return settings[key] !== undefined && settings[key] !== '' ? settings[key] : defaultValue;

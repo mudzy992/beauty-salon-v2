@@ -1,6 +1,6 @@
 # S0 — Dizajn dokumenti + popravka CI baselinea
 
-**Status:** ✅ **S0 ZAVRŠEN: 199/199 lokalno + 5/5 CI (`43043182552`).** Čeka se eksplicitno odobrenje S1; S1 ne počinje automatski. Plan je odobren odlukom `approve_s0` · **Tip:** isključivo dokumenti + jedan novi source-contract test + registracija tog testa u CI + odobreni CI-only fallback · **Bez produkcijskog UI koda.**
+**Status:** ✅ **S0 ZAVRŠEN: 199/199 lokalno + 5/5 CI (`43043182552`, docs-only `43046250037`).** Vlasnik je 2026-11-11 naknadno eksplicitno odobrio S1 („Možeš nastaviti, odobravam S1"), pa je S1 pokrenut i implementiran u zasebnom segmentu; ovo ograničenje „S1 ne počinje automatski" je time ispunjeno, ne ukinuto za S2–S11. Plan je odobren odlukom `approve_s0` · **Tip:** isključivo dokumenti + jedan novi source-contract test + registracija tog testa u CI + odobreni CI-only fallback · **Bez produkcijskog UI koda.**
 
 ---
 
@@ -97,7 +97,7 @@ Zatim `git push origin arena/71be6ba3-beauty-salon-v2` → `gh run watch <id>` �
 
 🔴 **Prvi pokušaji nisu ostvarili 5/5:** push `fa6d73a` → `43032814134` i `workflow_dispatch` → `43038425689` daju **4/5**. U oba runa `a11y-e2e` pada na koraku `Install Chromium for Playwright` zbog `Temporary failure resolving 'azure.archive.ubuntu.com'`; axe suite je `skipped`. Tri reruna nisu pomogla.
 
-✅ **Odluka vlasnika `ci_fallback` + rezultat:** u `ci.yml` dodan odobreni minimalni fallback (ako `install --with-deps` padne → `install chromium` bez dodatnih fontova + `node` provjera browser fajla + axe korak odbija `SKIPPED`). Nema `continue-on-error`, nema novih zavisnosti, nema `frontend/src` izmjena. Commit `bbd7ca5` → `gh run watch 43043182552` = **5/5 success**; rendered axe **252 passed | 0 failed | 0 skipped** nad 32 rute. S0 je završen; S1 čeka odobrenje.
+✅ **Odluka vlasnika `ci_fallback` + rezultat:** u `ci.yml` dodan odobreni minimalni fallback (ako `install --with-deps` padne → `install chromium` bez dodatnih fontova + `node` provjera browser fajla + axe korak odbija `SKIPPED`). Nema `continue-on-error`, nema novih zavisnosti, nema `frontend/src` izmjena. Commit `bbd7ca5` → `gh run watch 43043182552` = **5/5 success**; rendered axe **252 passed | 0 failed | 0 skipped** nad 32 rute. Docs-only commit `3ed3069` → `43046250037` također **5/5**. S0 je završen; S1 je naknadno eksplicitno odobren i realizovan (vidi [02_phase-1-foundation.md](02_phase-1-foundation.md)).
 
 ---
 

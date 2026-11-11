@@ -82,6 +82,13 @@
     "maintenanceTitle": "Temporarily unavailable",
     "maintenanceMessage": "We’re making improvements. The public site is temporarily unavailable. Please try again later.",
     "maintenanceAdminHint": "For administration, open {{path}} (sign in as an administrator).",
+    "theme": {
+      "groupLabel": "Display theme",
+      "classic": "Classic light",
+      "aurumLight": "Aurum light",
+      "aurumDark": "Aurum dark",
+      "announcement": "Active theme: {{theme}}"
+    },
     "stylist": {
       "title": "Stylist",
       "inbox": "Incoming reservations",
@@ -398,6 +405,7 @@
     "appearance": {
       "title": "Settings — Appearance",
       "description": "Logo, application name and public website theme colors.",
+      "aurumNote": "The Aurum palette is fixed: the primary and accent colors from these settings are not applied. Classic theme uses them again.",
       "group": "Branding",
       "groupDescription": "The logo and application name; theme colors change accents on the public website.",
       "fields": {

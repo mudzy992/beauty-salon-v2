@@ -13,6 +13,7 @@ import {
 import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
+import { ThemeSwitcher } from '../theme/theme-switcher'
 import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs';
 
 type BrandProps = {
@@ -76,6 +77,8 @@ export const AdminUserMenu = ({
   return (
     <div className="flex items-center gap-2">
       <LanguageSwitcher />
+      {/* NEJRA §12 — admin header; pomoć (/kontakt) ostaje prije korisničkog menija. */}
+      <ThemeSwitcher />
       <button
         type="button"
         aria-label={labelWithVisibleText(t('shell.adminMenu'), initials)}

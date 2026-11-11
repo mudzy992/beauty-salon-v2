@@ -602,6 +602,18 @@ jobs:
       - name: Test NEJRA full design specification
         working-directory: frontend
         run: npm run test:design-spec
+      - name: Test NEJRA 3-state theme state machine (S1)
+        working-directory: frontend
+        run: npm run test:theme-state
+      - name: Test NEJRA theme switcher accessibility (S1)
+        working-directory: frontend
+        run: npm run test:theme-switcher-a11y
+      - name: Test Aurum brand color precedence (S1)
+        working-directory: frontend
+        run: npm run test:theme-brand-precedence
+      - name: Test Aurum CSS tokens against NEJRA SSOT (S1)
+        working-directory: frontend
+        run: npm run test:theme-ssot-sync
       - name: Test label-in-name helper (WCAG 2.5.3)
         working-directory: frontend
         run: npm run test:label-in-name

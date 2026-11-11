@@ -17,3 +17,13 @@
 **Zašto:** Q1/Q7 — dizajn dokument je jedini izvor istine i mora sadržavati provjerljivu mapu svih ruta; bez toga bi se u S2–S10 mogla preskočiti neka ruta.
 
 **Status:** ✅ za „Dizajn dokumenti" i „CI" — run **`43043182552`** je **5/5** nakon odobrenog `ci_fallback`; `test:design-spec` i rendered axe (252/252) su zeleni. Prva dva runa (`43032814134`, `43038425689`) ostaju historijski 4/5 zbog `apt` DNS-a. Svih 58 ruta i dalje ⬜ jer refaktor koda još nije započet. Bez izmjena u `frontend/src`.
+
+---
+
+## 2026-11-11 · S1 · Dijeljeni temelj implementiran, rute još nisu refaktorisane
+
+**Šta:** u §5 (dijeljeni slojevi) prebačeni u ✅/🟡 redovi za providere, CSS tokene/Tailwind, `features/shell/theme/*`, `features/shell/aurum/ui/*` (8 novih primitiva), i18n, kontrast skriptu i CI (S1 dio: 4 nova koraka / 4 nove `test:*` skripte). Stare `features/shell/admin/ui/*` ostaju ⬜ do S11. Svih **58 deklaracija ruta i dalje ⬜** — S1 po ugovoru ne mijenja nijednu rutu, API, `queryKey`, socket, guard ni podatke.
+
+**Zašto:** S1 je „temelj" koji S2–S10 konzumiraju; `ThemeSwitcher` je montiran u 3 shella, ali stil i migracija ekrana dolaze tek u njihovim segmentima. Matrica ne smije tvrditi da je ruta obrađena ako njen ekran nije diran.
+
+**Status:** ✅ lokalni dokazi (203/203 `test:*`, 140/140 kontrast, 2717/2717 i18n, 5 Python gate-ova, build 279,1/300 KiB, `typecheck:e2e` 0); 🟡 rendered axe za Aurum stanja do S11. CI run id / commit sha upisuju se u završnom evidencijskom commitu.

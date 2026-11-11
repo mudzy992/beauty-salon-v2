@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/auth.store'
 import { AuthProvider } from '../context/AuthContext'
 import { SettingsProvider } from '../context/SettingsContext'
 import { SocketProvider } from '../context/SocketContext'
+import { ThemeProvider } from '../features/shell/theme/theme-context'
 import { AppToaster } from '../lib/toast/toaster'
 
 export const AppProviders = ({ children }: PropsWithChildren) => {
@@ -37,10 +38,14 @@ export const AppProviders = ({ children }: PropsWithChildren) => {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <SocketProvider>
-            <SettingsProvider>
-              {children}
-              <AppToaster />
-            </SettingsProvider>
+            {/* NEJRA §12 — ThemeProvider je IZNAD SettingsProvider jer Q9 traži da
+                SettingsContext čita `skin` prije pisanja inline --brand-* varijabli. */}
+            <ThemeProvider>
+              <SettingsProvider>
+                {children}
+                <AppToaster />
+              </SettingsProvider>
+            </ThemeProvider>
           </SocketProvider>
         </AuthProvider>
       </QueryClientProvider>

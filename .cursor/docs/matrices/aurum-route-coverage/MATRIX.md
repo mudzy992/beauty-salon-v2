@@ -102,16 +102,18 @@
 | Javni shell | `features/shell/public/public-layout.tsx`, `public-ui.ts` | S1 (tema), S2 (stil) | ⬜ |
 | Admin shell | `features/shell/admin/*`, `layouts/DashboardLayout.tsx` | S1 (tema), S6 (stil) | ⬜ |
 | Stylist shell | `layouts/StylistLayout.tsx` | S1 (tema), S10 (stil) | ⬜ |
-| Provideri | `app/providers.tsx` | S1 | ⬜ |
-| Tokeni / Tailwind | `styles/globals.css`, `styles/index.css`, `tailwind.config.js` | S1 | ⬜ |
-| Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | ⬜ |
-| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S6–S10 (migracija) | ⬜ |
-| Stare primitive | `features/shell/admin/ui/*` | S11 (brisanje, 0 potrošača) | ⬜ |
-| i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ⬜ |
-| Kontrast skript | `scripts/check_ui_contrast.py` | S1 | ⬜ |
+| Provideri | `app/providers.tsx` | S1 | ✅ `ThemeProvider` iznad `SettingsProvider`; `MotionConfig` netaknut; `test:theme-brand-precedence` |
+| Tokeni / Tailwind | `styles/globals.css`, `styles/index.css`, `tailwind.config.js` | S1 | ✅ 2 Aurum bloka + `fontFamily.serif`; `test:theme-ssot-sync`; `:root`/`.dark` netaknuti |
+| Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | 🟡 S1 ne dira dijeljene komponente (ugovor: klasični paritet) |
+| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S6–S10 (migracija) | 🟡 **8 kreirano u S1**, čekaju potrošače S6–S10 |
+| Stare primitive | `features/shell/admin/ui/*` | S11 (brisanje, 0 potrošača) | ⬜ namjerno ostaju do S11 |
+| Izbornik teme | `features/shell/theme/*` | S1 | ✅ `ThemeSwitcher` u 3 shella; `test:theme-state`, `test:theme-switcher-a11y` |
+| i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ✅ S1: 6 novih ključeva, `check_i18n.py --strict` 2717/2717 |
+| Kontrast skript | `scripts/check_ui_contrast.py` | S1 | ✅ **140/140** (80 klasičnih + 60 Aurum; odluka `use_140_four`) |
 | Dizajn dokumenti | `docs/design/*` (3) | S0 | ✅ NEJRA 14 sekcija + v2/v3 koncepti; `test:design-spec` 2/2 |
-| CI (S0 dio) | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0 | ✅ `test:design-spec` korak + odobreni `ci_fallback`; 380/383; run `43043182552` 5/5, rendered axe 252/252 |
-| CI (S1/S11 dio) | `.github/workflows/ci.yml` | S1, S11 | ⬜ planirani koraci za Aurum stanja |
+| CI (S0 dio) | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0 | ✅ `test:design-spec` korak + odobreni `ci_fallback`; run `43043182552` 5/5, rendered axe 252/252 |
+| CI (S1 dio) | `.github/workflows/ci.yml`, `frontend/package.json` | S1 | ✅ **4 nova koraka** + 4 skripte; `check_ci_index.py` 384/387; 203/203 `test:*`; CI 5/5 se upisuje nakon runa |
+| CI (S11 dio) | `.github/workflows/ci.yml` | S11 | ⬜ rendered axe za 3 stanja teme |
 | Dokumentacija | `docs/audit/CI.md`, `docs/codebase-map/FRONTEND.md`, `docs/audit/UX_UI_ROUTE_INVENTORY.md`, `SOURCE_OF_TRUTH.md` | S11 | ⬜ |
 
 ---

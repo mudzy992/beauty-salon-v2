@@ -18,6 +18,7 @@ import { LanguageSwitcher } from '../components/i18n/language-switcher'
 import { useFocusOnNavigate } from '../hooks/use-focus-on-navigate'
 import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
 import { SkipLink } from '../features/shell/admin/ui/skip-link'
+import { ThemeSwitcher } from '../features/shell/theme/theme-switcher'
 import { labelWithVisibleText } from '../components/a11y/label-in-name.mjs';
 
 type NavItem = { path: string; labelKey: string }
@@ -106,6 +107,8 @@ export default function StylistLayout() {
               <span className="sr-only">{t('shell.help')}</span>
             </Link>
             <LanguageSwitcher />
+            {/* NEJRA §12 — stylist header; pomoć ostaje prije korisničkog menija (3.2.6). */}
+            <ThemeSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

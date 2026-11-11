@@ -1,6 +1,6 @@
 # S2 — Javni shell + Početna + Usluge + Detalj usluge
 
-**Status:** 🟡 čeka odobrenje S1 · **Prvi segment koji konzumira nove tokene i primitive.**
+**Status:** 🟡 **S1 je implementiran; S2 čeka eksplicitno odobrenje nakon S1 STOP-a** · **Prvi segment koji konzumira nove tokene i primitive.**
 
 ---
 

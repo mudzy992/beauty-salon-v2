@@ -118,6 +118,173 @@
     color-scheme: dark;
   }
 
+  /* ── NEJRA §10 · 3-state tema (S1) ────────────────────────────────────────────
+     `:root` i `.dark` iznad ostaju NETAKNUTI: bez korisničkog odabira `<html>`
+     nema `data-skin="aurum"`, pa se svaka `dark:` klasa i svaki klasični token
+     ponaša točno kao prije (ugovor §4.1). Oba Aurum selektora imaju
+     specifičnost (0,2,0) i zato pobjedjuju `:root` i `.dark` (0,1,0) — odluka
+     `dark_yes`: `Aurum tamna` dobija i klasu `dark` i `data-skin="aurum"`.
+
+     `--aurum-*` su TAČNI hexovi iz `const T` u NEJRA §10, bez zaokruživanja;
+     `test:theme-ssot-sync` ih poredi s HTML-om. Semantički tokeni ispod su HSL
+     trojke izvedene iz tih hexova (Tailwind ih čita kroz `hsl(var(--x))`),
+     a raw brand/ring tokeni ostaju hex jer ih Tailwind čita kroz `var(--x)`.
+     Nijedna boja nije izmišljena: ako par padne, STOPI se umjesto korekcije. */
+
+  /* Aurum svijetla — vlasnik bloka po NEJRA §10. */
+  [data-skin="aurum"][data-mode="light"] {
+    /* 12 SSOT tokena (const T.light). */
+    --aurum-page: #FAF6EF;
+    --aurum-surface: #FFFFFF;
+    --aurum-text: #1F1810;
+    --aurum-muted: #6B5D49;
+    --aurum-brand: #7A5A12;
+    --aurum-onbrand: #FFF8E8;
+    --aurum-accent: #9B3D4F;
+    --aurum-border: #8C7D63;
+    --aurum-soft: #EFE6D4;
+    --aurum-ok: #2F6B3A;
+    --aurum-warn: #8A5200;
+    --aurum-err: #B3261E;
+    /* Semantički sloj (HSL izveden iz gornjih hexova). */
+    --background: 38.182 52.381% 95.882%;
+    --foreground: 32.000 31.915% 9.216%;
+    --card: 0.000 0.000% 100.000%;
+    --card-foreground: 32.000 31.915% 9.216%;
+    --popover: 0.000 0.000% 100.000%;
+    --popover-foreground: 32.000 31.915% 9.216%;
+    --primary: 41.538 74.286% 27.451%;
+    --primary-foreground: 41.739 100.000% 95.490%;
+    --secondary: 40.000 45.763% 88.431%;
+    --secondary-foreground: 32.000 31.915% 9.216%;
+    --muted: 40.000 45.763% 88.431%;
+    --muted-foreground: 35.294 18.889% 35.294%;
+    --accent: 40.000 45.763% 88.431%;
+    --accent-foreground: 32.000 31.915% 9.216%;
+    --destructive: 3.221 71.292% 40.980%;
+    --destructive-foreground: 0.000 0.000% 100.000%;
+    --border: 38.049 17.155% 46.863%;
+    --input: 38.049 17.155% 46.863%;
+    --ring: 41.538 74.286% 27.451%;
+    --surface: 0.000 0.000% 100.000%;
+    --surface-muted: 40.000 45.763% 88.431%;
+    --surface-sunken: 38.182 52.381% 95.882%;
+    --text: 32.000 31.915% 9.216%;
+    --text-muted: 35.294 18.889% 35.294%;
+    --text-muted-strong: 32.000 31.915% 9.216%;
+    --line: 38.049 17.155% 46.863%;
+    --control-border: 38.049 17.155% 46.863%;
+    --input-border: 38.049 17.155% 46.863%;
+    --on-primary: 41.739 100.000% 95.490%;
+    --nav-active-bg: 40.000 45.763% 88.431%;
+    --danger: 3.221 71.292% 40.980%;
+    --on-danger: 0.000 0.000% 100.000%;
+    --ok-fg: 131.000 38.961% 30.196%;
+    --ok-bg: 0.000 0.000% 100.000%;
+    --warn-fg: 35.652 100.000% 27.059%;
+    --warn-bg: 0.000 0.000% 100.000%;
+    --bad-fg: 3.221 71.292% 40.980%;
+    --bad-bg: 0.000 0.000% 100.000%;
+    --info-fg: 32.000 31.915% 9.216%;
+    --info-bg: 40.000 45.763% 88.431%;
+    --neutral-fg: 35.294 18.889% 35.294%;
+    --neutral-bg: 40.000 45.763% 88.431%;
+    /* Raw brand/ring tokeni (tačan hex). */
+    --brand-primary: #7A5A12;
+    --brand-accent: #9B3D4F;
+    --brand-primary-text-light: #7A5A12;
+    --brand-primary-text-dark: #1F1810;
+    --brand-primary-text: #7A5A12;
+    --brand-primary-ring: #7A5A12;
+    --brand-accent-text-light: #9B3D4F;
+    --brand-accent-text-dark: #1F1810;
+    --brand-accent-text: #9B3D4F;
+    --brand-accent-ring: #9B3D4F;
+    --focus-ring: #7A5A12;
+    --font-aurum-serif: Palatino, 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    color-scheme: light;
+  }
+
+  /* Aurum tamna — vlasnik bloka po NEJRA §10. */
+  .dark[data-skin="aurum"] {
+    /* 12 SSOT tokena (const T.dark). */
+    --aurum-page: #0E0B08;
+    --aurum-surface: #1A1510;
+    --aurum-text: #F5EDE0;
+    --aurum-muted: #B7A98F;
+    --aurum-brand: #D4AF6A;
+    --aurum-onbrand: #1A1204;
+    --aurum-accent: #E8A89A;
+    --aurum-border: #7D6F58;
+    --aurum-soft: #2A2217;
+    --aurum-ok: #7FD18F;
+    --aurum-warn: #F0B35A;
+    --aurum-err: #FF9A92;
+    /* Semantički sloj (HSL izveden iz gornjih hexova). */
+    --background: 30.000 27.273% 4.314%;
+    --foreground: 37.143 51.220% 91.961%;
+    --card: 30.000 23.810% 8.235%;
+    --card-foreground: 37.143 51.220% 91.961%;
+    --popover: 30.000 23.810% 8.235%;
+    --popover-foreground: 37.143 51.220% 91.961%;
+    --primary: 39.057 55.208% 62.353%;
+    --primary-foreground: 38.182 73.333% 5.882%;
+    --secondary: 34.737 29.231% 12.745%;
+    --secondary-foreground: 37.143 51.220% 91.961%;
+    --muted: 34.737 29.231% 12.745%;
+    --muted-foreground: 39.000 21.739% 63.922%;
+    --accent: 34.737 29.231% 12.745%;
+    --accent-foreground: 37.143 51.220% 91.961%;
+    --destructive: 4.404 100.000% 78.627%;
+    --destructive-foreground: 30.000 23.810% 8.235%;
+    --border: 37.297 17.371% 41.765%;
+    --input: 37.297 17.371% 41.765%;
+    --ring: 39.057 55.208% 62.353%;
+    --surface: 30.000 23.810% 8.235%;
+    --surface-muted: 34.737 29.231% 12.745%;
+    --surface-sunken: 30.000 27.273% 4.314%;
+    --text: 37.143 51.220% 91.961%;
+    --text-muted: 39.000 21.739% 63.922%;
+    --text-muted-strong: 37.143 51.220% 91.961%;
+    --line: 37.297 17.371% 41.765%;
+    --control-border: 37.297 17.371% 41.765%;
+    --input-border: 37.297 17.371% 41.765%;
+    --on-primary: 38.182 73.333% 5.882%;
+    --nav-active-bg: 34.737 29.231% 12.745%;
+    --danger: 4.404 100.000% 78.627%;
+    --on-danger: 30.000 23.810% 8.235%;
+    --ok-fg: 131.707 47.126% 65.882%;
+    --ok-bg: 30.000 23.810% 8.235%;
+    --warn-fg: 35.600 83.333% 64.706%;
+    --warn-bg: 30.000 23.810% 8.235%;
+    --bad-fg: 4.404 100.000% 78.627%;
+    --bad-bg: 30.000 23.810% 8.235%;
+    --info-fg: 37.143 51.220% 91.961%;
+    --info-bg: 34.737 29.231% 12.745%;
+    --neutral-fg: 39.000 21.739% 63.922%;
+    --neutral-bg: 34.737 29.231% 12.745%;
+    /* Raw brand/ring tokeni (tačan hex). */
+    --brand-primary: #D4AF6A;
+    --brand-accent: #E8A89A;
+    --brand-primary-text-light: #D4AF6A;
+    --brand-primary-text-dark: #F5EDE0;
+    --brand-primary-text: #D4AF6A;
+    --brand-primary-ring: #D4AF6A;
+    --brand-accent-text-light: #E8A89A;
+    --brand-accent-text-dark: #F5EDE0;
+    --brand-accent-text: #E8A89A;
+    --brand-accent-ring: #E8A89A;
+    --focus-ring: #D4AF6A;
+    --font-aurum-serif: Palatino, 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+    color-scheme: dark;
+  }
+
+  /* NEJRA §02/§11 — serifni naslovi SAMO u Aurum stanjima. Klasični `font-sans`
+     stack se ne dira; nema vanjskih fontova ni mrežnih zahtjeva. */
+  [data-skin="aurum"] .aurum-heading {
+    font-family: var(--font-aurum-serif);
+  }
+
   .app-logo {
     display: inline-flex;
     align-items: center;

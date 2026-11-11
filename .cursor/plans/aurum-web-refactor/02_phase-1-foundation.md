@@ -1,6 +1,6 @@
 # S1 — Temelj: tokeni, 3-state tema, novi dizajn-sistem
 
-**Status:** 🟡 čeka odobrenje S0 · **Tip:** jedini segment koji uvodi **novi feature** (izbornik teme, Q8) i postavlja sloj koji S2–S10 konzumiraju.
+**Status:** ✅ **S1 ODOBREN I IMPLEMENTIRAN** (odluka vlasnika 2026-11-11: „Možeš nastaviti, odobravam S1"). Lokalno: **203/203** `test:*`, **140/140** kontrastnih parova, build **279,1 / 300 KiB** (+2,2 KiB), `typecheck:e2e` 0, 5 Python gate-ova ✅, `git diff --check` čist. **CI 5/5 se bilježi u završnom evidencijskom commitu.** · **Tip:** jedini segment koji uvodi **novi feature** (izbornik teme, Q8) i postavlja sloj koji S2–S10 konzumiraju.
 
 ---
 
@@ -50,7 +50,7 @@ U kodu uspostaviti ono što je `NEJRA – …html` (S0, §10–§12) proglasio j
 | `frontend/src/pages/SettingsAppearance.tsx` | napomena „Aurum paleta je aktivna; primarna/akcent boja iz postavki se ne primjenjuje" (Q9), i18n ključevi |
 | `frontend/src/i18n/locales/bs.json`, `en.json` | novi ključevi `shell.theme.*` + `adminSettings.appearance.aurumNote*`; **paritet** |
 | `frontend/index.html` | `<meta name="theme-color">` početna vrijednost ostaje; runtime je održava `theme-state.mjs` |
-| `scripts/check_ui_contrast.py` | parser proširen na 2 nova selektora s naslijeđenim `:root` tokenima; **+60 parova** (30 postojećih × 2 Aurum stanja) → ukupno 140 |
+| `scripts/check_ui_contrast.py` | parser proširen na 2 nova selektora s naslijeđenim `:root` tokenima; **+60 parova** (30 po Aurum stanju × 2) → ukupno 140. **Ispravka plana:** stvarni broj postojećih web parova je **26**, ne 30; odlukom vlasnika `use_140_four` (2026-11-11) svako Aurum stanje dobija 26 postojećih + **4 nova para iz NEJRA §10** (`text/page`, `muted/page`, `brand/page`, `accent/page`) = 30. Nijedan par ni boja nisu izmišljeni — vidi §10. |
 | `frontend/package.json`, `.github/workflows/ci.yml` | 4 nove `test:*` skripte + 4 nova CI koraka (`check_ci_index.py` gate) |
 | `.cursor/docs/matrices/aurum-theme/{MATRIX,CHANGELOG}.md`, `aurum-route-coverage/*` | status ✅ za temelj; ostalo 🟡 |
 
@@ -63,7 +63,7 @@ U kodu uspostaviti ono što je `NEJRA – …html` (S0, §10–§12) proglasio j
 3. Nijedna ruta, API poziv, `queryKey`, socket event, guard, iznos, datum, status, filter, sort, paginacija ni zbir se ne mijenja.
 4. `check_i18n.py --strict` zeleno; nema hard-coded stringova, uključujući `aria-label`/`title`/`alt`/`placeholder`/toast.
 5. Bez novih npm zavisnosti; bez promjena `/mobile`, `/backend`, `.env`, migracija.
-6. **Aurum tamna i `.dark`:** ✅ **R2 potvrđeno odlukom `dark_yes` (2026-11-11).** `Aurum tamna` dodaje klasu `dark` na `<html>` kako bi postojeće `dark:` varijante u 85 fajlova radile; Aurum tokeni imaju veću specifičnost, pa pobjeduju. Alternativa „samo `data-mode` bez `.dark`" je odbijena i ne implementira se. S1 i dalje ne počinje bez 5/5 CI S0 i eksplicitnog odobrenja.
+6. **Aurum tamna i `.dark`:** ✅ **R2 potvrđeno odlukom `dark_yes` (2026-11-11).** `Aurum tamna` dodaje klasu `dark` na `<html>` kako bi postojeće `dark:` varijante u 85 fajlova radile; Aurum tokeni imaju veću specifičnost, pa pobjeduju. Alternativa „samo `data-mode` bez `.dark`" je odbijena i ne implementira se. **Uslov za start S1 je ispunjen:** S0 ima 5/5 (`43043182552` i docs-only `43046250037`), a vlasnik je 2026-11-11 eksplicitno odobrio S1.
 
 ---
 
@@ -90,7 +90,7 @@ U kodu uspostaviti ono što je `NEJRA – …html` (S0, §10–§12) proglasio j
 | `test:theme-switcher-a11y` | `aria-pressed`, `role=group`, i18n ključevi (bez hard-coded teksta), 44 px meta, fokus, `role=status` najava, `prefers-reduced-motion` |
 | `test:theme-brand-precedence` | Aurum → `setProperty('--brand-*')` se ne poziva / inline varijable uklonjene; classic → poziva se; `buildBrandColorVariables` netaknut |
 | `test:theme-ssot-sync` | hex/HSL vrijednosti u `globals.css` Aurum blokovima **točno odgovaraju** NEJRA §10 (čita HTML + CSS); sprječava odstupanje koda od jedinog izvora istine |
-| `check_ui_contrast.py --strict` | 140/140 parova (80 klasičnih + 60 Aurum) |
+| `check_ui_contrast.py --strict` | **140/140** (80 klasičnih = 52 web + 28 mobile; 60 Aurum = (26 postojećih + 4 NEJRA §10) × 2 stanja) |
 | postojećih 199 `test:*` | zeleno; nijedan se ne briše/slabi; `test:hooks-order` pazi na novi provider |
 
 ---
@@ -125,3 +125,15 @@ Push → `gh run watch` → **5/5 success**. Posebno paziti:
 - Ako `check_ui_contrast.py` pokaže da neki Aurum par iz NEJRA §10 pada → **STOP**, ne korigirati boju bez odobrenja (Q9 + „ne izmišljaš").
 - Ako novi provider pokvari `test:hooks-order` ili `test:admin-render-smoke` → analizirati uzrok; test se ažurira samo uz obrazloženje u `CHANGELOG.md`.
 - Ako se pokaže da `data-[skin=aurum]:` varijante traže promjenu `tailwind.config.js` koja bi dirala klasični izgled → admin-scoped CSS pravilo umjesto toga (pravilo iz starog prompta: dijeljena komponenta se ne mijenja ako postoji rizik za javni sajt).
+
+---
+
+## 10. Realizacija S1 (2026-11-11) — šta je stvarno napravljeno
+
+**Odluka o 140 parova (`use_140_four`).** Plan je pisao „30 postojećih × 2 = +60", ali je stvarni `check_ui_contrast.py` imao **26** web parova po stanju (52 web + 28 mobile = 80). Vlasnik je na eksplicitno pitanje odabrao **140** uz 4 nova para po Aurum stanju iz NEJRA §10, ne izmišljajući boje: `text/page`, `muted/page`, `brand/page`, `accent/page`. Rezultat: 26 + 4 = 30 po Aurum stanju × 2 = 60; **80 + 60 = 140/140 PASS**. Svih 60 Aurum parova mjeri se nad stvarnim Aurum tokenima (ne nad naslijeđenim klasičnim vrijednostima): light 3,73–17,55:1, dark 3,70–16,89:1.
+
+**CSS arhitektura.** Dva nova bloka u `globals.css` (`[data-skin="aurum"][data-mode="light"]`, `.dark[data-skin="aurum"]`, specifičnost 0,2,0) sadrže: 12 **tačnih** hexova iz NEJRA §10 `const T` pod `--aurum-*` (SSOT, `test:theme-ssot-sync` ih poredi s HTML-om), semantičke HSL trojke izvedene iz tih hexova (Tailwind ih čita kroz `hsl(var(--x))`) i raw brand/ring hexove (Tailwind ih čita kroz `var(--x)`). `:root` i `.dark` ostaju **netaknuti**. `fontFamily.serif` + `[data-skin="aurum"] .aurum-heading` daju serifne naslove samo pod Aurumom, bez vanjskih fontova.
+
+**Fajlovi.** Novo: `features/shell/theme/{theme-state.mjs,theme-state.d.mts,theme-context.tsx,theme-switcher.tsx}` + 4 testa; `features/shell/aurum/ui/` 8 primitiva (`page-header`, `stat-card`, `filter-bar`, `data-table`, `status-badge`, `data-state`, `confirm-dialog`, `form-section`). Izmjena: `providers.tsx`, `SettingsContext.tsx`, `globals.css`, `tailwind.config.js`, 3 layouta, `SettingsAppearance.tsx`, `bs.json`/`en.json` (6 novih ključeva, 2717/2717), `check_ui_contrast.py`, `frontend/package.json` (4 skripte → 203), `ci.yml` (4 koraka → 419 `run` koraka). Stari `features/shell/admin/ui/*` **ostaju** do S11. Nijedna ruta, API, `queryKey`, socket, guard, iznos, datum, status, filter, sort, paginacija ni zbir nije diran; `buildBrandColorVariables` i `test:brand-colors` netaknuti; bez novih npm zavisnosti, bez `/mobile`, `/backend`, `.env`, migracija.
+
+**Lokalni dokazi:** 203/203 `test:*`; 4 nova testa 5/5, 6/6, 5/5, 8/8; 5 Python gate-ova PASS (`check_repo_hygiene` 1772, `check_ci_index` 384/387, `check_doc_links` 685/222, `check_i18n --strict` 2717/2717, `check_ui_contrast --strict` 140/140); `npm run build` 279,1/300 KiB (analitika 114,7/140, kalendar 100,0/125), delta **+2,2 KiB** prema S0 276,9 KiB; `npm run lint` 0 grešaka; `typecheck:e2e` 0; `git diff --check` čist. Rendered axe u CI i dalje pokriva **default classic**; axe za sva 3 stanja ostaje S11.

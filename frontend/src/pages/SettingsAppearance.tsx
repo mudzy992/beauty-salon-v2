@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SettingsModulePage } from '../features/settings/settings-module-page'
 import { APPEARANCE_GROUPS } from '../features/settings/groups-appearance'
+import { useTheme } from '../features/shell/theme/theme-context'
 
 const APPEARANCE_GROUP_COPY_KEYS = {
   app_: {
@@ -23,6 +24,9 @@ const APPEARANCE_FIELD_COPY_KEYS = {
 
 export default function SettingsAppearance() {
   const { t } = useTranslation()
+  // Q9 / NEJRA §12 — dok je Aurum aktivan, runtime override nije aktivan; korisnik
+  // to mora vidjeti upravo na Postavke → Izgled, bez promjene ikakvog API-ja.
+  const { skin } = useTheme()
   const groups = useMemo(
     () =>
       APPEARANCE_GROUPS.map((group) => {
@@ -48,10 +52,21 @@ export default function SettingsAppearance() {
   )
 
   return (
-    <SettingsModulePage
-      title={t('adminSettings.appearance.title')}
-      description={t('adminSettings.appearance.description')}
-      groups={groups}
-    />
+    <>
+      {skin !== 'classic' ? (
+        <p
+          data-aurum-note
+          role="note"
+          className="mb-4 rounded-lg border border-control-border bg-surface-muted p-3 text-sm text-content"
+        >
+          {t('adminSettings.appearance.aurumNote')}
+        </p>
+      ) : null}
+      <SettingsModulePage
+        title={t('adminSettings.appearance.title')}
+        description={t('adminSettings.appearance.description')}
+        groups={groups}
+      />
+    </>
   )
 }
