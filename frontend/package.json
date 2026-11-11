@@ -100,6 +100,7 @@
     "test:campaign-unsubscribe-recovery": "node --test src/features/notifications/campaign-unsubscribe-data.test.mjs src/features/notifications/campaign-unsubscribe-accessibility.test.mjs",
     "test:admin-analytics-i18n": "node --test src/features/analytics/admin-analytics-i18n.test.mjs",
     "test:analytics-a11y": "node --test src/features/analytics/analytics-a11y.test.mjs",
+    "test:analytics-link-purpose": "node --test src/features/analytics/analytics-link-purpose.test.mjs",
     "test:client-analytics-i18n": "node --test src/features/client-analytics/client-analytics-i18n.test.mjs",
     "test:admin-gallery-i18n": "node --test src/features/gallery/admin-gallery-i18n.test.mjs",
     "test:finance-manual-entry-i18n": "node --test src/features/finance/income/manual-entry-i18n.test.mjs",

@@ -920,6 +920,7 @@
     }
   },
   "adminAnalytics": {
+    "tabContext": "analytics",
     "tabsLabel": "Choose analytics",
     "tabs": {
         "overview": "Overview",

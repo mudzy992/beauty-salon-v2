@@ -212,6 +212,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.1.4 | ➖ | nema single-key shortcuta |
 | 2.2.1 | ➖/⚠️ | UI nema auto-logout; backend timeout nije provjeren |
 | 2.2.2 | ➖ | 60s poll za badge nije „moving content“; bez animiranog sadržaja |
+| 2.2.4 (AAA) | ✅ | **Izmjereno u Chromiumu 2026-11-08** (`meta-refresh-no-exceptions`, run `42985731553`): **inapplicable 32/32** — nijedna ruta nema `<meta http-equiv="refresh">`, pa kriterij nema šta primijeniti. Ovo je izmjeren dokaz odsustva, ne pretpostavka; prije ovog reda kriterij uopće nije bio u matrici, iako ga mjerni aparat prati. |
 | 2.3.1 | ✅ | 0 `infinite` animacija; sve su jednokratne (`test:wcag-source-contracts`) |
 | 2.3.3 (AAA) | ✅ | `globals.css:241` globalni `prefers-reduced-motion` na `*` (pokriva i Radix i Sonner) |
 | 2.4.1 | ✅ | skip-link postoji u admin/stylist shellu (`test:shell-a11y`). **Axe nalaz:** javni layout ga **nije imao** — prvi Tab išao je na `<a href="/" class="flex items-center gap-2 flex-none">` (logo), 14× isti rezultat. Sada `<SkipLink />` prvi u `features/shell/public/public-layout.tsx` + `<main id="main" tabIndex={-1}>`. `test:public-a11y-axe-findings` asertira i **redoslijed** (SkipLink prije `<header>`) |
@@ -221,6 +222,7 @@ ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jez
 | 2.4.5 | ✅ | sidebar + pretraga + hub tabovi (M1/M2) |
 | 2.4.6 | ✅ | `PageHeader` `h1`, vidljive labele; `test:stylist-form-controls-a11y` (≥27 kontrola, 0 bez imena) |
 | 2.4.7 | ✅ | `--focus-ring` 11.56:1, `focus-visible` ×162 |
+| 2.4.9 (AAA) | 🟡 | **Nalaz izmjeren u Chromiumu 2026-11-08** (`identical-links-same-purpose`, run `42985731553`): 30 prolaza, **1 nepotpun čvor** na `/admin/analytics` — `a[href$="stylists"]`. Uzrok pročitan iz izvora: tab „Stilisti" ide na `/admin/analytics?tab=stylists`, a stavka u bočnoj traci „Stilisti" na `/admin/stylists` — identično pristupačno ime, različita svrha. Isto i za „Pregled" (tab vs. naslov grupe) i u bs i u en. Popravljeno kontekstom u imenu: `aria-label` = „Stilisti — analitika" (`adminAnalytics.tabContext`), čime je očuvan i 2.5.3 jer je vidljivi tekst doslovno prefiks imena. `test:analytics-link-purpose` (3 testa, mutacije M29–M32 4/4) računa imena iz i18n datoteka i izvora, ima samoprovjeru opsega (17 linkova bočne trake — obrazac koji traži `}` odmah za `labelKey`-om tiho preskače 4 linka s poljem `tab`) i samoprovjeru da bi bez konteksta sukob zaista bio prijavljen. **Status ostaje 🟡 dok CI ne potvrdi da je nepotpun čvor nestao.** **Šta ovo NE dokazuje:** mjera pokriva tabove analitike naspram bočne trake admina, ne sve linkove u aplikaciji; axe pokriva sve rute, ali 2.4.9 traži da svrha bude jasna iz samog teksta, što potvrđuje tek čovjek. |
 | 2.4.11 | ✅ | `scroll-padding-top/bottom` u `globals.css`; sticky konteksti 🟡 |
 | 2.4.12 (AAA) | ➖ | odbijeno (Q5) |
 | 2.4.13 (AAA) | ✅ | 3px prsten, `outline-offset: 2px`, 11.56:1 |
@@ -259,15 +261,26 @@ rendered mjeru (`e2e/a11y-admin.spec.ts:157`, run `42923727266` success).
 
 | Status | Broj redova |
 |---|---:|
-| ✅ verifikovano (test/skriptu/render) | **41** |
+| ✅ verifikovano (test/skriptu/render) | **42** |
 | ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
-| 🟡 u kodu, nije verifikovano u renderu | **1** |
+| 🟡 u kodu, nije verifikovano u renderu | **2** |
 | ❌ nije zadovoljeno | **0** |
 | ➖ nije primjenjivo / odbijeno AAA | **7** |
 | ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
-| **ukupno** | **51** |
+| **ukupno** | **53** |
 
-Preostaje **1** 🟡: `1.4.5` (tekst kao slika). Axe nema pravilo za to, a dokaz traži OCR
+### AAA kriteriji koji nisu u ovoj tabeli
+
+Matrica cilja **AA** kao ugovoreni nivo. AAA redovi postoje samo tamo gdje ih mjerni aparat
+stvarno prati (`1.4.6`, `1.4.8`/`1.4.9`, `2.2.4`, `2.3.3`, `2.4.9`, `2.4.11`, `2.4.12`,
+`2.4.13`, `2.5.5`, `3.3.7`, `3.3.8`) ili gdje su izričito odbijeni odlukom Q5. Sljedeći AAA
+kriteriji WCAG 2.1/2.2 **nisu** u tabeli i za njih nema nijedne tvrdnje, ni ✅ ni ❌:
+`1.4.7`, `2.1.3`, `2.2.3`, `2.3.2`, `2.4.8`, `2.4.10`, `2.6.1`, `2.6.2`, `2.6.3`, `3.1.3`,
+`3.1.4`, `3.1.5`, `3.2.5`, `3.3.5`, `3.3.6`. Ovo je zapisano zato što je `2.4.9` bio upravo
+takav slučaj — mjera ga je pratila i imala nepotpun nalaz, a kriterija nije bilo u tabeli,
+pa nalaz nije vodio nigdje.
+
+Preostaju **2** 🟡: `1.4.5` (tekst kao slika) i `2.4.9` (popravka u izvoru, čeka CI). Axe nema pravilo za to, a dokaz traži OCR
 ili ljudsku procjenu — ovo je jedini kriterij u matrici za koji mjerni aparat u ovom repu
 stvarno ne postoji. Od 2026-11-08 postoji bar **popis** mjesta gdje bi tekst mogao biti
 slika (`imageBearingInventory()`, 32 rute) i tvrdnja `<canvas> === 0`; usaglašenost se i

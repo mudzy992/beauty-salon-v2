@@ -2305,3 +2305,56 @@ Dvije pouke iz toga. Prva: vraćanje mutacije ide iz **backupa radne kopije**, n
 dok rad nije komitovan. Druga: mutacijski helper mora ispisati potvrdu da je obrazac
 stvarno zamijenjen, jer `AssertionError` u `stderr`-u ne prekida bash funkciju — helper
 nastavi, pokrene testove nad nepromijenjenim fajlom i javi prolaz.
+
+## 2026-11-08 — 2.4.9: nepotpun nalaz dobio uzrok, a matrica je otkrila da kriterija uopće nema
+
+Axe je od prvog mjerenja javljao `identical-links-same-purpose: NEPOTPUNO (passed 30,
+incomplete 1)` na `/admin/analytics`, čvor `a[href$="stylists"]`. Nepotpun nalaz bez
+imenovanog uzroka ne može se popraviti, pa je prvi korak bio pročitati **detalje** — oni
+nisu u sažetku anotacije nego u zasebnoj, višelinijskoj (`axe nepotpuni cvorovi po pravilu`).
+
+Uzrok, pročitan iz izvora: tab „Stilisti" u `analytics-tab-nav.tsx` vodi na
+`/admin/analytics?tab=stylists`, a stavka u bočnoj traci „Stilisti" (`admin-nav.ts:44`) vodi
+na `/admin/stylists`. **Identično pristupačno ime, različita svrha.** Isto i za „Pregled", i
+u `bs` i u `en` (`nav.stylists` = „Stilisti" = `adminAnalytics.tabs.stylists`).
+
+Popravka: `aria-label` s kontekstom — „Stilisti — analitika", iz novog ključa
+`adminAnalytics.tabContext` (bs „analitika", en „analytics"). 2.4.9 gleda **samo tekst
+linka**, pa `<nav aria-label="Odaberi analitiku">` tu ne pomaže. Vidljivi tekst ostaje
+kratak i doslovno je prefiks imena, što čuva 2.5.3.
+
+### Jaz u matrici: mjera je pratila kriterij kojeg u tabeli nije bilo
+
+Dok sam tražio red za 2.4.9 da ga ažuriram, ustanovilo se da **red ne postoji**.
+`grep -c "2.4.9"` nad `MATRIX.md` vraća **0**, i isto za `2.2.4` — a oba pravila su u
+`TRACKED_RULES` i mjere se na svakoj ruti od početka. Rezultat mjere nije vodio nigdje.
+Dodana su oba reda: `2.2.4` je ✅ uz izmjeren dokaz (`inapplicable 32/32`, nijedna ruta nema
+`<meta http-equiv="refresh">`), a `2.4.9` je 🟡 dok CI ne potvrdi da je nepotpun čvor
+nestao. Uz to je zapisano kojih **15** AAA kriterija nije u tabeli i za njih nema nijedne
+tvrdnje — da se isti jaz ne ponovi.
+
+### Mjera i tri greške u njoj
+
+`test:analytics-link-purpose` (3 testa) računa imena iz `bs.json`/`en.json` i izvora
+(`admin-nav.ts`, `analytics-tab-nav.tsx`), ne iz ručnog popisa. Prije nego je prošao, u
+njemu su nađene tri greške:
+
+1. **Provjeravao je vidljivi tekst, ne pristupačno ime.** Popravka je u `aria-label`, pa je
+   vidljivi tekst i dalje identičan bočnoj traci — i to je namjerno. Test je pao na
+   ispravnom kodu. (Treći put u ovom nizu da je test bio pogrešan, a ne kod.)
+2. **Preuski obrazac.** Regex koji traži `}` odmah za `labelKey`-om hvatao je 13 od **17**
+   linkova bočne trake: četiri postavke (`/admin/settings` s poljima `tab`/`tabDefault`) su
+   tiho preskočene. Sada postoji **samoprovjera opsega** — broj uhvaćenih `labelKey`-eva
+   mora biti jednak broju `path:` pojava u izvoru.
+3. **Reimplementirao je logiku umjesto da je provjeri.** Mutacija M30 (funkcija vraća samo
+   vidljivi tekst) **nije** rušila test, jer je test sam sastavljao ime iz i18n datoteka.
+   Sada se provjerava i tijelo `analyticsTabName`. U ovom repu nema TS runnera (`tsx`,
+   `ts-node`, `esbuild` — nijedan nije instaliran, nijedan test ne importuje `.tsx`), pa se
+   izvor čita kao tekst, a izvršnu provjeru radi axe u CI.
+
+Postoji i **samoprovjera mjere**: test asertira da bi bez konteksta u imenu sukob zaista bio
+prijavljen. Bez toga bi mjera prolazila i kad kontekst nestane, jer bi imena ostala različita
+iz nekog drugog razloga.
+
+Mutacije 4/4 uhvaćene: **M29** `aria-label` uklonjen, **M30** ime taba bez konteksta,
+**M31** preuski obrazac (13 od 17 linkova), **M32** `tabContext` uklonjen iz `bs.json`.

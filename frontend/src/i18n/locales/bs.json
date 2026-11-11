@@ -917,6 +917,7 @@
     }
   },
   "adminAnalytics": {
+    "tabContext": "analitika",
     "tabsLabel": "Odaberi analitiku",
     "tabs": {
         "overview": "Pregled",

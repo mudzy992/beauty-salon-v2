@@ -401,6 +401,9 @@ jobs:
       - name: Test analytics chart and table accessibility
         working-directory: frontend
         run: npm run test:analytics-a11y
+      - name: Test analytics tab link purpose (2.4.9)
+        working-directory: frontend
+        run: npm run test:analytics-link-purpose
       - name: Test localized client analytics page
         working-directory: frontend
         run: npm run test:client-analytics-i18n
