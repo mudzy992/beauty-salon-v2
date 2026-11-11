@@ -2405,3 +2405,40 @@ ne renderuje) ruši taj test na asertciji — 4 pass / 1 fail.
 „srušila" ovaj test, ali porukom `Build failed with 1 error` — harness transpilira TSX, pa
 nepostojeći element pada prije nego što ijedna asertcija izvrši. Mutacija koja pada na
 build grešci ne dokazuje ništa o mjeri; mora biti validan kod koji mijenja **ponašanje**.
+
+## 2026-11-08 — 2.5.3: napisao sam duplikat mjere koja već postoji, i to s poukom zapisanom iznad
+
+Cilj je bio zatvoriti 22 nepotpuna čvora za `label-content-name-mismatch`. Axe za to
+pravilo vraća „Unable to determine if the visible text is part of the accessible name" —
+nesigurnost, ne nalaz. Rješenje koje sam izabrao: napisati mjeru koja sama računa vidljivi
+tekst i `aria-label`.
+
+**Mjera je već postojala.** `labelInNameViolations()` stoji u istom fajlu
+(`e2e/dom-metrics.mjs:273`), s istim opsegom (kontrole s `aria-label`, `[aria-label]` dodan
+po dijelu selektora) i boljom izvedbom — uzima `innerText` umjesto `textContent`, pa
+skriveni sadržaj ne ulazi u vidljivi tekst, i provjerava `getBoundingClientRect`.
+
+Gore od toga: **`<select>` je u njoj već bio izuzet**, uz zabilježen run `42897798720` i
+doslovno isti nalaz koji sam ja „ponovo otkrio" kad je CI pao na `/admin/reviews`
+(„sve recenzije na čekanju odobreno" za filter čije je ime „Filtriraj recenzije po
+statusu"). Pouka je bila zapisana u komentaru **tri reda iznad** mjesta gdje sam pisao
+duplikat. Moj CI pad `42998442105` nije bio otkriće nego ponavljanje već riješenog problema,
+i to uz lošiju izvedbu.
+
+Zašto se to desilo: tražio sam `2.5.3` po **imenima fajlova i spekovima**, a ne po funkcijama
+u `dom-metrics.mjs`. Da sam prije pisanja nove mjere pregledao postojeće eksporte tog fajla,
+duplikat ne bi nastao. Pravilo koje iz toga slijedi: **prije nove mjere pročitati sve
+eksporte fajla u koji bi ona išla.**
+
+Stvarni doprinos umjesto duplikata: `labelInNameViolations()` je bila vezana na **24** rute
+(9 javnih + 15 admin). Stylist shell ima isti obrazac menija s inicijalima, a nije bio
+pokriven — sada jeste, **+8 testova**, `playwright --list` 212 → **220**.
+
+**Rezultat: run `43000853379` success, 220 passed / 0 failed / 0 skipped, 0 nalaza na svih
+32 ruta.** Axe i dalje javlja `incomplete 22` i to se neće promijeniti — to je ograničenje
+alata, i upravo zato mjera postoji.
+
+Uklonjeno: `visibleTextNotInName()`, njen tip u `.d.mts`, 7 testova u `dom-metrics.test.mjs`
+(natrag na 45) i 32 vezana testa u tri speka. Mutacije M37–M43 koje sam napisao za duplikat
+odnose se na kod koji više ne postoji; postojeća mjera ima svoje testove
+(`test:dom-metrics`, 45/45).
