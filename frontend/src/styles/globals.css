@@ -1307,3 +1307,59 @@
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-review] [class*="text-slate-500"] {
   color: hsl(var(--text-muted-strong));
 }
+
+/* Public chrome: the portal menu needs its own scope; it is outside header. */
+[data-skin="aurum"] [data-aurum-shell="header"] {
+  background-color: hsl(var(--surface));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-shell="header"] nav a {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+[data-skin="aurum"] [data-aurum-shell="header"] nav a:hover {
+  background-color: hsl(var(--surface-muted));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-shell="header"] :is(button, a[href="/login"]) {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-shell="header"] button:not(.theme-switcher-icon) {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] #public-mobile-navigation,
+[data-skin="aurum"] [data-aurum-public-user-menu] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] #public-mobile-navigation :is(a, button),
+[data-skin="aurum"] [data-aurum-public-user-menu] [role="menuitem"] {
+  min-height: 2.75rem;
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] #public-mobile-navigation a[aria-current="page"],
+[data-skin="aurum"] #public-mobile-navigation :is(a, button):hover,
+[data-skin="aurum"] [data-aurum-public-user-menu] [role="menuitem"]:focus {
+  background-color: hsl(var(--surface-muted));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] #public-mobile-navigation button,
+[data-skin="aurum"] #public-mobile-navigation a[class*="inline-flex"] {
+  min-width: 2.75rem;
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] :is([data-aurum-shell="header"], #public-mobile-navigation, [data-aurum-public-user-menu]) :is(a, button, [role="menuitem"]):focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+[data-skin="aurum"] :is([data-aurum-shell="header"], #public-mobile-navigation) .uploaded-brand-logo__word {
+  color: hsl(var(--text)) !important;
+}

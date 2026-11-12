@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink, Menu } from 'lucide-react'
@@ -49,6 +49,7 @@ export const PublicLayout = () => {
   const { getSetting, settings, loading } = useSettings()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const mobileMenuTrigger = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!user) return
@@ -206,11 +207,11 @@ export const PublicLayout = () => {
             {/* NEJRA §12 — isto relativno mjesto u svim shellovima (3.2.6). */}
             <ThemeSwitcher />
             {!user ? (
-              <Link to="/login">
-                <Button size="sm" variant="ghost">
+              <Button asChild size="sm" variant="ghost">
+                <Link to="/login">
                   {t('shell.signIn')}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -237,7 +238,7 @@ export const PublicLayout = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent data-aurum-public-user-menu align="end" className="w-48">
                   <DropdownMenuItem
                     onSelect={() => {
                       navigate('/moje-rezervacije')
@@ -288,6 +289,7 @@ export const PublicLayout = () => {
           <Drawer open={mobileOpen} onOpenChange={setMobileOpen}>
             <Button
               type="button"
+              ref={mobileMenuTrigger}
               aria-label={t('shell.mobileMenu')}
               aria-expanded={mobileOpen}
               aria-controls="public-mobile-navigation"
@@ -298,7 +300,10 @@ export const PublicLayout = () => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <DrawerContent id="public-mobile-navigation" className="p-5">
+            <DrawerContent id="public-mobile-navigation" className="p-5" aria-describedby={undefined} onCloseAutoFocus={(event) => {
+              event.preventDefault()
+              mobileMenuTrigger.current?.focus()
+            }}>
               <DialogTitle className="sr-only">{t('shell.mobileMenu')}</DialogTitle>
               <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2">
@@ -322,7 +327,7 @@ export const PublicLayout = () => {
                 </div>
 
                 {/* NEJRA §12 — izbornik teme je i u mobilnom draweru, ne samo u
-                    desktop zaglavlju; `role="group"`, ne dodatni <nav> landmark. */}
+                    desktop zaglavlju; bez dodatnog <nav> landmarka. */}
                 <div className="mt-4">
                   <ThemeSwitcher />
                 </div>
@@ -348,37 +353,37 @@ export const PublicLayout = () => {
                 <div className="mt-auto pt-3 border-t border-slate-200/80 grid gap-1">
                   {user ? (
                     <>
-                      <Link to="/moje-rezervacije" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" size="sm" variant="outline">
+                      <Button asChild className="w-full" size="sm" variant="outline">
+                        <Link to="/moje-rezervacije" onClick={() => setMobileOpen(false)}>
                           {t('public.nav.myReservations')}
-                        </Button>
-                      </Link>
-                      <Link to="/rezervacija" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" size="sm">
-                          {t('public.nav.reserve')}
-                        </Button>
-                      </Link>
-                      {canSeeStylistWorkbook ? (
-                        <Link to="/stylist/inbox" onClick={() => setMobileOpen(false)}>
-                          <Button className="w-full" variant="outline" size="sm">
-                            {t('shell.stylistWorkbook')}
-                          </Button>
                         </Link>
+                      </Button>
+                      <Button asChild className="w-full" size="sm">
+                        <Link to="/rezervacija" onClick={() => setMobileOpen(false)}>
+                          {t('public.nav.reserve')}
+                        </Link>
+                      </Button>
+                      {canSeeStylistWorkbook ? (
+                        <Button asChild className="w-full" variant="outline" size="sm">
+                          <Link to="/stylist/inbox" onClick={() => setMobileOpen(false)}>
+                            {t('shell.stylistWorkbook')}
+                          </Link>
+                        </Button>
                       ) : null}
                       {(['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) =>
                         user.roles.includes(r),
                       ) ? (
-                        <Link to="/admin" onClick={() => setMobileOpen(false)}>
-                          <Button className="w-full" variant="outline" size="sm">
+                        <Button asChild className="w-full" variant="outline" size="sm">
+                          <Link to="/admin" onClick={() => setMobileOpen(false)}>
                             {t('app.admin')}
-                          </Button>
-                        </Link>
-                      ) : null}
-                      <Link to="/profil" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" variant="ghost" size="sm">
-                          {t('shell.profile')}
+                          </Link>
                         </Button>
-                      </Link>
+                      ) : null}
+                      <Button asChild className="w-full" variant="ghost" size="sm">
+                        <Link to="/profil" onClick={() => setMobileOpen(false)}>
+                          {t('shell.profile')}
+                        </Link>
+                      </Button>
                       <Button
                         className="w-full"
                         variant="ghost"
@@ -393,11 +398,11 @@ export const PublicLayout = () => {
                     </>
                   ) : (
                     <>
-                      <Link to="/login" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" variant="outline" size="sm">
+                      <Button asChild className="w-full" variant="outline" size="sm">
+                        <Link to="/login" onClick={() => setMobileOpen(false)}>
                           {t('shell.signIn')}
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     </>
                   )}
                 </div>

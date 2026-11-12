@@ -440,3 +440,30 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`public authenticated account menu Aurum ${mode}`, async ({ page }) => {
+    await page.addInitScript((selectedMode) => localStorage.setItem('nejra.theme.mode', selectedMode), mode)
+    await page.route('**/api/settings/public', async (route) => {
+      const response = await route.fetch()
+      if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+      const rows = await response.json() as Array<{ key: string; value: string }>
+      await route.fulfill({ response, json: [...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+    })
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    const trigger = page.locator('[data-aurum-shell="header"] button[aria-haspopup="menu"]')
+    await expect(trigger).toBeVisible()
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+    const menu = page.locator('[data-aurum-public-user-menu]')
+    await expect(menu).toBeVisible()
+    const results = await new AxeBuilder({ page }).include('[data-aurum-public-user-menu]').withTags(AXE_RULE_TAGS).analyze()
+    const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+    console.log(`PUBLIC_USER_MENU_${mode.toUpperCase()} ${JSON.stringify(relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })))}`)
+    expect(relevant).toEqual([])
+    await page.keyboard.press('Escape')
+    await expect(trigger).toBeFocused()
+  })
+}

@@ -179,3 +179,33 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`public header and mobile menu AAA ${mode}`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await configure(page, 'aurum', mode)
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    const trigger = page.locator('[data-aurum-shell="header"] [aria-controls="public-mobile-navigation"]')
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+    const menu = page.locator('#public-mobile-navigation')
+    await expect(menu).toBeVisible()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    await expect(menu.locator('a[aria-current="page"]')).toHaveCount(1)
+    const results = await new AxeBuilder({ page }).include('#public-mobile-navigation').withTags(AXE_RULE_TAGS).analyze()
+    const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+    console.log(`PUBLIC_MENU_${mode.toUpperCase()} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, count: v.nodes.length })) })}`)
+    expect(relevant).toEqual([])
+    for (const control of await menu.locator('a:visible, button:visible').all()) {
+      const box = await control.boundingBox()
+      expect(box?.width).toBeGreaterThanOrEqual(44)
+      expect(box?.height).toBeGreaterThanOrEqual(44)
+    }
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+    await expect(trigger).toBeFocused()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+}
