@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
+import { AuthCardHeader } from '../features/auth/auth-card-header'
 import {
   getClientMandatoryOnboardingPath,
   getPostAuthRedirectPath,
@@ -96,8 +97,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:block relative overflow-hidden">
+    <div data-aurum-page="login" data-aurum-auth-page className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      <div className="hidden lg:block relative overflow-hidden" data-aurum-auth-banner>
         <MediaImage
           src={getSetting('public_login_image', '')}
           alt={t('auth.loginBannerAlt')}
@@ -128,7 +129,8 @@ export default function Login() {
             <Link to="/">{t('auth.backHome')}</Link>
           </Button>
 
-          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
+          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
+            <AuthCardHeader />
             <h1 className="text-2xl font-semibold text-slate-900">
               {t('auth.login')}
             </h1>
@@ -163,6 +165,7 @@ export default function Login() {
                 className="w-full"
                 disabled={loading}
                 aria-busy={loading}
+                data-aurum-cta="primary"
               >
                 {loading ? t('common.loading') : t('auth.login')}
               </Button>

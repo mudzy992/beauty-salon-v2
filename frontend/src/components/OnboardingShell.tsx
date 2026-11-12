@@ -13,6 +13,7 @@ import {
 import { FiInfo } from 'react-icons/fi'
 
 import { Card, CardContent } from './ui/card'
+import { AuthCardHeader } from '../features/auth/auth-card-header'
 
 export type HeroDecoration = 'lock' | 'gender' | 'mail' | 'phone' | 'none'
 
@@ -90,7 +91,7 @@ export default function OnboardingShell({
   const AccentDeco = deco?.accent
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10 md:py-14 px-4 relative overflow-hidden">
+    <div data-aurum-page="onboarding" data-aurum-auth-page className="min-h-screen bg-slate-50 py-10 md:py-14 px-4 relative overflow-hidden">
       {deco ? (
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           {MainDeco ? (
@@ -114,9 +115,10 @@ export default function OnboardingShell({
       ) : null}
 
       <div className="relative z-10">
-        <Card className="max-w-lg mx-auto overflow-hidden">
+        <Card className="max-w-lg mx-auto overflow-hidden" data-aurum-auth-card data-aurum-surface>
           <CardContent className="p-6 md:p-8 space-y-6">
-            <div className="flex items-center gap-2">
+            <AuthCardHeader />
+            <div className="flex items-center gap-2" data-aurum-progress>
               <div className="flex items-center gap-2">
                 {Array.from({ length: totalSteps }, (_, i) => (
                   <div
@@ -147,7 +149,7 @@ export default function OnboardingShell({
             </div>
 
             {tip ? (
-              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4" data-aurum-auth-tip>
                 <FiInfo aria-hidden="true" className="h-5 w-5 text-brand-gold-text mt-0.5" />
                 <div className="text-sm leading-relaxed text-slate-700">{tip}</div>
               </div>

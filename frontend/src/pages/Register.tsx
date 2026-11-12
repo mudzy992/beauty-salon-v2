@@ -12,6 +12,7 @@ import { Label } from '../components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { useSettings } from '../context/SettingsContext'
+import { AuthCardHeader } from '../features/auth/auth-card-header'
 import { getRegistrationErrorKey } from '../features/auth/registration-error.mjs'
 import { labelWithVisibleText } from '../components/a11y/label-in-name.mjs';
 
@@ -105,8 +106,8 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      <div className="hidden lg:block relative overflow-hidden">
+    <div data-aurum-page="register" data-aurum-auth-page className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      <div className="hidden lg:block relative overflow-hidden" data-aurum-auth-banner>
         <MediaImage
           src={getSetting('public_register_image', '')}
           alt={t('auth.registerBannerAlt')}
@@ -137,7 +138,8 @@ export default function Register() {
             <Link to="/">{t('auth.backHome')}</Link>
           </Button>
 
-          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
+          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
+            <AuthCardHeader />
             <h1 className="text-2xl font-semibold text-slate-900">
               {t('auth.registerTitle')}
             </h1>
@@ -265,6 +267,7 @@ export default function Register() {
                 className="w-full"
                 disabled={loading}
                 aria-busy={loading}
+                data-aurum-cta="primary"
               >
                 {loading ? t('common.loading') : t('auth.createAccount')}
               </Button>

@@ -1,6 +1,6 @@
 # S5 — Auth + onboarding + NotFound
 
-**Status:** 🟡 čeka odobrenje S4 · **Zatvara sve ekrane izvan tri shella.**
+**Status:** ✅ **AKTIVAN 2026-11-11** — `approve_s5`; **O2 = `card_header`** (zaglavlje auth kartice). **Zatvara sve ekrane izvan tri shella.**
 
 ---
 
@@ -39,7 +39,7 @@ S4 završen (5/5); `ThemeSwitcher` postoji i montiran je u 3 shella; NEJRA §12 
 - `3.3.8`: `autocomplete` na ime/email/telefon/lozinku, `one-time-code` za OTP, paste dozvoljen, password manager dozvoljen, bez kognitivnih testova, bez blokade paste-a.
 - Zadržati: busy/duplicate/stale-request zaštite, `aria-live` statuse, `reset-password` čišćenje tokena iz URL-a, `OnboardingGender` `aria-pressed` grupu, OTP grupu s nazivom, sažetak grešaka s linkovima na polja, jedan `<h1>` po ekranu, `aria-describedby`/`aria-invalid`/`required`.
 - `NotFound` ostaje jedina recovery navigacija; ne dodaju se nove rute.
-- `ThemeSwitcher` na ovim ekranima: **eksplicitno pitanje za odobrenje u STOP-sažetku S4** — da li u zaglavlju kartice ili ispod forme (NEJRA §12 predlaže, ali se ne pretpostavlja). Odgovor se bilježi u `CHANGELOG.md` prije implementacije.
+- `ThemeSwitcher` na ovim ekranima: ✅ **RIJEŠENO odlukom `card_header` (2026-11-11)** — u **zaglavlju auth kartice**, uz logo i `LanguageSwitcher`, **iznad `<h1>`**; ne ide ispod forme. Zabilježeno u `CHANGELOG.md` §12 **prije implementacije**. Redoslijed polja, `<h1>` i primarni CTA ostaju netaknuti.
 
 ---
 
@@ -78,7 +78,7 @@ Lokalno: 5 Python + puna `test:*` petlja + build + `typecheck:e2e` + `git diff -
 
 ## 9. Rizici / pitanja
 
-- **Pitanje prije S5 (u STOP-u S4):** mjesto `ThemeSwitcher`-a na ekranima bez layouta (zaglavlje kartice / ispod forme) — ne odlučujemo sami.
+- ✅ **Pitanje prije S5 razriješeno:** `card_header` (zaglavlje kartice, iznad `<h1>`); ne odlučuje se samostalno. Preostali rizici (fail-closed auth, `test:text-contrast-allowlist`, 3.3.7) ostaju aktivni.
 - Auth rute su u CI fail-closed bez Redis-a; ne dirati rate-limiting, ne dirati `auth.setup.ts`.
 - Ako Aurum tamna kartica padne kontrast s `test:text-contrast-allowlist` → **STOP**, ne ublažavati test.
 - `Register` ima najviše polja; ne uvoditi `3.3.7` regresiju (ponovni unos istih podataka).

@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { AuthCardHeader } from '../features/auth/auth-card-header'
 
 export default function ResetPassword() {
   const { t } = useTranslation()
@@ -92,8 +93,9 @@ export default function ResetPassword() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
-      <Card className="w-full max-w-lg space-y-6 p-6 sm:p-8">
+    <main data-aurum-page="reset-password" data-aurum-auth-page className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
+      <Card className="w-full max-w-lg space-y-6 p-6 sm:p-8" data-aurum-auth-card data-aurum-surface>
+        <AuthCardHeader />
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
             {t('auth.resetPassword.title')}
@@ -163,6 +165,7 @@ export default function ResetPassword() {
               className="w-full"
               disabled={loading}
               aria-busy={loading}
+              data-aurum-cta="primary"
             >
               {loading ? t('common.loading') : t('auth.resetPassword.submit')}
             </Button>

@@ -50,7 +50,7 @@
 | # | Pitanje | Gdje se postavlja |
 |---|---|---|
 | O1 | **R2:** smije li `Aurum tamna` dodijeliti `.dark` klasu (aktivira `dark:` varijante u 85 fajlova) ili samo `data-mode`? | ✅ **RIJEŠENO odlukom `dark_yes` (2026-11-11):** da, `Aurum tamna` dodaje `.dark` + `data-skin="aurum"`; Aurum tokeni moraju imati veću specifičnost. S1 je završen 5/5 (`43100889990`); R2 više nije otvoreno. |
-| O2 | Gdje stoji `ThemeSwitcher` na auth/onboarding ekranima bez layouta? | STOP-sažetak S4, prije S5 |
+| O2 | Gdje stoji `ThemeSwitcher` na auth/onboarding ekranima bez layouta? | ✅ **RIJEŠENO `card_header` (2026-11-11, uz `approve_s5`):** u **zaglavlje auth kartice**, uz logo i `LanguageSwitcher`, iznad `<h1>`; ne ispod forme. Odluka upisana u `CHANGELOG.md` §12 prije implementacije. |
 | O3 | Hoće li se koristiti dopušteno **grupisanje navigacije** (Q10), i gdje `ThemeSwitcher` u fullscreen kalendaru? | STOP-sažetak S5, prije S6 |
 | O4 | Smije li se `window.confirm` zamijeniti pristupačnim `ConfirmDialog`om (ista poruka/uvjet/efekat)? | **I dalje OTVORENO za S6–S9.** S4 je po vlastitom DoD-u zamijenio **samo** `media-consent-panel.tsx` (javni tok, `features/media-consent/*`); ostalih ~14 `window.confirm` u admin stranicama nije dirano. Pitanje se postavlja na STOP-sažetku S5/S6. |
 | O5 | Ako NEJRA §05 KPI skup / §06 tok odstupa od stvarnog koda → kod je mjerodavan; razlika se bilježi i pita | S6 / S10 |
@@ -191,4 +191,4 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Nije dirano:** rezervacijski FSM, `disabled` uslovi, `aria-pressed`/`progressbar`, validacije, idempotency, backend dostupnost, statusi, stale zaštite, API/`queryKeys`/socket, `PublicFeatureGate`, `/backend`, `/mobile`, `package-lock.json`, `ci.yml`. Nijedan test nije oslabljen ni izmijenjen.
 
-**Otvoreno za S5:** O2 (mjesto `ThemeSwitcher`-a na auth/onboarding ekranima bez layouta) i eksplicitno odobrenje S5. O4 ostaje otvoreno za S6–S9. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.
+**Za S5 (ostvareno):** `approve_s5` + **O2 = `card_header`**. O4 ostaje otvoreno za S6–S9. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.

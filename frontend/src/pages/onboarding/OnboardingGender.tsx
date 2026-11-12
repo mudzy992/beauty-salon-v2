@@ -105,7 +105,7 @@ export default function OnboardingGender() {
               </Button>
             </div>
           </fieldset>
-          <Button type="submit" disabled={saving} className="w-full" aria-busy={saving}>
+          <Button type="submit" disabled={saving} className="w-full" aria-busy={saving} data-aurum-cta="primary">
             {saving ? t('common.saving') : t('onboarding.continue')}
           </Button>
         </form>

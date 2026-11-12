@@ -159,7 +159,7 @@ export default function OnboardingEmail() {
                 required
               />
             </div>
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading} className="w-full" data-aurum-cta="primary">
               {loading ? t('onboarding.sendingCode') : t('onboarding.saveAndSendCode')}
             </Button>
           </form>
@@ -172,7 +172,7 @@ export default function OnboardingEmail() {
                 </legend>
                 <OtpInput value={code} onChange={setCode} disabled={loading} />
               </fieldset>
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading} className="w-full" data-aurum-cta="primary">
                 {loading ? t('onboarding.verifyingCode') : t('onboarding.verifyEmail')}
               </Button>
             </form>

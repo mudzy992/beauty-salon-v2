@@ -135,6 +135,7 @@ export default function ForceChangePassword() {
             className="w-full"
             disabled={loading}
             aria-busy={loading}
+            data-aurum-cta="primary"
           >
             {loading ? t('common.loading') : t('onboarding.savePassword')}
           </Button>

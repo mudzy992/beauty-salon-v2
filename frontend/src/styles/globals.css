@@ -936,3 +936,87 @@
     outline: 2px solid Highlight;
   }
 }
+
+/* ── NEJRA §07/§09/§12 · S5 auth + onboarding + NotFound — SAMO Aurum ─────────
+   /login, /register, /reset-password, /force-change-password,
+   /onboarding/gender, /onboarding/email, * (NotFound).
+   Odluka `card_header`: ThemeSwitcher + LanguageSwitcher su u ZAGLAVLJU kartice,
+   iznad <h1>, na istom relativnom mjestu na svih 7 ekrana (3.2.6).
+   Blok je SAMO dodan na kraj fajla: S2 :432, S3 :646 i S4 :811 ostaju netaknuti.
+   Nijedno pravilo ne definise novu CSS promjenljivu niti tvrdi boju — koriste se
+   iskljucivo var(--aurum-*), var(--nejra-hero-*) i hsl(var(--*)) iz SSOT-a.
+   Bez [data-skin="aurum"] klasicni prikaz je identican, uz jedinu namjernu
+   iznimku: odobreni red s izbornikom teme/jezika (Q8 / §12). Nema animacija. */
+
+/* Kartica: neprozirna SSOT povrsina + 1,5 px linija. Gasimo legacy
+   `backdrop-blur-md` jer bi poluprovidna bijela pozadina u aurum-dark
+   razorila izmjereni kontrast teksta. */
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-card] {
+  background-color: var(--aurum-surface);
+  border: 1px solid var(--aurum-border);
+  border-radius: 1rem;
+  box-shadow: 0 24px 64px -36px hsl(var(--text) / 0.55);
+  backdrop-filter: none;
+  color: hsl(var(--text));
+}
+
+/* Zaglavlje kartice (`card_header`): izbornik odvojen linijom, odabrano
+   stanje koristi isti izmjereni par brand/onbrand kao ostatak teme. */
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-card-header] {
+  border-bottom: 1px solid var(--aurum-border);
+  padding-bottom: 0.75rem;
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-card-header] [role="group"] button {
+  border-color: var(--aurum-border);
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-card-header] button[aria-pressed="true"] {
+  background-color: var(--aurum-brand);
+  border-color: var(--aurum-brand);
+  color: var(--aurum-onbrand);
+}
+
+/* Banner Login/Register: filmski tamni veo iz §07, bez nove palete. */
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-banner] > [class*="bg-gradient"] {
+  background-image: linear-gradient(to top, var(--nejra-hero-page), transparent);
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-banner] [class*="text-slate-2"] {
+  color: var(--nejra-hero-text);
+}
+
+/* OnboardingShell: tačkice koraka, savjet i jedna zlatna primarna akcija. */
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-progress] [class*="bg-slate-2"] {
+  background-color: hsl(var(--surface-muted));
+  border: 1px solid var(--aurum-border);
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-progress] [class*="bg-brand-gold-ring"] {
+  background-color: var(--aurum-brand);
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-tip] {
+  background-color: hsl(var(--surface-muted));
+  border-color: var(--aurum-border);
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-cta="primary"] {
+  min-height: 2.75rem;
+}
+[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-cta="primary"]:focus-visible {
+  outline: 2px solid var(--aurum-brand);
+  outline-offset: 2px;
+}
+
+/* NotFound: jedan <h1> nosi isti zlatni akcent kao serifni javni naslovi. */
+[data-skin="aurum"] [data-aurum-auth-page][data-aurum-page="not-found"] h1 {
+  color: var(--aurum-brand);
+}
+
+/* 1.4.1 / 2.4.7: forced-colors ne smije izgubiti granicu kartice ni fokus. */
+@media (forced-colors: active) {
+  [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-card],
+  [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-card-header] {
+    border: 1px solid CanvasText;
+  }
+  [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-cta="primary"]:focus-visible {
+    outline: 2px solid Highlight;
+  }
+}
