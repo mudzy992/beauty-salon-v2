@@ -1392,3 +1392,16 @@
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
 }
+
+/* Filter reset and empty/error state text retain AAA-strength token pairs. */
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] button:not([aria-pressed]) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-aurum-page="services"] :not(form)[data-aurum-card] .text-content-muted {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-aurum-page="services"] :not(form)[data-aurum-card] button {
+  background-color: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
