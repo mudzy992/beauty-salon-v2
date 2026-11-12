@@ -2869,6 +2869,14 @@
       "after": "After"
     },
     "home": {
+      "discoverKicker": "Discover",
+      "discoverTitle": "Beyond your salon visit",
+      "galleryTitle": "Gallery",
+      "galleryDescription": "Explore our work and find inspiration for your next visit.",
+      "galleryLink": "Explore the gallery",
+      "journalTitle": "Journal",
+      "journalDescription": "Discover stories and ideas from our world of beauty.",
+      "journalLink": "Read the blog",
       "heroKicker": "Elegance and style",
       "heroTitleFallback": "Discover your\nperfect beauty",
       "heroSubtitleFallback": "Your exclusive hair salon for women and men. Let our professionals create the modern style and care you deserve.",

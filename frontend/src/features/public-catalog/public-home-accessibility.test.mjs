@@ -40,3 +40,11 @@ test('editorial home keeps real content, feature gates and classic-compatible sc
   assert.match(source, /backgroundImage: cssBackgroundImage\(heroImage\)/)
   assert.match(source, /\{aboutText\}/)
 })
+
+test('editorial discovery links respect public feature settings and do not fabricate entries', () => {
+  assert.match(source, /isPublicFeatureOn\(getSetting, 'public_feature_gallery'\)/)
+  assert.match(source, /isPublicFeatureOn\(getSetting, 'public_feature_blog'\)/)
+  assert.match(source, /galleryOn && <article>[\s\S]*?<Link to="\/galerija">/)
+  assert.match(source, /blogOn && <article>[\s\S]*?<Link to="\/blog">/)
+  assert.match(source, /data-home-image-fallback=\{!heroImage\.trim\(\)/)
+})

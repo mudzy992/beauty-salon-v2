@@ -2866,6 +2866,14 @@
       "after": "Poslije"
     },
     "home": {
+      "discoverKicker": "Istražite",
+      "discoverTitle": "Više od trenutka u salonu",
+      "galleryTitle": "Galerija",
+      "galleryDescription": "Pogledajte naše radove i pronađite inspiraciju za svoj sljedeći dolazak.",
+      "galleryLink": "Istražite galeriju",
+      "journalTitle": "Blog",
+      "journalDescription": "Otkrijte sadržaj i ideje iz našeg svijeta ljepote.",
+      "journalLink": "Čitajte blog",
       "heroKicker": "Elegancija i stil",
       "heroTitleFallback": "Otkrijte svoju\nsavršenu ljepotu",
       "heroSubtitleFallback": "Vaš ekskluzivni frizerski salon za žene i muškarce. Prepustite se profesionalcima za moderan stil i njegu koju zaslužujete.",

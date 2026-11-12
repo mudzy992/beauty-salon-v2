@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Sun, Moon } from 'lucide-react'
 
 import { cn } from '../../../lib/cn'
 import { useTheme } from './theme-context'
@@ -14,7 +15,7 @@ const CHOICES: { value: ThemeChoice; labelKey: string }[] = [
 /**
  * Jedan izbornik teme za sve shellove.
  *
- * WCAG 2.5.3 — vidljivi tekst JE pristupačno ime (nema `aria-label` nad dugmadima).
+ * Ikonice su dekorativne; tekstualno pristupačno ime dolazi iz i18n.
  * WCAG 4.1.3 — promjena se najavljuje u `role="status"`, bez pomicanja fokusa.
  * WCAG 2.5.8 — `min-h-target min-w-target` = 44 px meta.
  * WCAG 2.3.3 — nema transitions/animacija; globalni `prefers-reduced-motion`
@@ -46,14 +47,15 @@ export const ThemeSwitcher = ({ className }: { className?: string }) => {
               setAnnouncement(t('shell.theme.announcement', { theme: t(option.labelKey) }))
             }}
             className={cn(
-              'min-h-target min-w-target rounded-md border border-control-border px-3 text-xs font-medium',
+              'min-h-target min-w-target inline-flex items-center justify-center rounded-md border border-control-border px-3 text-xs font-medium',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
               choice === option.value
                 ? 'bg-nav-active text-brand-rose-text'
                 : 'bg-surface text-content hover:bg-surface-muted',
             )}
           >
-            {t(option.labelKey)}
+            {option.value === 'aurum-light' ? <Sun aria-hidden="true" size={18} /> : <Moon aria-hidden="true" size={18} />}
+            <span className="sr-only">{t(option.labelKey)}</span>
           </button>
         ))}
       </div>

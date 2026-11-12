@@ -54,11 +54,13 @@ test('jedan role="group" s tačno 2 button[aria-pressed] i i18n imenom', () => {
   assert.match(code, /CHOICES\.map\(/, 'jedna petlja nad dva režima')
 })
 
-test('nijedan vidljivi natpis nije hard-kodiran; svi ključevi postoje u BS i EN', () => {
+test('ikonice imaju prevedena pristupačna imena; svi ključevi postoje u BS i EN', () => {
   for (const literal of ['Klasična', 'Aurum svijetla', 'Aurum tamna', 'Classic light', 'Aurum light', 'Aurum dark', 'Tema prikaza', 'Display theme']) {
     assert.equal(code.includes(literal), false, `hard-kodirani natpis: ${literal}`)
   }
-  assert.match(code, /\{t\(option\.labelKey\)\}/, 'vidljivi tekst dolazi iz i18n')
+  assert.match(code, /<span className="sr-only">\{t\(option\.labelKey\)\}<\/span>/, 'pristupačno ime dolazi iz i18n')
+  assert.match(code, /<Sun aria-hidden="true"/)
+  assert.match(code, /<Moon aria-hidden="true"/)
   assert.match(code, /t\('shell\.theme\.announcement', \{ theme: t\(option\.labelKey\) \}\)/)
   for (const key of THEME_KEYS) {
     const valueBs = resolveKey(bs, key)

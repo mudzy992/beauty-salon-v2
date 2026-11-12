@@ -46,6 +46,8 @@ export default function PublicHome() {
   const { t } = useTranslation()
   const { getSetting } = useSettings()
   const reviewsOn = isPublicFeatureOn(getSetting, 'public_feature_reviews')
+  const galleryOn = isPublicFeatureOn(getSetting, 'public_feature_gallery')
+  const blogOn = isPublicFeatureOn(getSetting, 'public_feature_blog')
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([])
   const [beforeAfterLoading, setBeforeAfterLoading] = useState(true)
   const [beforeAfterLoadError, setBeforeAfterLoadError] = useState(false)
@@ -151,6 +153,7 @@ export default function PublicHome() {
       <section data-aurum-hero className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         <div
           data-aurum-hero-image
+          data-home-image-fallback={!heroImage.trim() ? 'true' : undefined}
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: cssBackgroundImage(heroImage) }}
         />
@@ -366,6 +369,21 @@ export default function PublicHome() {
           </div>
         </section>
       ) : null}
+
+      {(galleryOn || blogOn) && (
+        <section data-home-discover className="py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="home-discover-heading">
+              <div className="text-content-muted text-sm uppercase tracking-widest">{t('public.home.discoverKicker')}</div>
+              <h2>{t('public.home.discoverTitle')}</h2>
+            </div>
+            <div className="home-discover-grid">
+              {galleryOn && <article><h3>{t('public.home.galleryTitle')}</h3><p>{t('public.home.galleryDescription')}</p><Link to="/galerija">{t('public.home.galleryLink')} <ArrowRight aria-hidden="true" size={18} /></Link></article>}
+              {blogOn && <article><h3>{t('public.home.journalTitle')}</h3><p>{t('public.home.journalDescription')}</p><Link to="/blog">{t('public.home.journalLink')} <ArrowRight aria-hidden="true" size={18} /></Link></article>}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section data-home-cta className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
         <Calendar

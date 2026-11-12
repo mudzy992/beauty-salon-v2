@@ -1222,3 +1222,49 @@
 [data-skin="aurum"] [data-aurum-service-count] span span {
   color: hsl(var(--text));
 }
+
+/* Aurum editorial split: configured imagery stays separate from readable copy. */
+[data-home-discover] { display: none; }
+[data-skin="aurum"] [data-home-discover] { display: block; background: hsl(var(--surface)); border-top: 1px solid hsl(var(--line)); }
+[data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  margin: clamp(1rem, 3vw, 2.5rem) auto 0;
+  max-width: 80rem;
+  background: hsl(var(--surface-sunken));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero]::after { display: none; }
+[data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero-image] {
+  position: relative;
+  inset: auto;
+  min-height: 20rem;
+  order: 2;
+  opacity: 1;
+  filter: none;
+  border-radius: 0;
+}
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-image-fallback="true"] { background-image: url('/brand/aurum-editorial.jpg') !important; }
+[data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero-overlay] { display: none; }
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] {
+  padding: clamp(2.5rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4.5rem);
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] > div { max-width: none; }
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] .text-brand-champagne,
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] .text-slate-200 { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] h1 { max-width: 12ch; font-weight: 400; }
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-actions] [data-aurum-cta="primary"] { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-actions] [data-aurum-cta="secondary"] { background: transparent; border-color: hsl(var(--line)); color: hsl(var(--text)); }
+[data-skin="aurum"] [data-home-discover] h2 { font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.1; margin-top: .75rem; }
+[data-skin="aurum"] [data-home-discover] .home-discover-grid { display: grid; gap: 1rem; margin-top: 2rem; }
+[data-skin="aurum"] [data-home-discover] article { padding: clamp(1.5rem, 3vw, 2.5rem); border: 1px solid hsl(var(--line)); background: hsl(var(--surface-sunken)); }
+[data-skin="aurum"] [data-home-discover] h3 { font-size: 1.75rem; }
+[data-skin="aurum"] [data-home-discover] p { margin: 1rem 0 1.5rem; color: hsl(var(--text-muted)); }
+[data-skin="aurum"] [data-home-discover] a { display: inline-flex; align-items: center; gap: .75rem; min-height: 44px; text-decoration: underline; text-underline-offset: .3em; color: hsl(var(--text)); }
+@media (min-width: 48rem) {
+  [data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero] { grid-template-columns: 1fr 1fr; }
+  [data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero-image] { min-height: 36rem; }
+  [data-skin="aurum"] [data-home-discover] .home-discover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

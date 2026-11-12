@@ -89,3 +89,20 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+test('icon-only theme controls retain accessible names, keyboard operation and persistence', async ({ page }) => {
+  await configure(page, 'aurum', 'light')
+  await page.goto('/login', { waitUntil: 'networkidle' })
+  const light = page.getByRole('button', { name: /Aurum (svijetla|light)/i })
+  const dark = page.getByRole('button', { name: /Aurum (tamna|dark)/i })
+  await expect(light).toHaveAttribute('aria-pressed', 'true')
+  await expect(light.locator('svg[aria-hidden="true"]')).toHaveCount(1)
+  await expect(dark.locator('svg[aria-hidden="true"]')).toHaveCount(1)
+  await dark.focus()
+  await page.keyboard.press('Enter')
+  await expect(dark).toBeFocused()
+  await expect(dark).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark')
+  await page.reload({ waitUntil: 'networkidle' })
+  await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark')
+})
