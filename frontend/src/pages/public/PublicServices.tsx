@@ -12,6 +12,7 @@ import {
 } from '../../api/catalog'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
+import { labelWithVisibleText } from '../../components/a11y/label-in-name.mjs'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicAurum } from '../../features/shell/public/public-ui'
@@ -214,7 +215,7 @@ export default function PublicServices() {
                         type="button"
                         aria-label={t('public.servicesPage.clearSearch')}
                         onClick={() => setQuery('')}
-                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#806b5d] transition hover:bg-[#efe7e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
+                        className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#806b5d] transition hover:bg-[#efe7e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -251,7 +252,7 @@ export default function PublicServices() {
   )
 
   return (
-    <main data-aurum-page="services" data-aurum-tokens={publicAurum.page} className={`min-h-screen overflow-hidden bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="services" data-aurum-tokens={publicAurum.page} className={`min-h-screen overflow-hidden bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ''}`}>
       <section className="relative isolate overflow-hidden border-b border-[#e8ddd3] bg-[#f4eee7]">
         <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-44 h-[34rem] w-[34rem] rounded-full border border-[#d5c1b0]/30" />
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-28 h-[26rem] w-[26rem] rounded-full border border-[#d5c1b0]/25" />
@@ -526,7 +527,7 @@ export default function PublicServices() {
                                     <li key={service.id}>
                                       <Link
                                         to={`/usluge/${service.id}`}
-                                        aria-label={t('public.servicesPage.viewService', { service: service.name })}
+                                        aria-label={labelWithVisibleText(t('public.servicesPage.viewService', { service: service.name }), `${service.name} ${t('public.servicesPage.duration', { minutes: service.durationMinutes })}`)}
                                         className="group/service flex min-h-[4.25rem] items-center gap-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2"
                                       >
                                         <span className="min-w-0 flex-1">
@@ -595,6 +596,6 @@ export default function PublicServices() {
           </div>
         </section>
       ) : null}
-    </main>
+    </div>
   )
 }

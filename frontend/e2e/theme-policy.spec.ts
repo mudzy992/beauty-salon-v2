@@ -209,3 +209,43 @@ for (const mode of ['light', 'dark'] as const) {
     await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`services AAA ${mode} ${viewport}: populated filters and empty result`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      await page.route('**/api/services**', (route) => {
+        const path = new URL(route.request().url()).pathname
+        if (path === '/api/services/categories') return route.fulfill({ json: [{ id: 'cat-test', name: 'Test kategorija' }] })
+        if (path === '/api/services/subcategories') return route.fulfill({ json: [{ id: 'sub-test', categoryId: 'cat-test', name: 'Test njega' }] })
+        if (path === '/api/services') return route.fulfill({ json: [{ id: 'service-test', subcategoryId: 'sub-test', name: 'Test usluga', durationMinutes: 45 }] })
+        return route.continue()
+      })
+      await page.goto('/usluge', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/usluge')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      await expect(page.locator('main')).toHaveCount(1)
+      const serviceLink = page.locator('a[href="/usluge/service-test"]')
+      await expect(serviceLink).toBeVisible()
+      await expect(serviceLink).toHaveAccessibleName(/Test usluga.*45 min/i)
+      const settled = await settleAnimations(page)
+      expect(settled?.stillRunning).toBe(0)
+      for (const state of ['populated', 'no-results'] as const) {
+        if (state === 'no-results') await page.locator('#public-services-search').fill('no-matching-test-service')
+        const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+        const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+        console.log(`SERVICES_AUDIT_${mode.toUpperCase()}_${viewport.toUpperCase()}_${state.toUpperCase()} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, count: v.nodes.length })) })}`)
+        expect(relevant).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      }
+      await page.locator('#public-services-search').fill('Test usluga')
+      await expect(serviceLink).toBeVisible()
+      const clearSearch = page.locator('button[aria-label]').filter({ has: page.locator('svg.lucide-x') }).last()
+      await clearSearch.focus()
+      await page.keyboard.press('Enter')
+      await expect(page.locator('#public-services-search')).toHaveValue('')
+    })
+  }
+}

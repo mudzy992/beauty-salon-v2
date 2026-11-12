@@ -55,3 +55,10 @@ test('all new visible and accessible copy exists in both supported locales', () 
   }
   assert.ok(hasKey(locales[0], 'public.servicesPage.serviceCount_few'))
 })
+
+test('services content uses the shell main landmark and names links with all visible text', () => {
+  assert.match(source, /<div data-aurum-page="services"/)
+  assert.doesNotMatch(source, /<main\b/)
+  assert.match(source, /aria-label=\{labelWithVisibleText\(t\('public\.servicesPage\.viewService'[\s\S]*?public\.servicesPage\.duration/)
+  assert.match(source, /aria-label=\{t\('public\.servicesPage\.clearSearch'\)\}[\s\S]*?h-11 w-11/)
+})
