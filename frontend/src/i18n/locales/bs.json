@@ -400,6 +400,7 @@
       }
     },
     "appearance": {
+      "errors": { "invalidTheme": "Neispravna tema.", "invalidMode": "Neispravan režim teme." },
       "title": "Postavke — Izgled",
       "description": "Logo, naziv aplikacije i boje teme javnog sajta.",
       "aurumNote": "Aurum paleta je fiksna: primarna i akcentna boja iz ovih postavki nisu aktivne. Klasična tema ih ponovo koristi.",

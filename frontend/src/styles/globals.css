@@ -483,6 +483,23 @@
   color: hsl(var(--text));
 }
 
+/* Legacy white surfaces and slate text must follow the active Aurum mode. */
+[data-skin="aurum"] [data-aurum-page="home"].bg-white,
+[data-skin="aurum"] [data-aurum-page="home"] .bg-white {
+  background-color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-shell="footer"] [class~="bg-white/60"] {
+  background-color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-900"],
+[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-700"] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-600"],
+[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-500"] {
+  color: hsl(var(--text-muted));
+}
+
 /* Serifni naslovi samo u Aurumu (NEJRA §02/§11). */
 [data-skin="aurum"] [data-aurum-page] h1,
 [data-skin="aurum"] [data-aurum-page] h2,

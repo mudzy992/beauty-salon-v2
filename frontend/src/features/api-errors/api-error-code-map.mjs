@@ -10,6 +10,8 @@
  * Parnost s backend registrom cuva `test:api-error-code-parity`.
  */
 export const API_ERROR_CODE_TO_KEY = {
+  SETTINGS_INVALID_THEME: 'adminSettings.appearance.errors.invalidTheme',
+  SETTINGS_INVALID_THEME_MODE: 'adminSettings.appearance.errors.invalidMode',
   USERS_NOT_FOUND: 'users.errors.notFound',
   USERS_USERNAME_TAKEN: 'users.errors.usernameTaken',
   USERS_EMAIL_TAKEN: 'users.errors.emailTaken',

@@ -403,6 +403,7 @@
       }
     },
     "appearance": {
+      "errors": { "invalidTheme": "Invalid theme.", "invalidMode": "Invalid theme mode." },
       "title": "Settings — Appearance",
       "description": "Logo, application name and public website theme colors.",
       "aurumNote": "The Aurum palette is fixed: the primary and accent colors from these settings are not applied. Classic theme uses them again.",
