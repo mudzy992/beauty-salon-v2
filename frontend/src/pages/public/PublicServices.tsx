@@ -12,7 +12,6 @@ import {
 } from '../../api/catalog'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
-import { labelWithVisibleText } from '../../components/a11y/label-in-name.mjs'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicAurum } from '../../features/shell/public/public-ui'
@@ -527,7 +526,6 @@ export default function PublicServices() {
                                     <li key={service.id}>
                                       <Link
                                         to={`/usluge/${service.id}`}
-                                        aria-label={labelWithVisibleText(t('public.servicesPage.viewService', { service: service.name }), `${service.name} ${t('public.servicesPage.duration', { minutes: service.durationMinutes })}`)}
                                         className="group/service flex min-h-[4.25rem] items-center gap-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2"
                                       >
                                         <span className="min-w-0 flex-1">

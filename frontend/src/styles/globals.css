@@ -1363,3 +1363,32 @@
 [data-skin="aurum"] :is([data-aurum-shell="header"], #public-mobile-navigation) .uploaded-brand-logo__word {
   color: hsl(var(--text)) !important;
 }
+
+/* Services audit: the filter and its controls use matching Aurum surface/text
+   pairs, including the selected filter and booking action, in both modes. */
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] :is(label, legend, [role="status"]) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] input {
+  background-color: hsl(var(--surface-sunken));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] input::placeholder {
+  color: hsl(var(--text-muted-strong));
+  opacity: 1;
+}
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] button[aria-pressed="false"] {
+  background-color: hsl(var(--surface));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="services"] form[role="search"] button[aria-pressed="true"],
+[data-skin="aurum"] [data-aurum-page="services"] a[href="/rezervacija"][class*="inline-flex"] {
+  background-color: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
