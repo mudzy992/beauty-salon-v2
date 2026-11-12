@@ -5,7 +5,7 @@ import { settleAnimations } from './settle'
 
 // The HTTP response is intercepted only in this isolated test; all other public
 // settings remain real. This does not write shared settings or touch production.
-async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 'dark', preference?: 'light' | 'dark', preserveOnReload = false) {
+async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 'dark', preference?: 'light' | 'dark', preserveOnReload = false, settings: Record<string, string> = {}) {
   await page.addInitScript(({ value, preserve }) => {
     if (preserve && sessionStorage.getItem('e2e.theme.initialized')) return
     if (preserve) sessionStorage.setItem('e2e.theme.initialized', 'true')
@@ -17,8 +17,8 @@ async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 
     const response = await route.fetch()
     if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
     const rows = await response.json() as Array<{key: string; value: string}>
-    const filtered = rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode')
-    await route.fulfill({ response, json: [...filtered, { key: 'theme_active_skin', value: skin }, { key: 'theme_default_mode', value: mode }] })
+    const filtered = rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode' && !(row.key in settings))
+    await route.fulfill({ response, json: [...filtered, { key: 'theme_active_skin', value: skin }, { key: 'theme_default_mode', value: mode }, ...Object.entries(settings).map(([key, value]) => ({ key, value }))] })
   })
 }
 
@@ -215,7 +215,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`services AAA ${mode} ${viewport}: populated filters and empty result`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, 'aurum', mode, undefined, false, { public_services_image_badge: 'Njega i ljepota', public_services_image_caption: 'Posjetite nas', public_services_image_subcaption: 'Uživajte u tretmanu', public_services_step_1_title: 'Pronađite tretman', public_services_step_1_description: 'Pregledajte ponudu', public_services_step_2_title: 'Odaberite termin', public_services_step_2_description: 'Izaberite datum', public_services_step_3_title: 'Uživajte u posjeti', public_services_step_3_description: 'Dobro došli' })
       await page.route('**/api/services**', (route) => {
         const path = new URL(route.request().url()).pathname
         if (path === '/api/services/categories') return route.fulfill({ json: [{ id: 'cat-test', name: 'Testdugackinazivkategorijezareflow' }] })
@@ -237,6 +237,14 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(categoryHeading).toBeVisible()
       expect(await categoryHeading.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
       await expect(serviceLink).toHaveAccessibleName(/Test usluga.*45 min/i)
+      await expect(page.getByText('Pronađite tretman')).toBeVisible()
+      await expect(page.getByText('Njega i ljepota')).toBeVisible()
+      await serviceLink.hover()
+      const hoverResults = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+      const hoverViolations = hoverResults.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+      console.log(`SERVICES_HOVER_${mode}_${viewport} ${JSON.stringify({ violations: hoverViolations, incomplete: hoverResults.incomplete })}`)
+      expect(hoverViolations).toEqual([])
+      await page.mouse.move(0, 0)
       const settled = await settleAnimations(page)
       expect(settled?.stillRunning).toBe(0)
       const explore = page.locator('[data-aurum-page="services"] a[href="#service-catalog"]')

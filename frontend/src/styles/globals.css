@@ -1419,3 +1419,32 @@
   background-color: hsl(var(--surface));
   color: hsl(var(--text));
 }
+
+/* Services: explicitly pair foreground and surface for configured editorial copy and hover. */
+[data-skin="aurum"] [data-aurum-page="services"] :is([data-service-identity], [data-service-image-badge], [data-service-steps], [data-service-catalog-icon]) {
+  background: hsl(var(--surface));
+  color: hsl(var(--text));
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-steps] span,
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-image-badge] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-image-caption] {
+  background: hsl(var(--surface));
+  color: hsl(var(--text));
+  padding: 1rem;
+  border-radius: 1rem;
+}
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-image-caption] p {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-link]:is(:hover, :focus-visible) span {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-arrow],
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-link]:is(:hover, :focus-visible) [data-service-arrow] {
+  background: hsl(var(--surface));
+  color: hsl(var(--text));
+  border-color: hsl(var(--line));
+}
