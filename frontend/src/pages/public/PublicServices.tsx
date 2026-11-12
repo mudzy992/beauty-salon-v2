@@ -327,7 +327,7 @@ export default function PublicServices() {
                 </div>
               </div>
             </div>
-            <div className="absolute -bottom-5 right-4 z-10 inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-white px-4 py-3 shadow-xl shadow-[#574237]/10 sm:right-8 sm:max-w-[calc(100%-4rem)] sm:px-5 sm:py-4">
+            <div data-aurum-service-count className="absolute -bottom-5 right-4 z-10 inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-white px-4 py-3 shadow-xl shadow-[#574237]/10 sm:right-8 sm:max-w-[calc(100%-4rem)] sm:px-5 sm:py-4">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
               </span>

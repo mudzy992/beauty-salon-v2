@@ -1213,3 +1213,12 @@
 [data-skin="aurum"] [data-stylist-header] nav a[aria-current="page"] {
   border-inline-start: 3px solid var(--aurum-brand);
 }
+
+/* Keep catalog count text and its surface paired in both Aurum modes. */
+[data-skin="aurum"] [data-aurum-service-count] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-service-count] span span {
+  color: hsl(var(--text));
+}
