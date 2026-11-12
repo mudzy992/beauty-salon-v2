@@ -63,6 +63,7 @@ for (const mode of ['light', 'dark'] as const) {
     await page.goto('/', { waitUntil: 'networkidle' })
     await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
     await expect(page.locator('[data-home-hero-content] h1')).toBeVisible()
+    await expect(page.locator('[data-aurum-hero-image]')).toBeHidden()
     await expect(page.locator('[data-home-hero-actions] a')).toHaveCount(2)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow).toBeLessThanOrEqual(1)
@@ -122,3 +123,25 @@ test('theme icon respects reduced motion', async ({ page }) => {
   await expect(toggle).toHaveAttribute('aria-pressed', 'true')
   await expect(toggle.locator('.theme-switcher-icon')).toHaveCSS('animation-name', 'none')
 })
+
+// First page-by-page AAA audit: deliberately include violations AND incomplete
+// results in the log. Passing axe cannot establish full WCAG conformance.
+for (const mode of ['light', 'dark'] as const) {
+  test(`homepage AAA audit ${mode}: desktop`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await configure(page, 'aurum', mode)
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    await expect(page.locator('[data-aurum-hero-image]')).toBeVisible()
+    const settled = await settleAnimations(page)
+    expect(settled?.stillRunning).toBe(0)
+    const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+    const detail = (items: typeof results.violations) => items.filter((item) => item.tags.includes('wcag2aaa')).map((item) => ({
+      id: item.id,
+      nodes: item.nodes.map((node) => ({ target: node.target, html: node.html, summary: node.failureSummary })),
+    }))
+    console.log(`HOME_AAA_${mode.toUpperCase()} ${JSON.stringify({ violations: detail(results.violations), incomplete: detail(results.incomplete) })}`)
+    expect(assertableViolations(results.violations)).toEqual([])
+    expect(detail(results.violations), 'homepage AAA axe violations require review').toEqual([])
+  })
+}

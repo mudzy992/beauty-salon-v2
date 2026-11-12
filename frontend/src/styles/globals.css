@@ -1275,6 +1275,9 @@
 [data-skin="aurum"] [data-home-discover] h3 { font-size: 1.75rem; }
 [data-skin="aurum"] [data-home-discover] p { margin: 1rem 0 1.5rem; color: hsl(var(--text-muted)); }
 [data-skin="aurum"] [data-home-discover] a { display: inline-flex; align-items: center; gap: .75rem; min-height: 44px; text-decoration: underline; text-underline-offset: .3em; color: hsl(var(--text)); }
+@media (max-width: 47.999rem) {
+  [data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero-image] { display: none; }
+}
 @media (min-width: 48rem) {
   [data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: min(46rem, 85vh); }
   [data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero-image] { min-height: 38rem; }
