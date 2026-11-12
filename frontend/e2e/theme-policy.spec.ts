@@ -52,3 +52,22 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`Aurum ${mode} home reflows at 320px with reduced motion`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await configure(page, 'aurum', mode)
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    await expect(page.locator('[data-home-hero-content] h1')).toBeVisible()
+    await expect(page.locator('[data-home-hero-actions] a')).toHaveCount(2)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+    const settled = await settleAnimations(page)
+    expect(settled).not.toBeNull()
+    expect(settled?.stillRunning).toBe(0)
+    const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+    expect(assertableViolations(results.violations)).toEqual([])
+  })
+}

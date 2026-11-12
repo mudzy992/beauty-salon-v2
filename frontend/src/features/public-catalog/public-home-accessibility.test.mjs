@@ -28,3 +28,15 @@ test('homepage navigation CTAs use a single styled anchor control', () => {
   assert.match(source, /<Button asChild size="lg"[^>]*>\s*<Link to="\/rezervacija">/)
   assert.doesNotMatch(source, /<Link to="\/(?:rezervacija|usluge|kontakt)"[^>]*>\s*<Button/)
 })
+
+test('editorial home keeps real content, feature gates and classic-compatible scoped hooks', () => {
+  const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), 'utf8')
+  for (const hook of ['data-home-hero-content', 'data-home-highlights', 'data-home-highlight', 'data-home-about', 'data-home-about-image', 'data-home-transformations', 'data-home-review', 'data-home-cta']) {
+    assert.ok(source.includes(hook), `missing ${hook}`)
+    assert.ok(css.includes(`[data-skin="aurum"] [${hook}]`) || hook === 'data-home-hero-content', `missing scoped styling for ${hook}`)
+  }
+  assert.match(source, /reviewsOn && \(featuredReviewLoading \|\| featuredReviewLoadError \|\| featuredReview\)/)
+  assert.match(source, /!beforeAfterLoading && beforeAfterPairs\.length === 0 && !beforeAfterLoadError/)
+  assert.match(source, /backgroundImage: cssBackgroundImage\(heroImage\)/)
+  assert.match(source, /\{aboutText\}/)
+})

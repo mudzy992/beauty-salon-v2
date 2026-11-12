@@ -57,3 +57,7 @@ Radni režim ostaje: **plan → odobrenje → implementacija segmenta → 5/5 CI
 Vlasnik se suštinski slaže sa smjerom, uz naglasak na unaprijeđen, unikatan premium identitet, diskretne animacije, moderne ikone u adminu (npr. postojeći `lucide-react`), postojeću paletu i komponentni standard kroz admin i javni web uz minimalno hardkodiranja. Animacije moraju poštovati `prefers-reduced-motion`. WCAG 2.2 AA je minimum, AAA poželjan; konkretni kontrasti i ponašanja moraju se stvarno provjeriti u oba režima, a postojeći izračuni tokena ili koncept nisu dokaz usklađenosti. Ako stvarna kombinacija iz palete ne prođe, STOP i pitanje prije promjene palete.
 
 Dorađeni HTML koncept je prijedlog, ne produkcijska implementacija. Implementacija ostaje odvojeni segment i traži posebno odobrenje.
+
+## Aktuelni režim rada i inkrementi
+
+Vlasnik je odobrio koncept i kompletnu implementaciju bez odvojenih faznih odobrenja; istorijske STOP napomene za običan prelaz faza iznad su superseded. STOP za stvarni pad Aurum kontrasta i zabrana samostalne promjene palete ostaju. Temelj i prvi admin inkrement imaju odvojene CI dokaze, vidjeti planove 14 i 07. Naslovnica je u revidiranom S2 inkrementu: drugačija hero kompozicija, kartice i raspored postojeće fotografije/widgeta; puni javni, auth, admin i stylist identitet još nije završen. Nastaviti kroz preostale površine bez tvrdnje potpune WCAG usklađenosti.

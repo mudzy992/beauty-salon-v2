@@ -155,7 +155,7 @@ export default function PublicHome() {
           style={{ backgroundImage: cssBackgroundImage(heroImage) }}
         />
         <div data-aurum-hero-overlay className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/60" />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 py-24 md:py-28 text-center text-white">
+        <div data-home-hero-content className="relative z-10 mx-auto max-w-5xl px-4 py-24 md:py-28 text-center text-white">
           <MotionDiv initial="hidden" animate="visible" variants={staggerContainer}>
             <MotionDiv variants={fadeUp}>
               <div className="uppercase tracking-widest text-brand-champagne font-semibold text-sm mb-4">
@@ -181,7 +181,7 @@ export default function PublicHome() {
               </div>
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
-              <div className="flex items-center justify-center gap-4 flex-wrap">
+              <div data-home-hero-actions className="flex items-center justify-center gap-4 flex-wrap">
                 <Button asChild variant="onDark" size="lg" className="px-8" data-aurum-cta="primary">
                   <Link to="/rezervacija">
                     {getSetting('public_hero_cta_text_web', t('public.home.heroReserve'))}
@@ -196,7 +196,7 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="py-20 bg-slate-50/80">
+      <section data-home-highlights className="py-20 bg-slate-50/80">
         <div className="mx-auto max-w-6xl px-4">
           <MotionDiv
             initial="hidden"
@@ -210,6 +210,7 @@ export default function PublicHome() {
               return (
                 <MotionDiv
                   key={idx}
+                  data-home-highlight
                   variants={fadeUp}
                   className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all text-center border border-slate-200"
                 >
@@ -225,10 +226,10 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section id="onama" className="py-24 bg-white">
+      <section id="onama" data-home-about className="py-24 bg-white">
         <div className="mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div className="relative overflow-hidden rounded-2xl shadow-sm border border-slate-200 bg-slate-100">
+            <div data-home-about-image className="relative overflow-hidden rounded-2xl shadow-sm border border-slate-200 bg-slate-100">
               <MediaImage src={resolveRemoteMediaUrl(aboutImage)} alt="" className="h-full w-full object-cover" />
             </div>
             <div>
@@ -255,7 +256,7 @@ export default function PublicHome() {
       </section>
 
       {!beforeAfterLoading && beforeAfterPairs.length === 0 && !beforeAfterLoadError ? null : (
-      <section className={`${publicSection.subtle} ${publicSection.base}`}>
+      <section data-home-transformations className={`${publicSection.subtle} ${publicSection.base}`}>
         <div className={`${publicPage.container}`}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 mb-10 md:mb-12">
             <div className="max-w-2xl">
@@ -305,7 +306,7 @@ export default function PublicHome() {
       )}
 
       {reviewsOn && (featuredReviewLoading || featuredReviewLoadError || featuredReview) ? (
-        <section aria-labelledby="homepage-featured-review-heading" className="bg-white py-12 sm:py-16">
+        <section aria-labelledby="homepage-featured-review-heading" data-home-review className="bg-white py-12 sm:py-16">
           <div className={`${publicPage.container}`}>
             <h2 id="homepage-featured-review-heading" className="sr-only">
               {t('public.home.featuredReviewLabel')}
@@ -366,7 +367,7 @@ export default function PublicHome() {
         </section>
       ) : null}
 
-      <section className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
+      <section data-home-cta className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
         <Calendar
           className="pointer-events-none absolute -right-6 -bottom-10 h-44 w-44 text-slate-400/[0.22] sm:h-56 sm:w-56 sm:-right-10 sm:-bottom-14 md:h-64 md:w-64"
           strokeWidth={1}
