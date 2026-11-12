@@ -22,7 +22,7 @@ import {
 } from '../features/reservations/status'
 
 import { Badge } from '../components/ui/badge'
-import { PageHeader } from '../features/shell/admin/ui/page-header'
+import { PageHeader } from '../features/shell/aurum/ui/page-header'
 import { StatusBadge } from '../features/shell/admin/ui/status-badge'
 import { reservationStatusDescriptor } from '../features/reservations/reservation-status-view'
 import { Button } from '../components/ui/button'
@@ -373,8 +373,15 @@ export default function Reservations() {
                         label={getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
                       />
                     </div>
-                  <p className="mt-2 text-sm text-content">{serviceSummary(r)}</p>
+                    <p className="mt-2 text-sm text-content">{serviceSummary(r)}</p>
                     <p className="text-sm text-content-muted">{getClientName(r.client)}</p>
+                    <div className="mt-2 flex items-start justify-between gap-3 text-sm">
+                      <span>{t('reservations.adminList.priceLoyalty')}</span>
+                      {priceBlock(r)}
+                    </div>
+                    <p className="mt-1 text-sm text-content-muted">
+                      {t('reservations.adminList.stylist')}: {r.confirmedStylist ? getListStylistName(r.confirmedStylist) : '-'}
+                    </p>
                   </button>
                 ))
               )}

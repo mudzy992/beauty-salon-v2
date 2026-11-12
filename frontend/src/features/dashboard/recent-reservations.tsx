@@ -87,7 +87,7 @@ export const DashboardRecentReservations = ({ reservations }: Props) => {
   ]
 
   return (
-    <section className="rounded-lg border border-line bg-surface p-5">
+    <section data-dashboard-recent className="rounded-lg border border-line bg-surface p-5">
       <h2 className="mb-3 text-sm font-semibold text-content">
         {t('dashboard.recentReservations')}
       </h2>

@@ -79,7 +79,7 @@ export const AdminLayout = () => {
   return (
     <div className="admin-shell min-h-screen bg-surface-sunken">
       <SkipLink targetId="main" />
-      <header className="sticky top-0 z-20 border-b border-line bg-surface">
+      <header data-admin-header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -170,7 +170,7 @@ export const AdminLayout = () => {
       </header>
 
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_1fr]">
-        <aside className="hidden lg:block">
+        <aside data-admin-sidebar className="hidden lg:block">
           <div className="rounded-lg border border-line bg-surface p-2">
             <AdminNav pathname={location.pathname} search={location.search} pendingBlogComments={pendingBlogComments} />
           </div>

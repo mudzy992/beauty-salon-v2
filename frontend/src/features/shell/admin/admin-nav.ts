@@ -34,6 +34,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { path: '/admin/reservations', labelKey: 'nav.reservations' },
       { path: '/admin/daily-log', labelKey: 'nav.dailyLog' },
+      { path: '/admin/finance', labelKey: 'nav.finance' },
+      { path: '/admin/loyalty', labelKey: 'nav.loyalty' },
     ],
   },
   {
@@ -42,18 +44,8 @@ export const adminNavGroups: AdminNavGroup[] = [
       { path: '/admin/salon', labelKey: 'nav.salon' },
       { path: '/admin/services', labelKey: 'nav.services' },
       { path: '/admin/stylists', labelKey: 'nav.stylists' },
+      { path: '/admin/users', labelKey: 'nav.users' },
     ],
-  },
-  {
-    labelKey: 'nav.sectionFinance',
-    items: [
-      { path: '/admin/finance', labelKey: 'nav.finance' },
-      { path: '/admin/loyalty', labelKey: 'nav.loyalty' },
-    ],
-  },
-  {
-    labelKey: 'nav.sectionPeople',
-    items: [{ path: '/admin/users', labelKey: 'nav.users' }],
   },
   {
     labelKey: 'nav.sectionContent',

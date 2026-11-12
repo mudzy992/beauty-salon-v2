@@ -17,7 +17,7 @@ export const DashboardOpsStats = ({ stats }: Props) => {
   const hasPendingReviews = stats.pendingReviews > 0
 
   return (
-    <section className="space-y-3">
+    <section data-dashboard-operations className="space-y-3">
       <h2 className="text-sm font-semibold text-content">{t('dashboard.operations')}</h2>
       <StatGrid
         label={t('dashboard.operations')}

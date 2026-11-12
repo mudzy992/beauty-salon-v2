@@ -1037,3 +1037,60 @@
     outline: 2px solid Highlight;
   }
 }
+
+/* S6: Aurum admin shell and fullscreen calendar, existing theme tokens only. */
+[data-skin="aurum"] .admin-shell > header,
+[data-skin="aurum"] .admin-shell aside > div,
+[data-skin="aurum"] [data-aurum-calendar] {
+  background-color: var(--aurum-surface);
+  border-color: var(--aurum-border);
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] .admin-shell nav a[aria-current="page"] {
+  border-inline-start: 3px solid var(--aurum-brand);
+}
+[data-skin="aurum"] [data-aurum-calendar] h1 {
+  color: hsl(var(--text));
+}
+
+/* Admin identity: decorative navigation icons are absent visually in classic. */
+[data-aurum-nav-icon] { display: none; }
+[data-skin="aurum"] [data-aurum-nav-icon] { display: block; }
+[data-skin="aurum"] [data-admin-sidebar] > div {
+  border-radius: 1rem;
+  padding: 1rem 0.75rem;
+}
+[data-skin="aurum"] [data-admin-sidebar] nav a {
+  border-radius: 0.75rem;
+}
+[data-skin="aurum"] [data-admin-dashboard] > [data-aurum-card] {
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--line));
+  border-radius: 1rem;
+  background: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-admin-dashboard] > [data-aurum-card] h1 {
+  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  line-height: 1.15;
+}
+[data-skin="aurum"] [data-admin-dashboard] :is([data-dashboard-finance], [data-dashboard-operations]) h2 {
+  font-family: var(--font-aurum-serif);
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+[data-skin="aurum"] [data-admin-dashboard] [data-admin-card] {
+  height: 100%;
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+[data-skin="aurum"] [data-admin-dashboard] [data-admin-card] > p:first-of-type {
+  font-family: var(--font-aurum-serif);
+}
+[data-skin="aurum"] [data-dashboard-recent] {
+  border-radius: 1rem;
+}
+[data-skin="aurum"] [data-dashboard-recent] h2 {
+  font-family: var(--font-aurum-serif);
+  font-size: 1.25rem;
+  line-height: 1.4;
+}

@@ -9,7 +9,7 @@ import { DashboardFinanceStats } from '../features/dashboard/finance-stats'
 import { DashboardOpsStats } from '../features/dashboard/ops-stats'
 import { DashboardRecentReservations } from '../features/dashboard/recent-reservations'
 import { DashboardOutboxDiagnostics } from '../features/dashboard/outbox-diagnostics'
-import { PageHeader } from '../features/shell/admin/ui/page-header'
+import { PageHeader } from '../features/shell/aurum/ui/page-header'
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -52,7 +52,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div data-admin-dashboard className="space-y-8">
       <PageHeader
         title={`${t('dashboard.welcome')}, ${user?.username ?? ''}`}
         description={t('dashboard.stats')}

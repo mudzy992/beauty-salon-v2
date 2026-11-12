@@ -109,3 +109,6 @@ test('every dashboard page title key exists in both locales', () => {
     assert.ok(typeof resolveKey(en, key) === 'string' && resolveKey(en, key).length > 0, `missing EN: ${key}`)
   }
 })
+
+// S6: approved navigation grouping and standalone calendar shell contract.
+import './admin/s6-presentation.test.mjs'

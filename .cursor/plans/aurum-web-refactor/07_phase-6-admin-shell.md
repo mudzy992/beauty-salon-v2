@@ -1,6 +1,6 @@
 # S6 — Admin shell + Dashboard + Rezervacije + fullscreen kalendar
 
-**Status:** 🟡 čeka odobrenje S5 · **Prvi dashboard segment; ovdje se zamjenjuju stari admin šabloni (Q4).**
+**Status:** 🟡 S6 odobren (`approve_s6`); mapa A odobrena (`approve_map_a`), implementacija u toku · **Prvi dashboard segment; ovdje se zamjenjuju stari admin šabloni (Q4).**
 
 ---
 
@@ -82,3 +82,17 @@ Lokalno: 5 Python + puna `test:*` petlja + `npm run build` (pratiti `admin dashb
 - Ako `DataTable` migracija promijeni broj kolona ili redoslijed → **STOP** (Q10).
 - Ako NEJRA §05 KPI skup ne odgovara stvarnim podacima → **STOP**, ne dodavati „ilustrativne" KPI-je u kod.
 - `test:admin-render-smoke` / `test:axe-render-a11y` koriste JSDOM render harness; nova primitive moraju proći kroz njega bez novih zavisnosti.
+
+## 10. Odobrene odluke prije implementacije
+
+`approve_s6`; `approve_map_a`: pet grupa bez izmjene hrefova/redirecta, puna mapa u CHANGELOG §14. `calendar_header`: izbornik teme u zaglavlju fullscreen kalendara. `allow_s7_s9`: admin `window.confirm` se ne mijenja u S6.
+
+Dashboard STOP: `preserve_existing` — ostaju postojeći KPI-ji, izvori, formule i filteri; razlika prema NEJRA §05 je odobreno odstupanje.
+
+### Lokalni WIP — nije DoD
+
+Odobrena mapa A, zaglavlje kalendara i Dashboard prezentacija su u lokalnom diffu. Kartice rezervacija sada prikazuju i cijenu/popust i stilistu. **S6 nije završen:** tabela liste rezervacija još koristi izvorni markup (nije migrirana na Aurum `DataTable`), treba završiti paritet svih osam kolona i akcija, jedinstvena imena akcija i ostale S6 kriterije, zatim ponoviti punu verifikaciju, CI 5/5 i dokumentovati dokaze. Nijedna ruta ovim WIP-om nije proglašena završenom.
+
+### Revidirani identitet — inkrement 2026-11-11
+
+Sačuvani WIP je pregledan: zadržana mapa A, kalendarski header i mobilni podaci rezervacije; dodane dekorativne Lucide ikone svih 17 stavki i Aurum-scoped oblikovanje admin navigacije i dashboarda, bez novih podataka. Za izbjegavanje paralelnih standarda dashboard koristi postojeće admin `StatGrid`, `DataTable` i `EmptyState`; prethodni `aurum-stat-grid.tsx` ostaje lokalno sačuvan, nije u ovom inkrementu. Ovo je djelimičan inkrement, ne završetak S6 ni cijelog identiteta; lista rezervacija i preostale površine traže dalji rad. Šest novih a11y-e2e slučajeva mjeri tri admin rute u oba režima, s provjerom autentificirane rute i režima; nema uklanjanja ili slabljenja postojećih testova. CI je na čekanju. Ručni 320px/400%, tastatura i čitač ekrana nisu potvrđeni.

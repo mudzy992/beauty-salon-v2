@@ -18,7 +18,7 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
   const net = total - expenses
 
   return (
-    <section className="space-y-3">
+    <section data-dashboard-finance className="space-y-3">
       <div>
         <h2 className="text-sm font-semibold text-content">{t('dashboard.financeThisMonth')}</h2>
         <p className="text-xs text-content-muted">{t('dashboard.incomeSummary')}</p>

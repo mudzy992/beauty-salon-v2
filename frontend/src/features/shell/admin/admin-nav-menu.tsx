@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { LayoutDashboard, ChartNoAxesCombined, CalendarDays, BookOpen, Wallet, Star, Store, Scissors, UserRound, UsersRound, FileText, Images, MessageSquareHeart, Settings, Smartphone, Bell, Mail } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 import { Badge } from '../../../components/ui/badge'
 import {
@@ -8,6 +10,27 @@ import {
   isAdminNavItemActive,
   type AdminNavItem,
 } from './admin-nav'
+
+// Every icon is decorative; the existing translated link text remains its accessible name.
+const navigationIcons: Record<string, LucideIcon> = {
+  'nav.home': LayoutDashboard,
+  'nav.analytics': ChartNoAxesCombined,
+  'nav.reservations': CalendarDays,
+  'nav.dailyLog': BookOpen,
+  'nav.finance': Wallet,
+  'nav.loyalty': Star,
+  'nav.salon': Store,
+  'nav.services': Scissors,
+  'nav.stylists': UserRound,
+  'nav.users': UsersRound,
+  'nav.blog': FileText,
+  'nav.gallery': Images,
+  'nav.reviews': MessageSquareHeart,
+  'nav.settings': Settings,
+  'nav.appReleases': Smartphone,
+  'nav.notifications': Bell,
+  'nav.emailSettings': Mail,
+}
 
 type Props = {
   pathname: string
@@ -94,6 +117,7 @@ const AdminNavLink = ({
   pendingBlogComments: number
 }) => {
   const { t } = useTranslation()
+  const Icon = navigationIcons[item.labelKey]
 
   return (
     <Link
@@ -104,7 +128,10 @@ const AdminNavLink = ({
       aria-current={active ? 'page' : undefined}
     >
       <span className="flex w-full items-center justify-between gap-3">
-        <span className="truncate">{t(item.labelKey)}</span>
+        <span className="flex min-w-0 items-center gap-3">
+          {Icon ? <Icon data-aurum-nav-icon aria-hidden="true" className="h-4 w-4 shrink-0" /> : null}
+          <span className="truncate">{t(item.labelKey)}</span>
+        </span>
         {pendingBlogComments > 0 ? (
           <Badge className="bg-rose-600 text-white hover:bg-rose-600">
             {pendingBlogComments}

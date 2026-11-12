@@ -8,6 +8,9 @@ import { fetchAllPublicStylists } from '../api/catalog'
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiError } from '../features/admin/admin-api-error.mjs'
 import { Button } from '../components/ui/button'
+import { ThemeSwitcher } from '../features/shell/theme/theme-switcher'
+import { LanguageSwitcher } from '../components/i18n/language-switcher'
+import { SkipLink } from '../features/shell/admin/ui/skip-link'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 import { ReservationScheduler } from '../features/reservations/components/ReservationScheduler'
@@ -172,9 +175,10 @@ export default function ReservationsCalendar() {
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50 dark:bg-slate-950">
-      <div className="h-dvh w-full p-3 sm:p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
+    <div className="min-h-dvh bg-slate-50 dark:bg-slate-950" data-aurum-calendar>
+      <SkipLink targetId="calendar-main" />
+      <div className="flex min-h-dvh w-full flex-col p-3 sm:p-4">
+        <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold text-slate-900 dark:text-slate-50">
               {t('reservations.calendar.title')}
@@ -182,6 +186,10 @@ export default function ReservationsCalendar() {
             <p className="mt-0.5 hidden text-xs text-slate-600 dark:text-slate-300 sm:block">
               {t('reservations.calendar.workspace')}
             </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeSwitcher />
           </div>
           {reservationLoadError ? (
             <Button
@@ -196,9 +204,9 @@ export default function ReservationsCalendar() {
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('reservations.calendar.back')}
           </Button>
-        </div>
+        </header>
 
-        <div className="h-[calc(100dvh-72px)] rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <main id="calendar-main" tabIndex={-1} className="min-h-[28rem] flex-1 rounded-xl border border-slate-200 bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring dark:border-slate-800 dark:bg-slate-950">
           {loading ? (
             <div className="flex h-full items-center justify-center text-slate-500">
               <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
@@ -220,7 +228,7 @@ export default function ReservationsCalendar() {
               onCancelRequest={handleCancel}
             />
           )}
-        </div>
+        </main>
       </div>
     </div>
   )

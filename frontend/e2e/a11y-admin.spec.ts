@@ -408,3 +408,35 @@ for (const route of ADMIN_ROUTES) {
     ).toEqual([])
   })
 }
+
+// Explicit mode coverage for the S6 surfaces. Never accept a redirected login page
+// or a different theme as evidence for an authenticated dashboard scan.
+for (const mode of ['light', 'dark'] as const) {
+  for (const path of ['/admin', '/admin/reservations', '/admin/reservations/calendar']) {
+    test(`Aurum ${mode} admin rendered axe: ${path}`, async ({ page }) => {
+      await page.addInitScript((selectedMode) => {
+        localStorage.removeItem('nejra.theme')
+        localStorage.setItem('nejra.theme.mode', selectedMode)
+      }, mode)
+      await page.route('**/api/settings/public', async (route) => {
+        const response = await route.fetch()
+        if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [
+          ...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
+          { key: 'theme_active_skin', value: 'aurum' },
+          { key: 'theme_default_mode', value: mode },
+        ] })
+      })
+      await page.goto(path, { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe(path)
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const settled = await settleAnimations(page)
+      expect(settled).not.toBeNull()
+      expect(settled?.stillRunning).toBe(0)
+      const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+      expect(assertableViolations(results.violations)).toEqual([])
+    })
+  }
+}
