@@ -63,3 +63,9 @@ test('services content uses the shell main landmark and names links with all vis
   assert.doesNotMatch(source, /aria-label=\{t\('public\.servicesPage\.viewService'/)
   assert.match(source, /aria-label=\{t\('public\.servicesPage\.clearSearch'\)\}[\s\S]*?h-11 w-11/)
 })
+
+
+test('category names wrap rather than being visually truncated', () => {
+  assert.match(source, /<h3 className="mt-1 break-words text-xl[^>]*>\s*\{category\.name\}/)
+  assert.doesNotMatch(source, /<h3 className="mt-1 truncate/)
+})

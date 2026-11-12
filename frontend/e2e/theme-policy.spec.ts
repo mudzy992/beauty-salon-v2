@@ -218,7 +218,7 @@ for (const mode of ['light', 'dark'] as const) {
       await configure(page, 'aurum', mode)
       await page.route('**/api/services**', (route) => {
         const path = new URL(route.request().url()).pathname
-        if (path === '/api/services/categories') return route.fulfill({ json: [{ id: 'cat-test', name: 'Test kategorija' }] })
+        if (path === '/api/services/categories') return route.fulfill({ json: [{ id: 'cat-test', name: 'Testdugackinazivkategorijezareflow' }] })
         if (path === '/api/services/subcategories') return route.fulfill({ json: [{ id: 'sub-test', categoryId: 'cat-test', name: 'Test njega' }] })
         if (path === '/api/services') return route.fulfill({ json: [{ id: 'service-test', subcategoryId: 'sub-test', name: 'Test usluga', durationMinutes: 45 }] })
         return route.continue()
@@ -229,6 +229,13 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(page.locator('main')).toHaveCount(1)
       const serviceLink = page.locator('a[href="/usluge/service-test"]')
       await expect(serviceLink).toBeVisible()
+      const category = page.getByRole('button', { name: 'Testdugackinazivkategorijezareflow' })
+      await category.focus()
+      await page.keyboard.press('Enter')
+      await expect(category).toHaveAttribute('aria-pressed', 'true')
+      const categoryHeading = page.getByRole('heading', { name: 'Testdugackinazivkategorijezareflow' })
+      await expect(categoryHeading).toBeVisible()
+      expect(await categoryHeading.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
       await expect(serviceLink).toHaveAccessibleName(/Test usluga.*45 min/i)
       const settled = await settleAnimations(page)
       expect(settled?.stillRunning).toBe(0)
@@ -236,7 +243,7 @@ for (const mode of ['light', 'dark'] as const) {
         if (state === 'no-results') await page.locator('#public-services-search').fill('no-matching-test-service')
         const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
         const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
-        console.log(`SERVICES_AUDIT_${mode.toUpperCase()}_${viewport.toUpperCase()}_${state.toUpperCase()} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, count: v.nodes.length })) })}`)
+        console.log(`SERVICES_AUDIT_${mode.toUpperCase()}_${viewport.toUpperCase()}_${state.toUpperCase()} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, html: n.html, summary: n.failureSummary })) })) })}`)
         expect(relevant).toEqual([])
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
       }
@@ -246,6 +253,44 @@ for (const mode of ['light', 'dark'] as const) {
       await clearSearch.focus()
       await page.keyboard.press('Enter')
       await expect(page.locator('#public-services-search')).toHaveValue('')
+    })
+  }
+}
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const scenario of ['empty', 'error-retry'] as const) {
+    test(`services AAA ${mode}: ${scenario} state`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      let fail = scenario === 'error-retry'
+      await page.route('**/api/services**', (route) => {
+        const path = new URL(route.request().url()).pathname
+        if (!['/api/services/categories', '/api/services/subcategories', '/api/services'].includes(path)) return route.continue()
+        if (fail && path === '/api/services/categories') return route.fulfill({ status: 503, json: { message: 'Unavailable' } })
+        return route.fulfill({ json: [] })
+      })
+      await page.goto('/usluge', { waitUntil: 'networkidle' })
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      if (scenario === 'error-retry') {
+        const alert = page.locator('[data-aurum-page="services"] [role="alert"]')
+        await expect(alert).toBeVisible()
+        const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+        const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+        console.log(`SERVICES_ERROR_${mode.toUpperCase()} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+        expect(relevant).toEqual([])
+        fail = false
+        const retry = alert.getByRole('button')
+        await retry.focus()
+        await page.keyboard.press('Enter')
+        await expect(alert).toBeHidden()
+      }
+      await expect(page.getByText(/Usluge će se prikazati ovdje|Services will appear here/i)).toBeVisible()
+      const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+      const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+      console.log(`SERVICES_EMPTY_${mode.toUpperCase()} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+      expect(relevant).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
     })
   }
 }

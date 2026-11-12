@@ -207,7 +207,7 @@ export default function PublicServices() {
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder={t('public.servicesPage.searchPlaceholder')}
-                      className="h-12 rounded-full border-[#e6dcd3] bg-[#fcfaf7] pl-11 pr-12 text-[#49332d] placeholder:text-[#75645a] focus-visible:ring-[#9d735d]"
+                      className="h-12 rounded-full border-[#e6dcd3] bg-[#fcfaf7] pl-11 pr-14 text-[#49332d] placeholder:text-[#75645a] focus-visible:ring-[#9d735d]"
                     />
                     {query ? (
                       <button
@@ -503,7 +503,7 @@ export default function PublicServices() {
                             <span className="block text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#7d6658]">
                               {t('public.servicesPage.categoryLabel', { number: String(categoryIndex + 1).padStart(2, '0') })}
                             </span>
-                            <h3 className="mt-1 truncate text-xl font-semibold tracking-[-0.03em] text-[#49332d] sm:text-2xl">
+                            <h3 className="mt-1 break-words text-xl font-semibold tracking-[-0.03em] text-[#49332d] sm:text-2xl">
                               {category.name}
                             </h3>
                           </span>
