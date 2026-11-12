@@ -1473,3 +1473,18 @@
   background: hsl(var(--surface-muted));
   color: hsl(var(--text));
 }
+
+[data-skin="aurum"] [data-aurum-page="service-detail"] [data-aurum-badge] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="service-detail"] a[href^="/rezervacija?"] {
+  background: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-page="service-detail"] > section:first-of-type > div[aria-hidden="true"] {
+  display: none;
+}
+[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-600"] {
+  color: hsl(var(--text-muted-strong));
+}
