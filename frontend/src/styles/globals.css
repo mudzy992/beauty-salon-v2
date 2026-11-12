@@ -1283,3 +1283,21 @@
   [data-skin="aurum"] [data-aurum-page="home"] [data-aurum-hero-image] { min-height: 38rem; }
   [data-skin="aurum"] [data-home-discover] .home-discover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Homepage AAA audit: use existing strong text/surface pairs, without changing
+   the palette. Hero has its own separately measured dark/gold composition. */
+[data-skin="aurum"] [data-home-about] :is(.text-brand-gold-text, .text-slate-600),
+[data-skin="aurum"] [data-home-review] .text-slate-600,
+[data-skin="aurum"] [data-home-discover] :is(.text-content-muted, p),
+[data-skin="aurum"] [data-home-cta] .text-slate-600,
+[data-skin="aurum"] [data-aurum-shell="footer"] .text-slate-500 {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-aurum-page="home"] :is([data-home-about], [data-home-review], [data-home-cta]) :is(a, button)[class*="inline-flex"] {
+  background-color: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-shell="header"] button[class*="hover:bg-slate-100"] {
+  color: hsl(var(--text));
+}
