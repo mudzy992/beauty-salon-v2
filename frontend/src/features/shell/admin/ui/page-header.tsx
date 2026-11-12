@@ -19,6 +19,7 @@ type PageHeaderProps = {
  */
 export const PageHeader = ({ title, description, actions, className }: PageHeaderProps) => (
   <div
+    data-admin-page-header
     className={cn(
       'mb-4 flex flex-col gap-3 border-b border-line pb-4 sm:flex-row sm:items-start sm:justify-between',
       className,

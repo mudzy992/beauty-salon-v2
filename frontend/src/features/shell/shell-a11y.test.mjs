@@ -112,3 +112,21 @@ test('every dashboard page title key exists in both locales', () => {
 
 // S6: approved navigation grouping and standalone calendar shell contract.
 import './admin/s6-presentation.test.mjs'
+
+test('stylist icons are decorative and preserve the five labelled routes', () => {
+  const paths = [...stylistLayout.matchAll(/\{ path: '(\/stylist\/[^']+)', labelKey:/g)].map(([, path]) => path)
+  assert.deepEqual(paths, ['/stylist/inbox', '/stylist/workbook', '/stylist/schedule', '/stylist/debts', '/stylist/stats'])
+  for (const path of paths) assert.ok(stylistLayout.includes(`'${path}':`))
+  assert.match(stylistLayout, /<Icon data-aurum-nav-icon aria-hidden="true"/)
+  assert.match(stylistLayout, /\{t\(item.labelKey\)\}/)
+})
+
+test('auth card header uses configured logo and retains both switchers', () => {
+  const header = read('../auth/auth-card-header.tsx')
+  assert.match(header, /getSetting\('app_logo', ''\)/)
+  assert.match(header, /getSetting\('app_title', t\('app.title'\)\)/)
+  assert.match(header, /<UploadedBrandLogo/)
+  assert.match(header, /<AppLogo/)
+  assert.match(header, /<ThemeSwitcher \/>/)
+  assert.match(header, /<LanguageSwitcher \/>/)
+})

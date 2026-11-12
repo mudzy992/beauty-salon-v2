@@ -1170,3 +1170,46 @@
   [data-skin="aurum"] [data-home-hero-content] > div { max-width: 55%; }
   [data-skin="aurum"] [data-home-about] > div > div { gap: clamp(3rem, 8vw, 8rem); }
 }
+
+/* Compact real salon branding in shared auth/onboarding headers. */
+[data-auth-brand] .app-logo, [data-auth-brand] .uploaded-brand-logo { gap: 0.5rem; }
+[data-auth-brand] .app-logo__icon, [data-auth-brand] .uploaded-brand-logo > :first-child {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+[data-auth-brand] .app-logo__word, [data-auth-brand] .uploaded-brand-logo__word {
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+[data-skin="aurum"] [data-auth-brand] .app-logo__word,
+[data-skin="aurum"] [data-auth-brand] .app-logo__icon {
+  color: hsl(var(--text));
+}
+/* Shared section heroes and page headers extend the editorial identity. */
+[data-skin="aurum"] [data-aurum-page-hero] h1 {
+  font-size: clamp(2.25rem, 4vw, 3.75rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+[data-skin="aurum"] [data-aurum-page-hero] > div:last-child {
+  text-align: left;
+}
+[data-skin="aurum"] .admin-shell [data-admin-page-header] {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid hsl(var(--line));
+  border-radius: 1rem;
+  background-color: hsl(var(--surface));
+}
+[data-skin="aurum"] .admin-shell [data-admin-page-header] h1 {
+  font-family: var(--font-aurum-serif);
+  overflow-wrap: anywhere;
+}
+[data-skin="aurum"] [data-stylist-header] > div {
+  flex-wrap: wrap;
+}
+[data-skin="aurum"] [data-stylist-header] nav a {
+  border-radius: 0.75rem;
+}
+[data-skin="aurum"] [data-stylist-header] nav a[aria-current="page"] {
+  border-inline-start: 3px solid var(--aurum-brand);
+}

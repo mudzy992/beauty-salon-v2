@@ -71,3 +71,21 @@ for (const mode of ['light', 'dark'] as const) {
     expect(assertableViolations(results.violations)).toEqual([])
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const path of ['/usluge', '/blog', '/galerija', '/kontakt', '/register']) {
+    test(`Aurum ${mode} rendered public surface: ${path}`, async ({ page }) => {
+      await configure(page, 'aurum', mode)
+      await page.goto(path, { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe(path)
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      await expect(page.locator('main h1, [data-aurum-auth-page] h1').first()).toBeVisible()
+      const settled = await settleAnimations(page)
+      expect(settled).not.toBeNull()
+      expect(settled?.stillRunning).toBe(0)
+      const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+      expect(assertableViolations(results.violations)).toEqual([])
+    })
+  }
+}

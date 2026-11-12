@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { HelpCircle } from 'lucide-react'
+import { HelpCircle, Inbox, BookOpen, CalendarDays, Wallet, ChartNoAxesCombined } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Button } from '../components/ui/button'
@@ -31,6 +32,14 @@ const navItems: NavItem[] = [
   { path: '/stylist/stats', labelKey: 'shell.stylist.stats' },
 ]
 
+const navIcons: Record<string, LucideIcon> = {
+  '/stylist/inbox': Inbox,
+  '/stylist/workbook': BookOpen,
+  '/stylist/schedule': CalendarDays,
+  '/stylist/debts': Wallet,
+  '/stylist/stats': ChartNoAxesCombined,
+}
+
 const isStylistNavItemActive = (pathname: string, path: string) =>
   pathname === path || pathname.startsWith(`${path}/`)
 
@@ -42,6 +51,7 @@ const stylistNavLinkClass = (active: boolean) =>
 const StylistNavLink = ({ item, pathname }: { item: NavItem; pathname: string }) => {
   const { t } = useTranslation()
   const active = isStylistNavItemActive(pathname, item.path)
+  const Icon = navIcons[item.path]
 
   return (
     <Link
@@ -50,6 +60,7 @@ const StylistNavLink = ({ item, pathname }: { item: NavItem; pathname: string })
       // WCAG 4.1.2 — trenutna stranica je označena programski, ne samo stilom.
       aria-current={active ? 'page' : undefined}
     >
+      {Icon ? <Icon data-aurum-nav-icon aria-hidden="true" className="mr-2 h-4 w-4 shrink-0" /> : null}
       {t(item.labelKey)}
     </Link>
   )
@@ -80,7 +91,7 @@ export default function StylistLayout() {
   return (
     <div className="admin-shell min-h-screen bg-surface-sunken">
       <SkipLink targetId="main" />
-      <header className="sticky top-0 z-20 border-b border-line bg-surface">
+      <header data-stylist-header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto max-w-[1600px] px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-4">
             <Link to="/stylist/inbox" className="font-semibold text-content">

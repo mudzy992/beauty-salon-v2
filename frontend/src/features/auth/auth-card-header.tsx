@@ -1,24 +1,37 @@
+import { useTranslation } from 'react-i18next'
+import { AppLogo } from '../../components/brand/app-logo'
+import { UploadedBrandLogo } from '../../components/brand/uploaded-brand-logo'
 import { LanguageSwitcher } from '../../components/i18n/language-switcher'
+import { useSettings } from '../../context/SettingsContext'
+import { useTheme } from '../shell/theme/theme-context'
 import { ThemeSwitcher } from '../shell/theme/theme-switcher'
 
-/**
- * NEJRA §12 / odluka `card_header` (2026-11-11, uz `approve_s5`): izbornik teme i
- * jezika stoji U ZAGLAVLJU auth/onboarding kartice, **iznad `<h1>`**, na istom
- * relativnom mjestu na svih 7 ekrana bez shella (3.2.6 Consistent Help/Navigation).
- *
- * Ovo je jedini novi feature iz Q8/§12 i zato je jedina namjerna promjena
- * klasičnog DOM-a u S5. Sve Aurum boje dolaze isključivo iz `[data-skin="aurum"]`
- * CSS bloka; bez tog atributa komponenta je običan flex red. Nema novih stringova:
- * `ThemeSwitcher` i `LanguageSwitcher` već koriste postojeće BS/EN ključeve.
- */
+/** Shared brand and language/theme controls, above the auth and onboarding h1. */
 export function AuthCardHeader({ className = '' }: { className?: string }) {
+  const { t } = useTranslation()
+  const { getSetting } = useSettings()
+  const { skin } = useTheme()
+  const title = getSetting('app_title', t('app.title'))
+  const logoPath = getSetting('app_logo', '')
+  const logoColor = skin === 'aurum' ? 'hsl(var(--text))' : getSetting('app_logo_svg_color', 'var(--brand-primary)')
+  const textColor = skin === 'aurum' ? 'hsl(var(--text))' : getSetting('app_logo_text_color', 'var(--brand-primary)')
+
   return (
     <div
       data-aurum-card-header
       className={`mb-6 flex flex-wrap items-center justify-between gap-3 ${className}`}
     >
-      <ThemeSwitcher />
-      <LanguageSwitcher />
+      <div data-auth-brand className="min-w-0">
+        {logoPath.trim() ? (
+          <UploadedBrandLogo logoPath={logoPath} word={title} svgColor={logoColor} textColor={textColor} />
+        ) : (
+          <AppLogo title={title} svgColor={logoColor} textColor={textColor} animated={false} />
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <ThemeSwitcher />
+        <LanguageSwitcher />
+      </div>
     </div>
   )
 }
