@@ -34,3 +34,8 @@ test('spotlight rails do not auto-move or duplicate focusable thumbnails', () =>
   assert.match(spotlightSource, /items\.map\(\(row\)/)
   assert.match(spotlightSource, /onClick=\{\(\) => onSelect\(row\.index\)\}/)
 })
+
+test('thumbnail accessible names contain visible comparison text and distinguish selections', () => {
+  assert.match(spotlightSource, /labelWithVisibleText\(t\('public\.beforeAfter\.selectTransformationAria'\), `\$\{t\('public\.beforeAfter\.comparisonLabels'\)\} \$\{row\.index \+ 1\}`\)/)
+  assert.match(spotlightSource, /aria-label=\{`\$\{t\('public\.beforeAfter\.selectTransformationAria'\)\} \$\{index \+ 1\}`\}/)
+})

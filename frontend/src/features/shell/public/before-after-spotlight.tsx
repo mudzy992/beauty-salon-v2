@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
 import { MediaImage } from '../../../components/media-image'
+import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs'
 import { BeforeAfterSlider } from '../../../components/BeforeAfterSlider'
 
 const MotionDiv = motion.div
@@ -34,14 +35,14 @@ const MarqueeThumbColumn = ({ items, resolveBefore, resolveAfter, onSelect }: {
           key={row.pair.id}
           type="button"
           onClick={() => onSelect(row.index)}
-          aria-label={t('public.beforeAfter.selectTransformationAria')}
+          aria-label={labelWithVisibleText(t('public.beforeAfter.selectTransformationAria'), `${t('public.beforeAfter.comparisonLabels')} ${row.index + 1}`)}
           className="w-full shrink-0 overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-900/[0.06] transition hover:shadow-md hover:ring-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
         >
           <div className="grid grid-cols-2 gap-px bg-slate-200">
             <MediaImage src={resolveBefore(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
             <MediaImage src={resolveAfter(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
           </div>
-          <div className="px-2 py-1.5 text-center text-[10px] font-medium text-slate-500">{t('public.beforeAfter.comparisonLabels')}</div>
+          <div className="px-2 py-1.5 text-center text-xs font-medium text-slate-500">{t('public.beforeAfter.comparisonLabels')}</div>
         </button>
       ))}
     </div>
@@ -163,7 +164,7 @@ export const BeforeAfterSpotlight = ({
                   type="button"
                   onClick={() => setSelectedPairIndex(index)}
                   className="snap-center shrink-0 w-[42vw] max-w-[200px] overflow-hidden rounded-xl border border-slate-200/90 bg-white text-left shadow-sm"
-                  aria-label={t('public.beforeAfter.selectTransformationAria')}
+                  aria-label={`${t('public.beforeAfter.selectTransformationAria')} ${index + 1}`}
                 >
                   <div className="grid grid-cols-2 gap-px bg-slate-200">
                     <MediaImage

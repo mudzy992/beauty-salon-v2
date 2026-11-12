@@ -1301,3 +1301,9 @@
 [data-skin="aurum"] [data-aurum-shell="header"] button[class*="hover:bg-slate-100"] {
   color: hsl(var(--text));
 }
+
+/* Populated homepage: strong semantic text on transformation and review surfaces. */
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-transformations] :is([class*="text-slate-500"], [class*="text-slate-600"], a),
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-review] [class*="text-slate-500"] {
+  color: hsl(var(--text-muted-strong));
+}
