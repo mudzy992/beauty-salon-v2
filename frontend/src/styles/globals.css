@@ -1094,3 +1094,14 @@
   font-size: 1.25rem;
   line-height: 1.4;
 }
+
+/* Existing table and calendar library colours must follow Aurum's paired tokens. */
+[data-skin="aurum"] .admin-shell table.app-table th {
+  color: hsl(var(--text-muted));
+}
+[data-skin="aurum"] [data-aurum-calendar] .rbc-time-gutter {
+  background-color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-calendar] .rbc-today {
+  background-color: hsl(var(--surface-muted));
+}

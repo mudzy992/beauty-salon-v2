@@ -96,3 +96,9 @@ Odobrena mapa A, zaglavlje kalendara i Dashboard prezentacija su u lokalnom diff
 ### Revidirani identitet — inkrement 2026-11-11
 
 Sačuvani WIP je pregledan: zadržana mapa A, kalendarski header i mobilni podaci rezervacije; dodane dekorativne Lucide ikone svih 17 stavki i Aurum-scoped oblikovanje admin navigacije i dashboarda, bez novih podataka. Za izbjegavanje paralelnih standarda dashboard koristi postojeće admin `StatGrid`, `DataTable` i `EmptyState`; prethodni `aurum-stat-grid.tsx` ostaje lokalno sačuvan, nije u ovom inkrementu. Ovo je djelimičan inkrement, ne završetak S6 ni cijelog identiteta; lista rezervacija i preostale površine traže dalji rad. Šest novih a11y-e2e slučajeva mjeri tri admin rute u oba režima, s provjerom autentificirane rute i režima; nema uklanjanja ili slabljenja postojećih testova. CI je na čekanju. Ručni 320px/400%, tastatura i čitač ekrana nisu potvrđeni.
+
+### STOP — rendered dark kontrast
+
+Commit `f4ed95554b52c3a2613a9959619633f64f4a8ff8` / [CI 43234242404](https://github.com/mudzy992/beauty-salon-v2/actions/runs/43234242404) završio 4/5; rendered a11y **263 passed / 2 failed**. Nova dark mjerenja: dashboard tabela `#64748b` na `#1a1510` 3,8:1 (4,5:1 potrebno); kalendar satne oznake `#f5ede0` na bijeloj 1,16:1 i današnje zaglavlje `#f5ede0` na `#eaf6ff` 1,05:1 (4,5:1 potrebno). Light mjerenja svih triju dodatih ruta i dark rezervacije prolaze u ovom CI-u. Artefakt `13952146753`, sha256 `e79666242d07f65f86de6dd7439c17dd78b94c7fa9fb6cd7997ad529651da3a0`. STOP za stvarni pad Aurum kontrasta; paleta i testovi nisu promijenjeni. Potrebna odluka prije sanacije postojećim semantičkim tokenima i ponovnog CI-a.
+
+Vlasnik je odobrio sanaciju: zaglavlja zajedničke admin tabele koriste `--text-muted`, a satna traka i današnji dan kalendara `--surface` / `--surface-muted` u Aurumu. Postojeći light/dark axe testovi ostaju nepromijenjeni; dodata source provjera pravila, CI rendered rezultat još na čekanju.

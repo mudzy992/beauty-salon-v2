@@ -41,3 +41,10 @@ test('every navigation destination has a decorative icon and keeps its translate
   assert.match(css, /\[data-aurum-nav-icon\] \{ display: none; \}/)
   assert.match(css, /\[data-skin="aurum"\] \[data-aurum-nav-icon\] \{ display: block; \}/)
 })
+
+test('Aurum table headings and calendar backgrounds use paired semantic tokens', () => {
+  const css = read('../../../styles/globals.css')
+  assert.match(css, /\[data-skin="aurum"\] \.admin-shell table\.app-table th\s*\{\s*color:\s*hsl\(var\(--text-muted\)\)/)
+  assert.match(css, /\[data-skin="aurum"\] \[data-aurum-calendar\] \.rbc-time-gutter\s*\{\s*background-color:\s*hsl\(var\(--surface\)\)/)
+  assert.match(css, /\[data-skin="aurum"\] \[data-aurum-calendar\] \.rbc-today\s*\{\s*background-color:\s*hsl\(var\(--surface-muted\)\)/)
+})
