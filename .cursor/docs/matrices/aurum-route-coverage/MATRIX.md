@@ -1,6 +1,6 @@
 # MATRIX — Pokrivenost ruta Aurum refaktorom
 
-**Status:** 🟡 **S0–S4 završeni (svaki 5/5).** ✅ je **14/14 javnih ruta** (#1–#14: S2 tri, S3 pet, S4 šest); preostalih **44 deklaracija** (auth/izuzeci, admin, stylist) čeka S5–S10. **S4:** `7d2ab0e` / run `43177106881` / 5/5; default-classic axe 252/252 / 32 rute, artifact `13924239127`.
+**Status:** 🟡 **S0–S5 završeni (svaki 5/5).** ✅ je **20/58 deklaracija** = 14/14 javnih (#1–#14) + 6/8 auth/izuzeci (#15–#20, #22); preostalih **38** (fullscreen kalendar #21, admin, stylist) čeka S6–S10. **S5:** `90acca2` / run `43181880043` / 5/5; default-classic axe 252/252 / 32 rute, artifact `13926547985`.
 **Izvor inventara (izmjeren 2026-11-11):** `frontend/src/app/router.tsx`, `app/routes/public.routes.tsx`, `app/routes/admin.routes.tsx`; unakrsno `docs/audit/UX_UI_ROUTE_INVENTORY.md`.
 **Ukupno:** **58 deklaracija ruta** = javne 14 + auth/izuzeci 8 + admin 24 + stylist 12.
 **Vlasnik plana:** `.cursor/plans/aurum-web-refactor/` · **Ažurirano:** 2026-11-11
@@ -34,14 +34,14 @@
 
 | # | Ruta | Ekran / izvor | Guard | Segment | Ključni testovi | Status |
 |---|---|---|---|---|---|---|
-| 15 | `/login` | `pages/Login.tsx` | `PublicOnlyRoute` | S5 | `test:login-i18n`, `test:login-accessibility` | ⬜ |
-| 16 | `/register` | `pages/Register.tsx` | `PublicOnlyRoute` | S5 | `test:registration-errors`, `test:registration-accessibility` | ⬜ |
-| 17 | `/reset-password` | `pages/ResetPassword.tsx` | nema | S5 | `test:reset-password-accessibility` | ⬜ |
-| 18 | `/force-change-password` | `pages/ForceChangePassword.tsx` | `ProtectedRoute` | S5 | `test:force-change-password-i18n`, `test:force-change-password-accessibility` | ⬜ |
-| 19 | `/onboarding/gender` | `pages/onboarding/OnboardingGender.tsx` | `ProtectedRoute` | S5 | `test:onboarding-gender-i18n`, `test:onboarding-gender-accessibility` | ⬜ |
-| 20 | `/onboarding/email` | `pages/onboarding/OnboardingEmail.tsx` | `ProtectedRoute` | S5 | `test:onboarding-email-i18n`, `test:onboarding-email-accessibility` | ⬜ |
+| 15 | `/login` | `pages/Login.tsx` | `PublicOnlyRoute` | S5 | `test:login-i18n`, `test:login-accessibility` | ✅ **S5** (`43181880043` / `90acca2`); `AuthCardHeader` iznad `<h1>`, `data-aurum-auth-card`, `<h1>` regex netaknut |
+| 16 | `/register` | `pages/Register.tsx` | `PublicOnlyRoute` | S5 | `test:registration-errors`, `test:registration-accessibility` | ✅ **S5** (`43181880043` / `90acca2`); 8 polja/`autoComplete`/avatar `fieldset` 0 diff |
+| 17 | `/reset-password` | `pages/ResetPassword.tsx` | nema | S5 | `test:reset-password-accessibility` | ✅ **S5** (`43181880043` / `90acca2`); token cleanup i stale zaštite 0 diff |
+| 18 | `/force-change-password` | `pages/ForceChangePassword.tsx` | `ProtectedRoute` | S5 | `test:force-change-password-i18n`, `test:force-change-password-accessibility` | ✅ **S5** (`43181880043` / `90acca2`); preko `OnboardingShell` |
+| 19 | `/onboarding/gender` | `pages/onboarding/OnboardingGender.tsx` | `ProtectedRoute` | S5 | `test:onboarding-gender-i18n`, `test:onboarding-gender-accessibility` | ✅ **S5** (`43181880043` / `90acca2`); `aria-pressed` + `data-aurum-progress` |
+| 20 | `/onboarding/email` | `pages/onboarding/OnboardingEmail.tsx` | `ProtectedRoute` | S5 | `test:onboarding-email-i18n`, `test:onboarding-email-accessibility` | ✅ **S5** (`43181880043` / `90acca2`); OTP/`otp-input.tsx` 0 diff |
 | 21 | `/admin/reservations/calendar` | `pages/ReservationsCalendar.tsx` (fullscreen, izvan layouta) | `ProtectedRoute` | S6 | `test:admin-reservations-calendar-i18n`, `test:admin-calendar-drawer-accessibility`, `test:calendar-aria-shim` | ⬜ |
-| 22 | `*` | `pages/NotFound.tsx` | nema | S5 | `test:route-guards-i18n` | ⬜ |
+| 22 | `*` | `pages/NotFound.tsx` | nema | S5 | `test:route-guards-i18n` | ✅ **S5** (`43181880043` / `90acca2`); jedan `<h1>` (2.4.6), jedan primarni CTA na `/` |
 
 ---
 
@@ -105,7 +105,7 @@
 | Provideri | `app/providers.tsx` | S1 | ✅ `ThemeProvider` iznad `SettingsProvider`; `MotionConfig` netaknut; `test:theme-brand-precedence` |
 | Tokeni / Tailwind | `styles/globals.css`, `styles/index.css`, `tailwind.config.js` | S1 | ✅ 2 Aurum bloka + `fontFamily.serif`; `test:theme-ssot-sync`; `:root`/`.dark` netaknuti |
 | Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | ✅ **S2: 0 diff** (grep dokaz); Aurum varijanta ostvarena u `globals.css` bez diranja dijeljenih komponenti |
-| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S2 (prvi potrošači), **S4 (`confirm-dialog`)**, S6–S10 (migracija) | ✅ **S2 6/8 + S4 `ConfirmDialog`** u `media-consent-panel.tsx` (Radix, fokus-povratak); `data-table`/`form-section` čekaju S6–S10 |
+| Nove primitive | `features/shell/aurum/ui/*` + `features/auth/auth-card-header.tsx` | S1, S2, **S4 (`confirm-dialog`)**, **S5 (`AuthCardHeader`)**, S6–S10 | ✅ **S2 6/8 + S4 `ConfirmDialog` + S5 `AuthCardHeader`** (`ThemeSwitcher` + `LanguageSwitcher` u zaglavlju 7 kartica); `data-table`/`form-section` čekaju S6–S10 |
 | Stare primitive | `features/shell/admin/ui/*` | S11 (brisanje, 0 potrošača) | ⬜ namjerno ostaju do S11 |
 | Izbornik teme | `features/shell/theme/*` | S1 | ✅ `ThemeSwitcher` u 3 shella; `test:theme-state`, `test:theme-switcher-a11y` |
 | i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ✅ **S4: 2730/2730** (S1 +6, S3 +11, S4 +2 s `{{service}}`/`{{date}}`); `check_i18n.py --strict` PASS |

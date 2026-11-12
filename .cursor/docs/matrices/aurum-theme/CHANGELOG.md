@@ -28,7 +28,7 @@
 
 **R2 riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` dodaje `.dark` na `<html>` uz `data-skin="aurum"`; time se aktiviraju postojeće `dark:` varijante, a Aurum tokeni moraju imati veću specifičnost. S1 je naknadno odobren i završen (`43100889990`), S2 (`43110763869`); ova odluka nije pokrenula S1 automatski.
 
-**Otvoreno i dalje (S0 unos, historijski):** S3 je naknadno odobreno (`approve_s3`) i završeno (`43116167107`); S4 je odobreno (`approve_s4`) i završeno (`43177106881`); R2 i odobrenja S1–S4 više nisu otvorena. **S5 čeka STOP + eksplicitno odobrenje**.
+**Otvoreno i dalje (S0 unos, historijski):** S3 je naknadno odobreno (`approve_s3`) i završeno (`43116167107`); S4 je odobreno (`approve_s4`) i završeno (`43177106881`), S5 je odobreno (`approve_s5` + `card_header`) i završeno (`43181880043`); R2/O2 i odobrenja S1–S5 više nisu otvorena. **S6 čeka STOP + eksplicitno odobrenje**.
 
 ---
 
@@ -72,3 +72,11 @@
 **Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet), `approve_s4`. Bez `data-skin="aurum"` nijedno novo pravilo se ne primjenjuje — rendered axe **252 passed | 0 failed | 0 skipped** na default `classic` to potvrđuje.
 
 **Status:** ✅ source-only (`test:theme-ssot-sync`, `check_ui_contrast.py --strict` **140/140**) + ✅ **5/5 CI** run **`43177106881`** na `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`); artifact `13924239127`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400%, čitač ekrana i `1.4.6` AAA do S11; `1.4.3`/`2.5.3` ostaju nepotpuni u coverage logu.
+
+## 2026-11-11 · S5 · Auth/onboarding kartice koriste postojeće Aurum tokene
+
+**Šta:** `globals.css` dobio **84 append-only Aurum-only linije** (`postcss.parse` **124 pravila**). Novi selektori isključivo pod `[data-skin="aurum"] [data-aurum-auth-page]`: neprozirna `var(--aurum-surface)` kartica s `var(--aurum-border)` linijom i isključenim `backdrop-filter`, zaglavlje s odobrenim `ThemeSwitcher`/`LanguageSwitcher` (`aria-pressed="true"` → `var(--aurum-brand)`/`var(--aurum-onbrand)`), filmski veo `var(--nejra-hero-page)` na banneru, tačkice koraka, savjet, 44 px CTA, zlatni `<h1>` na NotFound, `forced-colors`. **S2 `:432`, S3 `:646` i S4 `:811` imaju 0 uklonjenih linija**; blok ne definira nijednu novu CSS promjenljivu ni tvrdi boju.
+
+**Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet), `approve_s5` + `card_header`. Bez `data-skin="aurum"` nijedno novo pravilo se ne primjenjuje — rendered axe **252 passed | 0 failed | 0 skipped** na default `classic` to potvrđuje; `2.5.3` coverage se pomjerio na `passed 9 / incomplete 22 / inapplicable 1` zbog 4 nova pristupačna dugmeta, bez prekršaja.
+
+**Status:** ✅ source-only (`test:theme-ssot-sync`, `check_ui_contrast.py --strict` **140/140**) + ✅ **5/5 CI** run **`43181880043`** na `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`); artifact `13926547985`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400%, čitač ekrana i `1.4.6` AAA do S11; `1.4.3`/`2.5.3` ostaju nepotpuni u coverage logu.

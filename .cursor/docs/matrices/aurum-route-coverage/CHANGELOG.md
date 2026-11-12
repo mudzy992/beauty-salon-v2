@@ -56,3 +56,11 @@
 **Zašto:** odluka `approve_s4` po NEJRA §09; režim plan → implementacija → 5/5 CI → evidencija → STOP. Dijeljene komponente (`my-reservation-card`, `payment-summary-block`, `media-consent-panel`, potvrdni dijalog) dobile su `data-aurum-surface`/globalni `[role="dialog"]` stil bez diranja API-ja, `queryKeys`, socket eventa, `PublicFeatureGate` i rezervacijskog FSM-a.
 
 **Status:** ✅ **204/204** `test:*` (bez novih skripti, bez izmjene ijednog testa), 5 Python gate-ova, build **281,3/300 KiB**, BS/EN **2730/2730**, `check_ui_contrast` **140/140 source-only**. **CI:** commit `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`), run **`43177106881`** = **5/5 success**; `a11y-e2e` job `131043916664` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13924239127` (331564 B). 🟡 rendered axe za `aurum-light`/`aurum-dark`, 320 px / 400% i čitač ekrana do S11.
+
+## 2026-11-11 · S5 · 7 ekrana izvan shellova (20/58 ✅)
+
+**Šta:** redovi **15–20 i 22** (`/login`, `/register`, `/reset-password`, `/force-change-password`, oba onboardinga, `*`) prebačeni u ✅. Time je **20/58 deklaracija** pod Aurum prezentačkim slojem; preostalih **38** (fullscreen kalendar #21, 24 admin, 12 stylist) čeka S6–S10. U §5 ažuriran je red „Nove primitive" (`AuthCardHeader`, odluka `card_header`).
+
+**Zašto:** `approve_s5` + O2 = `card_header` po NEJRA §12; režim plan → implementacija → 5/5 CI → evidencija → STOP. Dijeljeni `OnboardingShell` pokriva 3 ekrana jednom izmjenom; `NotFound` je dobio jedan `<h1>`. Guardovi, `app/router.tsx`, error mapping, `autocomplete`, OTP paste i `PublicFeatureGate` imaju **0 diff**.
+
+**Status:** ✅ **204/204** `test:*` (bez novih skripti, bez izmjene ijednog testa), 5 Python gate-ova, build **281,6/300 KiB**, BS/EN **2730/2730** (bez novih ključeva), `check_ui_contrast` **140/140 source-only**. **CI:** commit `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`), run **`43181880043`** = **5/5 success**; `a11y-e2e` job `131059574192` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13926547985` (331785 B). 🟡 rendered axe za `aurum-light`/`aurum-dark`, 320 px / 400% i čitač ekrana do S11.

@@ -1,6 +1,6 @@
 # CHECKLIST — Aurum web refaktor
 
-**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (**S4 završen: `7d2ab0e` / run `43177106881` / 5/5**)
+**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (**S5 završen: `90acca2` / run `43181880043` / 5/5**)
 **Legenda:** ✅ izmjereno/provjereno · 🟡 u kodu ili planu, nije provjereno u renderu · ❌ nije zadovoljeno · ➖ nije primjenjivo · ⬜ nije započeto
 
 ---
@@ -11,7 +11,7 @@
 |---|---|---|---|
 | K0 | Plan + CHECKLIST + matrice napisani, **bez koda** | ✅ | ovaj folder + 2 matrice; `git status` je tada pokazivao samo `.cursor/` izmjene |
 | K0b | **Odobrenje plana od vlasnika** | ✅ | odgovor `approve_s0` na Kapiju 0 |
-| K1–K12 | Odobrenje svakog segmenta S0–S11 prije sljedećeg | 🟡 **K0 (`approve_s0`) + K1 (S1) + K2 (S2) + K3 (`approve_s3`) + K4 (`approve_s4`) ✅**; K5–K12 čekaju | svaki STOP-sažetak |
+| K1–K12 | Odobrenje svakog segmenta S0–S11 prije sljedećeg | 🟡 **K0 (`approve_s0`) + K1 (S1) + K2 (S2) + K3 (`approve_s3`) + K4 (`approve_s4`) + K5 (`approve_s5`) ✅**; K6–K12 čekaju | svaki STOP-sažetak |
 
 ---
 
@@ -24,7 +24,7 @@
 | S2 | Javni shell + Početna + Usluge + Detalj | ✅ **ZAVRŠEN** | `d1fb55d` | **`43110763869`** | ✅ **5/5** | **204/204** | **279,9 KiB (+0,8)** | `dopuna_ssot`: NEJRA §10 + `test:public-aurum-hero-contrast` + CI korak; Aurum-only CSS, 6 S1 primitiva, `aria-current`, klasični markup/API/flagovi netaknuti; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute na default `classic`, artifact `13896851237` |
 | S3 | Javni sadržaj (blog, galerija, kontakt, klijenti) | ✅ **ZAVRŠEN** | `a12cf5b` | **`43116167107`** | ✅ **5/5** | **204/204** | **280,9 KiB (+1,0)** | `approve_s3`; 5 ruta + 2 dijeljene blog komponente u `isAurum` grani, 164 Aurum-only CSS linije, `DialogDescription`, `fieldset/legend`, `aria-describedby`, 11 novih BS/EN ključeva (2728/2728); API/parser/flagovi/`PublicFeatureGate`/`components/ui/*`/`media-image.tsx` 0 diff; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute na default `classic`, artifact `13899570263`; 1 source-contract regex proširen uz obrazloženje u §10 plana |
 | S4 | Javni tokovi (rezervacija, profil, token…) | ✅ **ZAVRŠEN** | `7d2ab0e` | **`43177106881`** | ✅ **5/5** | **204/204** | **281,3 KiB (+0,4)** | `approve_s4`; 6 ruta + 3 dijeljene komponente, 130 Aurum-only CSS linija (append-only), `<time dateTime>` ×3, `ConfirmDialog` za revoke saglasnosti, 2 nova BS/EN ključa (**2730/2730**); FSM/`disabled`/`aria-pressed`/idempotency/stale refovi/API **0 diff**; `PublicFeatureGate` netaknut; rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute na default `classic`, artifact `13924239127` (331564 B) |
-| S5 | Auth + onboarding + NotFound | ⬜ | — | — | ⬜ | — | — | pitanje: mjesto ThemeSwitcher-a |
+| S5 | Auth + onboarding + NotFound | ✅ **ZAVRŠEN** | `90acca2` | **`43181880043`** | ✅ **5/5** | **204/204** | **281,6 KiB (+0,3)** | `approve_s5` + **O2 = `card_header`**; 7 ekrana, novi `AuthCardHeader`, 84 append-only Aurum CSS linije, `<h1>` na NotFound; **0 diff** auth tokova/guardova/`autocomplete`/OTP/busy-stale/API/`PublicFeatureGate`; bez novih i18n ključeva (**2730/2730**); rendered axe **252 passed \| 0 failed \| 0 skipped** / 32 rute na default `classic`, artifact `13926547985` (331785 B) |
 | S6 | Admin shell + Dashboard + Rezervacije + kalendar | ⬜ | — | — | ⬜ | — | — | pitanje: grupisanje navigacije |
 | S7 | Dnevna knjiga, Finansije, Lojalnost | ⬜ | — | — | ⬜ | — | — | financijski paritet |
 | S8 | Analitika, Korisnici, Salon, Usluge, Frizeri | ⬜ | — | — | ⬜ | — | — | razbijanje velikih fajlova |
@@ -57,7 +57,7 @@
 
 | Stavka | Status | Napomena |
 |---|---|---|
-| 58 deklaracija ruta radi; stari URL-ovi + `?tab=` očuvani | ✅ **S2** | 3 javne rute + shell; `git diff` bez izmjena rutera |
+| 58 deklaracija ruta radi; stari URL-ovi + `?tab=` očuvani | ✅ **S2 + S3 + S4 + S5** | `app/router.tsx` i svi guardovi **0 diff** kroz S5; 14/14 javnih + 6/8 auth/izuzetaka = **20/58** ekrana pod Aurum slojem |
 | API ugovori, `queryKeys`, socket eventi, guardovi netaknuti | ✅ **S2 + S3 + S4** | Q10; S4 `git diff -U0` bez API/`queryKey`/`*RequestIdRef`/`Idempotency`/`setStep`/statusa/`disabled` uslova |
 | Podaci, iznosi, datumi, statusi, sort, paginacija, zbir netaknuti | ✅ **S2** | `features/public-catalog/*` i `data/*.mjs` 0 diff; paritet testi zeleni |
 | BS/EN paritet; bez hard-coded stringova | ✅ **S2 + S3 + S4** | `check_i18n.py --strict` **2730/2730** nakon 2 nova S4 ključa s `{{service}}`/`{{date}}`; `i18n-key-resolution` 0 interpolacijskih propusta |

@@ -1,8 +1,8 @@
 # HANDOFF — Aurum web refaktor
 
-**Stanje:** ✅ **S0 → S1 → S2 → S3 → S4 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1, S2, S3 (`approve_s3`) i S4 (`approve_s4`), a na S2 STOP uvjet odabrao `dopuna_ssot`. S4 je realizovan po [05_phase-4-public-flows.md](05_phase-4-public-flows.md).
+**Stanje:** ✅ **S0 → S1 → S2 → S3 → S4 → S5 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1, S2, S3 (`approve_s3`), S4 (`approve_s4`) i S5 (`approve_s5` + O2 `card_header`), a na S2 STOP uvjet odabrao `dopuna_ssot`. S5 je realizovan po [06_phase-5-auth-exceptions.md](06_phase-5-auth-exceptions.md).
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commiti:** `fa6d73a` (dizajn) + `bbd7ca5` (CI fallback) + `3ed3069` (konačna evidencija)
-**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2:** `d1fb55d` / `43110763869` · **S3 commit:** `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · **S3 CI:** `43116167107` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13899570263` · **Datum:** 2026-11-11 · **S4 commit:** `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`) · **S4 CI:** **`43177106881` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13924239127` (331564 B) · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S5 (auth + onboarding + NotFound)?". R2 je već riješeno (`dark_yes`); `PublicFeatureGate` nije diran.
+**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2:** `d1fb55d` / `43110763869` · **S3 commit:** `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · **S3 CI:** `43116167107` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13899570263` · **Datum:** 2026-11-11 · **S4 commit:** `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`) · **S4 CI:** **`43177106881` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13924239127` (331564 B) · **S5 commit:** `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`) · **S5 CI:** **`43181880043` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13926547985` (331785 B) · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S6 (admin shell + Dashboard + Rezervacije + fullscreen kalendar)?". R2/O2 su riješeni; `PublicFeatureGate` nije diran.
 
 ---
 
@@ -177,7 +177,7 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Šta još NIJE dokazano (🟡 do S11):** rendered axe nad `aurum-light`/`aurum-dark`, 320 px / zoom 400%, čitač ekrana, fizički uređaj, `1.4.6` AAA.
 
-**Za S4 (ostvareno):** `approve_s4`; 6 javnih tokova je u 3 stanja teme uz nulti FSM/API diff, run **`43177106881` = 5/5**. **S5 čeka STOP + eksplicitno odobrenje**.
+**Za S4 (ostvareno):** `approve_s4`; 6 javnih tokova je u 3 stanja teme uz nulti FSM/API diff, run **`43177106881` = 5/5**. **S5 je naknadno odobren (`approve_s5` + `card_header`) i završen (5/5 `43181880043`)**.
 
 ---
 
@@ -191,4 +191,18 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Nije dirano:** rezervacijski FSM, `disabled` uslovi, `aria-pressed`/`progressbar`, validacije, idempotency, backend dostupnost, statusi, stale zaštite, API/`queryKeys`/socket, `PublicFeatureGate`, `/backend`, `/mobile`, `package-lock.json`, `ci.yml`. Nijedan test nije oslabljen ni izmijenjen.
 
-**Za S5 (ostvareno):** `approve_s5` + **O2 = `card_header`**. O4 ostaje otvoreno za S6–S9. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.
+**Za S5 (ostvareno):** `approve_s5` + **O2 = `card_header`**; 7 ekrana izvan shellova, `AuthCardHeader` u zaglavlju kartice. **O3 i O4 ostaju otvorena za S6**. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.
+
+---
+
+## 12. S5 realizacija (2026-11-11) — predaja S6
+
+**Odobrenje:** `approve_s5` + **`card_header`** (O2 zatvoreno). Režim „plan → implementacija → 5/5 CI → evidencija → STOP".
+
+**Šta je urađeno:** 13 fajlova / +156 −24 na `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`). Novi `AuthCardHeader` (`ThemeSwitcher` + `LanguageSwitcher`) montiran u zaglavlje kartice **iznad `<h1>`** na `Login`, `Register`, `ResetPassword`, `NotFound` i u dijeljeni `OnboardingShell` (koji pokriva `ForceChangePassword`, `OnboardingGender`, `OnboardingEmail`). `globals.css` +84 SAMO-Aurum linije (append-only, bez novih promjenljivih). `NotFound` dobio jedan `<h1>`. **Nema `useTheme()`** — CSS `[data-skin="aurum"]` pokriva oba Aurum stanja.
+
+**Dokazi:** **204/204** `test:*`, 5 Python gate-ova, **2730/2730** i18n, **140/140** source-only kontrast, build **281,6/300 KiB**, `typecheck:e2e` 0, `lint` 0/7, `diff --check` čist, `postcss` 124. CI **`43181880043`** = **5/5 success**; `a11y-e2e` job `131059574192` = **252 passed | 0 failed | 0 skipped** / 32 rute, artifact `13926547985` / 331785 B. Rendered axe **samo default `classic`**; `1.4.6` AAA i `1.4.3`/`2.5.3` nepotpunosti ostaju u logu.
+
+**Nije dirano:** auth tokovi, guardovi, error mapping, `autocomplete`, OTP paste, busy/stale zaštite, token cleanup, `PublicFeatureGate`, `app/router.tsx`, `otp-input.tsx`, `/backend`, `/mobile`, `ci.yml`, lokalni fajlovi. Nijedan test nije oslabljen ni izmijenjen.
+
+**Otvoreno za S6:** **O3** (hoće li se koristiti dopušteno grupisanje navigacije Q10 i gdje `ThemeSwitcher` u fullscreen kalendaru) i **O4** (smije li se `window.confirm` u adminu zamijeniti `ConfirmDialog`-om). Oba se postavljaju na ovom STOP-u. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.
