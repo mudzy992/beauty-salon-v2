@@ -127,7 +127,7 @@ test('globals.css S2 hero tokeni su tačni, animacija nije beskonačna, veo je t
     assert.match(css, new RegExp(`${name}:\\s*${hex};`), `nedostaje ${name} = ${hex}`)
   }
   assert.match(css, /\[data-skin="aurum"\] \[data-aurum-hero\]/)
-  assert.match(css, /animation:\s*aurum-hero-drift 14s linear 2 both;/)
+  assert.match(css, /animation:\s*aurum-hero-drift 2s ease-out 1 both;/)
   assert.doesNotMatch(css, /animation[^;]*\binfinite\b/, '2.3.1: nijedna animacija ne smije biti beskonačna')
   assert.match(css, /\[data-skin="aurum"\] \[data-aurum-hero-overlay\] \{[^}]*rgba\(14, 11, 8, 0\.78\)/,
     'tamni veo jamči da stvarna pozadina nije svjetlija od izračunate kompozicije')

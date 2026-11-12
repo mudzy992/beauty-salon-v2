@@ -1,3 +1,4 @@
+import { apiError } from '../common/errors/api-error-codes';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SetSettingDto } from './dto/set-setting.dto';
 import { EventsGateway } from '../events/events.gateway';
@@ -259,10 +260,10 @@ export class SettingsService {
     const registry = this.getRegistryItemOrThrow(key);
     const rawValue = this.normalizeString(dto.value ?? '');
     if (key === 'theme_active_skin' && !['classic', 'aurum'].includes(rawValue)) {
-      throw new BadRequestException('Neispravna tema.');
+      throw new BadRequestException(apiError('SETTINGS_INVALID_THEME'));
     }
     if (key === 'theme_default_mode' && !['light', 'dark'].includes(rawValue)) {
-      throw new BadRequestException('Neispravan režim teme.');
+      throw new BadRequestException(apiError('SETTINGS_INVALID_THEME_MODE'));
     }
     const hexKeys = new Set([
       'app_logo_svg_color',

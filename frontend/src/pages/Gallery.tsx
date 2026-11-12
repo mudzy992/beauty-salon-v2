@@ -278,7 +278,7 @@ export default function Gallery() {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-slate-500">
+      <div className="flex justify-center p-10 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
       </div>
     )
@@ -297,7 +297,7 @@ export default function Gallery() {
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="w-full lg:w-[300px] lg:min-w-[280px]">
           {categories.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('common.noData')}</p>
+            <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
           ) : (
             <div className="space-y-2">
               {categories.map((c) => (
@@ -324,7 +324,7 @@ export default function Gallery() {
                       <span className="block truncate font-semibold text-slate-900 dark:text-slate-50">
                         {c.name}
                       </span>
-                      <span className="mt-1 block text-xs text-slate-500">
+                      <span className="mt-1 block text-xs text-muted-foreground">
                         {c.autoPublishConsentedPairs
                           ? t('gallery.admin.autoCategorySummary', { count: c._count?.images ?? 0 })
                           : t('gallery.admin.imageCount', { count: c._count?.images ?? 0 })}{' '}
@@ -349,7 +349,7 @@ export default function Gallery() {
         <div className="flex-1">
           {!selectedCatId ? (
             <Card className="p-6">
-              <p className="text-sm text-slate-500">{t('gallery.admin.selectCategoryPrompt')}</p>
+              <p className="text-sm text-muted-foreground">{t('gallery.admin.selectCategoryPrompt')}</p>
             </Card>
           ) : (
             <Card className="p-6">
@@ -363,10 +363,10 @@ export default function Gallery() {
                       {t('gallery.admin.autoPairsBadge')}
                     </Badge>
                   ) : null}
-                  {imagesLoading ? <span className="text-xs text-slate-500">{t('gallery.admin.loadingImages')}</span> : null}
+                  {imagesLoading ? <span className="text-xs text-muted-foreground">{t('gallery.admin.loadingImages')}</span> : null}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-slate-500 sm:max-w-md">
+                  <p className="text-xs text-muted-foreground sm:max-w-md">
                     {t('gallery.admin.addImageGuidance')}
                   </p>
                   <Button type="button" size="sm" onClick={() => void openAddImage()}>
@@ -376,11 +376,11 @@ export default function Gallery() {
               </div>
 
               {imagesLoading ? (
-                <div className="flex justify-center py-10 text-slate-500">
+                <div className="flex justify-center py-10 text-muted-foreground">
                   <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
                 </div>
               ) : catImages.length === 0 ? (
-                <p className="text-sm text-slate-500">{t('common.noData')}</p>
+                <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {catImages.map((img) => {
@@ -446,7 +446,7 @@ export default function Gallery() {
               />
               <span>
                 <span className="font-semibold">{t('gallery.admin.autoPublishPairs')}</span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
+                <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                   {t('gallery.admin.autoPublishPairsHint')}
                 </span>
               </span>
@@ -524,11 +524,11 @@ export default function Gallery() {
                 </p>
               </div>
               {eligibleLoading ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> {t('gallery.admin.loadingEligibleImages')}
                 </div>
               ) : eligibleImages.length === 0 ? (
-                <p className="text-sm text-slate-500">{t('gallery.admin.noEligibleImages')}</p>
+                <p className="text-sm text-muted-foreground">{t('gallery.admin.noEligibleImages')}</p>
               ) : (
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                   {eligibleImages.map((image) => (
@@ -550,7 +550,7 @@ export default function Gallery() {
                       />
                       <span className="min-w-0 text-xs text-slate-700">
                         <span className="block font-semibold">{image.isBefore ? t('gallery.admin.before') : t('gallery.admin.after')} · {image.serviceName}</span>
-                        <span className="block text-slate-500">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), getIntlLocale(i18n.language), { dateStyle: 'medium' })}</span>
+                        <span className="block text-muted-foreground">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), getIntlLocale(i18n.language), { dateStyle: 'medium' })}</span>
                       </span>
                     </label>
                   ))}

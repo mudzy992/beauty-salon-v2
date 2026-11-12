@@ -521,7 +521,7 @@
   z-index: 0;
   pointer-events: none;
   background: repeating-linear-gradient(115deg, transparent 0 60px, var(--nejra-hero-line) 60px 61px);
-  animation: aurum-hero-drift 14s linear 2 both;
+  animation: aurum-hero-drift 2s ease-out 1 both;
 }
 @keyframes aurum-hero-drift {
   to { background-position: 300px 0; }

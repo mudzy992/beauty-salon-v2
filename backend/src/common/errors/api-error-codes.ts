@@ -10,6 +10,8 @@
  * zadrzi konkretan razlog u polju `message`.
  */
 export const API_ERROR_CODES = {
+  SETTINGS_INVALID_THEME: 'Neispravna tema.',
+  SETTINGS_INVALID_THEME_MODE: 'Neispravan režim teme.',
   USERS_NOT_FOUND: 'Korisnik nije pronađen.',
   USERS_USERNAME_TAKEN: 'Korisničko ime je već u upotrebi.',
   USERS_EMAIL_TAKEN: 'Email je već u upotrebi.',

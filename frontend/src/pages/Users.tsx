@@ -710,7 +710,7 @@ export default function Users() {
               <Badge variant={getRoleBadgeVariant(roleName)} className="rounded-full px-2 py-0.5 text-[10px]">
                 {getRoleLabel(roleName)}
               </Badge>
-              {isStylist ? <span className="text-slate-500">{t('users.stylistRoleBadge')}</span> : null}
+              {isStylist ? <span className="text-muted-foreground">{t('users.stylistRoleBadge')}</span> : null}
               {isPending ? (
                 <button
                   type="button"
@@ -917,15 +917,15 @@ export default function Users() {
 
       <div className="mt-3 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">{t('users.email')}</span>
+          <span className="text-muted-foreground">{t('users.email')}</span>
           <span className="truncate text-slate-900 dark:text-slate-50">{u.email ?? '-'}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">{t('users.phone')}</span>
+          <span className="text-muted-foreground">{t('users.phone')}</span>
           <span className="truncate text-slate-900 dark:text-slate-50">{u.phone ?? '-'}</span>
         </div>
         <div className="space-y-2">
-          <p className="text-slate-500">{t('users.roles')}</p>
+          <p className="text-muted-foreground">{t('users.roles')}</p>
           {renderRoles(u)}
         </div>
       </div>
@@ -1004,7 +1004,7 @@ export default function Users() {
                   />
                 </div>
               ) : (
-                <div className="text-sm text-slate-500">{headerTitle}</div>
+                <div className="text-sm text-muted-foreground">{headerTitle}</div>
               )}
             </div>
 
@@ -1022,7 +1022,7 @@ export default function Users() {
       </Card>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('users.clientTotal', { count: total })}</p>
+        <p className="text-sm text-muted-foreground">{t('users.clientTotal', { count: total })}</p>
 
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
@@ -1034,7 +1034,7 @@ export default function Users() {
               <Button type="button" size="sm" variant="ghost" onClick={() => setPage(0)}>
                 1
               </Button>
-              {visiblePageNumbers.pages[0] > 1 ? <span className="text-sm text-slate-500">…</span> : null}
+              {visiblePageNumbers.pages[0] > 1 ? <span className="text-sm text-muted-foreground">…</span> : null}
             </>
           ) : null}
 
@@ -1053,7 +1053,7 @@ export default function Users() {
           {visiblePageNumbers.totalPages - 1 > visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] ? (
             <>
               {visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] < visiblePageNumbers.totalPages - 2 ? (
-                <span className="text-sm text-slate-500">…</span>
+                <span className="text-sm text-muted-foreground">…</span>
               ) : null}
               <Button type="button" size="sm" variant="ghost" onClick={() => setPage(visiblePageNumbers.totalPages - 1)}>
                 {visiblePageNumbers.totalPages}
@@ -1085,7 +1085,7 @@ export default function Users() {
           </DialogHeader>
 
           {!removalPreview ? (
-            <div className="flex justify-center py-10 text-slate-500">
+            <div className="flex justify-center py-10 text-muted-foreground">
               <Loader2 className="h-7 w-7 animate-spin" aria-hidden="true" />
             </div>
           ) : (
@@ -1224,7 +1224,7 @@ export default function Users() {
                   setFormData((p) => ({ ...p, username: e.target.value }))
                 }}
               />
-              {editUsernameStatus.loading ? <p className="text-xs text-slate-500">{t('users.usernameAvailability.checking')}</p> : null}
+              {editUsernameStatus.loading ? <p className="text-xs text-muted-foreground">{t('users.usernameAvailability.checking')}</p> : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() === initialUsername.trim() ? (
                 <p className="text-xs text-blue-600">{t('users.usernameAvailability.current')}</p>
               ) : null}
@@ -1309,7 +1309,7 @@ export default function Users() {
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800 md:col-span-2">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('users.form.active')}</p>
-                <p className="text-xs text-slate-500">{t('users.form.inactiveHint')}</p>
+                <p className="text-xs text-muted-foreground">{t('users.form.inactiveHint')}</p>
               </div>
               <Switch checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
             </div>
@@ -1319,7 +1319,7 @@ export default function Users() {
                 <div className="flex items-center justify-between gap-3">
                   <Label className="mb-0">{t('users.debts.title')}</Label>
                   {clientDebtsQuery.isLoading ? (
-                    <span role="status" className="text-xs text-slate-500">
+                    <span role="status" className="text-xs text-muted-foreground">
                       {t('users.debts.loading')}
                     </span>
                   ) : null}
@@ -1354,11 +1354,11 @@ export default function Users() {
                         <div className="min-w-0">
                           <div className="font-medium text-slate-900 dark:text-slate-50">
                             {formatLocalizedAmount(d.amount, i18n.language)}
-                            {d.service?.name ? <span className="ml-2 text-xs text-slate-500">• {d.service.name}</span> : null}
+                            {d.service?.name ? <span className="ml-2 text-xs text-muted-foreground">• {d.service.name}</span> : null}
                           </div>
-                          {d.note ? <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{d.note}</div> : null}
+                          {d.note ? <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{d.note}</div> : null}
                           {d.createdBy?.username ? (
-                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
+                            <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
                           ) : null}
                         </div>
                         <Button
@@ -1415,7 +1415,7 @@ export default function Users() {
                   setCreateData((p) => ({ ...p, username: value }))
                 }}
               />
-              {usernameStatus.loading ? <p className="text-xs text-slate-500">{t('users.usernameAvailability.checking')}</p> : null}
+              {usernameStatus.loading ? <p className="text-xs text-muted-foreground">{t('users.usernameAvailability.checking')}</p> : null}
               {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-ok-foreground">{t('users.usernameAvailability.available')}</p> : null}
               {!usernameStatus.loading && usernameStatus.available === false ? <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p> : null}
             </div>
@@ -1450,7 +1450,7 @@ export default function Users() {
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="users-form-role">{t('users.form.role')}</Label>
               <Input id="users-form-role" value={getRoleLabel('CLIENT')} readOnly />
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {t('users.form.roleNote')}
               </p>
             </div>
@@ -1495,11 +1495,11 @@ export default function Users() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-              <p className="text-xs text-slate-500">{t('users.credentials.username')}</p>
+              <p className="text-xs text-muted-foreground">{t('users.credentials.username')}</p>
               <p className="font-semibold text-slate-900 dark:text-slate-50">{createdCredentials?.username}</p>
             </div>
             <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-              <p className="text-xs text-slate-500">{t('users.credentials.initialPassword')}</p>
+              <p className="text-xs text-muted-foreground">{t('users.credentials.initialPassword')}</p>
               <p className="font-semibold text-slate-900 dark:text-slate-50">{createdCredentials?.initialPassword}</p>
             </div>
             <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -1545,14 +1545,14 @@ function UsersList({
   const { t } = useTranslation()
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-slate-500">
+      <div className="flex justify-center p-10 text-muted-foreground">
         <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
       </div>
     )
   }
 
   if (items.length === 0) {
-    return <p className="p-6 text-sm text-slate-500">{t('common.noData')}</p>
+    return <p className="p-6 text-sm text-muted-foreground">{t('common.noData')}</p>
   }
 
   return (

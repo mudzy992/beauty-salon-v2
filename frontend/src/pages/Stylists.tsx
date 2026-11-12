@@ -216,7 +216,7 @@ export default function Stylists() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-slate-500">
+          <div className="flex justify-center p-10 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </div>
         ) : (
@@ -225,7 +225,7 @@ export default function Stylists() {
                             <caption className="sr-only">{t('stylists.tableCaption')}</caption>
                                 <caption className="sr-only">{t('stylists.workingHoursCaption')}</caption>
                   <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                <tr className="border-b border-slate-200 text-left text-xs uppercase text-muted-foreground dark:border-slate-800">
                   <th scope="col" className="p-3 font-medium">{t('stylists.table.user')}</th>
                   <th scope="col" className="p-3 font-medium">{t('stylists.table.email')}</th>
                   <th scope="col" className="p-3 font-medium">{t('stylists.table.specialization')}</th>
@@ -237,7 +237,7 @@ export default function Stylists() {
               <tbody>
                 {stylists.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-slate-500">
+                    <td colSpan={6} className="p-6 text-muted-foreground">
                       {t('common.noData')}
                     </td>
                   </tr>
@@ -290,7 +290,7 @@ export default function Stylists() {
       </Card>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('stylists.table.total', { count: total })}</p>
+        <p className="text-sm text-muted-foreground">{t('stylists.table.total', { count: total })}</p>
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
             {t('common.previous')}
@@ -329,7 +329,7 @@ export default function Stylists() {
                 <div>
                   <Label htmlFor="stylists-specialization-auto">{t('stylists.specializationAuto')}</Label>
                   <Input id="stylists-specialization-auto" className="mt-1" value={form.specialization} readOnly />
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {t('stylists.specializationHint')}
                   </p>
                   {selectedServices.length > 0 ? (
@@ -368,7 +368,7 @@ export default function Stylists() {
               <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
                 <table className="app-table data-table w-full border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-muted-foreground dark:border-slate-800">
                       <th scope="col" className="p-3 font-medium">{t('stylists.day')}</th>
                       <th scope="col" className="p-3 font-medium">{t('stylists.workingDay')}</th>
                       <th scope="col" className="p-3 font-medium">{t('stylists.start')}</th>
@@ -418,7 +418,7 @@ export default function Stylists() {
                 <div>
                   <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
                   {selectedServices.length === 0 ? (
-                    <p className="text-sm text-slate-500">{t('stylists.noSelectedCompetencies')}</p>
+                    <p className="text-sm text-muted-foreground">{t('stylists.noSelectedCompetencies')}</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {selectedServices.map((svc) => (
@@ -441,7 +441,7 @@ export default function Stylists() {
                 <div>
                   <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.availableCompetencies')}</p>
                   {unselectedServices.length === 0 ? (
-                    <p className="text-sm text-slate-500">{t('stylists.allCompetenciesSelected')}</p>
+                    <p className="text-sm text-muted-foreground">{t('stylists.allCompetenciesSelected')}</p>
                   ) : (
                     <div className="max-h-[320px] space-y-2 overflow-y-auto">
                       {unselectedServices.map((svc) => (
@@ -458,7 +458,7 @@ export default function Stylists() {
                           <span className="text-sm">
                             <span className="font-medium text-slate-900 dark:text-slate-50">{svc.name}</span>
                             {svc.subcategory ? (
-                              <span className="ml-1 text-slate-500">
+                              <span className="ml-1 text-muted-foreground">
                                 ({svc.subcategory.category?.name} &gt; {svc.subcategory.name})
                               </span>
                             ) : null}
@@ -467,7 +467,7 @@ export default function Stylists() {
                       ))}
                     </div>
                   )}
-                  {allServices.length === 0 ? <p className="text-sm text-slate-500">{t('stylists.noServicesAvailable')}</p> : null}
+                  {allServices.length === 0 ? <p className="text-sm text-muted-foreground">{t('stylists.noServicesAvailable')}</p> : null}
                 </div>
               </div>
             </TabsContent>
