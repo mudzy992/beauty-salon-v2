@@ -2945,6 +2945,8 @@
       "cancelReason": "Razlog (opciono)",
       "cancelReasonPlaceholder": "Npr. promjena plana…",
       "openDetails": "Otvori detalje rezervacije",
+      "openDetailsNamed": "Otvori detalje rezervacije — {{service}}, {{date}}",
+      "cancelReservationNamed": "Otkaži rezervaciju — {{service}}, {{date}}",
       "stylistLabel": "Stilist: {{name}}",
       "proposedTime": "Predloženi termin: {{start}} – {{end}}",
       "acceptReschedule": "Prihvati",

@@ -7,6 +7,8 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import api from "../../api/client";
 import { isSuccessfulCampaignUnsubscribeResponse } from "../../features/notifications/campaign-unsubscribe-data.mjs";
+import { publicAurum } from "../../features/shell/public/public-ui";
+import { useTheme } from "../../features/shell/theme/theme-context";
 
 type UnsubscribeStatus =
   "confirm" | "submitting" | "success" | "invalid" | "failed";
@@ -14,6 +16,8 @@ type UnsubscribeStatus =
 export default function CampaignUnsubscribe() {
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  const { skin } = useTheme();
+  const isAurum = skin === "aurum";
   const token = searchParams.get("token")?.trim() ?? "";
   const [status, setStatus] = useState<UnsubscribeStatus>(
     token ? "confirm" : "invalid",
@@ -76,8 +80,8 @@ export default function CampaignUnsubscribe() {
   const isErrorStatus = status === "invalid" || status === "failed";
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-12">
-      <Card className="w-full">
+    <main data-aurum-page="unsubscribe" className={`mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-12 ${isAurum ? publicAurum.page : ''}`}>
+      <Card className="w-full" data-aurum-surface>
         <CardContent className="space-y-5 p-6 sm:p-8">
           <div
             className="space-y-2"
@@ -85,7 +89,7 @@ export default function CampaignUnsubscribe() {
             aria-live={isErrorStatus ? "assertive" : "polite"}
             aria-atomic="true"
           >
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+            <h1 className={`text-2xl font-semibold text-slate-900 dark:text-slate-50 ${isAurum ? publicAurum.heading : ''}`}>
               {t(`campaignUnsubscribe.${copy[0]}`)}
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -98,6 +102,7 @@ export default function CampaignUnsubscribe() {
               onClick={() => void unsubscribe()}
               disabled={status === "submitting"}
               aria-busy={status === "submitting"}
+              data-aurum-cta="primary"
             >
               {status === "submitting" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />

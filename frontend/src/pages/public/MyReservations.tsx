@@ -15,11 +15,14 @@ import {
 } from '../../features/client-reservations/partition'
 import type { Reservation } from '../../features/reservations/types'
 import { useReservationSocketRefresh } from '../../features/reservations/use-reservation-socket-refresh'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
 import { useAppToast } from '../../lib/toast/useAppToast'
 
 export default function MyReservations() {
   const { t } = useTranslation()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const { token, isReady, user } = useAuth()
   const navigate = useNavigate()
   const toast = useAppToast()
@@ -157,10 +160,10 @@ export default function MyReservations() {
   }
 
   return (
-    <div className="bg-white min-h-screen pb-20">
-      <div className={publicPageHero.section}>
+    <div data-aurum-page="my-reservations" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+      <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
-          <h1 className={publicHeader.title}>{t('public.myReservations.title')}</h1>
+          <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.myReservations.title')}</h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {t('public.myReservations.subtitle')}
           </p>
@@ -169,7 +172,7 @@ export default function MyReservations() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero} space-y-10`}>
         <div className="flex flex-wrap gap-2 justify-center">
-          <Button asChild className="rounded-full">
+          <Button asChild className="rounded-full" data-aurum-cta="primary">
             <Link to="/rezervacija">{t('public.nav.reserve')}</Link>
           </Button>
         </div>

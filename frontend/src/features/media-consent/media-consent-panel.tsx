@@ -7,6 +7,7 @@ import { getIntlLocale } from '../../i18n/locale-utils.mjs'
 import { MediaImage } from '../../components/media-image'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
+import { ConfirmDialog } from '../shell/aurum/ui/confirm-dialog'
 import {
   formatDateOnlyLocale,
   formatInstantDateLocale,
@@ -44,6 +45,7 @@ export function MediaConsentPanel() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [revokeTarget, setRevokeTarget] = useState<ConsentItem | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -127,10 +129,6 @@ export function MediaConsentPanel() {
   }
 
   const revoke = async (item: ConsentItem) => {
-    if (
-      !window.confirm(t('mediaConsent.confirmRevoke'))
-    )
-      return
     setSavingId(item.imageId)
     setMessage('')
     try {
@@ -148,7 +146,7 @@ export function MediaConsentPanel() {
     t(item.isBefore ? 'mediaConsent.photoBefore' : 'mediaConsent.photoAfter')
 
   return (
-    <Card>
+    <Card data-aurum-surface>
       <CardContent className="space-y-5 p-6">
         <div className="flex items-start gap-3">
           <ShieldCheck
@@ -300,7 +298,7 @@ export function MediaConsentPanel() {
                     variant="outline"
                     size="sm"
                     disabled={savingId === item.imageId}
-                    onClick={() => void revoke(item)}
+                    onClick={() => setRevokeTarget(item)}
                   >
                     {savingId === item.imageId
                       ? t('mediaConsent.saving')
@@ -329,6 +327,23 @@ export function MediaConsentPanel() {
         <p className="text-xs leading-5 text-slate-500">
           {t('mediaConsent.privacyNote')}
         </p>
+        <ConfirmDialog
+          open={revokeTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setRevokeTarget(null)
+          }}
+          title={t('mediaConsent.revoke')}
+          description={t('mediaConsent.confirmRevoke')}
+          confirmLabel={t('mediaConsent.revoke')}
+          isDestructive
+          isPending={revokeTarget ? savingId === revokeTarget.imageId : false}
+          onConfirm={() => {
+            if (revokeTarget) {
+              void revoke(revokeTarget)
+              setRevokeTarget(null)
+            }
+          }}
+        />
       </CardContent>
     </Card>
   )

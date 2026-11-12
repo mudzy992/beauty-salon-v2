@@ -806,3 +806,133 @@
     outline: 2px solid Highlight;
   }
 }
+
+
+/* ── NEJRA §07/§09/§11 · S4 javni tokovi — SAMO Aurum ──────────────────────────
+   /rezervacija, /moj-termin/:token, /moje-rezervacije(/:id), /unsubscribe, /profil
+   i dijeljene komponente (kartica rezervacije, payment summary, media consent,
+   potvrdni dijalog). Blok je SAMO dodan na kraj fajla: S2 i S3 pravila ostaju
+   netaknuta, a svako novo pravilo je pod [data-skin="aurum"], pa klasični prikaz
+   nema nikakvu promjenu. Boje isključivo iz --aurum-* / HSL semantičkih tokena
+   (140/140 u scripts/check_ui_contrast.py). Nema novih animacija ni fontova. */
+
+/* Profil je dijeljena javna/stylist ruta: ne crta vlastitu pozadinu preko shella,
+   ali nasljeđuje semantički tekst, serifne naslove i kartice iz S2/S3. */
+[data-skin="aurum"] [data-aurum-page="profile"] {
+  background-color: transparent;
+}
+
+/* S3 sweep pokriva slate/amber; S4 tok ima i rose/orange/purple/emerald/blue
+   panele (greške, loyalty, slotovi, statusi). Svi prelaze na iste tokene. */
+[data-skin="aurum"] [data-aurum-page] [class*="bg-rose-"],
+[data-skin="aurum"] [data-aurum-page] [class*="bg-orange-"],
+[data-skin="aurum"] [data-aurum-page] [class*="bg-purple-"],
+[data-skin="aurum"] [data-aurum-page] [class*="bg-emerald-"],
+[data-skin="aurum"] [data-aurum-page] [class*="bg-blue-"] {
+  background-color: hsl(var(--surface-muted));
+}
+[data-skin="aurum"] [data-aurum-page] [class*="border-rose-"],
+[data-skin="aurum"] [data-aurum-page] [class*="border-orange-"],
+[data-skin="aurum"] [data-aurum-page] [class*="border-purple-"],
+[data-skin="aurum"] [data-aurum-page] [class*="border-emerald-"],
+[data-skin="aurum"] [data-aurum-page] [class*="border-blue-"] {
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-aurum-page] [class*="text-rose-"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-orange-"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-purple-"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-emerald-"],
+[data-skin="aurum"] [data-aurum-page] [class*="text-blue-"] {
+  color: hsl(var(--text));
+}
+
+/* Odabrani dan/termin i primarni Button: par --primary/--primary-foreground
+   (izmjeren u check_ui_contrast.py), umjesto tvrdog slate-900/white. Stanje
+   i dalje nosi aria-pressed; ovdje se mijenja SAMO boja. */
+[data-skin="aurum"] [data-aurum-page] :is(button, a[href])[class*="bg-slate-900"] {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+[data-skin="aurum"] [data-aurum-page] [aria-pressed="true"] {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Zlatni CTA iz §07 ostaje rezervisan za jednu primarnu akciju po ekranu;
+   pravilo je jače od gornjeg da S2 [data-aurum-cta] ne ostane mrtav kod. */
+[data-skin="aurum"] [data-aurum-page] :is(button, a[href])[data-aurum-cta="primary"] {
+  background-color: var(--nejra-hero-gold);
+  border-color: var(--nejra-hero-gold);
+  color: var(--nejra-hero-onbrand);
+}
+
+/* Indikator koraka 1–4: brojčana semantika je u aria-valuetext, tačkice su
+   aria-hidden. Aktivna/neaktivna tačka koristi iste tokene kao odabrani dan. */
+[data-skin="aurum"] [data-aurum-progress] [class*="bg-slate-900"] {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+[data-skin="aurum"] [data-aurum-progress] [class*="bg-slate-200"] {
+  background-color: hsl(var(--surface-muted));
+  border-color: hsl(var(--line));
+}
+
+/* Hero javnih tokova i najave: tekst uvijek u semantičkom --text. */
+[data-skin="aurum"] [data-aurum-page-hero] h1,
+[data-skin="aurum"] [data-aurum-page-hero] p,
+[data-skin="aurum"] [data-aurum-page] [role="status"],
+[data-skin="aurum"] [data-aurum-page] [role="alert"] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page] [role="alert"] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--danger));
+}
+
+/* 1.3.1 / 3.1.2: mašinski čitljiv datum, stabilna tabularna cifra. */
+[data-skin="aurum"] [data-aurum-page] time {
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--text));
+}
+
+/* Potvrdni dijalog (Radix portal) leži IZVAN [data-aurum-page]; S2/S3 ga ne
+   pokrivaju. Fokus-povratak na okidač ostaje Radix semantika (ConfirmDialog). */
+[data-skin="aurum"] [role="dialog"] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [role="dialog"] [class*="bg-slate-"] {
+  background-color: hsl(var(--surface-muted));
+}
+[data-skin="aurum"] [role="dialog"] [class*="border-slate-"] {
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [role="dialog"] [class*="text-slate-"] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [role="dialog"] :is(button, a[href], input, textarea, select):focus-visible {
+  outline: 2px solid var(--aurum-brand);
+  outline-offset: 2px;
+}
+
+/* 2.4.7: S3 koristi hsl(var(--brand)) koji nije definisan; ovdje se fokus
+   izričito vezuje na stvarni --aurum-brand u oba Aurum stanja. */
+[data-skin="aurum"] [data-aurum-page] :is(a, button, input, textarea, select):focus-visible {
+  outline: 2px solid var(--aurum-brand);
+  outline-offset: 2px;
+}
+
+/* 1.4.1: u forced-colors stanju granice ne smiju zavisiti od pozadine. */
+@media (forced-colors: active) {
+  [data-skin="aurum"] [data-aurum-page] [data-aurum-surface],
+  [data-skin="aurum"] [data-aurum-page] [role="alert"],
+  [data-skin="aurum"] [role="dialog"] {
+    border: 1px solid CanvasText;
+  }
+  [data-skin="aurum"] [data-aurum-page] :is(a, button, input, textarea, select):focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

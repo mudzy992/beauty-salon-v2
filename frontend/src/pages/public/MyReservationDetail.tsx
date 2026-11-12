@@ -15,7 +15,8 @@ import {
   getClientReservationStylistLabel,
 } from '../../features/client-reservations/labels'
 import type { Reservation, ReservationPaymentSummary } from '../../features/reservations/types'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
 
 type ReservationDetail = Reservation & {
   paymentSummary?: ReservationPaymentSummary | null
@@ -24,6 +25,8 @@ type ReservationDetail = Reservation & {
 export default function MyReservationDetail() {
   const { id } = useParams<{ id: string }>()
   const { t, i18n } = useTranslation()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const locale = getIntlLocale(i18n.language)
   const { token, isReady, user } = useAuth()
   const navigate = useNavigate()
@@ -89,10 +92,10 @@ export default function MyReservationDetail() {
     : ''
 
   return (
-    <div className="bg-white min-h-screen pb-20">
-      <div className={publicPageHero.section}>
+    <div data-aurum-page="reservation-detail" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+      <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
-          <h1 className={publicHeader.title}>{t('public.myReservations.detailTitle')}</h1>
+          <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.myReservations.detailTitle')}</h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {t('public.myReservations.detailSubtitle')}
           </p>
@@ -118,7 +121,7 @@ export default function MyReservationDetail() {
         ) : !reservation || notFound ? (
           <p className="text-center text-slate-600">{t('public.myReservations.notFound')}</p>
         ) : (
-          <Card className="rounded-2xl border-slate-200/80 shadow-soft">
+          <Card className="rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
             <CardContent className="p-5 space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -136,7 +139,7 @@ export default function MyReservationDetail() {
 
               <div className="grid gap-1.5 text-sm text-slate-700">
                 <p>
-                  {formatReservationDate(reservation.reservationDate, locale)} · {reservation.startTime}–{reservation.endTime}
+                  <time dateTime={reservation.reservationDate.slice(0, 10)}>{formatReservationDate(reservation.reservationDate, locale)}</time> · {reservation.startTime}–{reservation.endTime}
                 </p>
                 {stylist ? <p>{t('public.myReservations.stylistLabel', { name: stylist })}</p> : null}
               </div>

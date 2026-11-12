@@ -13,6 +13,8 @@ import { useAuth } from '../context/AuthContext'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { MediaConsentPanel } from '../features/media-consent/media-consent-panel'
+import { publicAurum } from '../features/shell/public/public-ui'
+import { useTheme } from '../features/shell/theme/theme-context'
 import { resolveProfileApiErrorKey } from '../features/profile/profile-api-error.mjs'
 import { getIntlLocale } from '../i18n/locale-utils.mjs'
 import { formatInstantDateLocale } from '../../../shared/business-date.mjs'
@@ -36,6 +38,8 @@ interface ProfileData {
 
 export default function Profile() {
   const { t, i18n } = useTranslation()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const { user, refreshProfile } = useAuth()
   const toast = useAppToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -446,7 +450,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10 space-y-6">
+    <div data-aurum-page="profile" className={`mx-auto max-w-4xl px-4 py-8 sm:py-10 space-y-6 ${isAurum ? publicAurum.page : ''}`}>
       <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
         {t('profile.title')}
       </h1>
@@ -457,7 +461,7 @@ export default function Profile() {
         </div>
       ) : profile ? (
         <div className="space-y-5">
-          <Card>
+          <Card data-aurum-surface>
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4 justify-between">
                 <div className="flex items-start gap-4">
@@ -577,7 +581,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-aurum-surface>
             <CardContent className="p-6">
               {saving ? (
                 <span role="status" aria-live="polite" className="sr-only">
@@ -824,7 +828,7 @@ export default function Profile() {
           {profile.roles.includes('CLIENT') ? <MediaConsentPanel /> : null}
         </div>
       ) : (
-        <Card>
+        <Card data-aurum-surface>
           <CardContent className="flex flex-col items-start gap-3 p-6">
             <p role="alert" className="text-sm text-slate-700">
               {t(profileLoadErrorKey)}

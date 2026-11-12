@@ -11,7 +11,7 @@ export const PaymentSummaryBlock = ({ payment }: PaymentSummaryBlockProps) => {
   const { t, i18n } = useTranslation()
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+    <div data-aurum-surface className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
       <div>
         <p className="text-sm font-semibold text-slate-950">
           {t('public.myReservations.payment.title')}

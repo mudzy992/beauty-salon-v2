@@ -2948,6 +2948,8 @@
       "cancelReason": "Reason (optional)",
       "cancelReasonPlaceholder": "e.g. a change of plans…",
       "openDetails": "Open reservation details",
+      "openDetailsNamed": "Open reservation details — {{service}}, {{date}}",
+      "cancelReservationNamed": "Cancel reservation — {{service}}, {{date}}",
       "stylistLabel": "Stylist: {{name}}",
       "proposedTime": "Proposed appointment: {{start}} – {{end}}",
       "acceptReschedule": "Accept",

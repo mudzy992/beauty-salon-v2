@@ -13,6 +13,8 @@ import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { useAuth } from '../../context/AuthContext'
 import { useSettings } from '../../context/SettingsContext'
+import { publicAurum } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
 import { useSocketEvent } from '../../context/SocketContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { useAppToast } from '../../lib/toast/useAppToast'
@@ -485,6 +487,8 @@ const ReservationCalendar = ({
 
 export default function PublicReserve() {
   const { t, i18n } = useTranslation()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const locale = getIntlLocale(i18n.language)
   const { getSetting } = useSettings()
   const navigate = useNavigate()
@@ -775,7 +779,7 @@ export default function PublicReserve() {
   const bgUrl = getSetting('public_reserve_bg', '')
 
   return (
-    <div className="min-h-screen pt-8 pb-20 relative bg-white">
+    <div data-aurum-page="reserve" className={`min-h-screen pt-8 pb-20 relative bg-white ${isAurum ? publicAurum.page : ''}`}>
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.04]"
         style={{ backgroundImage: cssBackgroundImage(bgUrl) }}
@@ -787,10 +791,10 @@ export default function PublicReserve() {
         transition={{ duration: 0.5 }}
         className="relative z-10 mx-auto max-w-2xl px-4"
       >
-        <Card className="rounded-2xl border border-slate-200/80 bg-white shadow-soft">
+        <Card className="rounded-2xl border border-slate-200/80 bg-white shadow-soft" data-aurum-surface>
           <CardContent className="p-6 md:p-10">
             <div className="text-center">
-              <div className="text-2xl font-semibold tracking-tight text-slate-950">
+              <div className={`text-2xl font-semibold tracking-tight text-slate-950 ${isAurum ? publicAurum.heading : ''}`}>
                 {getSetting('public_reserve_title', t('public.reserve.bannerTitle'))}
               </div>
               <div className="text-slate-600 mt-2">
@@ -809,6 +813,7 @@ export default function PublicReserve() {
               aria-valuenow={step}
               aria-valuetext={t('public.reserve.progressStep', { current: step, total: 4 })}
               className="flex items-center justify-center mt-8"
+              data-aurum-progress
             >
               {/* Traka je dekorativna: `aria-valuetext` na kontejneru vec daje
                   "Korak X od Y". Bez ovoga AT preko toga procita i gole brojeve. */}
@@ -1147,6 +1152,7 @@ export default function PublicReserve() {
                     type="submit"
                     className="w-full mt-4"
                     disabled={submitting || !selectedSlot}
+                    data-aurum-cta="primary"
                   >
                     <span className="inline-flex items-center gap-2">
                       <Calendar className="h-4 w-4" aria-hidden="true" />

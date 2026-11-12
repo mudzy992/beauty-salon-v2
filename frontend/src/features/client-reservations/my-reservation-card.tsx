@@ -52,13 +52,16 @@ export const MyReservationCard = ({
   const showCancel = canClientCancel(r.status)
 
   return (
-    <Card className="rounded-2xl border-slate-200/80 shadow-soft">
+    <Card className="rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
       <CardContent className="p-5 space-y-4">
         <button
           type="button"
           className="w-full text-left space-y-4 rounded-xl transition hover:bg-slate-50/80 -m-2 p-2"
           onClick={() => onOpenDetail(r)}
-          aria-label={t('public.myReservations.openDetails')}
+          aria-label={t('public.myReservations.openDetailsNamed', {
+            service: servicesLabel,
+            date: formatReservationDate(r.reservationDate, locale),
+          })}
         >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -76,7 +79,7 @@ export const MyReservationCard = ({
 
         <div className="grid gap-1.5 text-sm text-slate-700">
           <p>
-            {formatReservationDate(r.reservationDate, locale)} · {r.startTime} – {r.endTime}
+            <time dateTime={r.reservationDate.slice(0, 10)}>{formatReservationDate(r.reservationDate, locale)}</time> · {r.startTime} – {r.endTime}
           </p>
           {stylist ? <p className="text-slate-500">{t('public.myReservations.stylistLabel', { name: stylist })}</p> : null}
           {r.clientNotes ? (
@@ -140,6 +143,10 @@ export const MyReservationCard = ({
               className="text-rose-700 hover:text-rose-800"
               disabled={busy}
               onClick={() => onCancel(r)}
+              aria-label={t('public.myReservations.cancelReservationNamed', {
+                service: servicesLabel,
+                date: formatReservationDate(r.reservationDate, locale),
+              })}
             >
               {t('public.myReservations.cancelReservation')}
             </Button>

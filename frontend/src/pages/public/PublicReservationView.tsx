@@ -8,7 +8,8 @@ import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import { getClientReservationStatusKey, formatReservationDate } from '../../features/client-reservations/labels'
 import { getIntlLocale } from '../../i18n/locale-utils.mjs'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { publicAurum, publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { useTheme } from '../../features/shell/theme/theme-context'
 
 export interface PublicReservationPayload {
   publicReferenceCode: string
@@ -56,6 +57,8 @@ export default function PublicReservationView() {
   const { token } = useParams<{ token: string }>()
   const { token: authToken } = useAuth()
   const { t, i18n } = useTranslation()
+  const { skin } = useTheme()
+  const isAurum = skin === 'aurum'
   const locale = getIntlLocale(i18n.language)
   const [data, setData] = useState<PublicReservationPayload | null>(null)
   const [error, setError] = useState<'invalidLink' | 'notFound' | 'loadFailed' | null>(null)
@@ -111,10 +114,10 @@ export default function PublicReservationView() {
     : null
 
   return (
-    <div className="bg-white min-h-screen pb-20">
-      <div className={publicPageHero.section}>
+    <div data-aurum-page="reservation-view" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+      <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
-          <h1 className={publicHeader.title}>{t('public.reservationView.title')}</h1>
+          <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.reservationView.title')}</h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {t('public.reservationView.subtitle')}
           </p>
@@ -127,7 +130,7 @@ export default function PublicReservationView() {
             {t('common.loading')}
           </p>
         ) : error ? (
-          <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft">
+          <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
             <CardContent className="p-8 text-center space-y-4">
               <p role="alert" className="text-slate-700">{t(`public.reservationView.${error}`)}</p>
               {error === 'loadFailed' ? (
@@ -141,7 +144,7 @@ export default function PublicReservationView() {
             </CardContent>
           </Card>
         ) : data ? (
-          <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft">
+          <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
             <CardContent className="p-8 space-y-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -158,12 +161,12 @@ export default function PublicReservationView() {
                 </div>
                 <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
                   <span className="text-slate-500">{t('public.reservationView.date')}</span>
-                  <span className="font-medium text-slate-900">{formatReservationDate(data.reservationDate, locale, {
+                  <span className="font-medium text-slate-900"><time dateTime={data.reservationDate.slice(0, 10)}>{formatReservationDate(data.reservationDate, locale, {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
-                  })}</span>
+                  })}</time></span>
                 </div>
                 <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
                   <span className="text-slate-500">{t('public.reservationView.time')}</span>
@@ -236,7 +239,7 @@ export default function PublicReservationView() {
                     </Link>
                   </Button>
                 )}
-                <Button asChild className="w-full rounded-full">
+                <Button asChild className="w-full rounded-full" data-aurum-cta="primary">
                   <Link to="/rezervacija">{t('public.reservationView.bookNewAppointment')}</Link>
                 </Button>
               </div>
