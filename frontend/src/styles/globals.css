@@ -1400,7 +1400,7 @@
 [data-skin="aurum"] [data-aurum-page="services"] :not(form)[data-aurum-card] .text-content-muted {
   color: hsl(var(--text-muted-strong));
 }
-[data-skin="aurum"] [data-aurum-page="services"] :not(form)[data-aurum-card] button {
+[data-skin="aurum"] [data-aurum-page="services"] :not(form)[data-aurum-card] button[class] {
   background-color: hsl(var(--text));
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
