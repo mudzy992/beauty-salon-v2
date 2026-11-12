@@ -27,3 +27,10 @@ test('homepage retries retain the last valid pairs while surfacing the read fail
 test('shared before/after spotlight announces loading accessibly', () => {
   assert.match(spotlightSource, /role="status" aria-live="polite"[^>]*>[\s\S]*?public\.beforeAfter\.loading/)
 })
+
+test('spotlight rails do not auto-move or duplicate focusable thumbnails', () => {
+  assert.doesNotMatch(spotlightSource, /repeat:\s*Infinity|\[\.\.\.items,\s*\.\.\.items\]/)
+  assert.match(spotlightSource, /overflow-y-auto/)
+  assert.match(spotlightSource, /items\.map\(\(row\)/)
+  assert.match(spotlightSource, /onClick=\{\(\) => onSelect\(row\.index\)\}/)
+})

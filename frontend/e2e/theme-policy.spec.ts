@@ -145,3 +145,37 @@ for (const mode of ['light', 'dark'] as const) {
     expect(detail(results.violations), 'homepage AAA axe violations require review').toEqual([])
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`homepage AAA audit ${mode}: ${viewport} with populated gallery and review`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      await page.route('**/api/daily-log/before-after**', (route) => route.fulfill({ json: {
+        items: Array.from({ length: 5 }, (_, i) => ({ id: `test-${i}`, before: { pathOriginal: 'https://fixture.test/before.jpg' }, after: { pathOriginal: 'https://fixture.test/after.jpg' } })),
+      } }))
+      await page.route('**/api/reviews/featured/random', (route) => route.fulfill({ json: {
+        id: 'test-review', serviceRating: 5, stylistRating: null, comment: 'Test review',
+        service: { name: 'Test service' }, user: { firstName: 'Test', lastName: 'User', avatar: null },
+      } }))
+      await page.route('https://fixture.test/**', (route) => route.fulfill({ path: 'public/brand/aurum-hero-editorial.jpg', contentType: 'image/jpeg' }))
+      await page.goto('/', { waitUntil: 'networkidle' })
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      await expect(page.locator('[data-home-review]')).toContainText('Test review')
+      const slider = page.getByRole('slider').first()
+      await expect(slider).toBeVisible()
+      await slider.focus()
+      await page.keyboard.press('ArrowRight')
+      await expect(slider).toHaveAttribute('aria-valuenow', '52')
+      const settled = await settleAnimations(page)
+      expect(settled?.stillRunning).toBe(0)
+      const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+      const aaa = results.violations.filter((item) => item.tags.includes('wcag2aaa'))
+      console.log(`HOME_AAA_FIXTURE_${mode.toUpperCase()}_${viewport.toUpperCase()} ${JSON.stringify({ violations: aaa.map((item) => ({ id: item.id, nodes: item.nodes.map((node) => ({ target: node.target, summary: node.failureSummary })) })), incomplete: results.incomplete.filter((item) => item.tags.includes('wcag2aaa')).map((item) => ({ id: item.id, count: item.nodes.length })) })}`)
+      expect(assertableViolations(results.violations)).toEqual([])
+      expect(aaa).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
@@ -15,119 +15,35 @@ export type BeforeAfterSpotlightPair = {
 
 const THUMB_ROW_H = 80
 
-const PX_PER_SEC = 28
-
-const MarqueeThumbColumn = ({
-  items,
-  resolveBefore,
-  resolveAfter,
-  onSelect,
-  direction,
-}: {
+// Static, scrollable rails keep every thumbnail reachable without endless motion
+// or duplicate focus stops. The selection interaction stays unchanged.
+const MarqueeThumbColumn = ({ items, resolveBefore, resolveAfter, onSelect }: {
   items: { pair: BeforeAfterSpotlightPair; index: number }[]
   resolveBefore: (pair: BeforeAfterSpotlightPair) => string
   resolveAfter: (pair: BeforeAfterSpotlightPair) => string
   onSelect: (index: number) => void
-  direction: 'up' | 'down'
 }) => {
   const { t } = useTranslation()
-  const trackRef = useRef<HTMLDivElement>(null)
-  const phaseRef = useRef(Math.random())
-  const [travelPx, setTravelPx] = useState(0)
-
-  const loop = items.length >= 2 ? [...items, ...items] : items
-  const itemsKey = useMemo(
-    () => items.map((x) => `${x.pair.id}-${x.index}`).join('|'),
-    [items],
-  )
-
-  useLayoutEffect(() => {
-    const el = trackRef.current
-    if (!el || items.length < 2) {
-      setTravelPx(0)
-      return
-    }
-    const measure = () => {
-      const h = el.scrollHeight
-      if (h > 0) setTravelPx(h / 2)
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [items.length, itemsKey])
-
   if (items.length === 0) {
     return <div className="hidden lg:block w-[min(100%,11rem)] shrink-0" aria-hidden />
   }
-
-  const canMarquee = items.length >= 2 && travelPx > 0
-  const p = phaseRef.current
-  const yFrom =
-    canMarquee && direction === 'up'
-      ? -p * travelPx
-      : canMarquee && direction === 'down'
-        ? p * travelPx
-        : 0
-  const yTo =
-    canMarquee && direction === 'up'
-      ? -(p + 1) * travelPx
-      : canMarquee && direction === 'down'
-        ? (p + 1) * travelPx
-        : 0
-  const durationSec =
-    canMarquee ? Math.max(12, travelPx / PX_PER_SEC) : 0
-
   return (
-    <div
-      className="hidden lg:block relative w-[min(100%,11rem)] shrink-0 overflow-hidden rounded-2xl bg-slate-50/50"
-      style={{ minHeight: 280, maxHeight: 'min(520px, 62vh)' }}
-    >
-      <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-slate-50 via-slate-50/80 to-transparent z-[1] pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent z-[1] pointer-events-none" />
-      <motion.div
-        ref={trackRef}
-        className={[
-          'flex flex-col gap-3 p-2 will-change-transform',
-          items.length >= 2 && travelPx <= 0 ? 'opacity-0' : 'opacity-100',
-          'transition-opacity duration-200',
-        ].join(' ')}
-        initial={false}
-        animate={canMarquee ? { y: [yFrom, yTo] } : { y: 0 }}
-        transition={
-          canMarquee
-            ? { duration: durationSec, repeat: Infinity, ease: 'linear' }
-            : undefined
-        }
-      >
-        {loop.map((row, k) => (
-          <button
-            key={`${row.pair.id}-${k}`}
-            type="button"
-            onClick={() => onSelect(row.index)}
-            aria-label={t('public.beforeAfter.selectTransformationAria')}
-            className="w-full overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-900/[0.06] transition hover:shadow-md hover:ring-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
-          >
-            <div className="grid grid-cols-2 gap-px bg-slate-200">
-              <MediaImage
-                src={resolveBefore(row.pair)}
-                alt=""
-                className="h-20 w-full object-cover"
-                height={THUMB_ROW_H}
-              />
-              <MediaImage
-                src={resolveAfter(row.pair)}
-                alt=""
-                className="h-20 w-full object-cover"
-                height={THUMB_ROW_H}
-              />
-            </div>
-            <div className="px-2 py-1.5 text-center text-[10px] font-medium text-slate-500">
-              {t('public.beforeAfter.comparisonLabels')}
-            </div>
-          </button>
-        ))}
-      </motion.div>
+    <div className="hidden lg:flex flex-col gap-3 w-[min(100%,11rem)] shrink-0 overflow-y-auto rounded-2xl bg-slate-50/50 p-2" style={{ maxHeight: 'min(520px, 62vh)' }}>
+      {items.map((row) => (
+        <button
+          key={row.pair.id}
+          type="button"
+          onClick={() => onSelect(row.index)}
+          aria-label={t('public.beforeAfter.selectTransformationAria')}
+          className="w-full shrink-0 overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-900/[0.06] transition hover:shadow-md hover:ring-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
+        >
+          <div className="grid grid-cols-2 gap-px bg-slate-200">
+            <MediaImage src={resolveBefore(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
+            <MediaImage src={resolveAfter(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
+          </div>
+          <div className="px-2 py-1.5 text-center text-[10px] font-medium text-slate-500">{t('public.beforeAfter.comparisonLabels')}</div>
+        </button>
+      ))}
     </div>
   )
 }
@@ -198,7 +114,6 @@ export const BeforeAfterSpotlight = ({
           resolveBefore={resolveBefore}
           resolveAfter={resolveAfter}
           onSelect={setSelectedPairIndex}
-          direction="up"
         />
 
         <div className="w-full max-w-md mx-auto lg:mx-0 lg:max-w-lg lg:flex-1 lg:min-w-0 flex justify-center">
@@ -232,7 +147,6 @@ export const BeforeAfterSpotlight = ({
           resolveBefore={resolveBefore}
           resolveAfter={resolveAfter}
           onSelect={setSelectedPairIndex}
-          direction="down"
         />
       </div>
 
