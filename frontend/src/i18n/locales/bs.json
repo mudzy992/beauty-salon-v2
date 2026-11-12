@@ -83,6 +83,7 @@
       "groupLabel": "Tema prikaza",
       "classic": "Klasična svijetla",
       "aurumLight": "Aurum svijetla",
+      "darkToggle": "Tamni režim",
       "aurumDark": "Aurum tamna",
       "announcement": "Aktivna tema: {{theme}}"
     },

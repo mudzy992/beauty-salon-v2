@@ -1,6 +1,6 @@
 /**
- * `test:theme-switcher-a11y` — NEJRA §11/§12 + revidirani model: izbornik s 2 režima u Aurumu,
- * `aria-pressed`, `role="group"`, `role="status"`, 44 px mete, fokus ostaje,
+ * `test:theme-switcher-a11y` — jedno dugme za 2 režima u Aurumu,
+ * stabilno ime, `aria-pressed`, `role="status"`, 44 px meta, fokus ostaje,
  * svi natpisi kroz i18n, isto relativno mjesto u 3 shella. Source-contract stil
  * (nema browsera u sandboxu) + mutacijske provjere da detektor nije prazan.
  */
@@ -34,43 +34,30 @@ const THEME_KEYS = [
   'shell.theme.classic',
   'shell.theme.aurumLight',
   'shell.theme.aurumDark',
+  'shell.theme.darkToggle',
   'shell.theme.announcement',
 ]
 
-test('jedan role="group" s tačno 2 button[aria-pressed] i i18n imenom', () => {
-  assert.equal((code.match(/role="group"/g) ?? []).length, 1)
-  assert.match(code, /aria-label=\{t\('shell\.theme\.groupLabel'\)\}/)
-  assert.equal((code.match(/aria-pressed=\{choice === option\.value\}/g) ?? []).length, 1,
-    'aria-pressed se postavlja iz trenutnog stanja, ne hardkodirano')
-  const choices = [...code.matchAll(/\{\s*value: '(classic|aurum-light|aurum-dark)',\s*labelKey: '([^']+)'\s*\}/g)]
-  assert.deepEqual(choices.map((m) => m[1]), ['aurum-light', 'aurum-dark'])
-  assert.match(code, /if \(skin === 'classic'\) return null/)
-  assert.doesNotMatch(code, /value: 'classic'/)
-  assert.deepEqual(choices.map((m) => m[2]), [
-    'shell.theme.aurumLight', 'shell.theme.aurumDark',
-  ])
-  // Dva dugmeta u mapi, ne ručno kopirani markup blokovi.
+test('jedno dugme ima stabilno ime i stanje, skriva se u classic i mijenja režim', () => {
   assert.equal((code.match(/<button/g) ?? []).length, 1)
-  assert.match(code, /CHOICES\.map\(/, 'jedna petlja nad dva režima')
-})
-
-test('ikonice imaju prevedena pristupačna imena; svi ključevi postoje u BS i EN', () => {
-  for (const literal of ['Klasična', 'Aurum svijetla', 'Aurum tamna', 'Classic light', 'Aurum light', 'Aurum dark', 'Tema prikaza', 'Display theme']) {
-    assert.equal(code.includes(literal), false, `hard-kodirani natpis: ${literal}`)
-  }
-  assert.match(code, /<span className="sr-only">\{t\(option\.labelKey\)\}<\/span>/, 'pristupačno ime dolazi iz i18n')
+  assert.match(code, /aria-label=\{t\('shell\.theme\.darkToggle'\)\}/)
+  assert.match(code, /aria-pressed=\{isDark\}/)
+  assert.match(code, /const isDark = choice === 'aurum-dark'/)
+  assert.match(code, /const next = isDark \? 'aurum-light' : 'aurum-dark'/)
+  assert.match(code, /setChoice\(next\)/)
+  assert.match(code, /if \(skin === 'classic'\) return null/)
   assert.match(code, /<Sun aria-hidden="true"/)
   assert.match(code, /<Moon aria-hidden="true"/)
-  assert.match(code, /t\('shell\.theme\.announcement', \{ theme: t\(option\.labelKey\) \}\)/)
+})
+
+test('pristupačno ime i najave dolaze iz BS i EN resursa', () => {
+  assert.match(code, /t\('shell\.theme\.announcement'/)
+  assert.match(code, /t\(isDark \? 'shell\.theme\.aurumLight' : 'shell\.theme\.aurumDark'\)/)
   for (const key of THEME_KEYS) {
-    const valueBs = resolveKey(bs, key)
-    const valueEn = resolveKey(en, key)
-    assert.ok(typeof valueBs === 'string' && valueBs.length > 0, `BS nedostaje ${key}`)
-    assert.ok(typeof valueEn === 'string' && valueEn.length > 0, `EN nedostaje ${key}`)
+    for (const locale of [bs, en]) assert.ok(typeof resolveKey(locale, key) === 'string' && resolveKey(locale, key).length > 0, `missing ${key}`)
   }
   assert.match(resolveKey(bs, 'shell.theme.announcement'), /\{\{theme\}\}/)
   assert.match(resolveKey(en, 'shell.theme.announcement'), /\{\{theme\}\}/)
-  // Strogi paritet novog `shell.theme` imenskog prostora.
   assert.deepEqual(Object.keys(bs.shell.theme).sort(), Object.keys(en.shell.theme).sort())
   assert.deepEqual(Object.keys(bs.shell.theme).sort(), THEME_KEYS.map((k) => k.split('.').pop()).sort())
 })
@@ -82,9 +69,9 @@ test('44 px mete, role="status" najava, fokus ostaje, bez otimanja fokusa', () =
   assert.match(code, /aria-live="polite"/)
   assert.match(code, /setAnnouncement\(/)
   assert.doesNotMatch(code, /autoFocus|\.focus\(\)|document\.activeElement|tabIndex=/)
-  assert.match(code, /key=\{option\.value\}/, 'stabilni key → kliknuto dugme se ne remontira')
-  // Nema vlastitog kretanja; globalni reduced-motion blok ostaje jedini vlasnik.
-  assert.doesNotMatch(code, /transition-|animate-|animation:/)
+  assert.doesNotMatch(code, /<button[^>]*key=/, 'dugme ostaje stabilno pri promjeni')
+  assert.match(globalsCss, /\.theme-switcher-icon \{[^}]*animation:/)
+  assert.match(globalsCss, /prefers-reduced-motion: reduce[\s\S]*?\.theme-switcher-icon \{ animation: none;/)
   assert.match(
     globalsCss,
     /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*\*,\s*\*::before,\s*\*::after\s*\{/,
@@ -121,24 +108,24 @@ test('runtime ugovor: ThemeProvider iznad SettingsProvider i meta theme-color', 
 
 test('mutacije a11y ugovora se odbijaju (detektor nije prazna provjera)', () => {
   const guards = (src) => [
-    src.includes('role="group"'),
-    src.includes("aria-label={t('shell.theme.groupLabel')}"),
-    src.includes('aria-pressed={choice === option.value}'),
+    src.includes("aria-label={t('shell.theme.darkToggle')}"),
+    src.includes('aria-pressed={isDark}'),
     src.includes('min-h-target min-w-target'),
     src.includes('role="status"'),
     src.includes('aria-live="polite"'),
-    src.includes('{t(option.labelKey)}'),
+    src.includes("const next = isDark ? 'aurum-light' : 'aurum-dark'"),
+    src.includes('aria-hidden="true"'),
   ].every(Boolean)
-  assert.equal(guards(code), true, 'izvorni izbornik mora zadovoljiti sve ugovore')
+  assert.equal(guards(code), true)
   const mutations = [
-    ['role="group"', 'role="menu"'],
-    ['aria-pressed={choice === option.value}', 'aria-pressed="false"'],
+    ["aria-label={t('shell.theme.darkToggle')}", ''],
+    ['aria-pressed={isDark}', 'aria-pressed="false"'],
     ['min-h-target min-w-target', 'min-h-6 min-w-6'],
     ['role="status"', 'role="note"'],
-    ['{t(option.labelKey)}', 'Classic light'],
+    ["const next = isDark ? 'aurum-light' : 'aurum-dark'", "const next = 'aurum-light'"],
   ]
   for (const [from, to] of mutations) {
-    assert.ok(code.includes(from), `mutacija nije našla polazni tekst: ${from}`)
+    assert.ok(code.includes(from))
     assert.equal(guards(code.replace(from, to)), false, `mutacija nije uhvaćena: ${from}`)
   }
 })

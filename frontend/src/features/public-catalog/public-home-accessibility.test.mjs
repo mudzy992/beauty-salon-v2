@@ -48,3 +48,12 @@ test('editorial discovery links respect public feature settings and do not fabri
   assert.match(source, /blogOn && <article>[\s\S]*?<Link to="\/blog">/)
   assert.match(source, /data-home-image-fallback=\{!heroImage\.trim\(\)/)
 })
+
+test('campaign hero gives copy a solid token background and uses configured image before fallback', () => {
+  const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), 'utf8')
+  assert.match(source, /data-home-image-fallback=\{!heroImage\.trim\(\) \? 'true' : undefined\}/)
+  assert.match(source, /backgroundImage: cssBackgroundImage\(heroImage\)/)
+  assert.match(css, /\[data-home-hero-content\] \{[^}]*background: var\(--nejra-hero-page\);[^}]*color: var\(--nejra-hero-text\);/)
+  assert.match(css, /\[data-home-image-fallback="true"\] \{ background-image: url\('\/brand\/aurum-hero-editorial\.jpg'\)/)
+  assert.match(css, /prefers-reduced-motion: reduce[\s\S]*?\[data-aurum-hero-image\], \.theme-switcher-icon \{ animation: none;/)
+})

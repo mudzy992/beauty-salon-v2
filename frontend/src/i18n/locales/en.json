@@ -86,6 +86,7 @@
       "groupLabel": "Display theme",
       "classic": "Classic light",
       "aurumLight": "Aurum light",
+      "darkToggle": "Dark mode",
       "aurumDark": "Aurum dark",
       "announcement": "Active theme: {{theme}}"
     },
