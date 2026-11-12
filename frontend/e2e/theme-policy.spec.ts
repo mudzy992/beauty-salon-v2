@@ -239,6 +239,9 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(serviceLink).toHaveAccessibleName(/Test usluga.*45 min/i)
       const settled = await settleAnimations(page)
       expect(settled?.stillRunning).toBe(0)
+      const explore = page.locator('[data-aurum-page="services"] a[href="#service-catalog"]')
+      const colors = await explore.evaluate((el) => { const style = getComputedStyle(el); return { foreground: style.color, background: style.backgroundColor } })
+      expect(colors.foreground).not.toBe(colors.background)
       for (const state of ['populated', 'no-results'] as const) {
         if (state === 'no-results') await page.locator('#public-services-search').fill('no-matching-test-service')
         const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()

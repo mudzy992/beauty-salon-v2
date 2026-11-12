@@ -1405,3 +1405,17 @@
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
 }
+
+/* Keep hero CTA legible and category counts over a deterministic surface. */
+[data-skin="aurum"] [data-aurum-page="services"] a[href="#service-catalog"] {
+  background-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-page="services"] article > div[aria-hidden="true"] {
+  display: none;
+}
+[data-skin="aurum"] [data-aurum-page="services"] [data-service-category-count] {
+  position: relative;
+  background-color: hsl(var(--surface));
+  color: hsl(var(--text));
+}

@@ -508,7 +508,7 @@ export default function PublicServices() {
                             </h3>
                           </span>
                         </div>
-                        <span className="shrink-0 pt-1 text-right text-[0.68rem] font-medium text-[#75645a]">
+                        <span data-service-category-count className="shrink-0 pt-1 text-right text-[0.68rem] font-medium text-[#75645a]">
                           {t('public.servicesPage.serviceCount', { count: categoryServiceCount })}
                         </span>
                       </header>
