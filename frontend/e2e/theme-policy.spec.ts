@@ -5,12 +5,14 @@ import { settleAnimations } from './settle'
 
 // The HTTP response is intercepted only in this isolated test; all other public
 // settings remain real. This does not write shared settings or touch production.
-async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 'dark', preference?: 'light' | 'dark') {
-  await page.addInitScript((value) => {
+async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 'dark', preference?: 'light' | 'dark', preserveOnReload = false) {
+  await page.addInitScript(({ value, preserve }) => {
+    if (preserve && sessionStorage.getItem('e2e.theme.initialized')) return
+    if (preserve) sessionStorage.setItem('e2e.theme.initialized', 'true')
     localStorage.removeItem('nejra.theme')
     localStorage.removeItem('nejra.theme.mode')
     if (value) localStorage.setItem('nejra.theme.mode', value)
-  }, preference)
+  }, { value: preference, preserve: preserveOnReload })
   await page.route('**/api/settings/public', async (route) => {
     const response = await route.fetch()
     if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
@@ -91,7 +93,7 @@ for (const mode of ['light', 'dark'] as const) {
 }
 
 test('icon-only theme controls retain accessible names, keyboard operation and persistence', async ({ page }) => {
-  await configure(page, 'aurum', 'light')
+  await configure(page, 'aurum', 'light', undefined, true)
   await page.goto('/login', { waitUntil: 'networkidle' })
   const light = page.getByRole('button', { name: /Aurum (svijetla|light)/i })
   const dark = page.getByRole('button', { name: /Aurum (tamna|dark)/i })
