@@ -5,9 +5,8 @@ import { cn } from '../../../lib/cn'
 import { useTheme } from './theme-context'
 import type { ThemeChoice } from './theme-context'
 
-/** NEJRA §11/§12 — tri i samo tri stanja, svi natpisi kroz bs.json/en.json. */
+/** Samo Aurum svijetla/tamna; aktivni identitet bira administrator. */
 const CHOICES: { value: ThemeChoice; labelKey: string }[] = [
-  { value: 'classic', labelKey: 'shell.theme.classic' },
   { value: 'aurum-light', labelKey: 'shell.theme.aurumLight' },
   { value: 'aurum-dark', labelKey: 'shell.theme.aurumDark' },
 ]
@@ -24,9 +23,11 @@ const CHOICES: { value: ThemeChoice; labelKey: string }[] = [
  */
 export const ThemeSwitcher = ({ className }: { className?: string }) => {
   const { t } = useTranslation()
-  const { choice, setChoice } = useTheme()
+  const { choice, setChoice, skin } = useTheme()
   const statusId = useId()
   const [announcement, setAnnouncement] = useState('')
+
+  if (skin === 'classic') return null
 
   return (
     <div className={cn('flex flex-wrap items-center gap-1', className)}>

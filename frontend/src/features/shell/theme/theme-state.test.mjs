@@ -162,3 +162,7 @@ test('mutacije ugovora se odbijaju (detektor nije prazna provjera)', () => {
     assert.equal(guards(source.replace(from, to)), false, `mutacija nije uhvaćena: ${from}`)
   }
 })
+
+// Global administrator policy and local-mode migration use the same CI test entry.
+import './theme-policy.test.mjs'
+import './theme-provider-runtime.test.mjs'

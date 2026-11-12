@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from 'react';
 import { useSocketEvent } from './SocketContext';
 import { buildBrandColorVariables } from '../utils/brand-colors.mjs';
 import { useTheme } from '../features/shell/theme/theme-context';
@@ -29,10 +29,13 @@ function SettingsSocketSync({ onRefresh }: { onRefresh: () => void }) {
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { skin } = useTheme();
+  const { setGlobalTheme } = useTheme();
+  const requestId = useRef(0);
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchSettings = useCallback(async () => {
+    const id = ++requestId.current;
     try {
       const baseURL = import.meta.env.VITE_API_URL || '';
       const url = baseURL
@@ -53,16 +56,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       data.forEach((s) => {
         settingsMap[s.key] = s.value;
       });
+      if (id !== requestId.current) return;
       setSettings(settingsMap);
+      setGlobalTheme(settingsMap.theme_active_skin, settingsMap.theme_default_mode);
     } catch (err) {
-      console.error('Failed to load settings', err);
+      if (id === requestId.current) console.error('Failed to load settings', err);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, []);
+  }, [setGlobalTheme]);
 
   useEffect(() => {
     void fetchSettings();
+    return () => { requestId.current += 1; };
   }, [fetchSettings]);
 
   useEffect(() => {

@@ -2,12 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 import {
   applyTheme,
-  normalizeTheme,
-  readStoredTheme,
-  writeStoredTheme,
   THEME_META,
 } from './theme-state.mjs'
 import type { ThemeChoice, ThemeMode, ThemeSkin } from './theme-state.mjs'
+import { readModePreference, resolveTheme, writeModePreference } from './theme-policy.mjs'
 
 export type { ThemeChoice, ThemeSkin, ThemeMode } from './theme-state.mjs'
 
@@ -16,37 +14,42 @@ type ThemeContextValue = {
   setChoice: (choice: ThemeChoice) => void
   skin: ThemeSkin
   mode: ThemeMode
+  setGlobalTheme: (skin: string | undefined, mode: string | undefined) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 /**
- * NEJRA §12 — jedini vlasnik stanja teme.
- *
- * Stoji IZNAD `SettingsProvider` u `app/providers.tsx`, jer `SettingsContext`
- * čita `skin` da bi ugasio runtime `theme_primary`/`theme_accent` override (Q9).
- * `applyTheme` se poziva u `useEffect`, pa prvi render nikad ne dira `<html>`
- * prije nego React montira djecu (default = današnji izgled).
+ * Jedini vlasnik stanja teme. Administratorske postavke dolaze preko
+ * SettingsProvider-a, a lokalno se pamti samo Aurum svijetli/tamni režim.
+ * Dok postavke nisu dostupne primjenjuje se odobreni Aurum svijetli default.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [choice, setChoiceState] = useState<ThemeChoice>(() =>
-    typeof window === 'undefined' ? 'classic' : readStoredTheme(window.localStorage),
-  )
+  const [globalTheme, setGlobalThemeState] = useState({ skin: 'aurum', mode: 'light' })
+  const [preference, setPreference] = useState<ThemeMode | null>(() => {
+    try { return typeof window === 'undefined' ? null : readModePreference(window.localStorage) }
+    catch { return null }
+  })
+  const choice = resolveTheme(globalTheme.skin, globalTheme.mode, preference)
 
   useEffect(() => {
     applyTheme(document.documentElement, choice, document)
   }, [choice])
 
+  const setGlobalTheme = useCallback((skin: string | undefined, mode: string | undefined) => {
+    setGlobalThemeState({ skin: skin === 'classic' ? 'classic' : 'aurum', mode: mode === 'dark' ? 'dark' : 'light' })
+  }, [])
   const setChoice = useCallback((next: ThemeChoice) => {
-    const value = normalizeTheme(next)
-    writeStoredTheme(window.localStorage, value)
-    setChoiceState(value)
+    if (next !== 'aurum-light' && next !== 'aurum-dark') return
+    const mode = next === 'aurum-dark' ? 'dark' : 'light'
+    setPreference(mode)
+    try { writeModePreference(window.localStorage, mode) } catch { /* storage may be blocked */ }
   }, [])
 
   const value = useMemo<ThemeContextValue>(() => {
     const meta = THEME_META[choice]
-    return { choice, setChoice, skin: meta.skin, mode: meta.mode }
-  }, [choice, setChoice])
+    return { choice, setChoice, setGlobalTheme, skin: meta.skin, mode: meta.mode }
+  }, [choice, setChoice, setGlobalTheme])
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }

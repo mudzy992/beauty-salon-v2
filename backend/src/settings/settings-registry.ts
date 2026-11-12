@@ -7,6 +7,8 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'app_logo_text_color', scope: 'PUBLIC', type: 'string', defaultValue: '#632238' },
   { key: 'app_logo_accent', scope: 'PUBLIC', type: 'string', defaultValue: '#D4A843' },
   { key: 'app_logo_animated', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
+  { key: 'theme_active_skin', scope: 'PUBLIC', type: 'string', defaultValue: 'aurum' },
+  { key: 'theme_default_mode', scope: 'PUBLIC', type: 'string', defaultValue: 'light' },
   { key: 'theme_primary', scope: 'PUBLIC', type: 'string', defaultValue: '#632238' },
   { key: 'theme_accent', scope: 'PUBLIC', type: 'string', defaultValue: '#D4A843' },
   { key: 'system_maintenance_mode', scope: 'PUBLIC', type: 'boolean', defaultValue: 'false' },

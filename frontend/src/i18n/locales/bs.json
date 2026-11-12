@@ -404,7 +404,8 @@
       "description": "Logo, naziv aplikacije i boje teme javnog sajta.",
       "aurumNote": "Aurum paleta je fiksna: primarna i akcentna boja iz ovih postavki nisu aktivne. Klasična tema ih ponovo koristi.",
       "group": "Vizuelni identitet",
-      "groupDescription": "Logo i naziv aplikacije; boje teme mijenjaju akcentne boje javnog sajta.",
+      "newIdentity": "Novi identitet",
+    "groupDescription": "Logo i naziv aplikacije; boje teme mijenjaju akcentne boje javnog sajta.",
       "fields": {
         "appTitle": "Naziv aplikacije",
         "logo": "Logo",
@@ -412,6 +413,8 @@
         "logoTextColor": "Boja teksta uz logotip",
         "logoAccentColor": "Akcentna boja logotipa",
         "animateLogo": "Animiraj logotip",
+        "activeSkin": "Aktivni identitet",
+        "defaultMode": "Početni režim nove teme",
         "primarySiteColor": "Primarna boja sajta",
         "siteAccentColor": "Akcentna boja sajta (zlatna)"
       }

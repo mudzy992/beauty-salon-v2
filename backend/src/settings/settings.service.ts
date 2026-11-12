@@ -258,6 +258,12 @@ export class SettingsService {
   async set(key: string, dto: SetSettingDto, updatedBy?: string) {
     const registry = this.getRegistryItemOrThrow(key);
     const rawValue = this.normalizeString(dto.value ?? '');
+    if (key === 'theme_active_skin' && !['classic', 'aurum'].includes(rawValue)) {
+      throw new BadRequestException('Neispravna tema.');
+    }
+    if (key === 'theme_default_mode' && !['light', 'dark'].includes(rawValue)) {
+      throw new BadRequestException('Neispravan režim teme.');
+    }
     const hexKeys = new Set([
       'app_logo_svg_color',
       'app_logo_text_color',

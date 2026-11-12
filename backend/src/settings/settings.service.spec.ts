@@ -64,6 +64,36 @@ describe('SettingsService', () => {
     })
   })
 
+  describe('theme settings', () => {
+    it('publishes the approved defaults without private settings', async () => {
+      mockRepo.findManyByKeys.mockResolvedValueOnce([])
+      const result = new Map((await service.findAllPublic()).map((r) => [r.key, r.value]))
+      expect(result.get('theme_active_skin')).toBe('aurum')
+      expect(result.get('theme_default_mode')).toBe('light')
+      expect(result.has('system_email_password')).toBe(false)
+    })
+
+    it('accepts only the allowed values and emits public updates', async () => {
+      for (const [key, value] of [['theme_active_skin', 'classic'], ['theme_active_skin', 'aurum'], ['theme_default_mode', 'light'], ['theme_default_mode', 'dark']]) {
+        mockRepo.upsertByKey.mockResolvedValueOnce({ key, value })
+        await service.set(key, { value }, 'u1')
+        expect(mockRepo.upsertByKey).toHaveBeenLastCalledWith(expect.objectContaining({
+          where: { key }, create: expect.objectContaining({ value, updatedBy: 'u1' }),
+          update: expect.objectContaining({ value, updatedBy: 'u1' }),
+        }))
+        expect(mockEvents.emitToAll).toHaveBeenLastCalledWith(SOCKET_EVENTS.SETTINGS_UPDATED, { key, value })
+      }
+    })
+
+    it('rejects invalid values before persistence', async () => {
+      for (const [key, value] of [['theme_active_skin', 'dark'], ['theme_active_skin', ''], ['theme_active_skin', 'AURUM'], ['theme_default_mode', 'classic'], ['theme_default_mode', '']]) {
+        await expect(service.set(key, { value }, 'u1')).rejects.toThrow(BadRequestException)
+      }
+      expect(mockRepo.upsertByKey).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+    })
+  })
+
   describe('set', () => {
     it('baca za nepoznat key', async () => {
       await expect(

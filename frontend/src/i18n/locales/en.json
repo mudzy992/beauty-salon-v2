@@ -407,7 +407,8 @@
       "description": "Logo, application name and public website theme colors.",
       "aurumNote": "The Aurum palette is fixed: the primary and accent colors from these settings are not applied. Classic theme uses them again.",
       "group": "Branding",
-      "groupDescription": "The logo and application name; theme colors change accents on the public website.",
+      "newIdentity": "New identity",
+    "groupDescription": "The logo and application name; theme colors change accents on the public website.",
       "fields": {
         "appTitle": "Application name",
         "logo": "Logo",
@@ -415,6 +416,8 @@
         "logoTextColor": "Text color beside the logo",
         "logoAccentColor": "Logo accent color",
         "animateLogo": "Animate the logo",
+        "activeSkin": "Active identity",
+        "defaultMode": "Default mode for the new theme",
         "primarySiteColor": "Primary website color",
         "siteAccentColor": "Website accent color (gold)"
       }

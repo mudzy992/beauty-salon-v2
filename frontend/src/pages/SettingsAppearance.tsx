@@ -18,6 +18,8 @@ const APPEARANCE_FIELD_COPY_KEYS = {
   app_logo_text_color: 'adminSettings.appearance.fields.logoTextColor',
   app_logo_accent: 'adminSettings.appearance.fields.logoAccentColor',
   app_logo_animated: 'adminSettings.appearance.fields.animateLogo',
+  theme_active_skin: 'adminSettings.appearance.fields.activeSkin',
+  theme_default_mode: 'adminSettings.appearance.fields.defaultMode',
   theme_primary: 'adminSettings.appearance.fields.primarySiteColor',
   theme_accent: 'adminSettings.appearance.fields.siteAccentColor',
 } as const
@@ -44,6 +46,14 @@ export default function SettingsAppearance() {
             return {
               ...def,
               ...(fieldKey ? { label: t(fieldKey) } : {}),
+              ...(def.key === 'theme_active_skin' ? { options: [
+                { value: 'classic', label: t('shell.theme.classic') },
+                { value: 'aurum', label: t('adminSettings.appearance.newIdentity') },
+              ] } : {}),
+              ...(def.key === 'theme_default_mode' ? { options: [
+                { value: 'light', label: t('shell.theme.aurumLight') },
+                { value: 'dark', label: t('shell.theme.aurumDark') },
+              ] } : {}),
             }
           }),
         }

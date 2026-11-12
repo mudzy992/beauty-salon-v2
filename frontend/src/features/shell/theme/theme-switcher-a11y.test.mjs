@@ -1,5 +1,5 @@
 /**
- * `test:theme-switcher-a11y` — NEJRA §11/§12 + Q8: jedan izbornik, 3 stanja,
+ * `test:theme-switcher-a11y` — NEJRA §11/§12 + revidirani model: izbornik s 2 režima u Aurumu,
  * `aria-pressed`, `role="group"`, `role="status"`, 44 px mete, fokus ostaje,
  * svi natpisi kroz i18n, isto relativno mjesto u 3 shella. Source-contract stil
  * (nema browsera u sandboxu) + mutacijske provjere da detektor nije prazan.
@@ -37,19 +37,21 @@ const THEME_KEYS = [
   'shell.theme.announcement',
 ]
 
-test('jedan role="group" s tačno 3 button[aria-pressed] i i18n imenom', () => {
+test('jedan role="group" s tačno 2 button[aria-pressed] i i18n imenom', () => {
   assert.equal((code.match(/role="group"/g) ?? []).length, 1)
   assert.match(code, /aria-label=\{t\('shell\.theme\.groupLabel'\)\}/)
   assert.equal((code.match(/aria-pressed=\{choice === option\.value\}/g) ?? []).length, 1,
     'aria-pressed se postavlja iz trenutnog stanja, ne hardkodirano')
   const choices = [...code.matchAll(/\{\s*value: '(classic|aurum-light|aurum-dark)',\s*labelKey: '([^']+)'\s*\}/g)]
-  assert.deepEqual(choices.map((m) => m[1]), ['classic', 'aurum-light', 'aurum-dark'])
+  assert.deepEqual(choices.map((m) => m[1]), ['aurum-light', 'aurum-dark'])
+  assert.match(code, /if \(skin === 'classic'\) return null/)
+  assert.doesNotMatch(code, /value: 'classic'/)
   assert.deepEqual(choices.map((m) => m[2]), [
-    'shell.theme.classic', 'shell.theme.aurumLight', 'shell.theme.aurumDark',
+    'shell.theme.aurumLight', 'shell.theme.aurumDark',
   ])
-  // Tri dugmeta u mapi, ne tri ručno kopirana markup bloka.
+  // Dva dugmeta u mapi, ne ručno kopirani markup blokovi.
   assert.equal((code.match(/<button/g) ?? []).length, 1)
-  assert.match(code, /CHOICES\.map\(/, 'jedna petlja nad tri stanja')
+  assert.match(code, /CHOICES\.map\(/, 'jedna petlja nad dva režima')
 })
 
 test('nijedan vidljivi natpis nije hard-kodiran; svi ključevi postoje u BS i EN', () => {
