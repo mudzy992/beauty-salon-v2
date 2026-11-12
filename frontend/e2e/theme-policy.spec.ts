@@ -305,3 +305,34 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    for (const gallery of ['empty', 'populated'] as const) {
+      test(`service detail ${mode} ${viewport} ${gallery}: contrast and reflow`, async ({ page }) => {
+        await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await configure(page, 'aurum', mode, undefined, false, { public_service_prices_enabled: 'true', public_contact_phone: '+387 62 568 580', public_contact_email: 'salon@example.com', public_contact_address: 'Veliko Čajno, Visoko' })
+        await page.route('**/api/services/detail-test', (route) => route.fulfill({ json: { id: 'detail-test', name: 'Svečana frizura', shortDescription: 'Njega za posebne trenutke.', durationMinutes: 60, price: 50, subcategory: { name: 'Kosa', category: { name: 'Žene' } } } }))
+        await page.route('**/api/daily-log/before-after**', (route) => route.fulfill({ json: { items: gallery === 'empty' ? [] : [{ id: 'pair-test', before: { pathOriginal: '/brand/aurum-hero-editorial.jpg' }, after: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }], hasMore: false, nextOffset: gallery === 'empty' ? 0 : 1 } }))
+        await page.goto('/usluge/detail-test', { waitUntil: 'networkidle' })
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        await expect(page.locator('main')).toHaveCount(1)
+        await expect(page.getByRole('heading', { name: 'Svečana frizura', level: 1 })).toBeVisible()
+        await expect(page.locator('[data-detail-fact]')).toHaveCount(3)
+        await expect(page.locator('[data-detail-contact]')).toHaveCount(2)
+        if (gallery === 'empty') await expect(page.locator('[data-detail-empty-gallery]')).toBeVisible()
+        else await expect(page.locator('[data-aurum-spotlight]')).toBeVisible()
+        await settleAnimations(page)
+        for (const state of ['normal', 'contact-hover'] as const) {
+          if (state === 'contact-hover') await page.locator('[data-detail-contact]').first().hover()
+          const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+          const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
+          console.log(`SERVICE_DETAIL_${mode}_${viewport}_${gallery}_${state} ${JSON.stringify({ violations: relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+          expect(relevant).toEqual([])
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      })
+    }
+  }
+}

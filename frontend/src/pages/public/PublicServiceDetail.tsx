@@ -392,7 +392,7 @@ export default function PublicServiceDetail() {
         twitter={{ image: ogImage }}
         jsonLd={jsonLd}
       />
-      <main data-aurum-page="service-detail" className={`min-h-screen bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ""}`}>
+      <div data-aurum-page="service-detail" className={`min-h-screen bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ""}`}>
         <section className="relative isolate overflow-hidden border-b border-[#e8ddd3] bg-[#f4eee7]">
           <div
             aria-hidden="true"
@@ -419,7 +419,7 @@ export default function PublicServiceDetail() {
                     <span className="text-[#806b5d]">{salonName}</span>
                   ) : null}
                 </div>
-                <h1 className={`max-w-3xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[5.25rem] ${isAurum ? publicAurum.heading : ""}`}>
+                <h1 className={`max-w-3xl break-words text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[5.25rem] ${isAurum ? publicAurum.heading : ""}`}>
                   {service.name}
                 </h1>
                 {service.shortDescription?.trim() ? (
@@ -429,7 +429,7 @@ export default function PublicServiceDetail() {
                 ) : null}
                 <div className="mt-8 flex flex-wrap gap-3">
                   {showServicePrices ? (
-                    <div className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
                       <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                         {t("public.serviceDetail.priceLabel")}
                       </span>
@@ -438,7 +438,7 @@ export default function PublicServiceDetail() {
                       </span>
                     </div>
                   ) : null}
-                  <div className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                  <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
                     <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                       {t("public.serviceDetail.durationLabel")}
                     </span>
@@ -452,7 +452,7 @@ export default function PublicServiceDetail() {
                     </span>
                   </div>
                   {categoryName ? (
-                    <div className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
                       <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                         {t("public.serviceDetail.categoryLabel")}
                       </span>
@@ -493,7 +493,8 @@ export default function PublicServiceDetail() {
                       aria-label={t("public.serviceDetail.callSalon", {
                         phone: salonPhone,
                       })}
-                      className="inline-flex h-12 items-center gap-2 rounded-full border border-[#d5c4b8] bg-white/70 px-5 text-sm font-semibold text-[#49332d] hover:bg-white"
+                      data-detail-contact
+                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-white/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-white break-all"
                     >
                       <Phone className="h-4 w-4" aria-hidden="true" />
                       {salonPhone}
@@ -505,7 +506,8 @@ export default function PublicServiceDetail() {
                       aria-label={t("public.serviceDetail.emailSalon", {
                         email: salonEmail,
                       })}
-                      className="inline-flex h-12 items-center gap-2 rounded-full border border-[#d5c4b8] bg-white/70 px-5 text-sm font-semibold text-[#49332d] hover:bg-white"
+                      data-detail-contact
+                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-white/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-white break-all"
                     >
                       <Mail className="h-4 w-4" aria-hidden="true" />
                       {salonEmail}
@@ -546,7 +548,7 @@ export default function PublicServiceDetail() {
                     aria-hidden="true"
                     className="absolute inset-0 bg-gradient-to-t from-[#241814]/60 via-transparent to-transparent"
                   />
-                  <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-white sm:inset-x-7 sm:bottom-7">
+                  <div data-detail-image-caption className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-white sm:inset-x-7 sm:bottom-7">
                     <div>
                       <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/20 backdrop-blur">
                         <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -592,6 +594,7 @@ export default function PublicServiceDetail() {
           ) : items.length === 0 ? (
             <div
               role="status"
+              data-detail-empty-gallery
               className="rounded-[1.5rem] border border-[#e8ddd3] bg-white px-6 py-14 text-center shadow-[0_16px_50px_-38px_rgba(70,46,35,0.4)] md:py-20"
             >
               <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
@@ -659,7 +662,7 @@ export default function PublicServiceDetail() {
             </>
           )}
         </section>
-      </main>
+      </div>
     </div>
   );
 }
