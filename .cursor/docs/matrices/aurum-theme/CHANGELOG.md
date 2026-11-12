@@ -28,7 +28,7 @@
 
 **R2 riješeno 2026-11-11 odlukom `dark_yes`:** `Aurum tamna` dodaje `.dark` na `<html>` uz `data-skin="aurum"`; time se aktiviraju postojeće `dark:` varijante, a Aurum tokeni moraju imati veću specifičnost. S1 je naknadno odobren i završen (`43100889990`), S2 (`43110763869`); ova odluka nije pokrenula S1 automatski.
 
-**Otvoreno i dalje (S0 unos, historijski):** S3 odobrenje je naknadno stiglo kao `approve_s3` i S3 je završen (`43116167107`); R2 i odobrenja S1/S2/S3 više nisu otvorena. S4 čeka STOP.
+**Otvoreno i dalje (S0 unos, historijski):** S3 je naknadno odobreno (`approve_s3`) i završeno (`43116167107`); S4 je odobreno (`approve_s4`) i završeno (`43177106881`); R2 i odobrenja S1–S4 više nisu otvorena. **S5 čeka STOP + eksplicitno odobrenje**.
 
 ---
 
@@ -64,3 +64,11 @@
 **Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet), `approve_s3`. Bez `data-skin="aurum"` nijedno pravilo se ne primjenjuje, pa je default `classic` identičan — potvrđeno rendered axe **252 passed | 0 failed | 0 skipped**.
 
 **Status:** ✅ source-only + ✅ **5/5 CI** run **`43116167107`** na `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`); artifact `13899570263`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400%, čitač ekrana i `1.4.6` AAA do S11; `1.4.3`/`2.5.3` ostaju nepotpuni u coverage logu.
+
+## 2026-11-11 · S4 · 6 javnih tokova koriste postojeće Aurum tokene
+
+**Šta:** `globals.css` dobio **130 append-only Aurum-only linija** (marker `:811`, `postcss.parse` 110 pravila). Novi selektori isključivo pod `[data-skin="aurum"]`: legacy rose/orange/purple/emerald/blue paneli → `hsl(var(--surface-muted))` + `hsl(var(--text))`; odabrani dan/termin i default dugmad → par `--primary`/`--primary-foreground` (izmjeren u `check_ui_contrast.py`); zlatni CTA → `var(--nejra-hero-gold)`/`var(--nejra-hero-onbrand)`; indikator koraka 1–4, `<time>`, status/alert regije, Radix `[role="dialog"]` u portalu, vidljiv fokus preko `var(--aurum-brand)` i `forced-colors`. **S2 (`:432`) i S3 (`:646`) blokovi imaju 0 uklonjenih linija**; `const T`, `:root`, `.dark` i 12 SSOT hexova nisu dirani.
+
+**Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet), `approve_s4`. Bez `data-skin="aurum"` nijedno novo pravilo se ne primjenjuje — rendered axe **252 passed | 0 failed | 0 skipped** na default `classic` to potvrđuje.
+
+**Status:** ✅ source-only (`test:theme-ssot-sync`, `check_ui_contrast.py --strict` **140/140**) + ✅ **5/5 CI** run **`43177106881`** na `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`); artifact `13924239127`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400%, čitač ekrana i `1.4.6` AAA do S11; `1.4.3`/`2.5.3` ostaju nepotpuni u coverage logu.

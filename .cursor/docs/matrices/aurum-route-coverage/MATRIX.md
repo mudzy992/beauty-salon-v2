@@ -1,6 +1,6 @@
 # MATRIX — Pokrivenost ruta Aurum refaktorom
 
-**Status:** 🟡 **PLAN (K0) — nijedna ruta još nije refaktorisana.** S1 je završen (`ae87acf`, run `43100889990`, 5/5; default-classic axe 252/252 / 32 rute), ali po ugovoru nije dirao nijedan ekran.
+**Status:** 🟡 **S0–S4 završeni (svaki 5/5).** ✅ je **14/14 javnih ruta** (#1–#14: S2 tri, S3 pet, S4 šest); preostalih **44 deklaracija** (auth/izuzeci, admin, stylist) čeka S5–S10. **S4:** `7d2ab0e` / run `43177106881` / 5/5; default-classic axe 252/252 / 32 rute, artifact `13924239127`.
 **Izvor inventara (izmjeren 2026-11-11):** `frontend/src/app/router.tsx`, `app/routes/public.routes.tsx`, `app/routes/admin.routes.tsx`; unakrsno `docs/audit/UX_UI_ROUTE_INVENTORY.md`.
 **Ukupno:** **58 deklaracija ruta** = javne 14 + auth/izuzeci 8 + admin 24 + stylist 12.
 **Vlasnik plana:** `.cursor/plans/aurum-web-refactor/` · **Ažurirano:** 2026-11-11
@@ -20,12 +20,12 @@
 | 5 | `/blog/:slug` | `pages/public/PublicBlogPost.tsx` (feature gate) | S3 | `test:public-blog-post-i18n`, `test:public-blog-post-read-recovery`, `test:public-blog-share-accessibility`, `test:public-blog-comments-*` | ✅ **S3** (`43116167107` / `a12cf5b`); `data-aurum-article*`, share `aria-label`, `fieldset/legend` |
 | 6 | `/galerija` | `pages/public/PublicGallery.tsx` (feature gate) | S3 | `test:public-gallery-accessibility` | ✅ **S3** (`43116167107` / `a12cf5b`); `DialogDescription`, ikona kategorije, `data-aurum-lightbox` |
 | 7 | `/kontakt` | `pages/public/PublicContact.tsx` | S3 | `test:public-contact-i18n`, `test:public-contact-accessibility` | ✅ **S3** (`43116167107` / `a12cf5b`); `PageHeader`, 3 kartice, `autoComplete="name"` |
-| 8 | `/rezervacija` | `pages/public/PublicReserve.tsx` | S4 | `test:public-reservation-accessibility`, `test:reservation-errors`, `test:public-reservation-error` | ⬜ |
-| 9 | `/moje-rezervacije` | `pages/public/MyReservations.tsx` | S4 | `test:my-reservations-recovery`, `test:client-reservation-errors` | ⬜ |
-| 10 | `/moje-rezervacije/:id` | `pages/public/MyReservationDetail.tsx` | S4 | `test:my-reservation-detail-recovery` | ⬜ |
-| 11 | `/moj-termin/:token` | `pages/public/PublicReservationView.tsx` | S4 | `test:public-reservation-view-recovery` | ⬜ |
-| 12 | `/unsubscribe` | `pages/public/CampaignUnsubscribe.tsx` | S4 | i18n paritet + `role=status` | ⬜ |
-| 13 | `/profil` | `pages/Profile.tsx` (koristi i stylist meni) | S4 | `test:profile-*`, `test:profile-api-errors` | ⬜ |
+| 8 | `/rezervacija` | `pages/public/PublicReserve.tsx` | S4 | `test:public-reservation-accessibility`, `test:reservation-errors`, `test:redundant-entry-a11y` | ✅ **S4** (`43177106881` / `7d2ab0e`); `data-aurum-page/progress/cta`, 0 diff FSM-a i idempotencyja |
+| 9 | `/moje-rezervacije` | `pages/public/MyReservations.tsx` | S4 | `test:my-reservations-recovery`, `test:client-reservation-errors` | ✅ **S4** (`43177106881` / `7d2ab0e`); `CancelReservationDialog` + fokus-povratak, `<time>` u kartici |
+| 10 | `/moje-rezervacije/:id` | `pages/public/MyReservationDetail.tsx` | S4 | `test:my-reservation-detail-recovery` | ✅ **S4** (`43177106881` / `7d2ab0e`); `<time dateTime>`, `PaymentSummaryBlock` u Aurum tokenima |
+| 11 | `/moj-termin/:token` | `pages/public/PublicReservationView.tsx` | S4 | `test:public-reservation-view-recovery` | ✅ **S4** (`43177106881` / `7d2ab0e`); 404/410 vs transient greška netaknuti, `<time dateTime>` |
+| 12 | `/unsubscribe` | `pages/public/CampaignUnsubscribe.tsx` | S4 | `test:campaign-unsubscribe-accessibility`, `test:campaign-unsubscribe-data`, `test:campaign-unsubscribe-recovery` | ✅ **S4** (`43177106881` / `7d2ab0e`); `role={isErrorStatus ? "alert" : "status"}`, jedan primarni CTA |
+| 13 | `/profil` | `pages/Profile.tsx` (koristi i stylist meni) | S4 | `test:profile-*`, `test:profile-api-errors`, `test:profile-accessibility` | ✅ **S4** (`43177106881` / `7d2ab0e`); javni + stylist kontekst, `ConfirmDialog` u `MediaConsentPanel` |
 | 14 | `/zadovoljni-klijenti` | `pages/public/PublicSatisfiedClients.tsx` (feature gate) | S3 | `test:satisfied-clients-read-recovery` | ✅ **S3** (`43116167107` / `a12cf5b`); `EmptyState` sa sljedećim korakom, `data-aurum-satisfied-card` |
 
 ---
@@ -105,10 +105,10 @@
 | Provideri | `app/providers.tsx` | S1 | ✅ `ThemeProvider` iznad `SettingsProvider`; `MotionConfig` netaknut; `test:theme-brand-precedence` |
 | Tokeni / Tailwind | `styles/globals.css`, `styles/index.css`, `tailwind.config.js` | S1 | ✅ 2 Aurum bloka + `fontFamily.serif`; `test:theme-ssot-sync`; `:root`/`.dark` netaknuti |
 | Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | ✅ **S2: 0 diff** (grep dokaz); Aurum varijanta ostvarena u `globals.css` bez diranja dijeljenih komponenti |
-| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S2 (prvi potrošači), S6–S10 (migracija) | ✅ **S2 konzumira 6/8** (`FilterBar`, `TableSkeleton`, `EmptyState`, `ErrorState`, `PageHeader`, `StatusBadge`); `data-table`/`confirm-dialog`/`form-section` čekaju S6–S10 |
+| Nove primitive | `features/shell/aurum/ui/*` | S1 (kreiranje), S2 (prvi potrošači), **S4 (`confirm-dialog`)**, S6–S10 (migracija) | ✅ **S2 6/8 + S4 `ConfirmDialog`** u `media-consent-panel.tsx` (Radix, fokus-povratak); `data-table`/`form-section` čekaju S6–S10 |
 | Stare primitive | `features/shell/admin/ui/*` | S11 (brisanje, 0 potrošača) | ⬜ namjerno ostaju do S11 |
 | Izbornik teme | `features/shell/theme/*` | S1 | ✅ `ThemeSwitcher` u 3 shella; `test:theme-state`, `test:theme-switcher-a11y` |
-| i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ✅ S1: 6 novih ključeva, `check_i18n.py --strict` 2717/2717 |
+| i18n | `i18n/locales/bs.json`, `en.json` | S1–S11 | ✅ **S4: 2730/2730** (S1 +6, S3 +11, S4 +2 s `{{service}}`/`{{date}}`); `check_i18n.py --strict` PASS |
 | Kontrast skript | `scripts/check_ui_contrast.py` | S1 | ✅ **140/140** (80 klasičnih + 60 Aurum; odluka `use_140_four`) |
 | Dizajn dokumenti | `docs/design/*` (3) | S0 | ✅ NEJRA 14 sekcija + v2/v3 koncepti; `test:design-spec` 2/2 |
 | CI (S0 dio) | `.github/workflows/ci.yml`, `scripts/check_ci_index.py` | S0 | ✅ `test:design-spec` korak + odobreni `ci_fallback`; run `43043182552` 5/5, rendered axe 252/252 |

@@ -1,8 +1,8 @@
 # HANDOFF — Aurum web refaktor
 
-**Stanje:** ✅ **S0 → S1 → S2 → S3 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1, S2 i S3 (`approve_s3`), a na S2 STOP uvjet odabrao `dopuna_ssot`. S3 je realizovan po [04_phase-3-public-content.md](04_phase-3-public-content.md).
+**Stanje:** ✅ **S0 → S1 → S2 → S3 → S4 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1, S2, S3 (`approve_s3`) i S4 (`approve_s4`), a na S2 STOP uvjet odabrao `dopuna_ssot`. S4 je realizovan po [05_phase-4-public-flows.md](05_phase-4-public-flows.md).
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commiti:** `fa6d73a` (dizajn) + `bbd7ca5` (CI fallback) + `3ed3069` (konačna evidencija)
-**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2:** `d1fb55d` / `43110763869` · **S3 commit:** `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · **S3 CI:** `43116167107` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13899570263` · **Datum:** 2026-11-11 · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S4 (javni tokovi: rezervacija, moje rezervacije, token, unsubscribe, profil)?". R2 je već riješeno (`dark_yes`).
+**Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2:** `d1fb55d` / `43110763869` · **S3 commit:** `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · **S3 CI:** `43116167107` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13899570263` · **Datum:** 2026-11-11 · **S4 commit:** `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`) · **S4 CI:** **`43177106881` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13924239127` (331564 B) · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S5 (auth + onboarding + NotFound)?". R2 je već riješeno (`dark_yes`); `PublicFeatureGate` nije diran.
 
 ---
 
@@ -52,7 +52,7 @@
 | O1 | **R2:** smije li `Aurum tamna` dodijeliti `.dark` klasu (aktivira `dark:` varijante u 85 fajlova) ili samo `data-mode`? | ✅ **RIJEŠENO odlukom `dark_yes` (2026-11-11):** da, `Aurum tamna` dodaje `.dark` + `data-skin="aurum"`; Aurum tokeni moraju imati veću specifičnost. S1 je završen 5/5 (`43100889990`); R2 više nije otvoreno. |
 | O2 | Gdje stoji `ThemeSwitcher` na auth/onboarding ekranima bez layouta? | STOP-sažetak S4, prije S5 |
 | O3 | Hoće li se koristiti dopušteno **grupisanje navigacije** (Q10), i gdje `ThemeSwitcher` u fullscreen kalendaru? | STOP-sažetak S5, prije S6 |
-| O4 | Smije li se `window.confirm` zamijeniti pristupačnim `ConfirmDialog`om (ista poruka/uvjet/efekat)? | STOP-sažetak S5/S6; tiče se S6–S9 |
+| O4 | Smije li se `window.confirm` zamijeniti pristupačnim `ConfirmDialog`om (ista poruka/uvjet/efekat)? | **I dalje OTVORENO za S6–S9.** S4 je po vlastitom DoD-u zamijenio **samo** `media-consent-panel.tsx` (javni tok, `features/media-consent/*`); ostalih ~14 `window.confirm` u admin stranicama nije dirano. Pitanje se postavlja na STOP-sažetku S5/S6. |
 | O5 | Ako NEJRA §05 KPI skup / §06 tok odstupa od stvarnog koda → kod je mjerodavan; razlika se bilježi i pita | S6 / S10 |
 | O6 | Ako rendered axe u S11 otkrije kontrastni propust u Aurumu → minimalna korekcija samo uz odobrenje (Q9) | S11 |
 | R1 | Nema Chromium-a/čitača ekrana u sandboxu → sve rendered tvrdnje 🟡 dok `a11y-e2e` ne bude zelen | cijeli projekt |
@@ -157,7 +157,7 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Šta još NIJE dokazano (🟡 do S11):** rendered axe nad `aurum-light`/`aurum-dark`, 320 px / zoom 400%, čitač ekrana, fizički uređaj, `1.4.6` AAA.
 
-**Za S3 (ostvareno):** vlasnik je odabrao `approve_s3`; 5 ruta + dijeljene blog komponente su u Aurum grani, `PublicFeatureGate` (`public_feature_blog/gallery/reviews`) nije diran. **S4 čeka STOP + eksplicitno odobrenje**.
+**Za S3 (ostvareno):** vlasnik je odabrao `approve_s3`; 5 ruta + dijeljene blog komponente su u Aurum grani, `PublicFeatureGate` (`public_feature_blog/gallery/reviews`) nije diran. **S4 je naknadno odobren (`approve_s4`) i završen (5/5 `43177106881`)**.
 
 ---
 
@@ -177,4 +177,18 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 
 **Šta još NIJE dokazano (🟡 do S11):** rendered axe nad `aurum-light`/`aurum-dark`, 320 px / zoom 400%, čitač ekrana, fizički uređaj, `1.4.6` AAA.
 
-**Za S4:** javni tokovi (rezervacija, moje rezervacije, token, unsubscribe, profil) čekaju **STOP + eksplicitno odobrenje**.
+**Za S4 (ostvareno):** `approve_s4`; 6 javnih tokova je u 3 stanja teme uz nulti FSM/API diff, run **`43177106881` = 5/5**. **S5 čeka STOP + eksplicitno odobrenje**.
+
+---
+
+## 11. S4 realizacija (2026-11-11) — predaja S5
+
+**Odobrenje:** `ask_user s4_approval` → **`approve_s4`**; režim „plan → implementacija → 5/5 CI → evidencija → STOP". `PublicFeatureGate` ostaje netaknut bez nove odluke.
+
+**Šta je urađeno:** 12 fajlova / +220 −40 na `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`). 6 javnih tokova + 3 dijeljene komponente + `globals.css` (130 append-only Aurum-only linija) + 2 i18n fajla. `useTheme()` je dodan **prije** `if (!user) return null` u `PublicReserve`/`MyReservations`/`MyReservationDetail`; `Profile` je jednako ispravan u javnom i stylist kontekstu (`/profil`). `<time dateTime>` ×3; jedinstvena `aria-label` imena akcija kroz 2 nova BS/EN ključa; `ConfirmDialog` za revoke saglasnosti (Radix fokus-povratak). `components/ui/otp-input.tsx`, OTP `autoComplete`, svi stale `useRef` i error mapping netaknuti.
+
+**Dokazi:** lokalno **204/204** `test:*`, 5 Python gate-ova, **2730/2730** i18n, **140/140** source-only kontrast, build **281,3/300 KiB**, `typecheck:e2e` 0, `lint` 0/7, `git diff --check` čist. CI run **`43177106881`** = **5/5 success**; `a11y-e2e` job `131043916664` = **252 passed | 0 failed | 0 skipped**, artifact `13924239127` / 331564 B / SHA256 `735f02371338766b49288e49bddd249112f148e037ff5d6a3c001502edcb6ae2`. Rendered axe je **samo default `classic`**; `1.4.6` AAA i `1.4.3`/`2.5.3` nepotpunosti ostaju u logu — bez tvrdnje o WCAG 2.2/AAA.
+
+**Nije dirano:** rezervacijski FSM, `disabled` uslovi, `aria-pressed`/`progressbar`, validacije, idempotency, backend dostupnost, statusi, stale zaštite, API/`queryKeys`/socket, `PublicFeatureGate`, `/backend`, `/mobile`, `package-lock.json`, `ci.yml`. Nijedan test nije oslabljen ni izmijenjen.
+
+**Otvoreno za S5:** O2 (mjesto `ThemeSwitcher`-a na auth/onboarding ekranima bez layouta) i eksplicitno odobrenje S5. O4 ostaje otvoreno za S6–S9. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.

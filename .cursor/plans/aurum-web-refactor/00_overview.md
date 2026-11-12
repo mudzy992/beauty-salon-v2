@@ -1,6 +1,6 @@
 # Plan — Aurum web refaktor: javne stranice + svi dashboardi
 
-**Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0 ZAVRŠEN (5/5 CI) · S1 ZAVRŠEN (`43100889990` / `ae87acf`) · S2 ZAVRŠEN (`43110763869` / `d1fb55d`) · S3 ZAVRŠEN (5/5 CI `43116167107` na `a12cf5b`; 204/204 lokalno, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`, 280,9/300 KiB).** S4–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje. U S0 nije diran produkcijski UI kod; S1 jeste uveo jedini novi feature (izbornik teme), S2 je prvi potrošač tog temelja u `frontend/src/`, a S3 je proširio Aurum na 5 sadržajnih javnih ruta.
+**Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0–S4 ZAVRŠENI (svaki 5/5 CI)**. S1 `43100889990`/`ae87acf` · S2 `43110763869`/`d1fb55d` · S3 `43116167107`/`a12cf5b` · **S4 `43177106881`/`7d2ab0e` (204/204, 2730/2730 BS/EN, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`, 281,3/300 KiB)**. **S5–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje.** U S0 nije diran produkcijski UI kod; S1 je uveo jedini novi feature (izbornik teme), S2 je prvi potrošač temelja, S3 je proširio Aurum na 5 sadržajnih javnih ruta, a S4 na 6 javnih tokova uz diff-om potvrđen nulti FSM/API zahvat.
 
 **Datum:** 2026-11-11
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0`
@@ -148,7 +148,7 @@ Kontrolna lista svih segmenata: [CHECKLIST.md](CHECKLIST.md). Evidencija: [CHANG
 | 3 | `python3 scripts/check_doc_links.py` | ✅ | `repo-checks` |
 | 4 | `python3 scripts/check_i18n.py --strict` | ✅ | `repo-checks` |
 | 5 | `python3 scripts/check_ui_contrast.py --strict` | ✅ | `repo-checks` |
-| 6 | Sve `test:*` skripte iz `frontend/package.json` (**203 nakon S1**) | ✅ puna petlja 203/203 | `frontend` (svaka ima svoj korak) |
+| 6 | Sve `test:*` skripte iz `frontend/package.json` (**204 nakon S2; S3/S4 bez novih skripti**) | ✅ puna petlja **204/204** (S4) | `frontend` (svaka ima svoj korak) |
 | 7 | `cd frontend && npm run build` (`tsc -b` + Vite + `check-bundle-budget.mjs`, ≤300 KiB gzip) | ✅ | `frontend` |
 | 8 | `cd frontend && npm run typecheck:e2e` | ✅ | `frontend` |
 | 9 | Frontend Docker image build (root context) | ➖ samo u CI | `frontend` |
@@ -157,7 +157,7 @@ Kontrolna lista svih segmenata: [CHECKLIST.md](CHECKLIST.md). Evidencija: [CHANG
 | 12 | `cd mobile && npm run typecheck` + `test:socket-recovery` | ➖ samo u CI | `mobile` |
 | 13 | `git diff --check HEAD` | ✅ | dio provjere 1 |
 
-Napomena uz 11: `frontend/scripts/run-a11y-routes.mjs` u sandboxu **namjerno ne tvrdi prolaz** ako Chromium nije instaliran. Zelen `a11y-e2e` je ostvaren u S1 runu **`43100889990`** na `ae87acf` (**252 passed | 0 failed | 0 skipped** / 32 rute), ali isključivo na **default `classic`**; rendered tvrdnje za Aurum stanja ostaju 🟡 do S11. `140/140` kontrastnih parova je source-only dokaz, ne rendered audit.
+Napomena uz 11: `frontend/scripts/run-a11y-routes.mjs` u sandboxu **namjerno ne tvrdi prolaz** ako Chromium nije instaliran. Zelen `a11y-e2e` je ostvaren i u S1 (`43100889990`) i u **S4 runu `43177106881`** na `7d2ab0e` (**252 passed | 0 failed | 0 skipped** / 32 rute, artifact `13924239127`), ali isključivo na **default `classic`**; rendered tvrdnje za Aurum stanja ostaju 🟡 do S11. `140/140` kontrastnih parova je source-only dokaz, ne rendered audit.
 
 ---
 

@@ -48,3 +48,11 @@
 **Zašto:** odluka `approve_s3` po NEJRA §09; režim plan → implementacija → 5/5 CI → evidencija → STOP. `PublicFeatureGate` flagovi `public_feature_blog/gallery/reviews` nisu dirani bez nove odluke.
 
 **Status:** ✅ **204/204** `test:*` (bez novih skripti; 1 source-contract regex proširen uz obrazloženje), 5 Python gate-ova, build **280,9/300 KiB**, BS/EN **2728/2728**. **CI:** commit `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`), run **`43116167107`** = **5/5 success**; `a11y-e2e` job `130844618383` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13899570263`.
+
+## 2026-11-11 · S4 · 6 javnih tokova refaktorisano (14/14 javnih ruta ✅)
+
+**Šta:** redovi **8–13** (`/rezervacija`, `/moje-rezervacije`, `/moje-rezervacije/:id`, `/moj-termin/:token`, `/unsubscribe`, `/profil`) prebačeni u ✅. Time je svih **14/14 javnih ruta** pod Aurum prezentačkim slojem; preostalih **44 deklaracije** čekaju S5–S10. U §5 ažurirani su redovi „i18n" (**2730/2730**) i „Nove primitive" (**S4 konzumira `ConfirmDialog`**).
+
+**Zašto:** odluka `approve_s4` po NEJRA §09; režim plan → implementacija → 5/5 CI → evidencija → STOP. Dijeljene komponente (`my-reservation-card`, `payment-summary-block`, `media-consent-panel`, potvrdni dijalog) dobile su `data-aurum-surface`/globalni `[role="dialog"]` stil bez diranja API-ja, `queryKeys`, socket eventa, `PublicFeatureGate` i rezervacijskog FSM-a.
+
+**Status:** ✅ **204/204** `test:*` (bez novih skripti, bez izmjene ijednog testa), 5 Python gate-ova, build **281,3/300 KiB**, BS/EN **2730/2730**, `check_ui_contrast` **140/140 source-only**. **CI:** commit `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`), run **`43177106881`** = **5/5 success**; `a11y-e2e` job `131043916664` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13924239127` (331564 B). 🟡 rendered axe za `aurum-light`/`aurum-dark`, 320 px / 400% i čitač ekrana do S11.
