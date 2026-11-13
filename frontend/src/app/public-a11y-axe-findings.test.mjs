@@ -66,7 +66,7 @@ test('2.4.1: javni layout ima skip-link kao prvi element i cilj s tabIndex', () 
   const src = at('features/shell/public/public-layout.tsx')
   assert.match(src, /import \{ SkipLink \}/)
 
-  const root = src.indexOf('<div className="min-h-screen bg-white flex flex-col">')
+  const root = src.indexOf('<div data-public-shell className="min-h-screen bg-white flex flex-col">')
   assert.ok(root > 0, 'glavni return javnog layouta nije naden')
   const after = src.slice(root, root + 700)
   // SkipLink mora biti PRIJE <header>

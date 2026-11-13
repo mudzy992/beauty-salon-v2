@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, ExternalLink, Images } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -118,6 +118,7 @@ export default function PublicGallery() {
     [categories],
   )
 
+  const lightboxTriggerRef = useRef<HTMLButtonElement | null>(null)
   const handleClose = () => setLightbox(null)
 
   const galleryBg = getSetting('public_gallery_bg', '')
@@ -290,8 +291,9 @@ export default function PublicGallery() {
                                 variants={fadeScale}
                                 disabled={!originalUrl}
                                 className="group relative aspect-square w-full appearance-none overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 p-0 text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
-                                onClick={() => {
+                                onClick={(event) => {
                                   if (originalUrl) {
+                                    lightboxTriggerRef.current = event.currentTarget
                                     setLightbox({
                                       src: originalUrl,
                                       categoryName: cat.name,
@@ -328,7 +330,12 @@ export default function PublicGallery() {
         }}
       >
         {lightbox ? (
-          <DialogContent data-aurum-lightbox className="w-fit max-h-[90dvh] max-w-[90vw] overflow-y-auto border-0 bg-black/90 p-4 pt-12 text-white shadow-none sm:rounded-2xl">
+          <DialogContent data-aurum-lightbox onCloseAutoFocus={(event) => {
+            if (lightboxTriggerRef.current?.isConnected) {
+              event.preventDefault()
+              lightboxTriggerRef.current.focus()
+            }
+          }} className="w-fit max-h-[90dvh] max-w-[90vw] overflow-y-auto border-0 bg-black/90 p-4 pt-12 text-white shadow-none sm:rounded-2xl">
             <DialogTitle className="sr-only">
               {t('public.gallery.openImage')}: {lightbox.categoryName}
             </DialogTitle>

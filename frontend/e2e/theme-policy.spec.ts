@@ -395,7 +395,7 @@ for (const mode of ['light', 'dark'] as const) {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await configure(page, 'aurum', mode)
     await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
-    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
+    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
     await page.route('**/api/services**', (route) => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
     await page.route('**/api/reservations/availability/dates**', (route) => route.fulfill({ json: [] }))
     await page.goto('/rezervacija', { waitUntil: 'networkidle' })
@@ -425,7 +425,7 @@ for (const mode of ['light', 'dark'] as const) {
   test(`stylist workbook ${mode} populated card uses Aurum surface`, async ({ page }) => {
     await configure(page, 'aurum', mode)
     await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
-    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', isEmailVerified: true, roles: ['STYLIST'] } }))
+    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, roles: ['STYLIST'] } }))
     await page.route('**/api/stylists/me', (route) => route.fulfill({ json: { id: 'stylist-profile' } }))
     await page.route('**/api/daily-log?**', (route) => route.fulfill({ json: [{ id: 'entry-test', publicReferenceCode: 'DK-TEST', date: '2026-01-01', status: 'COMPLETED', images: [], tipAmount: 0 }] }))
     await page.goto('/stylist/workbook', { waitUntil: 'networkidle' })
