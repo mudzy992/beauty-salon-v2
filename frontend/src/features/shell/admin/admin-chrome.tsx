@@ -123,7 +123,7 @@ export const AdminUserMenu = ({
             </Avatar>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[318px] p-3">
+        <DropdownMenuContent data-admin-user-menu align="end" className="w-[318px] max-w-[calc(100vw-2rem)] p-3">
           <div className="mt-4 flex min-w-0 items-center gap-3">
             <Avatar className="h-11 w-11 shrink-0 ring-1 ring-slate-200">
               {avatarSrc ? (
@@ -139,19 +139,19 @@ export const AdminUserMenu = ({
               <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-slate-900">{username ?? t('shell.adminName')}</div>
-              {email ? <div className="truncate text-xs text-slate-500">{email}</div> : null}
+              <div data-admin-user-name className="truncate text-sm font-semibold text-slate-900">{username ?? t('shell.adminName')}</div>
+              {email ? <div data-admin-user-email className="truncate text-xs text-slate-500">{email}</div> : null}
             </div>
           </div>
           <DropdownMenuSeparator className="my-3" />
           <div className="grid gap-1">
             <DropdownMenuItem asChild className="p-0 focus:bg-transparent">
-              <Link to="/" className="w-full">
-                <Button className="w-full" variant="outline" size="sm">
-                  <ExternalLink className="mr-2 h-4 w-4" />
+              <Button asChild className="w-full" variant="outline" size="sm">
+                <Link to="/">
+                  <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
                   {t('shell.viewSite')}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="p-0 focus:bg-transparent"

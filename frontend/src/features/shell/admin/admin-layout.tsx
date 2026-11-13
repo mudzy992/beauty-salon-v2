@@ -122,12 +122,12 @@ export const AdminLayout = () => {
                     />
                   </div>
                   <div className="mt-auto grid gap-1 border-t border-line pt-3">
-                    <Link to="/" onClick={() => setSidebarOpen(false)}>
-                      <Button className="w-full" variant="outline" size="sm">
-                        <ExternalLink className="mr-2 h-4 w-4" />
+                    <Button asChild className="w-full" variant="outline" size="sm">
+                      <Link to="/" onClick={() => setSidebarOpen(false)}>
+                        <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
                         {t('shell.viewSite')}
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                     <Button
                       className="w-full"
                       variant="outline"

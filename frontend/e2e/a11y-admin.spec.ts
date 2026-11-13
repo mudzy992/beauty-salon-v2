@@ -562,3 +562,46 @@ for (const mode of ['light', 'dark'] as const) {
     console.log(`ADMIN_EMPTY_${mode}_INCOMPLETE ${JSON.stringify(results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })))}`)
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`admin shell ${mode} ${viewport}: navigation and user menus`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      await page.route('**/api/blog/comments/pending-count', route => route.fulfill({ json: { pending: 0 } }))
+      await page.goto('/admin', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/admin')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const trigger = viewport === 'mobile' ? page.locator('button[aria-controls="admin-mobile-navigation"]') : page.locator('header[data-admin-header] button[aria-haspopup="menu"]')
+      await trigger.focus()
+      await page.keyboard.press('Enter')
+      const container = viewport === 'mobile' ? page.locator('#admin-mobile-navigation') : page.locator('[data-admin-user-menu]')
+      await expect(container).toBeVisible()
+      const siteLink = container.locator('a[href="/"]')
+      await expect(siteLink).toHaveCount(1)
+      await expect(siteLink.locator('button')).toHaveCount(0)
+      const background = await container.evaluate(element => {
+        const probe = document.createElement('span')
+        probe.style.backgroundColor = 'hsl(var(--surface))'
+        element.append(probe)
+        const result = { actual: getComputedStyle(element).backgroundColor, expected: getComputedStyle(probe).backgroundColor }
+        probe.remove()
+        return result
+      })
+      expect(background.actual).toBe(background.expected)
+      await page.keyboard.press('Escape')
+      await expect(trigger).toBeFocused()
+      const navigation = viewport === 'mobile' ? page.locator('#admin-mobile-navigation [data-admin-navigation]') : page.locator('[data-admin-sidebar] [data-admin-navigation]')
+      if (viewport === 'mobile') { await trigger.click(); await expect(navigation).toBeVisible() }
+      const results = await new AxeBuilder({ page }).include(viewport === 'mobile' ? '#admin-mobile-navigation [data-admin-navigation]' : '[data-admin-sidebar] [data-admin-navigation]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`ADMIN_NAV_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(results.violations).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}

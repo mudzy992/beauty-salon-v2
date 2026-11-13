@@ -206,10 +206,11 @@ export default function ReservationsCalendar() {
           </Button>
         </header>
 
-        <main id="calendar-main" tabIndex={-1} className="min-h-[28rem] flex-1 rounded-xl border border-slate-200 bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring dark:border-slate-800 dark:bg-slate-950">
+        <main id="calendar-main" data-admin-calendar-main tabIndex={-1} className="min-h-[28rem] flex-1 rounded-xl border border-slate-200 bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring dark:border-slate-800 dark:bg-slate-950">
           {loading ? (
-            <div className="flex h-full items-center justify-center text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+            <div role="status" aria-live="polite" className="flex h-full items-center justify-center text-slate-500">
+              <span className="sr-only">{t('common.loading')}</span>
+              <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>
           ) : (
             <ReservationScheduler

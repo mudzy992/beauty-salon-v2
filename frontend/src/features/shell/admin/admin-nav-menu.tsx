@@ -67,12 +67,14 @@ export const AdminNav = ({
 
   return (
     <nav
+      data-admin-navigation
       aria-label={t('shell.mainNavigation')}
       className={compact ? 'grid gap-1' : 'space-y-4'}
     >
       {adminNavGroups.map((group) => (
         <div key={group.labelKey}>
           <p
+            data-admin-nav-group
             className={
               compact
                 ? 'px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-content-muted'

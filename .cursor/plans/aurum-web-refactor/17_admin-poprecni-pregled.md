@@ -33,3 +33,10 @@ Vlasnik traži da se admin faze pregledaju zajedno i očite nedosljednosti ispra
 ## Prva provjera i korekcija
 
 CI `43431726337`: četiri posla prošla, novi ciljani AAA test za svijetlo prazno stanje je također izmjerio zaglavlja tabele i prijavio 6.38:1 (`--text-muted` na `--surface`), dok je test potvrdio da se prazno stanje prikazuje. To je AAA nalaz, ne AA kvar. Za zaglavlja tabele nedavnih rezervacija koristi se već postojeći `--text-muted-strong` na postojećoj površini, bez izmjene palete; ostale tabele nisu automatski proglašene riješenima. Ponovni CI potreban.
+
+### Admin shell i fullscreen kalendar — sljedeći inkrement
+
+- CI `43432820709` za prethodnu ispravku 5/5; ciljano prazno stanje i zaglavlja nedavnih rezervacija prošli su test u oba režima. Nije dokaz za sve potrošače zajedničkih stanja.
+- Navigacijske sekcije, aktivni i hover link koriste postojeće jače uparene Aurum tokene; Classic nije obuhvaćen pravilima. U admin korisničkom meniju ime/email dobijaju odgovarajuću boju i portal je ograničen na širinu ekrana.
+- Dva linka za povratak na javni sajt sadržavala su ugniježđeno dugme; sada su jedna `Button asChild` link-kontrola, bez promjene URL-a. Loading fullscreen kalendara sada je najavljen i poštuje reduced motion, a glavna površina slijedi Aurum tokene.
+- Dodani renderirani testovi za light/dark, desktop/320px: otvoreni admin meni, jedinstveni link, boja portalne površine, povratak fokusa i AAA navigacije. Lokalni lint, build, E2E typecheck i source testovi prolaze; renderirani rezultat tek nakon CI. Vizuelni pregled stvarnih podataka i druge stranice još ostaju.

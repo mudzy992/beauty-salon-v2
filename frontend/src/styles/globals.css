@@ -1860,3 +1860,23 @@
 [data-skin="aurum"] .admin-shell [data-dashboard-recent] table.app-table th {
   color: hsl(var(--text-muted-strong));
 }
+
+/* Admin navigation and portal content use the same Aurum foreground pairs. */
+[data-skin="aurum"] [data-admin-navigation] [data-admin-nav-group],
+[data-skin="aurum"] [data-admin-header] .text-content-muted,
+[data-skin="aurum"] [data-admin-user-menu] :is([data-admin-user-name], [data-admin-user-email]) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-admin-navigation] a[aria-current="page"],
+[data-skin="aurum"] [data-admin-navigation] a:hover {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-calendar] [data-admin-calendar-main] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-calendar] header p,
+[data-skin="aurum"] [data-aurum-calendar] [role="status"] {
+  color: hsl(var(--text-muted-strong));
+}

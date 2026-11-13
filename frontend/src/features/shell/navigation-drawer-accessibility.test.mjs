@@ -28,3 +28,10 @@ test('public menu restores focus and links do not contain nested buttons', () =>
   assert.doesNotMatch(publicLayout, /<Link\b[^>]*>\s*<Button\b/)
   assert.match(publicLayout, /<Button asChild[^>]*>\s*<Link to="\/login"/)
 })
+
+test('admin site links use a single interactive element in both menus', () => {
+  for (const source of [adminChrome, readFileSync(new URL('./admin/admin-layout.tsx', import.meta.url), 'utf8')]) {
+    assert.doesNotMatch(source, /<Link[^>]*>\s*<Button/)
+    assert.match(source, /<Button asChild[^>]*>[\s\S]*?<Link to="\/"/)
+  }
+})
