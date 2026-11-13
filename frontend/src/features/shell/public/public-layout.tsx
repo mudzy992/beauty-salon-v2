@@ -154,7 +154,7 @@ export const PublicLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div data-public-shell className="min-h-screen bg-white flex flex-col">
       {/* WCAG 2.4.1 Bypass blocks — javni layout dosad NIJE imao skip-link (imao ga je samo
           admin/stylist shell), pa je prvi Tab išao na logo. axe: 2.4.1. */}
       <SkipLink />

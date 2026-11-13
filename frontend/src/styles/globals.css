@@ -1480,3 +1480,44 @@
 [data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-600"] {
   color: hsl(var(--text-muted-strong));
 }
+
+/* Reported visual defects: keep legacy surfaces in the active Aurum palette. */
+[data-skin="aurum"] [data-public-shell] { background: hsl(var(--surface-sunken)); }
+[data-skin="aurum"] [data-aurum-public-user-menu] { background: hsl(var(--surface)); }
+[data-skin="aurum"] [data-aurum-lightbox] { background: hsl(var(--surface)); color: hsl(var(--text)); }
+[data-skin="aurum"] [data-aurum-lightbox] a { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-aurum-lightbox] > button { min-width: 2.75rem; min-height: 2.75rem; right: .25rem; top: .25rem; }
+[data-skin="aurum"] [data-aurum-page="reserve"] :is([data-reserve-selected-item], [data-reserve-total], [data-reserve-duration], [data-reserve-calendar]) {
+  background: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] :is([data-reserve-selected-item], [data-reserve-total], [data-reserve-calendar]) :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-slate-500) {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-calendar] button[aria-pressed="false"] {
+  color: hsl(var(--text));
+  background: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-calendar] button:disabled {
+  opacity: 1;
+  text-decoration: line-through;
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-stylist-shell] [class~="dark:bg-slate-950"] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+}
+[data-skin="aurum"] [data-stylist-shell] :is(button, a)[class~="bg-slate-900"] {
+  background-color: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-lightbox] button {
+  color: hsl(var(--text));
+  border-color: hsl(var(--line));
+  background: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-lightbox] button:hover {
+  background: hsl(var(--surface-muted));
+}

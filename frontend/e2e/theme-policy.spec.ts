@@ -238,6 +238,11 @@ for (const mode of ['light', 'dark'] as const) {
       expect(await categoryHeading.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
       await expect(serviceLink).toHaveAccessibleName(/Test usluga.*45 min/i)
       await expect(page.getByText('Pronađite tretman')).toBeVisible()
+      for (const step of await page.locator('[data-service-step-number]').all()) {
+        const geometry = await step.evaluate((el) => ({ height: el.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(el).lineHeight), width: el.scrollWidth, available: el.clientWidth }))
+        expect(geometry.height).toBeLessThanOrEqual(geometry.lineHeight + 1)
+        expect(geometry.width).toBeLessThanOrEqual(geometry.available + 1)
+      }
       await expect(page.getByText('Njega i ljepota')).toBeVisible()
       const caption = page.locator('[data-service-image-caption]')
       const count = page.locator('[data-aurum-service-count]')
@@ -346,4 +351,88 @@ for (const mode of ['light', 'dark'] as const) {
       })
     }
   }
+}
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`gallery lightbox ${mode} ${viewport} fits image and keyboard closes`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      const category = { id: 'gallery-test', name: 'Frizure', sortOrder: 0, _count: { images: 1 }, images: [{ id: 'image-test', sortOrder: 0, upload: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }] }
+      await page.route('**/api/gallery/categories**', (route) => route.fulfill({ json: new URL(route.request().url()).pathname.endsWith('/gallery-test') ? category : [category] }))
+      await page.route('**/api/daily-log/before-after**', (route) => route.fulfill({ json: { items: [], hasMore: false, nextOffset: 0 } }))
+      await page.goto('/galerija', { waitUntil: 'networkidle' })
+      const trigger = page.getByRole('button', { name: /Frizure/ }).first()
+      await expect(trigger).toBeVisible()
+      await trigger.focus()
+      await page.keyboard.press('Enter')
+      const dialog = page.locator('[data-aurum-lightbox]')
+      await expect(dialog).toBeVisible()
+      const image = dialog.locator('img')
+      await expect(image).toBeVisible()
+      const dialogBox = await dialog.boundingBox()
+      const imageBox = await image.boundingBox()
+      expect(dialogBox && imageBox).not.toBeNull()
+      if (dialogBox && imageBox) {
+        expect(Math.abs((dialogBox.x + dialogBox.width / 2) - (imageBox.x + imageBox.width / 2))).toBeLessThan(3)
+        expect(dialogBox.width).toBeLessThanOrEqual(page.viewportSize()!.width * 0.9 + 1)
+      }
+      const results = await new AxeBuilder({ page }).include('[data-aurum-lightbox]').withTags(AXE_RULE_TAGS).analyze()
+      const violations = results.violations.filter((v) => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
+      console.log(`GALLERY_LIGHTBOX_${mode}_${viewport} ${JSON.stringify({ violations, incomplete: results.incomplete })}`)
+      expect(violations).toEqual([])
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+      await expect(trigger).toBeFocused()
+    })
+  }
+}
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`reservation and profile surfaces ${mode} with selected service`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await configure(page, 'aurum', mode)
+    await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
+    await page.route('**/api/services**', (route) => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
+    await page.route('**/api/reservations/availability/dates**', (route) => route.fulfill({ json: [] }))
+    await page.goto('/rezervacija', { waitUntil: 'networkidle' })
+    expect(new URL(page.url()).pathname).toBe('/rezervacija')
+    await page.locator('#public-service-search').focus()
+    await expect(page.locator('[data-reserve-duration]').first()).toBeVisible()
+    const measurePair = async (selector: string) => {
+      const values = await page.locator(selector).first().evaluate((el) => ({ background: getComputedStyle(el).backgroundColor, foreground: getComputedStyle(el).color }))
+      expect(values.foreground).not.toBe(values.background)
+    }
+    await measurePair('[data-reserve-duration]')
+    await page.getByRole('button', { name: /Svečana frizura/ }).first().click()
+    await expect(page.locator('[data-reserve-selected-item]')).toBeVisible()
+    await expect(page.locator('[data-reserve-calendar]')).toBeVisible()
+    await measurePair('[data-reserve-selected-item]')
+    await measurePair('[data-reserve-total]')
+    await measurePair('[data-reserve-calendar]')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    await page.goto('/profil', { waitUntil: 'networkidle' })
+    await expect(page.locator('[data-aurum-page="profile"]')).toBeVisible()
+    const backgrounds = await page.evaluate(() => ({ shell: getComputedStyle(document.querySelector('[data-public-shell]')!).backgroundColor, surface: getComputedStyle(document.querySelector('[data-aurum-shell="header"]')!).backgroundColor }))
+    if (mode === 'dark') expect(backgrounds.shell).not.toBe('rgb(255, 255, 255)')
+  })
+}
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`stylist workbook ${mode} populated card uses Aurum surface`, async ({ page }) => {
+    await configure(page, 'aurum', mode)
+    await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', isEmailVerified: true, roles: ['STYLIST'] } }))
+    await page.route('**/api/stylists/me', (route) => route.fulfill({ json: { id: 'stylist-profile' } }))
+    await page.route('**/api/daily-log?**', (route) => route.fulfill({ json: [{ id: 'entry-test', publicReferenceCode: 'DK-TEST', date: '2026-01-01', status: 'COMPLETED', images: [], tipAmount: 0 }] }))
+    await page.goto('/stylist/workbook', { waitUntil: 'networkidle' })
+    expect(new URL(page.url()).pathname).toBe('/stylist/workbook')
+    const card = page.locator('[data-stylist-shell] a[href="/stylist/workbook/entry-test"] > div')
+    await expect(card).toBeVisible()
+    const colors = await card.evaluate((el) => ({ actual: getComputedStyle(el).backgroundColor, expected: getComputedStyle(document.querySelector('[data-stylist-header]')!).backgroundColor }))
+    expect(colors.actual).toBe(colors.expected)
+  })
 }

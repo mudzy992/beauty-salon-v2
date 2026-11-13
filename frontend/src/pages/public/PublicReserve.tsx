@@ -126,12 +126,12 @@ const ServiceAutocomplete = ({
   if (selected.length > 0) {
     const totalMinutes = selected.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0)
     return (
-      <div className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+      <div data-reserve-selected className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
         <div>
           <div className="font-semibold text-slate-900">{t('public.reserve.selectedServices')}</div>
           <div className="mt-2 space-y-2">
             {selected.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div key={s.id} data-reserve-selected-item className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-slate-900">{s.name}</div>
                   <div className="mt-0.5 text-xs text-slate-600">{s.durationMinutes} min</div>
@@ -150,7 +150,7 @@ const ServiceAutocomplete = ({
             ))}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
+            <span data-reserve-total className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
               <Clock className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
               {t('public.reserve.totalDuration', { minutes: totalMinutes })}
             </span>
@@ -228,7 +228,7 @@ const ServiceAutocomplete = ({
                               </div>
                             ) : null}
                           </div>
-                          <span className="text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
+                          <span data-reserve-duration className="shrink-0 whitespace-nowrap text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
                             {s.durationMinutes} min
                           </span>
                         </div>
@@ -292,7 +292,7 @@ const ServiceAutocomplete = ({
                         </div>
                       ) : null}
                     </div>
-                    <span className="text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
+                    <span data-reserve-duration className="shrink-0 whitespace-nowrap text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
                       {s.durationMinutes} min
                     </span>
                   </div>
@@ -385,7 +385,7 @@ const ReservationCalendar = ({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div data-reserve-calendar className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between mb-4">
         <Button
           type="button"
@@ -456,7 +456,7 @@ const ReservationCalendar = ({
               className={[
                 'h-10 w-full rounded-md text-sm transition',
                 isSelected ? 'bg-slate-900 text-white font-semibold' : 'bg-transparent text-slate-700',
-                !available ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100',
+                !available ? 'cursor-not-allowed'  : 'hover:bg-slate-100',
                 isToday && !isSelected ? 'border-2 border-slate-300' : 'border border-transparent',
               ].join(' ')}
               onClick={() => onSelectDate(dateStr)}

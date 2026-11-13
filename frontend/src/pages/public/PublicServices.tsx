@@ -351,7 +351,7 @@ export default function PublicServices() {
           <div data-service-steps className="grid overflow-hidden rounded-[1.5rem] border border-[#e7ddd4] bg-white shadow-[0_16px_50px_-32px_rgba(70,46,35,0.38)] sm:grid-cols-3">
             {serviceSteps.map((step, index) => (
               <div key={step.number} className={`flex items-start gap-4 px-5 py-5 sm:px-6 sm:py-6 ${index < serviceSteps.length - 1 ? 'border-b border-[#eee7e0] sm:border-b-0 sm:border-r' : ''}`}>
-                <span className="mt-0.5 text-xs font-semibold tracking-[0.18em] text-[#80553e]">0{step.number}</span>
+                <span data-service-step-number className="mt-0.5 shrink-0 whitespace-nowrap text-xs font-semibold tracking-[0.18em] text-[#80553e]">0{step.number}</span>
                 <span>
                   {step.title ? <span className="block text-sm font-semibold text-[#49332d]">{step.title}</span> : null}
                   {step.description ? <span className="mt-1 block text-xs leading-5 text-[#75645a]">{step.description}</span> : null}

@@ -89,7 +89,7 @@ export default function StylistLayout() {
   useFocusOnNavigate()
 
   return (
-    <div className="admin-shell min-h-screen bg-surface-sunken">
+    <div data-stylist-shell className="admin-shell min-h-screen bg-surface-sunken">
       <SkipLink targetId="main" />
       <header data-stylist-header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto max-w-[1600px] px-4 py-3 flex items-center justify-between gap-3">

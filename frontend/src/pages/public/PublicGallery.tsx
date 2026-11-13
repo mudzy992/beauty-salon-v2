@@ -328,7 +328,7 @@ export default function PublicGallery() {
         }}
       >
         {lightbox ? (
-          <DialogContent data-aurum-lightbox className="max-h-[90vh] max-w-[90vw] overflow-visible border-0 bg-black/90 p-4 text-white shadow-none sm:rounded-2xl">
+          <DialogContent data-aurum-lightbox className="w-fit max-h-[90dvh] max-w-[90vw] overflow-y-auto border-0 bg-black/90 p-4 pt-12 text-white shadow-none sm:rounded-2xl">
             <DialogTitle className="sr-only">
               {t('public.gallery.openImage')}: {lightbox.categoryName}
             </DialogTitle>
@@ -339,7 +339,7 @@ export default function PublicGallery() {
               <MediaImage
                 src={lightbox.src}
                 alt={lightbox.categoryName}
-                className="max-h-[75vh] max-w-[85vw] object-contain"
+                className="mx-auto max-h-[60dvh] max-w-full object-contain"
               />
               <div className="mt-3 flex justify-center">
                 <a
