@@ -807,6 +807,7 @@ for (const mode of ['light', 'dark'] as const) {
       expect(replayRequests).toBe(0)
       await dialog.getByRole('checkbox').check()
       await expect(confirm).toBeEnabled()
+      await settleAnimations(page)
       const dialogResults = await new AxeBuilder({ page }).include('[data-dashboard-replay-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
       console.log(`DASHBOARD_REPLAY_${mode}_${viewport} ${JSON.stringify({ violations: dialogResults.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: dialogResults.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
       expect(dialogResults.violations).toEqual([])

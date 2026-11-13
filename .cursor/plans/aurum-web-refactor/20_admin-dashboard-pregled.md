@@ -60,3 +60,10 @@ CI `43484388368`: četiri posla prošla, rendered a11y posao pao na dva prethodn
 
 - 4/5 CI poslova; rendered suite: 368 prošlo, 2 prethodna Users AAA testa pala. Novi Dashboard scenariji popunjenog prikaza i replay-a prošli AA dio, ali prošireni AAA izvještaj je našao svijetle sitne tekstove/statusne oznake 6.38–6.61:1 i replay dugme 6.53:1; mobilni axe ima incomplete zbog zaklonjenih dijelova tabele. Zbog filtera prethodni prolaz nije značio AAA prolaz.
 - Implementiran usko ograničen Dashboard popravak korištenjem postojećih osnovnih/jačih tekst tokena; replay potvrda ima postojeću površinu i semantički rub. Paleta nije mijenjana. Novi ciljani test sada zahtijeva i AAA violations = 0, ali incomplete i ručna provjera ostaju zasebni. Potrebna nova CI provjera.
+
+### Provjere nakon korekcije kontrasta
+
+- CI `43503154735`, commit `3125240`: četiri Dashboard popunjena i replay scenarija su prošla ciljane AA+AAA axe asercije u oba moda i veličine; malformed/retry također prošao. Mobilne tabele i replay dijalog imaju axe `incomplete` zbog zaklonjenog sadržaja: treba ručni pregled, ne tretirati kao prolaz kontrasta. Ukupni rendered job i dalje pada na dva ranija Users testa (6.01:1 AAA); preostala četiri CI posla prolaze.
+- D-05: nulti neto se pogrešno nazivao pozitivnim. Dodan lokalizirani neutralni izraz za nulu (BS/EN), uz provjeru pariteta; ovaj zadnji inkrement treba browser/CI potvrdu.
+- Browser test sada čeka završetak animacija prije skeniranja dijaloga; potrebno utvrditi da li to uklanja incomplete.
+- Nisu izvršeni ručni čitač ekrana, realni podaci, 400% zoom i korisnikov vizuelni pregled; nema lokalne baze ili instaliranog browsera, niti ovdje potvrđene konfiguracije deploy okruženja. Status ostaje u toku.

@@ -688,6 +688,7 @@
     "userCounts": "{{stylists}} stilista · {{services}} servisa",
     "noReservations": "Nema rezervacija.",
     "netPositive": "Pozitivan rezultat",
+    "netZero": "Rezultat je nula",
     "netNegative": "Negativan rezultat",
     "pendingReviewsAttention": "Zahtijeva pregled",
     "outbox": {

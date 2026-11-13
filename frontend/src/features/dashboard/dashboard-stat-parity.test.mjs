@@ -85,7 +85,7 @@ test('pending reviews emphasis no longer relies on colour alone', () => {
 
 test('net income sign is conveyed by arrow and text, not colour', () => {
   assert.match(finance, /direction: net > 0 \? 'up' : net < 0 \? 'down' : 'flat'/)
-  assert.match(finance, /label: net < 0 \? t\('dashboard\.netNegative'\) : t\('dashboard\.netPositive'\)/)
+  assert.match(finance, /label: net < 0 \? t\('dashboard\.netNegative'\) : net > 0 \? t\('dashboard\.netPositive'\) : t\('dashboard\.netZero'\)/)
 })
 
 test('dashboard feature contains no raw slate or hex colours', () => {

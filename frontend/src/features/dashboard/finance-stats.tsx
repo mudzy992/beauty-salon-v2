@@ -43,7 +43,7 @@ export const DashboardFinanceStats = ({ stats, failedSources }: Props) => {
             // WCAG 1.4.1 — predznak nije samo boja: ide strelica i tekstualna oznaka.
             trend: incomeAvailable && expenseAvailable ? {
               direction: net > 0 ? 'up' : net < 0 ? 'down' : 'flat',
-              label: net < 0 ? t('dashboard.netNegative') : t('dashboard.netPositive'),
+              label: net < 0 ? t('dashboard.netNegative') : net > 0 ? t('dashboard.netPositive') : t('dashboard.netZero'),
             } : undefined,
             tone: incomeAvailable && expenseAvailable && net < 0 ? 'bad' : 'default',
           },

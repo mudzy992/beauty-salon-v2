@@ -691,6 +691,7 @@
     "userCounts": "{{stylists}} stylists · {{services}} services",
     "noReservations": "No reservations.",
     "netPositive": "Positive result",
+    "netZero": "Break-even result",
     "netNegative": "Negative result",
     "pendingReviewsAttention": "Needs review",
     "outbox": {
