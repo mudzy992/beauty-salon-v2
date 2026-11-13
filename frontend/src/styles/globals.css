@@ -1786,3 +1786,25 @@
   color: hsl(var(--text));
   border-color: hsl(var(--control-border));
 }
+
+/* Contact and client transformations: readable secondary copy and outline
+   actions on the actual Aurum surfaces in both modes. */
+[data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(.text-slate-500, .text-slate-600) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-aurum-page="contact"] [data-aurum-contact-card="info"] .space-y-4 > div > div {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(button, a[href])[class][class~="shadow-slate-900/5"] {
+  background: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(button, a[href])[class][class~="shadow-slate-900/5"]:hover {
+  background: hsl(var(--surface-muted));
+}
+[data-skin="aurum"] [data-aurum-page="contact"] :is(input, textarea) {
+  background: hsl(var(--surface));
+  color: hsl(var(--text));
+  border-color: hsl(var(--control-border));
+}
