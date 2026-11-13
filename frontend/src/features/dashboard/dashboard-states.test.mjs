@@ -61,3 +61,14 @@ test('outbox panel surfaces the failure message from the hook', () => {
   assert.match(outboxPanel, /failed \?/)
   assert.match(outboxPanel, /useOutboxDiagnostics\(\)/)
 })
+
+test('partial source failures do not masquerade as zero metrics or empty reservations', () => {
+  const finance = read('./finance-stats.tsx')
+  const ops = read('./ops-stats.tsx')
+  assert.match(finance, /incomeAvailable && expenseAvailable \? formatKm\(net\) : unavailable/)
+  assert.match(finance, /incomeAvailable \? formatKm\(total\) : unavailable/)
+  assert.match(ops, /missing\('reservationSummary'\) \? unavailable/)
+  assert.match(ops, /missing\('reviews'\) \? unavailable/)
+  assert.match(dashboard, /failedSources\.includes\('reservationSummary'\)/)
+  assert.match(dashboard, /DashboardRecentReservations reservations=\{recentReservations\}/)
+})

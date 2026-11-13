@@ -360,3 +360,8 @@ CI `43394701302` potvrđuje prolaz svijetlih stanja do sažetka, gdje je otkrive
 - Uzrok: odabrani klijent se čitao iz promjenjivog rezultata pretrage. Nakon odabira je cijelo ime pokretalo novi API upit, koji može vratiti praznu listu (ime i prezime su zasebna polja), pa je `selectedClient` nestajao iako je tekst ostao vidljiv. Bez spola odabranog klijenta kontrola servisa se isključi.
 - Odabrani klijent čuva se zasebno, pretraga se ne pokreće za već odabranog klijenta; izmjena klijenta briše izbor servisa i iznose. Filtriranje po spolu i postojeća validacija ostaju.
 - Dodan E2E s realističnim praznim odgovorom na puno ime, oba spola servisa i promjenom klijenta, te source regresija. Lokalni build i testovi prolaze; potrebno provjeriti CI i stvarne podatke.
+
+### Admin dashboard — prvi inkrement
+- Vlasnik je zatvorio javnu fazu (ručni AA pregled ostaje dokumentovan kao neizvršen) i odobrio intenzivan rad na adminu. Zatečeni neversionirani `frontend/src/features/dashboard/aurum-stat-grid.tsx` ostaje netaknut i nije uključen.
+- Pregled `/admin`: novi brzi pristup postojećim rutama, jasnija hijerarhija zaglavlja, operativnih/finansijskih kartica s ikonama i tabele, bez izmišljenih podataka ili izmjena formula. Rezervacije su ispred tehničke dijagnostike; uloga i replay zaštite ostaju.
+- Djelimični pad izvora sada ne prikazuje lažne nule: zavisne vrijednosti označene su „Nije dostupno”; pad sažetka rezervacija nije prikazan kao prazna lista. Dodani su testovi parcijalnog pada i renderirani AA/AAA izvještaj za desktop/320px u obje teme. Lokalni build i source testovi prolaze; CI i stvarni vizuelni/ručni pregled ostaju potrebni. Ovo nije završetak admina niti potvrda WCAG usklađenosti.

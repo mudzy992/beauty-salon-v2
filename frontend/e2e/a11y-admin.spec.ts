@@ -495,3 +495,38 @@ for (const mode of ['light', 'dark'] as const) {
     }
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`dashboard ${mode} ${viewport}: partial failure is not zero or empty data`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await page.addInitScript(value => localStorage.setItem('nejra.theme.mode', value), mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      await page.route('**/api/income-books/month/**', route => route.fulfill({ status: 503, json: {} }))
+      await page.route('**/api/reservations/dashboard-summary**', route => route.fulfill({ status: 503, json: {} }))
+      await page.goto('/admin', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/admin')
+      const dashboard = page.locator('[data-admin-dashboard]')
+      await expect(dashboard).toBeVisible()
+      await expect(dashboard.getByRole('alert').first()).toBeVisible()
+      await expect(dashboard.locator('[data-dashboard-finance]')).toContainText(/Nije dostupno|Unavailable/)
+      await expect(dashboard.locator('[data-dashboard-operations]')).toContainText(/Nije dostupno|Unavailable/)
+      await expect(dashboard.locator('[data-dashboard-recent]')).toContainText(/Nije dostupno|Unavailable/)
+      await expect(dashboard.locator('[data-dashboard-recent]')).not.toContainText(/Nema rezervacija|No reservations/)
+      const action = dashboard.locator('[data-dashboard-shortcuts] a').first()
+      await action.focus()
+      await expect(action).toBeFocused()
+      await expect(action).toHaveAttribute('href', '/admin/reservations')
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      await settleAnimations(page)
+      const results = await new AxeBuilder({ page }).include('[data-admin-dashboard]').withTags(AXE_RULE_TAGS).analyze()
+      console.log(`ADMIN_DASHBOARD_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, tags: v.tags, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+      expect(assertableViolations(results.violations)).toEqual([])
+    })
+  }
+}

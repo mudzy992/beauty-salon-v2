@@ -660,6 +660,8 @@
     }
   },
   "dashboard": {
+    "unavailable": "Nije dostupno",
+    "quickActions": "Brzi pristup",
     "loadError": "Podaci za nadzornu ploču nisu dostupni.",
     "partialLoadError": "Dio podataka nije učitan ({{count}} od {{total}} izvora). Prikazani brojevi mogu biti nepotpuni.",
     "welcome": "Dobro došli",

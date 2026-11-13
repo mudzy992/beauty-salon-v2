@@ -1808,3 +1808,32 @@
   color: hsl(var(--text));
   border-color: hsl(var(--control-border));
 }
+
+/* Dashboard overview: work-first hierarchy, palette-backed and scoped to Aurum. */
+[data-dashboard-shortcuts] .dashboard-shortcut-grid { display: grid; gap: .75rem; margin-top: .75rem; }
+[data-dashboard-shortcuts] a {
+  display: flex; align-items: center; gap: .75rem; min-height: 3rem;
+  padding: .8rem 1rem; border: 1px solid hsl(var(--line)); border-radius: .75rem;
+  background: hsl(var(--surface)); color: hsl(var(--text)); font-size: .875rem; font-weight: 600;
+}
+[data-dashboard-shortcuts] a span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+[data-dashboard-shortcuts] a svg { width: 1.15rem; height: 1.15rem; flex: none; }
+[data-dashboard-shortcuts] a:hover { background: hsl(var(--surface-muted)); }
+[data-dashboard-shortcuts] a:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
+@media (min-width: 40rem) { [data-dashboard-shortcuts] .dashboard-shortcut-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+[data-skin="aurum"] [data-admin-dashboard] > [data-aurum-card] {
+  border: 1px solid hsl(var(--line)); border-radius: 1rem;
+  background: hsl(var(--surface)); padding: clamp(1.25rem, 3vw, 2rem);
+}
+[data-skin="aurum"] [data-admin-dashboard] > [data-aurum-card] h1 { font-size: clamp(1.75rem, 2.5vw, 2.5rem); line-height: 1.15; overflow-wrap: anywhere; }
+[data-skin="aurum"] [data-admin-dashboard] > [data-aurum-card] p { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] [data-admin-dashboard] :is([data-dashboard-finance], [data-dashboard-operations]) h2,
+[data-skin="aurum"] [data-admin-dashboard] [data-dashboard-recent] h2 { font-size: 1.125rem; }
+[data-skin="aurum"] [data-admin-dashboard] [data-dashboard-finance] > div p { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] [data-admin-dashboard] :is([data-dashboard-finance], [data-dashboard-operations]) li > [data-admin-card] {
+  height: 100%; min-height: 8.5rem; border-radius: .875rem; padding: 1.15rem;
+}
+[data-skin="aurum"] [data-admin-dashboard] :is([data-dashboard-finance], [data-dashboard-operations]) li > [data-admin-card] > p:nth-child(2) {
+  font-family: var(--font-aurum-serif); font-size: clamp(1.5rem, 2vw, 2rem); line-height: 1.2; overflow-wrap: anywhere;
+}
+[data-skin="aurum"] [data-admin-dashboard] [data-dashboard-recent] { border-radius: 1rem; padding: clamp(1rem, 2.5vw, 1.5rem); }

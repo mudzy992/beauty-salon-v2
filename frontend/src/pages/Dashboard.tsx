@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
+import { CalendarDays, BookOpen, BarChart3, ArrowRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import {
   DASHBOARD_SOURCE_COUNT,
@@ -73,10 +75,23 @@ export default function Dashboard() {
           </Button>
         </div>
       ) : null}
-      <DashboardFinanceStats stats={stats} />
-      <DashboardOpsStats stats={stats} />
+      <nav data-dashboard-shortcuts aria-label={t('dashboard.quickActions')}>
+        <p className="text-sm font-semibold text-content">{t('dashboard.quickActions')}</p>
+        <div className="dashboard-shortcut-grid">
+          <Link to="/admin/reservations"><CalendarDays aria-hidden="true" /> <span>{t('nav.reservations')}</span><ArrowRight aria-hidden="true" /></Link>
+          <Link to="/admin/daily-log"><BookOpen aria-hidden="true" /> <span>{t('nav.dailyLog')}</span><ArrowRight aria-hidden="true" /></Link>
+          <Link to="/admin/analytics"><BarChart3 aria-hidden="true" /> <span>{t('nav.analytics')}</span><ArrowRight aria-hidden="true" /></Link>
+        </div>
+      </nav>
+      <DashboardFinanceStats stats={stats} failedSources={failedSources} />
+      <DashboardOpsStats stats={stats} failedSources={failedSources} />
+      {failedSources.includes('reservationSummary') ? (
+        <section data-dashboard-recent role="status" className="rounded-lg border border-line bg-surface p-5 text-content">
+          <h2 className="text-sm font-semibold">{t('dashboard.recentReservations')}</h2>
+          <p className="mt-3 text-sm">{t('dashboard.unavailable')}</p>
+        </section>
+      ) : <DashboardRecentReservations reservations={recentReservations} />}
       {canViewOutboxDiagnostics ? <DashboardOutboxDiagnostics /> : null}
-      <DashboardRecentReservations reservations={recentReservations} />
     </div>
   )
 }
