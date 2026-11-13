@@ -760,6 +760,33 @@ test('dashboard rejects malformed successful responses and recovers on retry', a
   await expect(dashboard.locator('[data-dashboard-recent]')).toContainText(/Nema rezervacija|No reservations/)
 })
 
+// For axe incomplete results, measure the actual computed text/background pair,
+// compositing transparent ancestors. This complements, not replaces, manual review.
+async function computedContrast(locator: import('@playwright/test').Locator) {
+  return locator.evaluateAll(elements => elements.map(element => {
+    const color = (value: string) => {
+      const numbers = value.match(/[\d.]+/g)?.map(Number)
+      if (!numbers || numbers.length < 3) throw new Error(`Unsupported color ${value}`)
+      return [numbers[0], numbers[1], numbers[2], numbers[3] ?? 1]
+    }
+    const blend = (front: number[], back: number[]) => front.slice(0, 3).map((v, i) => v * front[3] + back[i] * (1 - front[3]))
+    const layers: number[][] = []
+    let node: Element | null = element
+    while (node) {
+      const style = getComputedStyle(node)
+      if (style.backgroundImage !== 'none') throw new Error('Background image requires manual contrast review')
+      layers.push(color(style.backgroundColor))
+      node = node.parentElement
+    }
+    let background = [255, 255, 255]
+    for (const layer of layers.reverse()) background = blend(layer, background)
+    const foreground = blend(color(getComputedStyle(element).color), background)
+    const luminance = (rgb: number[]) => rgb.map(v => v / 255).map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0)
+    const a = luminance(foreground), b = luminance(background)
+    return { text: element.textContent, ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) }
+  }))
+}
+
 for (const mode of ['light', 'dark'] as const) {
   for (const viewport of ['desktop', 'mobile'] as const) {
     test(`dashboard populated and outbox replay ${mode} ${viewport}`, async ({ page }) => {
@@ -811,6 +838,9 @@ for (const mode of ['light', 'dark'] as const) {
       const dialogResults = await new AxeBuilder({ page }).include('[data-dashboard-replay-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
       console.log(`DASHBOARD_REPLAY_${mode}_${viewport} ${JSON.stringify({ violations: dialogResults.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: dialogResults.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
       expect(dialogResults.violations).toEqual([])
+      const dialogCopy = dialog.locator('p[id], [role="alert"] > div, label span')
+      await expect(dialogCopy).toHaveCount(3)
+      for (const item of await computedContrast(dialogCopy)) expect(item.ratio, String(item.text)).toBeGreaterThanOrEqual(7)
       await confirm.click()
       await expect(dialog).toBeHidden()
       expect(replayRequests).toBe(1)

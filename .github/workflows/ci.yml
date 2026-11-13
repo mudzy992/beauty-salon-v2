@@ -803,6 +803,9 @@ jobs:
       - name: Test dashboard stat parity (finance and ops formulas unchanged)
         working-directory: frontend
         run: npm run test:dashboard-stat-parity
+      - name: Test dashboard data validation and request ordering
+        working-directory: frontend
+        run: node --test src/features/dashboard/dashboard-source-validation.test.mjs src/features/dashboard/dashboard-race.test.mjs
       - name: Test dashboard loading, empty and error states
         working-directory: frontend
         run: npm run test:dashboard-states
