@@ -390,7 +390,7 @@ for (const mode of ['light', 'dark'] as const) {
 }
 
 for (const mode of ['light', 'dark'] as const) {
-  test(`reservation and profile surfaces ${mode} with selected service`, async ({ page }) => {
+  test(`reservation surfaces ${mode} with selected service`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await configure(page, 'aurum', mode)
@@ -414,10 +414,7 @@ for (const mode of ['light', 'dark'] as const) {
     await measurePair('[data-reserve-total]')
     await measurePair('[data-reserve-calendar]')
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
-    await page.goto('/profil', { waitUntil: 'networkidle' })
-    await expect(page.locator('[data-aurum-page="profile"]')).toBeVisible()
-    const backgrounds = await page.evaluate(() => ({ shell: getComputedStyle(document.querySelector('[data-public-shell]')!).backgroundColor, surface: getComputedStyle(document.querySelector('[data-aurum-shell="header"]')!).backgroundColor }))
-    if (mode === 'dark') expect(backgrounds.shell).not.toBe('rgb(255, 255, 255)')
+
   })
 }
 

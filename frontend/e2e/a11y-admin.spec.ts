@@ -467,3 +467,22 @@ for (const mode of ['light', 'dark'] as const) {
     await expect(trigger).toBeFocused()
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`profile shell background follows Aurum ${mode}`, async ({ page }) => {
+    await page.addInitScript((selectedMode) => localStorage.setItem('nejra.theme.mode', selectedMode), mode)
+    await page.route('**/api/settings/public', async (route) => {
+      const response = await route.fetch()
+      const rows = await response.json() as Array<{ key: string; value: string }>
+      await route.fulfill({ response, json: [...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+    })
+    await page.goto('/profil', { waitUntil: 'networkidle' })
+    expect(new URL(page.url()).pathname).toBe('/profil')
+    await expect(page.locator('[data-aurum-page="profile"]')).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    if (mode === 'dark') {
+      const background = await page.locator('[data-public-shell]').evaluate((el) => getComputedStyle(el).backgroundColor)
+      expect(background).not.toBe('rgb(255, 255, 255)')
+    }
+  })
+}
