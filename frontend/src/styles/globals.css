@@ -1553,3 +1553,15 @@
   color: hsl(var(--text));
   background-color: hsl(var(--surface));
 }
+
+/* User-authored article and comments must reflow even with long words and media. */
+[data-aurum-page="blog-post"] :is([data-aurum-article], [data-aurum-comment], h1) {
+  overflow-wrap: anywhere;
+}
+[data-aurum-page="blog-post"] [data-aurum-article] :is(img, video, iframe) {
+  max-width: 100%;
+  height: auto;
+}
+[data-skin="aurum"] [data-aurum-page="blog-post"] [data-aurum-article] a {
+  color: hsl(var(--text));
+}

@@ -243,14 +243,14 @@ export default function PublicBlogPost() {
             </span>
           </Link>
         </Button>
-        <div data-aurum-article-hero className="relative min-h-[220px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-soft md:min-h-[300px]">
+        <div data-aurum-article-hero className="relative flex min-h-[220px] items-end overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-900 shadow-soft md:min-h-[300px]">
           <MediaImage
             src={post.heroImage ? getUploadUrl(post.heroImage) : ''}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
           <div data-aurum-article-hero-overlay className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 flex flex-col items-start p-6 md:p-8">
+          <div className="relative w-full min-w-0 flex flex-col items-start p-6 md:p-8">
             <div className="mb-2 flex items-center gap-2 text-sm text-white/85">
               <Calendar className="h-4 w-4" aria-hidden />
               <div>
@@ -262,7 +262,7 @@ export default function PublicBlogPost() {
             {/* WCAG 3.1.2: naslov je dio članka, pa nosi jezik članka, ne jezik stranice. */}
             <h1
               lang={blogPostLang(post)}
-              className="text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl"
+              className="max-w-full break-words text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl"
             >
               {post.title}
             </h1>

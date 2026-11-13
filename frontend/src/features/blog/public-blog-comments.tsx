@@ -88,11 +88,11 @@ export function PublicBlogComments({
         </fieldset>
       ) : (
         <div className="py-4 text-slate-600">
-          <Link to="/login" state={{ from: `/blog/${slug}` }}>
-            <Button variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/login" state={{ from: `/blog/${slug}` }}>
               {t('public.blogComments.login')}
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       )}
       {loading ? (
@@ -110,7 +110,7 @@ export function PublicBlogComments({
         <div className="space-y-6">
           {comments.map((c) => (
             <div data-aurum-comment key={c.id} className="border-b border-slate-100 py-4 last:border-b-0">
-              <div className="mb-2 flex items-center gap-2">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
                 <div className="font-semibold text-slate-800">
                   {c.user.firstName} {c.user.lastName}
                 </div>
@@ -121,7 +121,7 @@ export function PublicBlogComments({
                   }).format(new Date(c.createdAt))}
                 </div>
               </div>
-              <div className="whitespace-pre-wrap text-slate-700">{c.content}</div>
+              <div className="whitespace-pre-wrap break-words text-slate-700">{c.content}</div>
             </div>
           ))}
         </div>

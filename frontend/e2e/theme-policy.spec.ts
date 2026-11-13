@@ -507,3 +507,45 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+// A populated article and a failed/retried comments request, not just the blog list.
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`blog post ${mode} ${viewport}: article and comments recovery`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      await page.route('**/api/blog/slug/test-article', route => route.fulfill({ json: {
+        id: 'article-1', slug: 'test-article', title: 'Njega kose i savjeti za svakodnevnu ljepotu',
+        content: '<p>Koristan članak o njezi kose. <a href="/usluge">Pogledajte usluge</a>.</p><p>Dugatekstbezrazmaka'.concat('a'.repeat(100), '</p>'),
+        language: 'bs', heroImage: null, publishedAt: '2025-01-01T12:00:00Z',
+      } }))
+      let commentsFail = true
+      await page.route('**/api/blog/article-1/comments**', route => {
+        if (commentsFail) { commentsFail = false; return route.fulfill({ status: 503, json: {} }) }
+        return route.fulfill({ json: [{ id: 'comment-1', content: 'Odličan članak! '.concat('a'.repeat(100)), createdAt: '2025-01-02T12:00:00Z', user: { firstName: 'Ana', lastName: 'Test' } }] })
+      })
+      await page.goto('/blog/test-article', { waitUntil: 'networkidle' })
+      const article = page.locator('[data-aurum-page="blog-post"]')
+      await expect(article.locator('h1')).toBeVisible()
+      const audit = async (state: string) => {
+        await settleAnimations(page)
+        const results = await new AxeBuilder({ page }).include('[data-aurum-page="blog-post"]').withTags(AXE_RULE_TAGS).analyze()
+        const violations = results.violations.filter(v => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
+        console.log(`BLOG_POST_${mode}_${viewport}_${state} ${JSON.stringify({ violations: violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+        expect(violations).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      }
+      const error = article.locator('[role="alert"]')
+      await expect(error).toBeVisible()
+      await audit('comments-error')
+      await error.getByRole('button').focus()
+      await page.keyboard.press('Enter')
+      await expect(article.locator('[data-aurum-comment]')).toContainText('Odličan članak')
+      await audit('comments-populated')
+      const login = article.getByRole('link', { name: /prijav|log in|sign in/i })
+      await expect(login).toHaveAttribute('href', '/login')
+      await expect(login.locator('button')).toHaveCount(0)
+    })
+  }
+}
