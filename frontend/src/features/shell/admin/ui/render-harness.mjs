@@ -245,14 +245,14 @@ export const scenarios = {
         <TableSkeleton rows={2} columns={3} />
       </>,
     ),
-  'DashboardFinanceStats': () => renderToStaticMarkup(<DashboardFinanceStats stats={stats} />),
+  'DashboardFinanceStats': () => renderToStaticMarkup(<DashboardFinanceStats stats={stats} failedSources={[]} />),
   'DashboardFinanceStats neto negativan': () =>
     renderToStaticMarkup(
-      <DashboardFinanceStats stats={{ ...stats, servicesRevenueThisMonth: 10, tipsThisMonth: 0, expensesThisMonth: 500 }} />,
+      <DashboardFinanceStats stats={{ ...stats, servicesRevenueThisMonth: 10, tipsThisMonth: 0, expensesThisMonth: 500 }} failedSources={[]} />,
     ),
-  'DashboardOpsStats': () => renderToStaticMarkup(<DashboardOpsStats stats={stats} />),
+  'DashboardOpsStats': () => renderToStaticMarkup(<DashboardOpsStats stats={stats} failedSources={[]} />),
   'DashboardOpsStats bez recenzija na cekanju': () =>
-    renderToStaticMarkup(<DashboardOpsStats stats={{ ...stats, pendingReviews: 0 }} />),
+    renderToStaticMarkup(<DashboardOpsStats stats={{ ...stats, pendingReviews: 0 }} failedSources={[]} />),
   'DashboardRecentReservations': () =>
     renderToStaticMarkup(
       <DashboardRecentReservations

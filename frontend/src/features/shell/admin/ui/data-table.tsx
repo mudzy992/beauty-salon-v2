@@ -89,7 +89,7 @@ export function DataTable<T>({
   if (error) return <ErrorState description={typeof error === 'string' ? error : undefined} />
 
   return (
-    <div className={cn('overflow-x-auto', className)}>
+    <div role="region" aria-label={caption} tabIndex={0} className={cn('overflow-x-auto', className)}>
       <table className={cn('app-table data-table w-full', tableClassName)}>
         <caption className="sr-only">{caption}</caption>
         <thead>
