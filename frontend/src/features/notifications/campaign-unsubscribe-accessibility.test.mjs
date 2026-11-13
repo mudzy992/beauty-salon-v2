@@ -28,3 +28,9 @@ test('campaign unsubscribe announces state changes and exposes submission busy s
   assert.match(source, /aria-busy=\{status === "submitting"\}/)
   assert.match(source, /<Loader2[^>]*aria-hidden="true" \/>/)
 })
+
+
+test('unsubscribe uses the public shell main landmark', () => {
+  assert.match(source, /<div data-aurum-page="unsubscribe"/)
+  assert.doesNotMatch(source, /<main\b/)
+})

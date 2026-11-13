@@ -80,7 +80,7 @@ export default function CampaignUnsubscribe() {
   const isErrorStatus = status === "invalid" || status === "failed";
 
   return (
-    <main data-aurum-page="unsubscribe" className={`mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-12 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="unsubscribe" className={`mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-12 ${isAurum ? publicAurum.page : ''}`}>
       <Card className="w-full" data-aurum-surface>
         <CardContent className="space-y-5 p-6 sm:p-8">
           <div
@@ -132,6 +132,6 @@ export default function CampaignUnsubscribe() {
           ) : null}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
