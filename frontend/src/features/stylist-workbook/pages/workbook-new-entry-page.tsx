@@ -57,7 +57,8 @@ export const WorkbookNewEntryForm = ({
 
   const [date, setDate] = useState(() => getSalonDateOnly())
   const [serviceIds, setServiceIds] = useState<string[]>([])
-  const [clientId, setClientId] = useState('')
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
+  const clientId = selectedClient?.id ?? ''
   const [paidAmount, setPaidAmount] = useState('')
   const [notes, setNotes] = useState('')
   const [partialOpen, setPartialOpen] = useState(false)
@@ -127,6 +128,7 @@ export const WorkbookNewEntryForm = ({
   }, [])
 
   useEffect(() => {
+    if (selectedClient) return
     let active = true
     const timer = setTimeout(() => {
       const generation = ++clientLoadGeneration.current
@@ -143,16 +145,11 @@ export const WorkbookNewEntryForm = ({
       clearTimeout(timer)
       clientLoadGeneration.current += 1
     }
-  }, [clientSearch])
+  }, [clientSearch, selectedClient])
 
   const selectedServices = useMemo(
     () => serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean) as ServiceOption[],
     [services, serviceIds],
-  )
-
-  const selectedClient = useMemo(
-    () => clients.find((c) => c.id === clientId) ?? null,
-    [clients, clientId],
   )
 
   const filteredServices = useMemo(() => {
@@ -219,7 +216,7 @@ export const WorkbookNewEntryForm = ({
   }
 
   const handleSelectClient = (c: ClientOption) => {
-    setClientId(c.id)
+    setSelectedClient(c)
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
     setClientSearch(name)
     setShowClientDropdown(false)
@@ -340,7 +337,11 @@ export const WorkbookNewEntryForm = ({
               onChange={(e) => {
                 setClientSearch(e.target.value)
                 setShowClientDropdown(true)
-                setClientId('')
+                setSelectedClient(null)
+                setServiceIds([])
+                setServiceSearch('')
+                setDesiredLoyaltyPercent(0)
+                setPaidAmount('')
               }}
             />
             {showClientDropdown && filteredClients.length > 0 ? (

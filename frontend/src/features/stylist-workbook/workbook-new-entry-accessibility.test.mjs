@@ -29,3 +29,11 @@ test('client and service suggestions are keyboard-operable buttons', () => {
   assert.match(source, /filteredServices\.map\(\(svc\) => \([\s\S]*?<li key=\{svc\.id\}>\s*<button\s+type="button"[\s\S]*?onClick=\{\(\) => toggleService\(svc\)\}[\s\S]*?aria-pressed=\{serviceIds\.includes\(svc\.id\)\}/)
   assert.match(source, /aria-label=\{`\$\{t\('common\.delete'\)\}: \$\{s\.name\}`\}/)
 })
+
+test('selected client is retained independently from changing search results', () => {
+  assert.match(source, /const \[selectedClient, setSelectedClient\] = useState<ClientOption \| null>\(null\)/)
+  assert.match(source, /if \(selectedClient\) return/)
+  assert.match(source, /setSelectedClient\(c\)/)
+  assert.match(source, /setSelectedClient\(null\)[\s\S]*?setServiceIds\(\[\]\)/)
+  assert.doesNotMatch(source, /clients\.find\(\(c\) => c\.id === clientId\)/)
+})

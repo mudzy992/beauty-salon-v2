@@ -693,3 +693,39 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`workbook ${mode}: client selection survives search results and unlocks matching services`, async ({ page }) => {
+    await configure(page, 'aurum', mode)
+    await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+    await page.route('**/api/users/profile', route => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, roles: ['STYLIST'] } }))
+    await page.route('**/api/stylists/me', route => route.fulfill({ json: { id: 'stylist-profile' } }))
+    await page.route('**/api/daily-log?**', route => route.fulfill({ json: [{ id: 'entry-test', publicReferenceCode: 'DK-TEST', date: '2026-01-01', status: 'COMPLETED', images: [], tipAmount: 0 }] }))
+    await page.route('**/api/users/for-daily-log**', route => {
+      const query = new URL(route.request().url()).searchParams.get('q') ?? ''
+      // The server may not match a full first + last name in separate columns.
+      return route.fulfill({ json: query.includes(' ') ? [] : [{ id: 'client-1', username: 'testclient', firstName: 'Test', lastName: 'Klijent', gender: 'MALE' }] })
+    })
+    await page.route('**/api/services?**', route => route.fulfill({ json: [{ id: 'service-m', name: 'Muško šišanje', gender: 'MALE', price: 25 }, { id: 'service-f', name: 'Žensko šišanje', gender: 'FEMALE', price: 30 }] }))
+    await page.route('**/api/loyalty/stylist/client/**', route => route.fulfill({ json: { enabled: false, hasAccount: false } }))
+    await page.goto('/stylist/workbook', { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: /Novi unos|New entry/i }).first().click()
+    const drawer = page.locator('[data-aurum-overlay-surface][role="dialog"]')
+    await expect(drawer).toBeVisible()
+    const client = drawer.getByLabel(/Klijent|Client/i, { exact: true })
+    const service = drawer.getByLabel(/Servis|Service/i, { exact: true })
+    await expect(service).toBeDisabled()
+    await client.fill('Test')
+    await drawer.getByRole('button', { name: /Test Klijent/ }).click()
+    await expect(client).toHaveValue('Test Klijent')
+    await expect(service).toBeEnabled()
+    await service.focus()
+    await expect(drawer.getByRole('button', { name: /Muško šišanje/ })).toBeVisible()
+    await expect(drawer.getByRole('button', { name: /Žensko šišanje/ })).toHaveCount(0)
+    await drawer.getByRole('button', { name: /Muško šišanje/ }).click()
+    await expect(drawer.getByRole('button', { name: /Obriši: Muško šišanje|Delete: Muško šišanje/ })).toBeVisible()
+    await client.fill('Drugi')
+    await expect(service).toBeDisabled()
+    await expect(drawer.getByRole('button', { name: /Obriši: Muško šišanje|Delete: Muško šišanje/ })).toHaveCount(0)
+  })
+}
