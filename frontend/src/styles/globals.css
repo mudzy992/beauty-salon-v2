@@ -1912,3 +1912,32 @@
 [data-skin="aurum"] [data-admin-users] :is(.text-slate-900, .text-slate-600) {
   color: hsl(var(--text-muted-strong));
 }
+
+/* User-management roles/statuses keep their meanings with palette-backed pairs. */
+[data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="success"] {
+  background-color: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--ok-fg));
+}
+[data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="warning"] {
+  background-color: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg)); color: hsl(var(--warn-fg));
+}
+[data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="danger"] {
+  background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--bad-fg));
+}
+[data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="secondary"],
+[data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="brand"] {
+  background-color: hsl(var(--surface-muted)); border-color: hsl(var(--line)); color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-users-dialog] :is(input, select, textarea)[data-default-admin-field],
+[data-skin="aurum"] [data-users-dialog] select[class~="bg-white"] {
+  background-color: hsl(var(--surface)); border-color: hsl(var(--control-border)); color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-users-dialog] [class~="text-amber-700"] { color: hsl(var(--warn-fg)); }
+[data-skin="aurum"] [data-users-dialog] :is([class~="text-rose-600"], [class~="text-rose-700"]) { color: hsl(var(--bad-fg)); }
+[data-skin="aurum"] [data-users-dialog] :is([class~="text-blue-600"], [class~="text-blue-700"]) { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-admin-users] [data-users-role-chip] [class~="text-amber-700"] { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] {
+  background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--bad-fg));
+}
+[data-skin="aurum"] [data-users-dialog] button[class~="bg-slate-900"] {
+  background-color: hsl(var(--primary)); color: hsl(var(--on-primary));
+}

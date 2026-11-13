@@ -28,3 +28,9 @@ Legenda: **otvoreno** = detaljan pregled još nije obavljen; **djelimično** = n
 1. Za svaku rutu pregledati importovani TSX, uključujući zajedničke primitive, ne samo vršni fajl. Prvo opisati stvarni kontekst boje i statusa, zatim zamijeniti postojećim semantičkim parovima; ne raditi globalnu mehaničku zamjenu sveg `slate`/`rose`.
 2. Svaki inkrement testirati kao stvarni render s reprezentativnim fixtureima i izračunatim stilovima (oba Aurum režima, 320 px i desktop), tastaturom i odgovarajućim a11y pravilima, te BS/EN i postojeće poslovne/role testove. Classic provjeriti zasebno. Dokumentovati CI, nepotpune i neprovjerene nalaze.
 3. Ne označiti rutu dovršenom bez potvrde svih njenih relevantnih stanja i interakcija. Ručni vizuelni i screen-reader pregled uz realne podatke ostaje poseban dokaz, uz zaštitu privatnosti.
+
+### Korisnici — drugi inkrement, provjera u toku
+
+- Pregledani `Users.tsx` list-load i create/edit/remove/credentials dijalog markup, shared Badge i data-state. Sada se neuspjelo učitavanje liste jasno prikazuje uz retry umjesto lažnog praznog stanja, a zastarjeli upit ne može nadjačati noviji; učitavanje se najavljuje. Potrebna provjera stvarnog retry-ja i navigacije.
+- U glavnom korisničkom prikazu i označenim portalima Badge varijante koriste odgovarajuće postojeće ok/warn/bad/neutralne Aurum tokene. Default polja, selecti i odabrane boje poruka u korisničkim dijalozima također su usklađeni; Classic ostaje izvan pravila. I dalje ostaju ikone, akcije, drugi dijalozi/stanja i provjera svih značenja statusa — stranica nije završena.
+- Dodane izolirane browser fixturee za grešku i retry te create dijalog u oba režima/viewporta, uključujući izračunatu površinu i zasebni AAA axe; test ne piše podatke. Lokalni build, lint, source i E2E typecheck prošli. CI još potreban. Raniji inkrement `947ac57`: CI `43442340350` 5/5.

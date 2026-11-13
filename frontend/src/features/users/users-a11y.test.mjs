@@ -119,3 +119,11 @@ test('D5 iz plana NIJE prekršaj — role badge nosi tekst, ne samo boju', () =>
     'role badge mora renderovati tekstualni label, ne samo boju',
   )
 })
+
+test('failed user-list loads show retry instead of an empty list and ignore stale responses', () => {
+  assert.match(source, /const requestSequence = \+\+requestSequenceRef\.current/)
+  assert.match(source, /if \(requestSequence !== requestSequenceRef\.current\) return/)
+  assert.match(source, /if \(requestSequence === requestSequenceRef\.current\) setLoading\(false\)/)
+  assert.match(source, /loadError && !loading[\s\S]*?<ErrorState description=\{t\('users\.errors\.loadFailed'\)\} onRetry=\{loadData\}/)
+  assert.match(source, /role="status" aria-live="polite"[\s\S]*?t\('common\.loading'\)/)
+})

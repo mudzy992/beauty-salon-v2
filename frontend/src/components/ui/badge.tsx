@@ -37,6 +37,6 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 export const Badge = ({ className, variant, ...props }: BadgeProps) => (
-  <div className={cn(badgeVariants({ variant }), className)} {...props} />
+  <div data-ui-badge={variant ?? 'secondary'} className={cn(badgeVariants({ variant }), className)} {...props} />
 )
 

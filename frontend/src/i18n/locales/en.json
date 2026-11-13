@@ -1194,6 +1194,7 @@
       "roleRemoved": "The {{role}} role was removed."
     },
     "errors": {
+      "loadFailed": "Could not load users. Please try again.",
       "writeOffFailed": "Could not write off the debt.",
       "passwordResetLinkFailed": "Could not send the password reset link.",
       "updateFailed": "Could not update the user.",

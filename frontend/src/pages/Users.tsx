@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -27,6 +27,7 @@ import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
 
 import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
+import { ErrorState } from '../features/shell/admin/ui/data-state'
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
@@ -154,6 +155,8 @@ export default function Users() {
   const [stylists, setStylists] = useState<UserRow[]>([])
   const [clients, setClients] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const requestSequenceRef = useRef(0)
 
   const [clientsSearch, setClientsSearch] = useState('')
   const [debouncedClientsSearch, setDebouncedClientsSearch] = useState('')
@@ -250,7 +253,9 @@ export default function Users() {
   }>({})
 
   const loadData = useCallback(() => {
+    const requestSequence = ++requestSequenceRef.current
     setLoading(true)
+    setLoadError(false)
     Promise.all([
       fetchAllAdminUserRoleList<UserRow>('/api/users/system-admins'),
       fetchAllAdminUserRoleList<UserRow>('/api/users/stylists'),
@@ -260,6 +265,7 @@ export default function Users() {
       api.get<Array<{ id: string }>>('/api/users/password-reset-candidates'),
     ])
       .then(([admins, stylists, clientsRes, resetCandidatesRes]) => {
+        if (requestSequence !== requestSequenceRef.current) return
         const resetCandidateIds = new Set(resetCandidatesRes.data.map(({ id }) => id))
         const withResetStatus = (users: UserRow[]) =>
           users.map((user) => ({
@@ -272,16 +278,17 @@ export default function Users() {
         setTotal(clientsRes.data.total ?? 0)
       })
       .catch(() => {
-        setAdmins([])
-        setStylists([])
-        setClients([])
-        setTotal(0)
+        if (requestSequence !== requestSequenceRef.current) return
+        setLoadError(true)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (requestSequence === requestSequenceRef.current) setLoading(false)
+      })
   }, [page, pageSize, debouncedClientsSearch])
 
   useEffect(() => {
     loadData()
+    return () => { requestSequenceRef.current += 1 }
   }, [loadData])
 
   useEffect(() => {
@@ -983,6 +990,10 @@ export default function Users() {
         </Button>
       </div>
 
+      {loadError && !loading ? (
+        <ErrorState description={t('users.errors.loadFailed')} onRetry={loadData} />
+      ) : (
+        <>
       <Card>
         <div className="p-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -1078,9 +1089,12 @@ export default function Users() {
         </div>
       </div>
 
+        </>
+      )}
+
       {/* Remove STYLIST role */}
       <Dialog open={removeStylistOpen} onOpenChange={setRemoveStylistOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent data-users-dialog className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t('users.stylistRemoval.title')}</DialogTitle>
           </DialogHeader>
@@ -1210,7 +1224,7 @@ export default function Users() {
 
       {/* Edit user */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent data-users-dialog className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t('users.editUserTitle', { username: editUser?.username ?? '' })}</DialogTitle>
           </DialogHeader>
@@ -1391,7 +1405,7 @@ export default function Users() {
 
       {/* Create user */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent data-users-dialog className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t('users.newUser')}</DialogTitle>
           </DialogHeader>
@@ -1490,7 +1504,7 @@ export default function Users() {
           if (!open) setCreatedCredentials(null)
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent data-users-dialog className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('users.credentials.title')}</DialogTitle>
           </DialogHeader>
@@ -1546,8 +1560,9 @@ function UsersList({
   const { t } = useTranslation()
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+      <div role="status" aria-live="polite" className="flex justify-center p-10 text-muted-foreground">
+        <span className="sr-only">{t('common.loading')}</span>
+        <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
       </div>
     )
   }

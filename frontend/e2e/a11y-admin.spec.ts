@@ -687,3 +687,60 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`users load failure, retry and create dialog: ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+      let fail = true
+      await page.route('**/api/users/clients/admin**', route => fail
+        ? route.fulfill({ status: 503, json: {} })
+        : route.fulfill({ json: { items: [{ id: 'fixture-client', username: 'primjer.klijent', email: 'fixture@example.test', firstName: 'Primjer', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: true, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }], total: 1, page: 0, pageSize: 20 } }))
+      await page.goto('/admin/users', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/admin/users')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const root = page.locator('[data-admin-users]')
+      const alert = root.getByRole('alert')
+      await expect(alert).toContainText(/Nije moguće učitati korisnike|Could not load users/)
+      await expect(root.locator('[role="tablist"]')).toHaveCount(0)
+      const errorAxe = await new AxeBuilder({ page }).include('[data-admin-users] [data-admin-state="error"]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`USERS_ERROR_${mode}_${viewport} ${JSON.stringify({ violations: errorAxe.violations, incomplete: errorAxe.incomplete.map(v => v.id) })}`)
+      expect(errorAxe.violations).toEqual([])
+      fail = false
+      await alert.getByRole('button').click()
+      await expect(root.locator('p:visible, span:visible').filter({ hasText: 'primjer.klijent' }).first()).toBeVisible()
+      const roleBadge = root.locator('[data-users-role-chip]:visible [data-ui-badge="success"]').first()
+      await expect(roleBadge).toBeVisible()
+      const create = root.getByRole('button', { name: /novi korisnik|new user|kreiraj korisnika|create user/i }).first()
+      await expect(create).toBeVisible()
+      await create.click()
+      const dialog = page.locator('[data-users-dialog][role="dialog"]')
+      await expect(dialog).toBeVisible()
+      await dialog.locator('#users-auth-first-name-2').fill('Primjer')
+      const colors = await dialog.locator('#users-auth-first-name-2, #users-create-gender').evaluateAll(elements => {
+        const probe = document.createElement('span')
+        probe.style.backgroundColor = 'hsl(var(--surface))'
+        document.body.append(probe)
+        const expected = getComputedStyle(probe).backgroundColor
+        probe.remove()
+        return elements.map(el => ({ actual: getComputedStyle(el).backgroundColor, expected }))
+      })
+      for (const pair of colors) expect(pair.actual).toBe(pair.expected)
+      const dialogAxe = await new AxeBuilder({ page }).include('[data-users-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`USERS_CREATE_${mode}_${viewport} ${JSON.stringify({ violations: dialogAxe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: dialogAxe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(dialogAxe.violations).toEqual([])
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}

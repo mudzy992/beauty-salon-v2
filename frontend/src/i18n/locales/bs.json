@@ -1191,6 +1191,7 @@
       "roleRemoved": "Uloga {{role}} je uklonjena."
     },
     "errors": {
+      "loadFailed": "Nije moguće učitati korisnike. Pokušajte ponovo.",
       "writeOffFailed": "Nije moguće otpisati dug.",
       "passwordResetLinkFailed": "Nije moguće poslati link za postavljanje lozinke.",
       "updateFailed": "Nije moguće ažurirati korisnika.",
