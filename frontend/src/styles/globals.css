@@ -1803,7 +1803,7 @@
 [data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(button, a[href])[class][class~="shadow-slate-900/5"]:hover {
   background: hsl(var(--surface-muted));
 }
-[data-skin="aurum"] [data-aurum-page="contact"] :is(input, textarea) {
+[data-skin="aurum"] [data-aurum-page="contact"] :is(input, textarea)[class] {
   background: hsl(var(--surface));
   color: hsl(var(--text));
   border-color: hsl(var(--control-border));
