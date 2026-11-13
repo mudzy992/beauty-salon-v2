@@ -1540,3 +1540,11 @@
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
 }
+[data-skin="aurum"] [data-aurum-page="reserve"] button[class~="shadow-slate-900/5"] {
+  background: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] button[class~="shadow-slate-900/5"]:hover {
+  background: hsl(var(--surface-muted));
+}
