@@ -148,7 +148,7 @@ export default function PublicBlogList() {
           <>
             <MotionDiv variants={stagger} initial="hidden" animate="visible">
               <div data-blog-grid className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {posts.map((p) => (
+                {posts.map((p, index) => (
                   <MotionDiv
                     key={p.id}
                     variants={fadeUp}
@@ -165,6 +165,7 @@ export default function PublicBlogList() {
                         />
                       </div>
                       <div data-blog-card-content className="p-6">
+                        {isAurum && index === 0 ? <div data-blog-featured>{t('public.blogList.featured')}</div> : null}
                         <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
                           <Calendar className="h-4 w-4" aria-hidden="true" />
                           <div>

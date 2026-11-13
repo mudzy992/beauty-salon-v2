@@ -3039,6 +3039,7 @@
     },
     "blogPost": {
       "loadFailed": "Ovaj članak trenutno nije moguće učitati.",
+      "articleKicker": "Nejra / Journal",
       "seoFallback": "Pročitajte članak na blogu Beauty Salon Nejra.",
       "notFound": "Članak nije pronađen.",
       "backToBlog": "Nazad na blog",
@@ -3068,6 +3069,7 @@
       "hint": "Najviše 2000 znakova. Komentar se objavljuje nakon odobrenja."
     },
     "blogList": {
+      "featured": "Izdvojena priča",
       "subtitleFallback": "Novosti i savjeti",
       "titleFallback": "Naš frizerski blog",
       "loading": "Učitavanje članaka…",

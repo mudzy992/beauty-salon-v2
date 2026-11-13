@@ -517,7 +517,7 @@ for (const mode of ['light', 'dark'] as const) {
       await configure(page, 'aurum', mode)
       await page.route('**/api/blog/slug/test-article', route => route.fulfill({ json: {
         id: 'article-1', slug: 'test-article', title: 'Njega kose i savjeti za svakodnevnu ljepotu',
-        content: '<p>Koristan članak o njezi kose. <a href="/usluge">Pogledajte usluge</a>.</p><p>Dugatekstbezrazmaka'.concat('a'.repeat(100), '</p>'),
+        excerpt: 'Praktični savjeti za zdraviju kosu i njegu kod kuće.', content: '<p>Koristan članak o njezi kose. <a href="/usluge">Pogledajte usluge</a>.</p><p>Dugatekstbezrazmaka'.concat('a'.repeat(100), '</p>'),
         language: 'bs', heroImage: null, publishedAt: '2025-01-01T12:00:00Z',
       } }))
       let commentsFail = true
@@ -528,6 +528,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.goto('/blog/test-article', { waitUntil: 'networkidle' })
       const article = page.locator('[data-aurum-page="blog-post"]')
       await expect(article.locator('h1')).toBeVisible()
+      await expect(article.locator('[data-blog-article-excerpt]')).toBeVisible()
       const titleBox = await article.locator('h1').boundingBox()
       const imageBox = await article.locator('[data-aurum-article-hero] > img').boundingBox()
       expect(imageBox!.y).toBeGreaterThanOrEqual(titleBox!.y + titleBox!.height)
@@ -560,8 +561,9 @@ for (const mode of ['light', 'dark'] as const) {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
       await configure(page, 'aurum', mode)
+      await page.route('**/uploads/editorial-fixture.jpg', route => route.fulfill({ path: 'public/brand/aurum-hero-editorial.jpg', contentType: 'image/jpeg' }))
       await page.route('**/api/blog?**', route => route.fulfill({ json: [
-        { id: '1', slug: 'njega-kose', title: 'Njega kose i svakodnevni rituali', excerpt: 'Savjeti za zdraviju kosu i njegu kod kuće.', isPublished: true, createdAt: '2025-01-01T12:00:00Z', publishedAt: '2025-01-01T12:00:00Z', heroImage: null },
+        { id: '1', slug: 'njega-kose', title: 'Kako znati da je kosa oštećena? 7 znakova koje ne treba ignorisati', excerpt: 'Savjeti za zdraviju kosu i njegu kod kuće.', isPublished: true, createdAt: '2025-01-01T12:00:00Z', publishedAt: '2025-01-01T12:00:00Z', heroImage: 'editorial-fixture.jpg' },
         { id: '2', slug: 'inspiracija', title: 'Inspiracija za novu frizuru', excerpt: 'Pronađite stil koji vam odgovara.', isPublished: true, createdAt: '2025-01-02T12:00:00Z', publishedAt: '2025-01-02T12:00:00Z', heroImage: null },
       ] }))
       await page.goto('/blog', { waitUntil: 'networkidle' })
@@ -570,6 +572,17 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(cards.first().getByRole('link')).toHaveAttribute('href', '/blog/njega-kose')
       await cards.first().getByRole('link').focus()
       await settleAnimations(page)
+      const image = cards.first().locator('[data-blog-card-image] img')
+      await expect(image).toHaveJSProperty('complete', true)
+      expect(await image.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+      const imageRect = await image.boundingBox()
+      const contentRect = await cards.first().locator('[data-blog-card-content]').boundingBox()
+      const titleRect = await cards.first().locator('h2').boundingBox()
+      const cardRect = await cards.first().boundingBox()
+      expect(titleRect!.x).toBeGreaterThanOrEqual(cardRect!.x)
+      expect(titleRect!.x + titleRect!.width).toBeLessThanOrEqual(cardRect!.x + cardRect!.width + 1)
+      if (viewport === 'desktop') expect(imageRect!.x + imageRect!.width).toBeLessThanOrEqual(contentRect!.x + 1)
+      else expect(imageRect!.y + imageRect!.height).toBeLessThanOrEqual(contentRect!.y + 1)
       const results = await new AxeBuilder({ page }).include('[data-aurum-page="blog-list"]').withTags(AXE_RULE_TAGS).analyze()
       const violations = results.violations.filter(v => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
       console.log(`BLOG_LIST_${mode}_${viewport} ${JSON.stringify({ violations: violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
