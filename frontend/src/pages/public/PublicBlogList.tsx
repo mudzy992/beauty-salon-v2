@@ -84,7 +84,7 @@ export default function PublicBlogList() {
 
   return (
     <div data-aurum-page="blog-list" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
-      <div data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
+      <div data-blog-list-hero data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
           style={{ backgroundImage: cssBackgroundImage(blogBg) }}
@@ -147,23 +147,24 @@ export default function PublicBlogList() {
         ) : (
           <>
             <MotionDiv variants={stagger} initial="hidden" animate="visible">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div data-blog-grid className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {posts.map((p) => (
                   <MotionDiv
                     key={p.id}
                     variants={fadeUp}
                     data-aurum-surface
+                    data-blog-card
                     className="bg-white rounded-2xl overflow-hidden shadow-soft border border-slate-200/80 hover:shadow-md transition-shadow duration-300"
                   >
                     <Link to={`/blog/${p.slug}`} className="block no-underline">
-                      <div className="h-[180px] bg-slate-200 relative overflow-hidden">
+                      <div data-blog-card-image className="h-[180px] bg-slate-200 relative overflow-hidden">
                         <MediaImage
                           src={p.heroImage ? getUploadUrl(p.heroImage) : ''}
-                          alt={p.title}
+                          alt=""
                           className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
                         />
                       </div>
-                      <div className="p-6">
+                      <div data-blog-card-content className="p-6">
                         <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
                           <Calendar className="h-4 w-4" aria-hidden="true" />
                           <div>
@@ -184,7 +185,7 @@ export default function PublicBlogList() {
                             {p.excerpt}
                           </p>
                         ) : null}
-                        <div className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
+                        <div data-blog-read-more className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
                           {t('public.blogList.readMore')} <ArrowRight className="h-4 w-4" aria-hidden />
                         </div>
                       </div>

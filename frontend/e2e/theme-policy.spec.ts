@@ -528,6 +528,10 @@ for (const mode of ['light', 'dark'] as const) {
       await page.goto('/blog/test-article', { waitUntil: 'networkidle' })
       const article = page.locator('[data-aurum-page="blog-post"]')
       await expect(article.locator('h1')).toBeVisible()
+      const titleBox = await article.locator('h1').boundingBox()
+      const imageBox = await article.locator('[data-aurum-article-hero] > img').boundingBox()
+      expect(imageBox!.y).toBeGreaterThanOrEqual(titleBox!.y + titleBox!.height)
+      expect(imageBox!.height).toBeGreaterThan(100)
       const audit = async (state: string) => {
         await settleAnimations(page)
         const results = await new AxeBuilder({ page }).include('[data-aurum-page="blog-post"]').withTags(AXE_RULE_TAGS).analyze()
@@ -546,6 +550,36 @@ for (const mode of ['light', 'dark'] as const) {
       const login = article.getByRole('link', { name: /prijav|log in|sign in/i })
       await expect(login).toHaveAttribute('href', '/login')
       await expect(login.locator('button')).toHaveCount(0)
+    })
+  }
+}
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`blog journal ${mode} ${viewport}: populated editorial cards`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      await page.route('**/api/blog?**', route => route.fulfill({ json: [
+        { id: '1', slug: 'njega-kose', title: 'Njega kose i svakodnevni rituali', excerpt: 'Savjeti za zdraviju kosu i njegu kod kuće.', isPublished: true, createdAt: '2025-01-01T12:00:00Z', publishedAt: '2025-01-01T12:00:00Z', heroImage: null },
+        { id: '2', slug: 'inspiracija', title: 'Inspiracija za novu frizuru', excerpt: 'Pronađite stil koji vam odgovara.', isPublished: true, createdAt: '2025-01-02T12:00:00Z', publishedAt: '2025-01-02T12:00:00Z', heroImage: null },
+      ] }))
+      await page.goto('/blog', { waitUntil: 'networkidle' })
+      const cards = page.locator('[data-blog-card]')
+      await expect(cards).toHaveCount(2)
+      await expect(cards.first().getByRole('link')).toHaveAttribute('href', '/blog/njega-kose')
+      await cards.first().getByRole('link').focus()
+      await settleAnimations(page)
+      const results = await new AxeBuilder({ page }).include('[data-aurum-page="blog-list"]').withTags(AXE_RULE_TAGS).analyze()
+      const violations = results.violations.filter(v => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
+      console.log(`BLOG_LIST_${mode}_${viewport} ${JSON.stringify({ violations: violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+      expect(violations).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      if (viewport === 'desktop') {
+        const first = await cards.first().boundingBox()
+        const second = await cards.nth(1).boundingBox()
+        expect(first!.width).toBeGreaterThan(second!.width * 1.5)
+      }
     })
   }
 }
