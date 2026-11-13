@@ -433,3 +433,77 @@ for (const mode of ['light', 'dark'] as const) {
     expect(colors.actual).toBe(colors.expected)
   })
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`booking ${mode} ${viewport}: select, retry and confirm`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+      await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
+      await page.route('**/api/services**', (route) => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
+      let datesFail = true
+      await page.route('**/api/reservations/availability/dates**', (route) => {
+        if (datesFail) { datesFail = false; return route.fulfill({ status: 503, json: {} }) }
+        const date = new URL(route.request().url()).searchParams.get('fromDate')!
+        return route.fulfill({ json: [{ date, available: true }] })
+      })
+      let slotsFail = true
+      await page.route('**/api/reservations/availability/slots**', (route) => {
+        if (slotsFail) { slotsFail = false; return route.fulfill({ status: 503, json: {} }) }
+        return route.fulfill({ json: [{ startTime: '23:59', endTime: '23:59', availableStylistCount: 1 }, { startTime: '23:58', endTime: '23:59', availableStylistCount: 0, holdState: 'pending_hold' }] })
+      })
+      await page.route('**/api/client-debts/me', (route) => route.fulfill({ json: [{ amount: 20 }] }))
+      await page.route('**/api/loyalty/client/me**', (route) => route.fulfill({ json: { enabled: true, redeemEnabled: true, hasAccount: true, points: 100, tier: 'Gold', service: { id: 'book-test', maxDiscountPercent: 10 } } }))
+      let submitted: Record<string, unknown> | null = null
+      await page.route('**/api/reservations', (route) => {
+        if (route.request().method() !== 'POST') return route.continue()
+        submitted = route.request().postDataJSON() as Record<string, unknown>
+        return route.fulfill({ json: { id: 'fixture-booking' } })
+      })
+      const audit = async (state: string) => {
+        await settleAnimations(page)
+        const results = await new AxeBuilder({ page }).include('[data-aurum-page="reserve"]').withTags(AXE_RULE_TAGS).analyze()
+        const violations = results.violations.filter((v) => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
+        console.log(`BOOKING_${mode}_${viewport}_${state} ${JSON.stringify({ violations: violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+        expect(violations).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      }
+      await page.goto('/rezervacija', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/rezervacija')
+      await page.locator('#public-service-search').focus()
+      await expect(page.getByRole('button', { name: /Svečana frizura/ })).toBeVisible()
+      await audit('search')
+      await page.getByRole('button', { name: /Svečana frizura/ }).focus()
+      await page.keyboard.press('Enter')
+      const dateError = page.locator('[data-aurum-page="reserve"] [role="alert"]')
+      await expect(dateError).toBeVisible()
+      await audit('date-error')
+      await dateError.getByRole('button').click()
+      const dateButton = page.locator('[data-reserve-calendar] button[aria-pressed="false"]:not([disabled])')
+      await expect(dateButton).toHaveCount(1)
+      await audit('dates')
+      await dateButton.focus()
+      await page.keyboard.press('Enter')
+      const slotError = page.locator('[data-aurum-page="reserve"] [role="alert"]')
+      await expect(slotError).toBeVisible()
+      await audit('slot-error')
+      await slotError.getByRole('button').click()
+      const slot = page.getByRole('button', { name: /23:59/ }).first()
+      await expect(slot).toBeEnabled()
+      await audit('slots')
+      await slot.focus()
+      await page.keyboard.press('Enter')
+      await expect(page.locator('#reservation-notes')).toBeVisible()
+      await expect(page.locator('#loyalty-discount-percent')).toBeVisible()
+      await audit('summary')
+      await page.locator('#reservation-notes').fill('Test napomena')
+      await page.locator('#loyalty-discount-percent').fill('5')
+      await page.getByRole('checkbox').check()
+      await page.locator('[data-aurum-page="reserve"] button[type="submit"]').click()
+      await expect.poll(() => submitted).not.toBeNull()
+      expect(submitted).toMatchObject({ serviceIds: ['book-test'], clientNotes: 'Test napomena', desiredLoyaltyPercent: 5, payDebtsIntent: true })
+    })
+  }
+}
