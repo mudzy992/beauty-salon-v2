@@ -1885,3 +1885,30 @@
 [data-skin="aurum"] .admin-shell [data-default-card-surface] {
   background-color: hsl(var(--surface));
 }
+
+/* Admin shared primitives: paired Aurum surfaces and foregrounds, Classic unchanged. */
+[data-skin="aurum"] .admin-shell [data-admin-tabs-list] {
+  background-color: hsl(var(--surface-muted));
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] .admin-shell [data-admin-tab][data-state="active"] {
+  background-color: hsl(var(--surface));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] .admin-shell [data-default-admin-field] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--control-border));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] .admin-shell [data-default-admin-field]::placeholder {
+  color: hsl(var(--text-muted-strong));
+  opacity: 1;
+}
+[data-skin="aurum"] [data-admin-users] [data-users-role-chip] {
+  background-color: hsl(var(--surface-muted));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-admin-users] :is(.text-slate-900, .text-slate-600) {
+  color: hsl(var(--text-muted-strong));
+}

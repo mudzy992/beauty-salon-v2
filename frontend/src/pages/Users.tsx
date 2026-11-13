@@ -705,6 +705,7 @@ export default function Users() {
           return (
             <span
               key={roleName}
+              data-users-role-chip
               className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
             >
               <Badge variant={getRoleBadgeVariant(roleName)} className="rounded-full px-2 py-0.5 text-[10px]">
@@ -969,7 +970,7 @@ export default function Users() {
   const headerTitle = t(`users.tabs.${activeTab}`, { count: tabCount })
 
   return (
-    <div>
+    <div data-admin-users>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.users')}</h1>

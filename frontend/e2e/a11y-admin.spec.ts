@@ -639,3 +639,51 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`users shared controls and populated card use Aurum tokens: ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [{ id: 'fixture-client', username: 'primjer.klijent', email: 'fixture@example.test', firstName: 'Primjer', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: true, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }], total: 1, page: 0, pageSize: 20 } }))
+      await page.goto('/admin/users', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/admin/users')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const root = page.locator('[data-admin-users]')
+      await expect(root.locator('p:visible, span:visible').filter({ hasText: 'primjer.klijent' }).first()).toBeVisible()
+      const tabs = root.locator('[data-admin-tabs-list]')
+      const field = root.locator('[data-default-admin-field]').first()
+      const chip = root.locator('[data-users-role-chip]:visible').first()
+      await expect(chip).toBeVisible()
+      const pairs = await Promise.all([tabs, field, chip].map(locator => locator.evaluate(element => {
+        const probe = document.createElement('span')
+        const token = element.hasAttribute('data-default-admin-field') ? '--surface' : '--surface-muted'
+        probe.style.backgroundColor = `hsl(var(${token}))`
+        document.body.append(probe)
+        const result = { actual: getComputedStyle(element).backgroundColor, expected: getComputedStyle(probe).backgroundColor }
+        probe.remove()
+        return result
+      })))
+      for (const pair of pairs) expect(pair.actual).toBe(pair.expected)
+      const activeTab = tabs.locator('[role="tab"][aria-selected="true"]')
+      await expect(activeTab).toBeVisible()
+      await field.fill('primjer')
+      const results = await new AxeBuilder({ page }).include('[data-admin-tabs-list]').include('[data-default-admin-field]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`ADMIN_USERS_CONTROLS_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(results.violations).toEqual([])
+      const selectedLabel = await activeTab.textContent()
+      await activeTab.focus()
+      await page.keyboard.press('ArrowLeft')
+      await expect(tabs.locator('[role="tab"][aria-selected="true"]')).not.toHaveText(selectedLabel ?? '')
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}
