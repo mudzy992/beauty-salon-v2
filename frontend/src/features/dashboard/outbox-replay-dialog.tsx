@@ -85,6 +85,7 @@ export const OutboxReplayDialog = ({ target, loading, failed, onClose, onConfirm
           <Button
             type="button"
             variant="danger"
+            data-dashboard-replay-confirm
             disabled={!replayAcknowledged || loading}
             aria-busy={loading}
             onClick={() => {

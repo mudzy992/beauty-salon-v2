@@ -1943,3 +1943,22 @@
 }
 /* The error icon/border carry severity; readable copy uses the existing text token. */
 [data-skin="aurum"] [data-admin-users] [data-admin-state="error"] p { color: hsl(var(--text)); }
+
+/* Dashboard: use stronger existing text tokens for small copy, while retaining
+   semantic icons, labels and status surfaces. No palette values are changed. */
+[data-skin="aurum"] [data-admin-dashboard] :is(p.text-ok-foreground, p.text-warn-foreground, p.text-bad-foreground),
+[data-skin="aurum"] [data-admin-dashboard] [data-admin-badge],
+[data-skin="aurum"] [data-dashboard-recent] a.text-brand-gold-text {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-dashboard-outbox] :is(.text-content-muted, table.app-table th) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"][data-mode] [data-dashboard-replay-confirm] {
+  background: hsl(var(--surface));
+  border-color: hsl(var(--bad-fg));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"][data-mode] [data-dashboard-replay-confirm]:hover:not(:disabled) {
+  background: hsl(var(--surface-muted));
+}

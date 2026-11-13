@@ -55,3 +55,8 @@ CI `43484388368`: četiri posla prošla, rendered a11y posao pao na dva prethodn
 - D-01: izvršni React/jsdom test montira pravi hook, pokreće preklopljene zahtjeve, završava noviji prije starijeg i provjerava vrijednost, loading i unmount; test prolazi lokalno. Nije mrežni/browser/socket end-to-end.
 - D-04: validira se struktura outbox dijagnostike; nedostajući statusni brojači su legitimne nule jer ih backend grupisanje izostavlja. Neispravan odgovor se prikazuje kao greška, bez prethodnih podataka. Dodan ciljani browser scenarij popunjenih podataka, replay potvrde i neuspjelog refresh-a u oba režima/viewporta; čeka CI.
 - Dodani izvršni validacijski testovi. Lokalno 34 dashboard testa, lint, build i E2E typecheck prolaze. Relevantni `StatGrid`, `StatCard`, `DataTable`, `DataState`, `StatusBadge`, `PageHeader`, `Button`, `Dialog`, `Alert`, locale formatter i server endpointi/ugovori pregledani u relevantnim dijelovima; globalni CSS, sve kombinacije, role i ručni pregled nisu završeni.
+
+### CI `43501747163` i kontrast
+
+- 4/5 CI poslova; rendered suite: 368 prošlo, 2 prethodna Users AAA testa pala. Novi Dashboard scenariji popunjenog prikaza i replay-a prošli AA dio, ali prošireni AAA izvještaj je našao svijetle sitne tekstove/statusne oznake 6.38–6.61:1 i replay dugme 6.53:1; mobilni axe ima incomplete zbog zaklonjenih dijelova tabele. Zbog filtera prethodni prolaz nije značio AAA prolaz.
+- Implementiran usko ograničen Dashboard popravak korištenjem postojećih osnovnih/jačih tekst tokena; replay potvrda ima postojeću površinu i semantički rub. Paleta nije mijenjana. Novi ciljani test sada zahtijeva i AAA violations = 0, ali incomplete i ručna provjera ostaju zasebni. Potrebna nova CI provjera.
