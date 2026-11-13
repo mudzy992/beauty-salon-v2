@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink, HelpCircle, LogOut } from 'lucide-react'
@@ -23,6 +23,12 @@ export const AdminLayout = () => {
   const { getSetting } = useSettings()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const mobileNavTrigger = useRef<HTMLButtonElement>(null)
+  const navigationClosing = useRef(false)
+  const closeForNavigation = () => {
+    navigationClosing.current = true
+    setSidebarOpen(false)
+  }
   const [pendingBlogComments, setPendingBlogComments] = useState(0)
 
   // WCAG 2.4.3 — fokus prati promjenu rute umjesto da ostane na početku dokumenta.
@@ -83,7 +89,11 @@ export const AdminLayout = () => {
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <DrawerContent id="admin-mobile-navigation" className="p-5">
+              <DrawerContent id="admin-mobile-navigation" className="p-5" onCloseAutoFocus={(event) => {
+                event.preventDefault()
+                if (!navigationClosing.current) mobileNavTrigger.current?.focus()
+                navigationClosing.current = false
+              }}>
                 <DialogTitle className="sr-only">{t('shell.adminMenu')}</DialogTitle>
                 <div className="flex h-full flex-col overflow-hidden">
                   <div className="flex items-center gap-2">
@@ -117,13 +127,13 @@ export const AdminLayout = () => {
                       pathname={location.pathname}
                       search={location.search}
                       pendingBlogComments={pendingBlogComments}
-                      onNavigate={() => setSidebarOpen(false)}
+                      onNavigate={closeForNavigation}
                       compact
                     />
                   </div>
                   <div className="mt-auto grid gap-1 border-t border-line pt-3">
                     <Button asChild className="w-full" variant="outline" size="sm">
-                      <Link to="/" onClick={() => setSidebarOpen(false)}>
+                      <Link to="/" onClick={closeForNavigation}>
                         <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
                         {t('shell.viewSite')}
                       </Link>
@@ -133,7 +143,7 @@ export const AdminLayout = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setSidebarOpen(false)
+                        closeForNavigation()
                         logout()
                       }}
                     >
@@ -164,7 +174,8 @@ export const AdminLayout = () => {
             initials={adminInitials}
             logout={logout}
             mobileNavOpen={sidebarOpen}
-            onOpenMobileNav={() => setSidebarOpen(true)}
+            mobileNavTriggerRef={mobileNavTrigger}
+            onOpenMobileNav={() => { navigationClosing.current = false; setSidebarOpen(true) }}
           />
         </div>
       </header>

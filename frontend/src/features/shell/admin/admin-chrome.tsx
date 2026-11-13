@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink, LogOut } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
@@ -62,6 +63,7 @@ type UserMenuProps = {
   logout: () => void
   mobileNavOpen: boolean
   onOpenMobileNav: () => void
+  mobileNavTriggerRef: RefObject<HTMLButtonElement>
 }
 
 export const AdminUserMenu = ({
@@ -72,6 +74,7 @@ export const AdminUserMenu = ({
   logout,
   mobileNavOpen,
   onOpenMobileNav,
+  mobileNavTriggerRef,
 }: UserMenuProps) => {
   const { t } = useTranslation()
   return (
@@ -83,6 +86,7 @@ export const AdminUserMenu = ({
         type="button"
         aria-label={labelWithVisibleText(t('shell.adminMenu'), initials)}
         aria-expanded={mobileNavOpen}
+        ref={mobileNavTriggerRef}
         aria-controls="admin-mobile-navigation"
         className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
         onClick={onOpenMobileNav}

@@ -7,7 +7,7 @@ const adminChrome = readFileSync(new URL('./admin/admin-chrome.tsx', import.meta
 const publicLayout = readFileSync(new URL('./public/public-layout.tsx', import.meta.url), 'utf8')
 
 test('admin navigation drawer has a localized accessible dialog name without changing its visual layout', () => {
-  assert.match(admin, /<DrawerContent id="admin-mobile-navigation" className="p-5">\s*<DialogTitle className="sr-only">\{t\('shell\.adminMenu'\)\}<\/DialogTitle>/)
+  assert.match(admin, /<DrawerContent id="admin-mobile-navigation" className="p-5" onCloseAutoFocus=\{[\s\S]*?\}\}>\s*<DialogTitle className="sr-only">\{t\('shell\.adminMenu'\)\}<\/DialogTitle>/)
   assert.match(admin, /import \{ DialogTitle \} from '\.\.\/\.\.\/\.\.\/components\/ui\/dialog'/)
 })
 
@@ -34,4 +34,10 @@ test('admin site links use a single interactive element in both menus', () => {
     assert.doesNotMatch(source, /<Link[^>]*>\s*<Button/)
     assert.match(source, /<Button asChild[^>]*>[\s\S]*?<Link to="\/"/)
   }
+})
+
+test('admin drawer restores focus on dismiss without overriding route navigation', () => {
+  assert.match(admin, /onCloseAutoFocus=\{[\s\S]*?event\.preventDefault\(\)[\s\S]*?if \(!navigationClosing\.current\) mobileNavTrigger\.current\?\.focus\(\)/)
+  assert.match(admin, /onNavigate=\{closeForNavigation\}/)
+  assert.match(adminChrome, /ref=\{mobileNavTriggerRef\}/)
 })
