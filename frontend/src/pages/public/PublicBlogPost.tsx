@@ -250,7 +250,7 @@ export default function PublicBlogPost() {
             className="absolute inset-0 h-full w-full object-cover"
           />
           <div data-aurum-article-hero-overlay className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
-          <div className="relative w-full min-w-0 flex flex-col items-start p-6 md:p-8">
+          <div data-article-hero-caption className="relative w-full min-w-0 flex flex-col items-start p-6 md:p-8">
             <div className="mb-2 flex items-center gap-2 text-sm text-white/85">
               <Calendar className="h-4 w-4" aria-hidden />
               <div>

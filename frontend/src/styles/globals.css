@@ -1560,8 +1560,32 @@
 }
 [data-aurum-page="blog-post"] [data-aurum-article] :is(img, video, iframe) {
   max-width: 100%;
+}
+[data-aurum-page="blog-post"] [data-aurum-article] :is(img, video) {
   height: auto;
 }
 [data-skin="aurum"] [data-aurum-page="blog-post"] [data-aurum-article] a {
   color: hsl(var(--text));
+}
+
+/* Article actions use paired foreground and surface tokens, including hover. */
+[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class][class~="shadow-slate-900/5"] {
+  background: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class~="border-transparent"][class~="text-slate-600"] {
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class][class~="shadow-slate-900/5"]:hover,
+[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class~="border-transparent"][class~="text-slate-600"]:hover {
+  background: hsl(var(--surface-muted));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-aurum-page="blog-post"] [data-article-hero-caption] {
+  background: #18130e;
+  color: #fff8e8;
+}
+[data-skin="aurum"] [data-aurum-page="blog-post"] [data-article-hero-caption] .text-white\/85 {
+  color: #fff8e8;
 }
