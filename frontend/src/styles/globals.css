@@ -1768,3 +1768,21 @@
 @media (max-width: 767px) {
   [data-skin="aurum"] [data-aurum-page="blog-post"] [data-aurum-article-hero] > img { aspect-ratio: 4 / 3; }
 }
+
+/* Shared Radix surfaces are portaled to body. The mode attribute supplies the
+   specificity needed to beat Tailwind's later .dark utilities in production. */
+[data-skin="aurum"][data-mode] [data-aurum-overlay-surface] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--line));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"][data-mode] [data-aurum-overlay-surface][role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):focus,
+[data-skin="aurum"][data-mode] [data-aurum-overlay-surface][role="menu"] [data-highlighted] {
+  background-color: hsl(var(--surface-muted));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"][data-mode] [data-aurum-overlay-surface] :is(input, textarea, select)[class~="dark:bg-slate-950"] {
+  background-color: hsl(var(--surface));
+  color: hsl(var(--text));
+  border-color: hsl(var(--control-border));
+}

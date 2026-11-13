@@ -459,6 +459,15 @@ for (const mode of ['light', 'dark'] as const) {
     await page.keyboard.press('Enter')
     const menu = page.locator('[data-aurum-public-user-menu]')
     await expect(menu).toBeVisible()
+    const colors = await menu.evaluate(el => {
+      const probe = document.createElement('div')
+      probe.style.backgroundColor = 'hsl(var(--surface))'
+      el.appendChild(probe)
+      const pair = { actual: getComputedStyle(el).backgroundColor, expected: getComputedStyle(probe).backgroundColor }
+      probe.remove()
+      return pair
+    })
+    expect(colors.actual).toBe(colors.expected)
     const results = await new AxeBuilder({ page }).include('[data-aurum-public-user-menu]').withTags(AXE_RULE_TAGS).analyze()
     const relevant = results.violations.filter((item) => item.tags.includes('wcag2aaa') || assertableViolations([item]).length > 0)
     console.log(`PUBLIC_USER_MENU_${mode.toUpperCase()} ${JSON.stringify(relevant.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })))}`)

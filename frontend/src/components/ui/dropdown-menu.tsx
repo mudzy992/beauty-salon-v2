@@ -35,6 +35,7 @@ export const DropdownMenuSubContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.SubContent
+    data-aurum-overlay-surface=""
     ref={ref}
     className={cn(
       'z-50 min-w-[8rem] overflow-hidden rounded-md border border-slate-200 bg-white p-1 text-slate-950 shadow-md animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50',
@@ -51,6 +52,7 @@ export const DropdownMenuContent = React.forwardRef<
 >(({ className, sideOffset = 8, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
+      data-aurum-overlay-surface=""
       ref={ref}
       sideOffset={sideOffset}
       className={cn(

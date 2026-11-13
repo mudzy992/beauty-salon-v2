@@ -369,6 +369,15 @@ for (const mode of ['light', 'dark'] as const) {
       await page.keyboard.press('Enter')
       const dialog = page.locator('[data-aurum-lightbox]')
       await expect(dialog).toBeVisible()
+      const colors = await dialog.evaluate(el => {
+        const probe = document.createElement('div')
+        probe.style.backgroundColor = 'hsl(var(--surface))'
+        el.appendChild(probe)
+        const pair = { actual: getComputedStyle(el).backgroundColor, expected: getComputedStyle(probe).backgroundColor }
+        probe.remove()
+        return pair
+      })
+      expect(colors.actual).toBe(colors.expected)
       const image = dialog.locator('img')
       await expect(image).toBeVisible()
       const dialogBox = await dialog.boundingBox()
@@ -431,6 +440,20 @@ for (const mode of ['light', 'dark'] as const) {
     await expect(card).toBeVisible()
     const colors = await card.evaluate((el) => ({ actual: getComputedStyle(el).backgroundColor, expected: getComputedStyle(document.querySelector('[data-stylist-header]')!).backgroundColor }))
     expect(colors.actual).toBe(colors.expected)
+    await page.getByRole('button', { name: /Novi unos|New entry/i }).first().click()
+    const drawer = page.locator('[data-aurum-overlay-surface][role="dialog"]')
+    await expect(drawer).toBeVisible()
+    const drawerColors = await drawer.evaluate(el => {
+      const probe = document.createElement('div')
+      probe.style.backgroundColor = 'hsl(var(--surface))'
+      el.appendChild(probe)
+      const pair = { actual: getComputedStyle(el).backgroundColor, expected: getComputedStyle(probe).backgroundColor }
+      probe.remove()
+      return pair
+    })
+    expect(drawerColors.actual).toBe(drawerColors.expected)
+    await page.keyboard.press('Escape')
+    await expect(drawer).toBeHidden()
   })
 }
 

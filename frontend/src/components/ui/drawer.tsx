@@ -41,6 +41,7 @@ export const DrawerContent = React.forwardRef<
     <DrawerPortal>
       <DrawerOverlay />
       <DialogPrimitive.Content
+        data-aurum-overlay-surface=""
         ref={ref}
         className={cn(
           'fixed z-50 h-dvh w-full border border-slate-200 bg-white shadow-xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-200 dark:border-slate-800 dark:bg-slate-950 sm:w-[360px] sm:max-w-[85vw] md:w-1/3 md:max-w-none',
