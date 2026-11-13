@@ -395,7 +395,7 @@ for (const mode of ['light', 'dark'] as const) {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await configure(page, 'aurum', mode)
     await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
-    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
+    await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
     await page.route('**/api/services**', (route) => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
     await page.route('**/api/reservations/availability/dates**', (route) => route.fulfill({ json: [] }))
     await page.goto('/rezervacija', { waitUntil: 'networkidle' })
