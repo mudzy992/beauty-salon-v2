@@ -959,6 +959,7 @@ export default function PublicReserve() {
                           return (
                             <button
                               key={`${slot.startTime}-${slot.endTime}`}
+                              data-reserve-slot
                               type="button"
                               aria-pressed={isSelected}
                               disabled={isDisabled}

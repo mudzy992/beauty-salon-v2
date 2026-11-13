@@ -1521,3 +1521,22 @@
 [data-skin="aurum"] [data-aurum-lightbox] button:hover {
   background: hsl(var(--surface-muted));
 }
+
+/* Booking: AAA-strength copy on its actual surfaces, including selected slots. */
+[data-skin="aurum"] [data-aurum-page="reserve"] :is(.text-slate-500, .text-slate-600) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-slot][aria-pressed="true"] {
+  background: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-slot][aria-pressed="true"] > div {
+  color: hsl(var(--surface));
+  opacity: 1;
+}
+[data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-calendar] button[aria-pressed="true"] {
+  background: hsl(var(--text));
+  border-color: hsl(var(--text));
+  color: hsl(var(--surface));
+}
