@@ -1880,3 +1880,8 @@
 [data-skin="aurum"] [data-aurum-calendar] [role="status"] {
   color: hsl(var(--text-muted-strong));
 }
+
+/* Only default shared Card surfaces in admin; explicitly coloured cards retain their meaning. */
+[data-skin="aurum"] .admin-shell [data-default-card-surface] {
+  background-color: hsl(var(--surface));
+}

@@ -88,3 +88,11 @@ test('nepoznat rezervacijski status ne pada i ostaje neutralan', () => {
   assert.match(html, /NEPOZNAT|NEKI_NOVI_STATUS/)
   assert.match(html, /data-admin-badge/)
 })
+
+
+test('shared Card distinguishes default surfaces from intentionally coloured backgrounds', () => {
+  assert.match(scenarios['Shared Card default'](), /data-default-card-surface=""/)
+  assert.doesNotMatch(scenarios['Shared Card custom background'](), /data-default-card-surface/)
+  // A hover background must not cause default surface theming to override the hover state.
+  assert.doesNotMatch(scenarios['Shared Card custom hover only'](), /data-default-card-surface/)
+})

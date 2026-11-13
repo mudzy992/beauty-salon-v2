@@ -605,3 +605,32 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const path of ['/admin/reservations', '/admin/users', '/admin/services']) {
+    test(`default shared Card surface follows Aurum ${mode}: ${path}`, async ({ page }) => {
+      await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      await page.goto(path, { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe(path)
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const cards = page.locator('.admin-shell [data-default-card-surface]')
+      await expect(cards.first()).toBeVisible()
+      const colors = await cards.evaluateAll(elements => {
+        const probe = document.createElement('span')
+        probe.style.backgroundColor = 'hsl(var(--surface))'
+        document.body.append(probe)
+        const expected = getComputedStyle(probe).backgroundColor
+        probe.remove()
+        return elements.filter(element => element.getClientRects().length > 0).map(element => ({ actual: getComputedStyle(element).backgroundColor, expected }))
+      })
+      expect(colors.length).toBeGreaterThan(0)
+      for (const pair of colors) expect(pair.actual).toBe(pair.expected)
+    })
+  }
+}

@@ -729,6 +729,18 @@ jobs:
         working-directory: frontend
         run: npm run test:eslint-a11y-severity
       # e2e/ NIJE u tsconfig.json (include:['src']), pa ga obican `tsc --noEmit` ne vidi.
+      # Deterministic TSX inventory is a review aid, not an automated compliance certificate.
+      - name: Test and report TSX UI inventory
+        run: |
+          python3 -m unittest discover -s scripts/tests -p 'test_audit_tsx_ui.py'
+          python3 scripts/audit_tsx_ui.py
+          python3 scripts/audit_tsx_ui.py --json > tsx-ui-inventory.json
+      - name: Upload TSX UI inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: tsx-ui-inventory
+          path: tsx-ui-inventory.json
+          retention-days: 7
       - name: Typecheck e2e (Playwright specovi)
         working-directory: frontend
         run: npm run typecheck:e2e

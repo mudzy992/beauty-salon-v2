@@ -25,6 +25,7 @@ const cacheDir = join(frontendRoot, 'node_modules', '.cache', 'render-smoke')
 const ENTRY = `
 import { renderToStaticMarkup } from 'react-dom/server'
 
+import { Card } from '../../../../components/ui/card'
 import { DataTable } from './data-table'
 import { StatCard } from './stat-card'
 import { StatGrid } from './stat-grid'
@@ -64,6 +65,9 @@ const stats = {
 }
 
 export const scenarios = {
+  'Shared Card default': () => renderToStaticMarkup(<Card>Default</Card>),
+  'Shared Card custom background': () => renderToStaticMarkup(<Card className="p-4 bg-rose-50 dark:bg-rose-950/30">Warning</Card>),
+  'Shared Card custom hover only': () => renderToStaticMarkup(<Card className="hover:bg-slate-100">Hover</Card>),
   // Ovo je scenario koji je pao u productionu.
   'DataTable bez sort propa i bez sortKey': () =>
     renderToStaticMarkup(
