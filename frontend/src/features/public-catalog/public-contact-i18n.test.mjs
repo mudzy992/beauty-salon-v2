@@ -17,7 +17,8 @@ test('public contact UI references keys present in both locales', () => {
 
   assert.ok(keys.has('public.contact.titleFallback'))
   assert.ok(keys.has('public.contact.hoursLoadFailed'))
-  assert.ok(keys.has('public.contact.messageSent'))
+  assert.ok(keys.has('public.contact.mailHint'))
+  assert.ok(keys.has('public.contact.openMail'))
 
   for (const resource of locales) {
     for (const key of keys) {

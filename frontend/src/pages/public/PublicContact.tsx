@@ -7,7 +7,6 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
-import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
@@ -26,7 +25,6 @@ export default function PublicContact() {
   const { getSetting } = useSettings()
   const { skin } = useTheme()
   const isAurum = skin === 'aurum'
-  const toast = useAppToast()
   const [workingHours, setWorkingHours] = useState<SalonHoursRow[]>()
   const [hoursLoading, setHoursLoading] = useState(true)
   const [hoursLoadError, setHoursLoadError] = useState(false)
@@ -58,19 +56,8 @@ export default function PublicContact() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      toast.success(t('public.contact.messageSent'), t('public.contact.replySoon'))
-      setName('')
-      setEmail('')
-      setMessage('')
-    }, 1000)
-  }
+
 
   const contactTitle = getSetting('public_contact_title', t('public.contact.titleFallback'))
   const contactSubtitle = getSetting(
@@ -81,6 +68,15 @@ export default function PublicContact() {
   const address = getSetting('public_contact_address', 'Titova 12, 71000 Sarajevo')
   const phone = getSetting('public_contact_phone', '+387 61 234 567')
   const contactEmail = getSetting('public_contact_email', 'info@salon.ba')
+  // The former form only simulated success; it never sent a message. Mailto
+  // opens the visitor's email application and leaves sending under their control.
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    const subject = encodeURIComponent(t('public.contact.mailSubject'))
+    const body = encodeURIComponent(`${t('public.contact.name')}: ${name}\n${t('public.contact.email')}: ${email}\n\n${message}`)
+    window.location.href = `mailto:${encodeURIComponent(contactEmail)}?subject=${subject}&body=${body}`
+  }
+
   const facebook = getSetting('public_social_facebook', '').trim()
   const instagram = getSetting('public_social_instagram', '').trim()
   const tiktok = getSetting('public_social_tiktok', '').trim()
@@ -143,7 +139,8 @@ export default function PublicContact() {
                 <h2 className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
                   {t('public.contact.formTitle')}
                 </h2>
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5" aria-describedby="contact-mail-hint">
+                  <p id="contact-mail-hint" className="text-sm text-slate-600">{t('public.contact.mailHint')}</p>
                   <div className="space-y-2">
                     <Label htmlFor="fullName">{t('public.contact.name')}</Label>
                     <Input
@@ -151,6 +148,7 @@ export default function PublicContact() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       autoComplete="name"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -161,19 +159,21 @@ export default function PublicContact() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       autoComplete="email"
+                      required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="message">{t('public.contact.message')}</Label>
                     <Textarea
                       id="message"
+                      required
                       rows={5}
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                     />
                   </div>
-                  <Button type="submit" disabled={loading} data-aurum-cta="primary">
-                    {loading ? t('public.contact.sending') : t('public.contact.send')}
+                  <Button type="submit" data-aurum-cta="primary">
+                    {t('public.contact.openMail')}
                   </Button>
                 </form>
               </CardContent>

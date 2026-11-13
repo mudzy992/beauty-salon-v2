@@ -24,3 +24,12 @@ test('contact form retains visible labels for all editable fields', () => {
     assert.match(source, new RegExp(`id="${field}"`))
   }
 })
+
+test('contact form explains mail client handoff and does not claim a simulated send', () => {
+  assert.match(source, /aria-describedby="contact-mail-hint"/)
+  assert.match(source, /window\.location\.href = `mailto:/)
+  assert.doesNotMatch(source, /toast\.success\(t\('public\.contact\.messageSent'\)/)
+  for (const id of ['fullName', 'email', 'message']) {
+    assert.match(source, new RegExp(`id="${id}"[\\s\\S]*?required`))
+  }
+})

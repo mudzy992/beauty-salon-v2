@@ -621,3 +621,75 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`contact ${mode} ${viewport}: hours retry and completed form`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode, undefined, false, { public_contact_address: 'Titova 12, 71000 Sarajevo', public_contact_phone: '+387 61 234 567', public_contact_email: 'salon@example.com', public_social_instagram: 'https://www.instagram.com/example/' })
+      let failed = true
+      await page.route('**/api/salon', route => {
+        if (failed) { failed = false; return route.fulfill({ status: 503, json: {} }) }
+        return route.fulfill({ json: { workingHours: [{ dayOfWeek: 1, isWorkingDay: true, openTime: '09:00', closeTime: '18:00' }, { dayOfWeek: 0, isWorkingDay: false }] } })
+      })
+      await page.goto('/kontakt', { waitUntil: 'networkidle' })
+      const root = page.locator('[data-aurum-page="contact"]')
+      const audit = async (state: string) => {
+        await settleAnimations(page)
+        const results = await new AxeBuilder({ page }).include('[data-aurum-page="contact"]').withTags(AXE_RULE_TAGS).analyze()
+        const violations = results.violations.filter(v => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
+        console.log(`CONTACT_${mode}_${viewport}_${state} ${JSON.stringify({ violations: violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+        expect(violations).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      }
+      await expect(root.locator('[role="alert"]')).toBeVisible()
+      await audit('hours-error')
+      const retry = root.locator('[data-aurum-contact-card="info"] button')
+      await retry.focus()
+      await page.keyboard.press('Enter')
+      await expect(root.locator('[data-aurum-contact-card="info"]')).toContainText('09:00')
+      await page.locator('#fullName').fill('Test Klijent')
+      await page.locator('#email').fill('test@example.com')
+      await page.locator('#message').fill('Molim informacije o uslugama.')
+      await expect(root.locator('#contact-mail-hint')).toBeVisible()
+      expect(await root.locator('form').evaluate((el: HTMLFormElement) => el.checkValidity())).toBe(true)
+      await audit('completed-form')
+    })
+    test(`satisfied clients ${mode} ${viewport}: error and keyboard slider`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      await configure(page, 'aurum', mode)
+      let failed = true
+      await page.route('**/api/daily-log/before-after**', route => {
+        if (failed) { failed = false; return route.fulfill({ status: 503, json: {} }) }
+        return route.fulfill({ json: { items: [{ id: 'pair-1', before: { pathOriginal: '/brand/aurum-hero-editorial.jpg' }, after: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }], hasMore: false, nextOffset: 1 } })
+      })
+      await page.goto('/zadovoljni-klijenti', { waitUntil: 'networkidle' })
+      const root = page.locator('[data-aurum-page="satisfied-clients"]')
+      const audit = async (state: string) => {
+        await settleAnimations(page)
+        const results = await new AxeBuilder({ page }).include('[data-aurum-page="satisfied-clients"]').withTags(AXE_RULE_TAGS).analyze()
+        const violations = results.violations.filter(v => v.tags.includes('wcag2aaa') || assertableViolations([v]).length > 0)
+        console.log(`SATISFIED_${mode}_${viewport}_${state} ${JSON.stringify({ violations: violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+        expect(violations).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      }
+      const error = root.locator('[role="alert"]')
+      await expect(error).toBeVisible()
+      await audit('error')
+      await error.getByRole('button').focus()
+      await page.keyboard.press('Enter')
+      const slider = root.getByRole('slider')
+      await expect(slider).toBeVisible()
+      await slider.focus()
+      await page.keyboard.press('ArrowRight')
+      await expect(slider).toHaveAttribute('aria-valuenow', '52')
+      await page.keyboard.press('Home')
+      await expect(slider).toHaveAttribute('aria-valuenow', '0')
+      await page.keyboard.press('End')
+      await expect(slider).toHaveAttribute('aria-valuenow', '100')
+      await audit('populated')
+    })
+  }
+}
