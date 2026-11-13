@@ -1856,3 +1856,7 @@
 [data-skin="aurum"] [data-admin-state="error"] > :is(p, svg) {
   color: hsl(var(--bad-fg));
 }
+/* Dashboard reservation headers need the stronger existing foreground on surface. */
+[data-skin="aurum"] .admin-shell [data-dashboard-recent] table.app-table th {
+  color: hsl(var(--text-muted-strong));
+}

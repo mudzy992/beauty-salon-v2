@@ -29,3 +29,7 @@ Vlasnik traži da se admin faze pregledaju zajedno i očite nedosljednosti ispra
 - Dodati reprezentativne renderirane fixturee i testove koji provjeravaju izračunatu pozadinu/tekst, kontrast i funkcionalnost, uključujući hover/fokus, grešku/prazno/popunjeno, 320 px i desktop gdje je relevantno. AAA ispitivati zasebno jer uobičajeni filter može isključivati AAA; evidentirati `incomplete`.
 - Uključiti role, sigurnosne potvrde, API/paritet i Classic u regresije. Nakon izmjena pokrenuti relevantne lokalne gateove i CI, upisati tačan commit/run/rezultat. Ručna provjera, čitač ekrana i stvarni podaci nisu zamijenjeni automatizacijom.
 - S6 ostaje prvi cilj za dovršetak; sistemski nalazi drugih admin faza mogu se odmah sigurno ispraviti bez prividnog označavanja cijele faze završenom. Nastaviti prema planu 16.
+
+## Prva provjera i korekcija
+
+CI `43431726337`: četiri posla prošla, novi ciljani AAA test za svijetlo prazno stanje je također izmjerio zaglavlja tabele i prijavio 6.38:1 (`--text-muted` na `--surface`), dok je test potvrdio da se prazno stanje prikazuje. To je AAA nalaz, ne AA kvar. Za zaglavlja tabele nedavnih rezervacija koristi se već postojeći `--text-muted-strong` na postojećoj površini, bez izmjene palete; ostale tabele nisu automatski proglašene riješenima. Ponovni CI potreban.
