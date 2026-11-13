@@ -852,3 +852,27 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+test('dashboard announces reduced-motion loading and recovers from complete failure', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  let fail = true
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  const dashboardEndpoints = /\/api\/(users\/dashboard-count|stylists|services|reservations\/dashboard-summary|income-books\/month\/[^/]+\/[^/?]+|expense-books\/month\/[^/]+\/[^/?]+|reviews\/admin|blog\/admin)(?:\?|$)/
+  await page.route(dashboardEndpoints, async route => {
+    if (!fail) return route.continue()
+    await gate
+    await route.fulfill({ status: 503, json: {} })
+  })
+  await page.goto('/admin', { waitUntil: 'domcontentloaded' })
+  const loading = page.getByRole('status').filter({ has: page.locator('.animate-pulse') })
+  await expect(loading).toBeVisible()
+  expect(await loading.locator('.animate-pulse').first().evaluate(el => getComputedStyle(el).animationName)).toBe('none')
+  release()
+  const error = page.getByRole('alert').filter({ hasText: /Podaci za nadzornu ploču nisu dostupni|Dashboard data is unavailable/i })
+  await expect(error).toBeVisible()
+  await expect(page.locator('[data-dashboard-finance]')).toHaveCount(0)
+  fail = false
+  await error.getByRole('button').click()
+  await expect(page.locator('[data-admin-dashboard]')).toBeVisible()
+})
