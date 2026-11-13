@@ -434,6 +434,8 @@ for (const mode of ['light', 'dark'] as const) {
     await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, roles: ['STYLIST'] } }))
     await page.route('**/api/stylists/me', (route) => route.fulfill({ json: { id: 'stylist-profile' } }))
     await page.route('**/api/daily-log?**', (route) => route.fulfill({ json: [{ id: 'entry-test', publicReferenceCode: 'DK-TEST', date: '2026-01-01', status: 'COMPLETED', images: [], tipAmount: 0 }] }))
+    await page.route('**/api/users/for-daily-log**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/services?**', route => route.fulfill({ json: [] }))
     await page.goto('/stylist/workbook', { waitUntil: 'networkidle' })
     expect(new URL(page.url()).pathname).toBe('/stylist/workbook')
     const card = page.locator('[data-stylist-shell] a[href="/stylist/workbook/entry-test"] > div')
