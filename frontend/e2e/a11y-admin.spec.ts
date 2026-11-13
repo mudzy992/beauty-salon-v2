@@ -615,6 +615,11 @@ for (const mode of ['light', 'dark'] as const) {
         const rows = await response.json() as Array<{ key: string; value: string }>
         await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
       })
+      if (path === '/admin/services') {
+        await page.route('**/api/services/admin/categories**', route => route.fulfill({ json: [{ id: 'fixture-category', name: 'Primjer kategorije', description: null, sortOrder: 0, isActive: true }] }))
+        await page.route('**/api/services/admin/subcategories**', route => route.fulfill({ json: [] }))
+        await page.route('**/api/services/admin/services**', route => route.fulfill({ json: [] }))
+      }
       await page.goto(path, { waitUntil: 'networkidle' })
       expect(new URL(page.url()).pathname).toBe(path)
       await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
