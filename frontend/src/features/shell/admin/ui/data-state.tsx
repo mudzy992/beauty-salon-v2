@@ -13,7 +13,7 @@ export function TableSkeleton({
 }) {
   const { t } = useTranslation()
   return (
-    <div role="status" aria-live="polite" className="space-y-2">
+    <div role="status" aria-live="polite" data-admin-state="loading" className="space-y-2">
       <span className="sr-only">{t('finance.states.loading')}</span>
       <div aria-hidden="true" className="space-y-2">
         {Array.from({ length: rows }).map((_, rowIndex) => (
@@ -21,7 +21,8 @@ export function TableSkeleton({
             {Array.from({ length: columns }).map((_, colIndex) => (
               <div
                 key={colIndex}
-                className="h-9 flex-1 animate-pulse rounded-md bg-slate-100 dark:bg-slate-800"
+                data-admin-skeleton-cell
+                className="h-9 flex-1 animate-pulse rounded-md motion-reduce:animate-none bg-slate-100 dark:bg-slate-800"
               />
             ))}
           </div>
@@ -41,7 +42,7 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 px-6 py-10 text-center dark:border-slate-800">
+    <div data-admin-state="empty" className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 px-6 py-10 text-center dark:border-slate-800">
       <Inbox className="h-8 w-8 text-slate-400" aria-hidden="true" />
       <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
         {title}
@@ -69,6 +70,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
+      data-admin-state="error"
       className="flex flex-col items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-6 py-10 text-center dark:border-rose-900/50 dark:bg-rose-950/30"
     >
       <AlertCircle className="h-8 w-8 text-rose-500" aria-hidden="true" />

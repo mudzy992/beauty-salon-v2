@@ -530,3 +530,35 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`shared dashboard empty state uses Aurum surface and text tokens in ${mode}`, async ({ page }) => {
+    await page.route('**/api/settings/public', async route => {
+      const response = await route.fetch()
+      const rows = await response.json() as Array<{ key: string; value: string }>
+      await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+    })
+    await page.route('**/api/reservations/dashboard-summary**', route => route.fulfill({ json: { reservationsThisMonth: 0, pendingReservations: 0, completedReservations: 0, recentReservations: [] } }))
+    await page.goto('/admin', { waitUntil: 'networkidle' })
+    expect(new URL(page.url()).pathname).toBe('/admin')
+    const state = page.locator('[data-dashboard-recent] [data-admin-state="empty"]')
+    await expect(state).toBeVisible()
+    const colors = await state.evaluate(element => {
+      const root = getComputedStyle(document.documentElement)
+      const resolve = (value: string) => {
+        const probe = document.createElement('span')
+        probe.style.color = `hsl(${value})`
+        document.body.append(probe)
+        const result = getComputedStyle(probe).color
+        probe.remove()
+        return result
+      }
+      return { background: getComputedStyle(element).backgroundColor, surface: resolve(root.getPropertyValue('--surface')), text: getComputedStyle(element.querySelector('p')!).color, expectedText: resolve(root.getPropertyValue('--text-muted-strong')) }
+    })
+    expect(colors.background).toBe(colors.surface)
+    expect(colors.text).toBe(colors.expectedText)
+    const results = await new AxeBuilder({ page }).include('[data-dashboard-recent]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+    expect(results.violations).toEqual([])
+    console.log(`ADMIN_EMPTY_${mode}_INCOMPLETE ${JSON.stringify(results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })))}`)
+  })
+}

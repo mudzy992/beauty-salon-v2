@@ -1837,3 +1837,22 @@
   font-family: var(--font-aurum-serif); font-size: clamp(1.5rem, 2vw, 2rem); line-height: 1.2; overflow-wrap: anywhere;
 }
 [data-skin="aurum"] [data-admin-dashboard] [data-dashboard-recent] { border-radius: 1rem; padding: clamp(1rem, 2.5vw, 1.5rem); }
+
+/* Shared admin states keep their Classic appearance; Aurum uses paired palette tokens. */
+[data-skin="aurum"] [data-admin-state="loading"] [data-admin-skeleton-cell] {
+  background-color: hsl(var(--surface-muted));
+}
+[data-skin="aurum"] [data-admin-state="empty"] {
+  background-color: hsl(var(--surface));
+  border-color: hsl(var(--control-border));
+}
+[data-skin="aurum"] [data-admin-state="empty"] > :is(p, svg) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-admin-state="error"] {
+  background-color: hsl(var(--bad-bg));
+  border-color: hsl(var(--bad-fg));
+}
+[data-skin="aurum"] [data-admin-state="error"] > :is(p, svg) {
+  color: hsl(var(--bad-fg));
+}
