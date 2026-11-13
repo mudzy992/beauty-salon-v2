@@ -305,7 +305,7 @@ export default function PublicServices() {
                 style={heroBackgroundImage ? { backgroundImage: heroBackgroundImage } : undefined}
               />
               <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#241814]/75 via-[#241814]/5 to-[#241814]/5" />
-              <div className="relative flex min-h-[22rem] flex-col justify-between p-5 pb-24 sm:min-h-[28rem] sm:p-7 sm:pb-28 lg:min-h-[34rem]">
+              <div className="relative flex min-h-[22rem] flex-col justify-between p-5 pb-24 sm:min-h-[28rem] sm:p-7 sm:pb-20 lg:min-h-[34rem] lg:pb-16">
                 <div className="flex items-start justify-between gap-4">
                   {editorial('image_badge') ? (
                     <span data-service-image-badge className="rounded-full border border-white/40 bg-white/85 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#554038] shadow-sm backdrop-blur">

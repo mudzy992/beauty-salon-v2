@@ -1450,24 +1450,16 @@
 }
 
 /* Service detail: paired surfaces and text even over image and in dark mode. */
-[data-skin="aurum"] [data-aurum-page="service-detail"] :is([data-detail-fact], [data-detail-contact], [data-detail-empty-gallery], [data-detail-image-caption]) {
+[data-skin="aurum"] [data-aurum-page="service-detail"] :is([data-detail-fact], [data-detail-contact], [data-detail-empty-gallery]) {
   background: hsl(var(--surface));
   color: hsl(var(--text));
   border-color: hsl(var(--line));
 }
-[data-skin="aurum"] [data-aurum-page="service-detail"] :is([data-detail-fact], [data-detail-empty-gallery], [data-detail-image-caption]) :is(span, p, svg) {
+[data-skin="aurum"] [data-aurum-page="service-detail"] :is([data-detail-fact], [data-detail-empty-gallery]) :is(span, p, svg) {
   color: hsl(var(--text));
 }
 [data-skin="aurum"] [data-aurum-page="service-detail"] [data-detail-empty-gallery] > span {
   background: hsl(var(--surface-muted));
-}
-[data-skin="aurum"] [data-aurum-page="service-detail"] [data-detail-image-caption] {
-  padding: 1rem;
-  border-radius: 1rem;
-}
-[data-skin="aurum"] [data-aurum-page="service-detail"] [data-detail-image-caption] span {
-  background: hsl(var(--surface));
-  border-color: hsl(var(--line));
 }
 [data-skin="aurum"] [data-aurum-page="service-detail"] [data-detail-contact]:is(:hover, :focus-visible) {
   background: hsl(var(--surface-muted));

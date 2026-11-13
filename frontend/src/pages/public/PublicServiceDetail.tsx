@@ -383,7 +383,7 @@ export default function PublicServiceDetail() {
   };
 
   return (
-    <div className="bg-white min-h-screen pb-20">
+    <div>
       <Seo
         title={service.name}
         description={description}
@@ -544,25 +544,7 @@ export default function PublicServiceDetail() {
                       className="absolute inset-0 bg-gradient-to-br from-[#c6aa96] via-[#e6d8ca] to-[#8e7060]"
                     />
                   )}
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-t from-[#241814]/60 via-transparent to-transparent"
-                  />
-                  <div data-detail-image-caption className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-white sm:inset-x-7 sm:bottom-7">
-                    <div>
-                      <span className="mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/20 backdrop-blur">
-                        <Sparkles className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <p className="text-lg font-semibold tracking-[-0.02em] sm:text-xl">
-                        {service.name}
-                      </p>
-                    </div>
-                    {categoryName ? (
-                      <span className="rounded-full border border-white/40 bg-white/20 px-3 py-1.5 text-xs font-medium backdrop-blur">
-                        {categoryName}
-                      </span>
-                    ) : null}
-                  </div>
+
                 </div>
               </div>
             </div>
