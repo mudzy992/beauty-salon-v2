@@ -32,7 +32,7 @@ export default function Dashboard() {
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
         >
           {Array.from({ length: 5 }).map((_, index) => (
-            <div key={index} className="h-24 animate-pulse rounded-lg bg-surface-muted" />
+            <div key={index} className="h-24 animate-pulse motion-reduce:animate-none rounded-lg bg-surface-muted" />
           ))}
         </div>
       </div>

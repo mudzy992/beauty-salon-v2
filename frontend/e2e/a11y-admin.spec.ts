@@ -744,3 +744,18 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+test('dashboard rejects malformed successful responses and recovers on retry', async ({ page }) => {
+  let malformed = true
+  await page.route('**/api/users/dashboard-count', route => route.fulfill({ json: malformed ? {} : { total: 17 } }))
+  await page.route('**/api/reservations/dashboard-summary**', route => route.fulfill({ json: malformed ? { recentReservations: [] } : { reservationsThisMonth: 2, completedReservations: 1, pendingReservations: 1, recentReservations: [] } }))
+  await page.goto('/admin', { waitUntil: 'networkidle' })
+  const dashboard = page.locator('[data-admin-dashboard]')
+  await expect(dashboard).toBeVisible()
+  await expect(dashboard.locator('[data-dashboard-recent]')).toContainText(/Nije dostupno|Unavailable/)
+  await expect(dashboard.locator('[data-dashboard-operations]')).toContainText(/Nije dostupno|Unavailable/)
+  malformed = false
+  await dashboard.getByRole('alert').first().getByRole('button').click()
+  await expect(dashboard.locator('[data-dashboard-operations]')).toContainText('17')
+  await expect(dashboard.locator('[data-dashboard-recent]')).toContainText(/Nema rezervacija|No reservations/)
+})

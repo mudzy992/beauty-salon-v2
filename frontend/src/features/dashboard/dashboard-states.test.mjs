@@ -72,3 +72,13 @@ test('partial source failures do not masquerade as zero metrics or empty reserva
   assert.match(dashboard, /failedSources\.includes\('reservationSummary'\)/)
   assert.match(dashboard, /DashboardRecentReservations reservations=\{recentReservations\}/)
 })
+
+
+test('dashboard loading respects reduced motion and superseded requests cannot commit', () => {
+  const dataHook = read('./use-dashboard-data.ts')
+  assert.match(dashboard, /motion-reduce:animate-none/)
+  assert.match(dataHook, /const requestId = \+\+requestSequence\.current/)
+  assert.match(dataHook, /if \(requestId !== requestSequence\.current\) return/)
+  assert.match(dataHook, /if \(requestId === requestSequence\.current\) setLoading\(false\)/)
+  assert.match(dataHook, /return \(\) => \{ requestSequence\.current \+= 1 \}/)
+})

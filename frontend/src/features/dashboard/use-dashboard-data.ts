@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../../api/client'
 import { useSocketEvent } from '../../context/SocketContext'
 import type { DashboardStats, RecentReservation } from './types'
+import { dashboardSourceValid } from './dashboard-source-validation.mjs'
 import { getCalendarMonthRange, getDateTimePartsInTimeZone } from '../../../../shared/business-date.mjs'
 
 const currentMonthBounds = () => {
@@ -35,6 +36,7 @@ export const DASHBOARD_SOURCES = {
 export const DASHBOARD_SOURCE_COUNT = Object.keys(DASHBOARD_SOURCES).length
 
 export const useDashboardData = () => {
+  const requestSequence = useRef(0)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentReservations, setRecentReservations] = useState<RecentReservation[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,6 +45,7 @@ export const useDashboardData = () => {
   const [failedSources, setFailedSources] = useState<string[]>([])
 
   const loadData = useCallback(() => {
+    const requestId = ++requestSequence.current
     setLoading(true)
     const failed: string[] = []
     const { year, month, firstDay, lastDay } = currentMonthBounds()
@@ -106,6 +109,12 @@ export const useDashboardData = () => {
           reviewsRes,
           blogRes,
         ]) => {
+          if (requestId !== requestSequence.current) return
+          const responses = [usersCountRes, stylistsRes, servicesRes, reservationSummaryRes,
+            incomeRes, expenseBookRes, reviewsRes, blogRes]
+          Object.values(DASHBOARD_SOURCES).forEach((source, index) => {
+            if (!failed.includes(source) && !dashboardSourceValid(source, responses[index].data)) failed.push(source)
+          })
           setFailedSources(failed)
           const reservationSummary = reservationSummaryRes.data
           const summaryCount = (value: unknown) =>
@@ -113,7 +122,7 @@ export const useDashboardData = () => {
               ? value
               : 0
           const bookExpenses = asArray<{ totalAmount: string | number }>(
-            expenseBookRes.data?.expenses,
+            failed.includes(DASHBOARD_SOURCES.expenseBook) ? [] : expenseBookRes.data?.expenses,
           )
           const monthExpenses = bookExpenses.reduce(
             (sum, e) => sum + Number(e.totalAmount ?? 0),
@@ -145,11 +154,14 @@ export const useDashboardData = () => {
           )
         },
       )
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (requestId === requestSequence.current) setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
     loadData()
+    return () => { requestSequence.current += 1 }
   }, [loadData])
 
   useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]))

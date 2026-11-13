@@ -81,7 +81,7 @@ export const DashboardOutboxDiagnostics = () => {
         </p>
       ) : null}
 
-      {diagnostics ? (
+      {diagnostics && !failed ? (
         <>
           <StatGrid
             label={t('dashboard.outbox.title')}
