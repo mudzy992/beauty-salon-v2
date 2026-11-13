@@ -1941,3 +1941,5 @@
 [data-skin="aurum"] [data-users-dialog] button[class~="bg-slate-900"] {
   background-color: hsl(var(--primary)); color: hsl(var(--on-primary));
 }
+/* The error icon/border carry severity; readable copy uses the existing text token. */
+[data-skin="aurum"] [data-admin-users] [data-admin-state="error"] p { color: hsl(var(--text)); }
