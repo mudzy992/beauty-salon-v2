@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -84,12 +84,27 @@ export function DataTable<T>({
   unsortedIndicator = true,
 }: DataTableProps<T>) {
   const { t } = useTranslation()
+  const scrollRegion = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const region = scrollRegion.current
+    if (!region) return
+    // Focus is needed only while horizontal scrolling is possible (including after resize).
+    const update = () => {
+      if (region.scrollWidth > region.clientWidth) region.tabIndex = 0
+      else region.removeAttribute('tabindex')
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(region)
+    if (region.firstElementChild) observer.observe(region.firstElementChild)
+    return () => observer.disconnect()
+  }, [loading, error, rows])
 
   if (loading) return <TableSkeleton columns={columns.length} />
   if (error) return <ErrorState description={typeof error === 'string' ? error : undefined} />
 
   return (
-    <div role="region" aria-label={caption} tabIndex={0} className={cn('overflow-x-auto', className)}>
+    <div ref={scrollRegion} role="region" aria-label={caption} className={cn('overflow-x-auto', className)}>
       <table className={cn('app-table data-table w-full', tableClassName)}>
         <caption className="sr-only">{caption}</caption>
         <thead>
