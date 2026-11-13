@@ -1526,7 +1526,7 @@
 [data-skin="aurum"] [data-aurum-page="reserve"] :is(.text-slate-500, .text-slate-600) {
   color: hsl(var(--text-muted-strong));
 }
-[data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-slot][aria-pressed="true"] {
+[data-skin="aurum"] [data-aurum-page="reserve"] button[data-reserve-slot][aria-pressed="true"] {
   background: hsl(var(--text));
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
@@ -1547,4 +1547,9 @@
 }
 [data-skin="aurum"] [data-aurum-page="reserve"] button[class][class~="shadow-slate-900/5"]:hover {
   background: hsl(var(--surface-muted));
+}
+
+[data-skin="aurum"] [data-aurum-page="reserve"] #loyalty-discount-percent {
+  color: hsl(var(--text));
+  background-color: hsl(var(--surface));
 }
