@@ -51,7 +51,7 @@ export const OutboxReplayDialog = ({ target, loading, failed, onClose, onConfirm
         onClose()
       }}
     >
-      <DialogContent>
+      <DialogContent data-dashboard-replay-dialog>
         <DialogHeader>
           <DialogTitle>{t('dashboard.outbox.replayDialogTitle')}</DialogTitle>
           <DialogDescription>

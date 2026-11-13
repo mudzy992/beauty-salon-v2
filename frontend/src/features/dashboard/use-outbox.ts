@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import api from '../../api/client'
+import { outboxDiagnosticsValid } from './dashboard-source-validation.mjs'
 
 export type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'DEAD_LETTER'
 
@@ -54,13 +55,8 @@ export const useOutboxDiagnostics = () => {
     api
       .get<OutboxDiagnostics>('/api/reservations/ops/outbox', { signal: controller.signal })
       .then(({ data }) => {
-        if (
-          !data ||
-          typeof data !== 'object' ||
-          !data.counts ||
-          !Array.isArray(data.recentEvents)
-        ) {
-          throw new Error()
+        if (!outboxDiagnosticsValid(data)) {
+          throw new Error('Invalid outbox diagnostics response')
         }
         setDiagnostics(data)
       })

@@ -18,3 +18,9 @@ export const dashboardSourceValid = (source, data) => {
     default: return false
   }
 }
+
+export const outboxDiagnosticsValid = data => {
+  const date = value => typeof value === 'string' && Number.isFinite(Date.parse(value))
+  if (!object(data) || !date(data.generatedAt) || !object(data.counts) || !Object.values(data.counts).every(count) || !count(data.duePending) || !count(data.staleProcessing) || !Array.isArray(data.recentEvents)) return false
+  return data.recentEvents.every(event => object(event) && typeof event.id === 'string' && typeof event.eventType === 'string' && typeof event.status === 'string' && count(event.attempts) && date(event.updatedAt) && (event.lastError === null || typeof event.lastError === 'string'))
+}

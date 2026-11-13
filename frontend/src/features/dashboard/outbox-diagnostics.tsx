@@ -45,7 +45,7 @@ export const DashboardOutboxDiagnostics = () => {
   const events = (diagnostics?.recentEvents ?? []).slice(0, 10)
 
   return (
-    <section className="space-y-4 rounded-lg border border-line bg-surface p-5">
+    <section data-dashboard-outbox className="space-y-4 rounded-lg border border-line bg-surface p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-content">{t('dashboard.outbox.title')}</h2>

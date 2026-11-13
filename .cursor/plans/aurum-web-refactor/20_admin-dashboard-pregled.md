@@ -45,3 +45,13 @@ Lokalni browser i backend sa stvarnom bazom prethodno nisu bili dostupni; potreb
 - D-03: Pregledani relevantni server kontroleri: summary/count i finansijski endpointi ograničeni na OWNER/SYSTEM_ADMIN; mjesečne knjige se kreiraju i vraćaju objekt. Dodana validacija uspješnih odgovora po izvoru: neispravni podaci označavaju izvor nedostupnim, dok su stvarne nule i prazne liste valjane. Pokrivena direktnim testovima validacije te dodan browser test oporavka (čeka izvršavanje).
 - D-04: prethodna dijagnostika se ne prikazuje nakon neuspjelog osvježavanja, da zastarjeli brojevi ne izgledaju aktuelno. Pregled nepravilnih outbox podataka i regresijski browser test još su otvoreni.
 - Dashboard source/validation testovi 32/32, lint, build i E2E typecheck prolaze lokalno. Browser testovi nisu lokalno izvršeni; nedostaju browser i lokalna baza. Ne tvrditi završenost niti deploy.
+
+### CI inkrementa `b5c7daa`
+
+CI `43484388368`: četiri posla prošla, rendered a11y posao pao na dva prethodna Users create-dialog testa: svijetli gumb 6.01:1 za AAA (AA prag prolazi). To je izvan trenutno zadane stranice; nije maskirano niti proglašeno uspjehom. Novi dashboard test nije među navedenim padovima. Ovaj CI ne zamjenjuje preostali dashboard pregled i korisnikov vizuelni pregled. Lokalno nema PostgreSQL servera/Docker-a ni instaliranog Playwright browsera; radni autentificirani preview sa stvarnim backendom nije pokrenut i deploy nije urađen.
+
+### Drugi nastavak
+
+- D-01: izvršni React/jsdom test montira pravi hook, pokreće preklopljene zahtjeve, završava noviji prije starijeg i provjerava vrijednost, loading i unmount; test prolazi lokalno. Nije mrežni/browser/socket end-to-end.
+- D-04: validira se struktura outbox dijagnostike; nedostajući statusni brojači su legitimne nule jer ih backend grupisanje izostavlja. Neispravan odgovor se prikazuje kao greška, bez prethodnih podataka. Dodan ciljani browser scenarij popunjenih podataka, replay potvrde i neuspjelog refresh-a u oba režima/viewporta; čeka CI.
+- Dodani izvršni validacijski testovi. Lokalno 34 dashboard testa, lint, build i E2E typecheck prolaze. Relevantni `StatGrid`, `StatCard`, `DataTable`, `DataState`, `StatusBadge`, `PageHeader`, `Button`, `Dialog`, `Alert`, locale formatter i server endpointi/ugovori pregledani u relevantnim dijelovima; globalni CSS, sve kombinacije, role i ručni pregled nisu završeni.

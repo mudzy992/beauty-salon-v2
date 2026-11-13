@@ -759,3 +759,65 @@ test('dashboard rejects malformed successful responses and recovers on retry', a
   await expect(dashboard.locator('[data-dashboard-operations]')).toContainText('17')
   await expect(dashboard.locator('[data-dashboard-recent]')).toContainText(/Nema rezervacija|No reservations/)
 })
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`dashboard populated and outbox replay ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => localStorage.setItem('nejra.theme.mode', value), mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      await page.route('**/api/users/dashboard-count', route => route.fulfill({ json: { total: 14 } }))
+      await page.route('**/api/stylists?**', route => route.fulfill({ json: { total: 3 } }))
+      await page.route('**/api/services?**', route => route.fulfill({ json: { total: 8 } }))
+      await page.route('**/api/income-books/month/**', route => route.fulfill({ json: { totalRevenue: '1400.00', totalTips: '100.00' } }))
+      await page.route('**/api/expense-books/month/**', route => route.fulfill({ json: { expenses: [{ totalAmount: '500.00' }] } }))
+      await page.route('**/api/reviews/admin?**', route => route.fulfill({ json: [{ id: 'review-1' }] }))
+      await page.route('**/api/blog/admin', route => route.fulfill({ json: [{ id: 'blog-1' }] }))
+      await page.route('**/api/reservations/dashboard-summary**', route => route.fulfill({ json: { reservationsThisMonth: 8, completedReservations: 5, pendingReservations: 2, recentReservations: [{ id: 'reservation-fixture', reservationDate: '2026-01-01', startTime: '10:30', status: 'CONFIRMED', client: { id: 'client-fixture', firstName: 'Primjer', lastName: 'Klijent' }, service: { name: 'Test usluga' } }] } }))
+      let failedRefresh = false
+      let replayRequests = 0
+      await page.route('**/api/reservations/ops/outbox**', async route => {
+        if (route.request().method() === 'POST') {
+          replayRequests += 1
+          expect(route.request().postDataJSON()).toEqual({ confirmAtLeastOnce: true })
+          await route.fulfill({ json: { ok: true } })
+        } else if (failedRefresh) await route.fulfill({ status: 503, json: {} })
+        else await route.fulfill({ json: { generatedAt: '2026-01-01T12:00:00Z', counts: { DEAD_LETTER: 1 }, duePending: 0, staleProcessing: 0, recentEvents: [{ id: 'event-fixture', eventType: 'reservation.created', status: 'DEAD_LETTER', attempts: 3, nextAttemptAt: '2026-01-01T12:00:00Z', lockedAt: null, lastError: 'Delivery failed (Timeout).', createdAt: '2026-01-01T12:00:00Z', updatedAt: '2026-01-01T12:00:00Z' }] } })
+      })
+      await page.goto('/admin', { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe('/admin')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const dashboard = page.locator('[data-admin-dashboard]')
+      const outbox = dashboard.locator('[data-dashboard-outbox]')
+      await expect(dashboard.locator('[data-dashboard-recent]')).toContainText('Primjer Klijent')
+      await expect(outbox).toContainText('reservation.created')
+      const results = await new AxeBuilder({ page }).include('[data-admin-dashboard]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`DASHBOARD_POPULATED_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(assertableViolations(results.violations)).toEqual([])
+      const replay = outbox.getByRole('button', { name: /Ponovi isporuku za događaj|Replay.*event/i })
+      await replay.click()
+      const dialog = page.locator('[data-dashboard-replay-dialog]')
+      await expect(dialog).toBeVisible()
+      const confirm = dialog.getByRole('button', { name: /Potvrdi ponovno slanje|Confirm replay/i })
+      await expect(confirm).toBeDisabled()
+      expect(replayRequests).toBe(0)
+      await dialog.getByRole('checkbox').check()
+      await expect(confirm).toBeEnabled()
+      const dialogResults = await new AxeBuilder({ page }).include('[data-dashboard-replay-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`DASHBOARD_REPLAY_${mode}_${viewport} ${JSON.stringify({ violations: dialogResults.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: dialogResults.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(assertableViolations(dialogResults.violations)).toEqual([])
+      await confirm.click()
+      await expect(dialog).toBeHidden()
+      expect(replayRequests).toBe(1)
+      failedRefresh = true
+      await outbox.getByRole('button', { name: /Osvježi|Refresh/i }).click()
+      await expect(outbox).toContainText(/Dijagnostiku nije moguće učitati|Unable to load diagnostics/i)
+      await expect(outbox).not.toContainText('reservation.created')
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}
