@@ -1100,8 +1100,8 @@
     "openStylists": "Open stylist profiles",
     "aria": {
       "resetLink": "Send password reset link to {{username}}",
-      "removeRole": "Remove {{role}} role",
-      "addRole": "Add role",
+      "removeRole": "Remove {{role}} role from {{username}}",
+      "addRole": "Add role to {{username}}",
       "analytics": "Client analytics for {{username}}",
       "edit": "Edit user {{username}}",
       "deactivate": "Deactivate user {{username}}"

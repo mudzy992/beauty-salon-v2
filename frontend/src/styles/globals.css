@@ -1939,7 +1939,10 @@
   background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--bad-fg));
 }
 [data-skin="aurum"] [data-users-dialog] button[class~="bg-slate-900"] {
-  background-color: hsl(var(--primary)); color: hsl(var(--on-primary));
+  background-color: hsl(var(--surface)); border-color: hsl(var(--control-border)); color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-users-dialog] button[class~="bg-slate-900"]:hover:not(:disabled) {
+  background-color: hsl(var(--surface-muted));
 }
 /* The error icon/border carry severity; readable copy uses the existing text token. */
 [data-skin="aurum"] [data-admin-users] [data-admin-state="error"] p { color: hsl(var(--text)); }
@@ -1962,3 +1965,12 @@
 [data-skin="aurum"][data-mode] [data-dashboard-replay-confirm]:hover:not(:disabled) {
   background: hsl(var(--surface-muted));
 }
+
+/* Scoped user-management surfaces and action icons, preserving Classic. */
+[data-skin="aurum"] [data-admin-users] :is(svg.text-teal-600, svg.text-blue-600) { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-admin-users] svg.text-rose-600 { color: hsl(var(--bad-fg)); }
+[data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700) { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-users-dialog] :is(.text-muted-foreground, .text-slate-500) { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] [data-users-dialog] [class~="bg-emerald-50"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--text)); }
+[data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--text)); }
+[data-skin="aurum"] [data-users-dialog] div[class~="bg-white"] { background: hsl(var(--surface)); border-color: hsl(var(--line)); }

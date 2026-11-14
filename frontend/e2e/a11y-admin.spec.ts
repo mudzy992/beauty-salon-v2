@@ -876,3 +876,49 @@ test('dashboard announces reduced-motion loading and recovers from complete fail
   await error.getByRole('button').click()
   await expect(page.locator('[data-admin-dashboard]')).toBeVisible()
 })
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`users edit and multi-category stylist removal ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      const user = { id: 'fixture-user', username: 'test.stilist', email: 'test@example.test', firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: true, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }], stylistProfile: { id: 'stylist-one', status: 'ACTIVE' } }
+      await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+      await page.route('**/api/client-debts**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', counts: { dailyLogEntriesCount: 2, confirmedReservationsCount: 1, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
+      await page.goto('/admin/users', { waitUntil: 'networkidle' })
+      const root = page.locator('[data-admin-users]')
+      await expect(root.locator('p:visible, span:visible').filter({ hasText: 'test.stilist' }).first()).toBeVisible()
+      const edit = viewport === 'desktop' ? root.getByRole('button', { name: /uredi korisnika test.stilist|edit user test.stilist/i }) : root.getByRole('button', { name: /^(uredi|edit)$/i })
+      await edit.click()
+      const dialog = page.locator('[data-users-dialog][role="dialog"]')
+      await expect(dialog.getByRole('switch')).toHaveAccessibleName(/aktivan|active/i)
+      await expect(dialog.locator('#users-gender')).toHaveAttribute('aria-required', 'true')
+      const editAxe = await new AxeBuilder({ page }).include('[data-users-dialog]').withTags(AXE_RULE_TAGS).analyze()
+      console.log(`USERS_EDIT_${mode}_${viewport} ${JSON.stringify({ violations: editAxe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: editAxe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(assertableViolations(editAxe.violations)).toEqual([])
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+      await root.getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
+      await expect(dialog).toBeVisible()
+      const selects = dialog.locator('select[id^="users-stylist-removal-target-"]')
+      await expect(selects).toHaveCount(2)
+      const labels = await selects.evaluateAll(elements => elements.map(el => ({ id: el.id, labels: (el as HTMLSelectElement).labels?.length ?? 0 })))
+      expect(new Set(labels.map(item => item.id)).size).toBe(2)
+      expect(labels.map(item => item.labels)).toEqual([1, 1])
+      await selects.nth(0).selectOption('stylist-two')
+      await selects.nth(1).selectOption('stylist-two')
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+    })
+  }
+}

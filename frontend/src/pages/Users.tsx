@@ -400,10 +400,11 @@ export default function Users() {
     if (!baseUsername) return
     if (baseUsername.trim() === formData.username.trim()) return
     setFormData((prev) => ({ ...prev, username: baseUsername }))
-  }, [editUser, editIsUsernameManuallyEdited, formData.firstName, formData.lastName])
+  }, [editUser, editIsUsernameManuallyEdited, formData.firstName, formData.lastName, formData.username])
 
   useEffect(() => {
-    if (!editUser) return
+    if (!editOpen || !editUser) return
+    let cancelled = false
     const username = formData.username.trim()
     if (!username) {
       setEditUsernameStatus({ loading: false, available: null, suggestions: [] })
@@ -419,17 +420,18 @@ export default function Users() {
         const { data } = await api.get(`/api/users/${editUser.id}/username-availability`, {
           params: { username },
         })
+        if (cancelled) return
         setEditUsernameStatus({
           loading: false,
           available: !!data.available,
           suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
         })
       } catch {
-        setEditUsernameStatus({ loading: false, available: null, suggestions: [] })
+        if (!cancelled) setEditUsernameStatus({ loading: false, available: null, suggestions: [] })
       }
     }, 300)
-    return () => clearTimeout(timeout)
-  }, [editUser, formData.username, initialUsername])
+    return () => { cancelled = true; clearTimeout(timeout) }
+  }, [editOpen, editUser, formData.username, initialUsername])
 
   const handleIssueInitialPasswordResetLink = async (user: UserRow) => {
     if (!user.mustChangePassword) return
@@ -495,6 +497,8 @@ export default function Users() {
   }
 
   useEffect(() => {
+    if (!createOpen) return
+    let cancelled = false
     const base = normalizeUsernameFromNames(createData.firstName, createData.lastName)
     const username = (isUsernameManuallyEdited ? createData.username : base).trim()
     if (!username) {
@@ -508,17 +512,18 @@ export default function Users() {
       setUsernameStatus((prev) => ({ ...prev, loading: true }))
       try {
         const { data } = await api.get('/api/users/username-availability', { params: { username } })
+        if (cancelled) return
         setUsernameStatus({
           loading: false,
           available: !!data.available,
           suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
         })
       } catch {
-        setUsernameStatus({ loading: false, available: null, suggestions: [] })
+        if (!cancelled) setUsernameStatus({ loading: false, available: null, suggestions: [] })
       }
     }, 300)
-    return () => clearTimeout(timeout)
-  }, [createData.firstName, createData.lastName, createData.username, isUsernameManuallyEdited])
+    return () => { cancelled = true; clearTimeout(timeout) }
+  }, [createOpen, createData.firstName, createData.lastName, createData.username, isUsernameManuallyEdited])
 
   const handleDeactivate = async (id: string, username: string) => {
     if (!window.confirm(t('users.confirmDeactivate', { username }))) return
@@ -731,8 +736,8 @@ export default function Users() {
               {canRemoveRole(roleName) ? (
                 <button
                   type="button"
-                  className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-                  aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName) })}
+                  className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold-ring dark:hover:bg-slate-800"
+                  aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName), username: u.username })}
                   onClick={() => void handleRemoveRole(u.id, roleName)}
                 >
                   <X className="h-3 w-3" aria-hidden="true" />
@@ -745,7 +750,7 @@ export default function Users() {
         {addable.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" size="icon" variant="outline" className="h-8 w-8" aria-label={t('users.aria.addRole')}>
+              <Button type="button" size="icon" variant="outline" className="h-8 w-8" aria-label={t('users.aria.addRole', { username: u.username })}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
@@ -1101,7 +1106,7 @@ export default function Users() {
 
           {!removalPreview ? (
             <div className="flex justify-center py-10 text-muted-foreground">
-              <Loader2 className="h-7 w-7 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-7 w-7 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>
           ) : (
             <div className="space-y-4">
@@ -1150,8 +1155,8 @@ export default function Users() {
 
                     {mode === 'TRANSFER' ? (
                       <div className="mt-3 space-y-2">
-                        <Label htmlFor="users-stylist-removal-target">{t('users.stylistRemoval.target')}</Label>
-                        <select id="users-stylist-removal-target"
+                        <Label htmlFor={`users-stylist-removal-target-${row.key}`}>{t('users.stylistRemoval.target')}</Label>
+                        <select id={`users-stylist-removal-target-${row.key}`}
                           className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                           value={(removalTargets as any)[row.key] ?? ''}
                           onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
@@ -1310,7 +1315,7 @@ export default function Users() {
                 {t('users.gender.label')}
                 {editUser && getUserRoles(editUser).includes('CLIENT') ? <span className="ml-1 text-rose-600">*</span> : null}
               </Label>
-              <select id="users-gender"
+              <select id="users-gender" aria-required={Boolean(editUser && getUserRoles(editUser).includes('CLIENT'))}
                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                 value={formData.gender}
                 onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value as any }))}
@@ -1323,10 +1328,10 @@ export default function Users() {
 
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800 md:col-span-2">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('users.form.active')}</p>
+                <p id="users-active-label" className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('users.form.active')}</p>
                 <p className="text-xs text-muted-foreground">{t('users.form.inactiveHint')}</p>
               </div>
-              <Switch checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
+              <Switch aria-labelledby="users-active-label" checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
             </div>
 
             {editUser && getUserRoles(editUser).includes('CLIENT') ? (
@@ -1413,11 +1418,11 @@ export default function Users() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="users-auth-first-name-2">{t('auth.firstName')}</Label>
-              <Input id="users-auth-first-name-2" value={createData.firstName} onChange={(e) => setCreateData((p) => ({ ...p, firstName: e.target.value }))} />
+              <Input id="users-auth-first-name-2" aria-required="true" value={createData.firstName} onChange={(e) => setCreateData((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="users-auth-last-name-2">{t('auth.lastName')}</Label>
-              <Input id="users-auth-last-name-2" value={createData.lastName} onChange={(e) => setCreateData((p) => ({ ...p, lastName: e.target.value }))} />
+              <Input id="users-auth-last-name-2" aria-required="true" value={createData.lastName} onChange={(e) => setCreateData((p) => ({ ...p, lastName: e.target.value }))} />
             </div>
 
             <div className="space-y-2 md:col-span-2">
@@ -1472,7 +1477,7 @@ export default function Users() {
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="users-create-gender">{t('users.gender.label')}</Label>
-              <select id="users-create-gender"
+              <select id="users-create-gender" aria-required="true"
                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                 value={createData.gender}
                 onChange={(e) => setCreateData((p) => ({ ...p, gender: e.target.value as any }))}
@@ -1522,7 +1527,7 @@ export default function Users() {
             </p>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" onClick={() => setCredentialsOpen(false)}>
+            <Button type="button" onClick={() => { setCredentialsOpen(false); setCreatedCredentials(null) }}>
               {t('users.credentials.acknowledge')}
             </Button>
           </DialogFooter>

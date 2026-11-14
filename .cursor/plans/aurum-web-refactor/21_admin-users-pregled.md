@@ -1,0 +1,34 @@
+# Pregled `/admin/users`
+
+- Status: u toku; korisnik je izričito zadao ovu stranicu prije analitike. Koristi protokol i šablon iz `19_checklist-template-pregled-stranice.md`.
+- Svrha: pregled klijenata, stilista i administratora, upravljanje ulogama, statusom, podacima, dugovanjima i početnim pristupom. Stvarne izmjene i pristup moraju ostati autorizovani na backendu.
+- Plan: (1) čitanje cijelog page fajla i popis zavisnosti; (2) ugovori, hardkod, tokeni, i18n, interakcije i a11y; (3) ispravke i izolirani testovi sa reprezentativnim podacima za sve pogođene tokove; (4) CI i dokumentovanje ograničenja, pa korisnikov vizuelni pregled.
+
+## Inventar
+
+| Fajl / kontekst | Opseg | Status |
+|---|---|---|
+| `frontend/src/pages/Users.tsx` | linije 1–1588 prije izmjena | pročitan u cijelosti |
+| shared DataTable/DataState, Badge, Card, Button, Dialog, Alert, Dropdown, Switch, Tabs, Input, Label, Avatar, ConfirmDialog | relevantna implementacija i portal stilovi | u toku |
+| API katalog, greške, upload, toast, i18n, backend role i ugovori | relevantni dijelovi | u toku |
+| `frontend/src/features/users/*.test.mjs`, E2E i translations | relevantni slučajevi | u toku |
+
+## Početni nalazi
+
+| ID | Nalaz | Prioritet | Status |
+|---|---|---|---|
+| U-01 | Create dijalog primary button u svijetlom režimu 6.01:1, ispod ciljanog AAA, 2 prethodna CI pada. | srednji | popraviti postojećim tokenima, bez izmjene palete i uz CI test |
+| U-02 | Select za prijenos stilističke uloge koristi isti ID za više kategorija, pa label može označavati pogrešan element. | visok | napraviti jedinstven ID i provjeru više kategorija |
+| U-03 | Switch aktivnog statusa nema programski naziv. | visok | povezati s vidljivom oznakom i testirati |
+| U-04 | Async provjere dostupnosti username-a mogu ažurirati status nakon novijeg unosa ili zatvaranja. | srednji | zaštititi od zastarjelih odgovora i testirati |
+| U-05 | Obojene stavke, dugovi, statusi, akcije i dijalozi trebaju sveobuhvatnu provjeru stvarnih površina, kontrasta i interakcija. | visok | u toku |
+
+Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana niti dokazuju sve WCAG kriterije. Ne dirati nepovezani nepraćeni dashboard WIP.
+
+## Prvi inkrement
+
+- U-01: primarno dugme samo u Users portalu prešlo na postojeće površinske/tekstualne tokene, s hover stanjem; Classic nije promijenjen. CI treba dokazati kontrast.
+- U-02/03: jedinstveni ID po kategoriji prijenosa, switch povezan s vidljivom oznakom, potrebni podaci programački označeni. U-04: otkazivanje zastarjelih rezultata provjere username-a pri izmjeni/zatvaranju. Dodan browser scenarij edit i dvije kategorije prijenosa, oba moda/viewporta; čeka CI.
+- Dodatno: unikatna imena role akcija s username, vidljiv fokus i minimalni 24px gumb, brisanje privremene lozinke iz stanja na potvrdi, reduced-motion spinner, usklađene odabrane površine/tekst/ikone u korisničkom prikazu i dijalozima.
+- `Users.tsx` pročitan u cijelosti. Relevantni DataTable, DataState, Badge, Button, Card, Dialog, Alert, ConfirmDialog i API catalog pregledani; dodatne zavisnosti, backend ugovori, ostala stanja i svi testovi još nisu dovršeni.
+- Lokalno users-a11y 7/7, lint, build i E2E typecheck prošli; rezultat browser/CI još nije poznat.
