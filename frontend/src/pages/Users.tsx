@@ -173,6 +173,8 @@ export default function Users() {
   const [activeTab, setActiveTab] = useState<'admins' | 'stylists' | 'clients'>('clients')
 
   const editTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const createTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const transitioningToCredentials = useRef(false)
   const [editOpen, setEditOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [credentialsOpen, setCredentialsOpen] = useState(false)
@@ -271,6 +273,9 @@ export default function Users() {
     ])
       .then(([admins, stylists, clientsRes, resetCandidatesRes]) => {
         if (requestSequence !== requestSequenceRef.current) return
+        if (!clientsRes.data || !Array.isArray(clientsRes.data.items) ||
+            !Number.isSafeInteger(clientsRes.data.total) || clientsRes.data.total < 0 ||
+            !Array.isArray(resetCandidatesRes.data)) throw new Error('Invalid users list response')
         const resetCandidateIds = new Set(resetCandidatesRes.data.map(({ id }) => id))
         const withResetStatus = (users: UserRow[]) =>
           users.map((user) => ({
@@ -279,8 +284,8 @@ export default function Users() {
           }))
         setAdmins(withResetStatus(admins))
         setStylists(withResetStatus(stylists))
-        setClients(withResetStatus(Array.isArray(clientsRes.data.items) ? clientsRes.data.items : []))
-        setTotal(clientsRes.data.total ?? 0)
+        setClients(withResetStatus(clientsRes.data.items))
+        setTotal(clientsRes.data.total)
       })
       .catch(() => {
         if (requestSequence !== requestSequenceRef.current) return
@@ -491,6 +496,7 @@ export default function Users() {
       success(t('users.toast.created'))
       setCreatedCredentials({ username, initialPassword })
       loadData()
+      transitioningToCredentials.current = true
       setCreateOpen(false)
       setCredentialsOpen(true)
       setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', gender: '' })
@@ -1000,7 +1006,7 @@ export default function Users() {
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('users.subtitle')}</p>
         </div>
 
-        <Button type="button" onClick={() => setCreateOpen(true)}>
+        <Button type="button" ref={createTriggerRef} onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('users.createButton')}
         </Button>
@@ -1435,7 +1441,14 @@ export default function Users() {
 
       {/* Create user */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent data-users-dialog className="max-w-2xl">
+        <DialogContent data-users-dialog className="max-w-2xl" onCloseAutoFocus={(event) => {
+          if (transitioningToCredentials.current) {
+            event.preventDefault()
+          } else if (createTriggerRef.current?.isConnected) {
+            event.preventDefault()
+            createTriggerRef.current.focus()
+          }
+        }}>
           <DialogHeader>
             <DialogTitle>{t('users.newUser')}</DialogTitle>
           </DialogHeader>
@@ -1534,7 +1547,13 @@ export default function Users() {
           if (!open) setCreatedCredentials(null)
         }}
       >
-        <DialogContent data-users-dialog className="max-w-lg">
+        <DialogContent data-users-dialog className="max-w-lg" onCloseAutoFocus={(event) => {
+          transitioningToCredentials.current = false
+          if (createTriggerRef.current?.isConnected) {
+            event.preventDefault()
+            createTriggerRef.current.focus()
+          }
+        }}>
           <DialogHeader>
             <DialogTitle>{t('users.credentials.title')}</DialogTitle>
           </DialogHeader>

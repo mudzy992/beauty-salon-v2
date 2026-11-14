@@ -1029,7 +1029,8 @@ test('users create shows one-time credentials and clears them after acknowledgme
     return route.fulfill({ json: { username: 'test.klijent', initialPassword: 'fixture-only-password' } })
   })
   await page.goto('/admin/users', { waitUntil: 'networkidle' })
-  await page.locator('[data-admin-users]').getByRole('button', { name: /novi korisnik|new user|kreiraj korisnika|create user/i }).click()
+  const createTrigger = page.locator('[data-admin-users]').getByRole('button', { name: /novi korisnik|new user|kreiraj korisnika|create user/i })
+  await createTrigger.click()
   const create = page.getByRole('dialog')
   await create.locator('#users-auth-first-name-2').fill('Test')
   await create.locator('#users-auth-last-name-2').fill('Klijent')
@@ -1041,6 +1042,10 @@ test('users create shows one-time credentials and clears them after acknowledgme
   await credentials.getByRole('button', { name: /^(u redu|ok|got it)$/i }).click()
   await expect(credentials).toBeHidden()
   await expect(page.locator('body')).not.toContainText('fixture-only-password')
+  await expect(createTrigger).toBeFocused()
+  await createTrigger.click()
+  await page.keyboard.press('Escape')
+  await expect(createTrigger).toBeFocused()
 })
 
 test('users treats malformed debt data as an error and retries without reporting no debt', async ({ page }) => {
@@ -1122,4 +1127,22 @@ test('users requires a fresh stylist preview after a conflict', async ({ page })
   await dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i }).click()
   await expect.poll(() => attempts).toBe(2)
   expect(previews).toBe(2)
+})
+
+test('users does not report an empty list for a malformed successful client response', async ({ page }) => {
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  let calls = 0
+  await page.route('**/api/users/clients/admin**', route => {
+    calls += 1
+    return route.fulfill({ json: calls === 1 ? { total: 0 } : { items: [], total: 0, page: 0, pageSize: 20 } })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  const root = page.locator('[data-admin-users]')
+  const alert = root.getByRole('alert')
+  await expect(alert).toBeVisible()
+  await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect(alert).toBeHidden()
+  expect(calls).toBe(2)
 })
