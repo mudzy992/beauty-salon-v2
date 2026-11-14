@@ -1059,3 +1059,32 @@ test('users treats malformed debt data as an error and retries without reporting
   await expect(alert).toBeHidden()
   expect(attempts).toBeGreaterThanOrEqual(3)
 })
+
+for (const viewport of ['desktop', 'mobile'] as const) {
+  test(`users Classic populated view and edit remain usable: ${viewport}`, async ({ page }) => {
+    await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+    await page.route('**/api/settings/public', async route => {
+      const response = await route.fetch()
+      const rows = await response.json() as Array<{ key: string; value: string }>
+      await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_active_skin'), { key: 'theme_active_skin', value: 'classic' }] })
+    })
+    const user = { id: 'fixture-client', username: 'primjer.klijent', email: null, firstName: 'Primjer', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }
+    await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+    await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+    await page.goto('/admin/users', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-skin', 'classic')
+    const root = page.locator('[data-admin-users]')
+    const edit = root.getByRole('button', { name: /uredi korisnika primjer.klijent|edit user primjer.klijent/i }).first()
+    await edit.click()
+    const dialog = page.locator('[data-users-dialog][role="dialog"]')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.locator('#users-auth-first-name')).toHaveValue('Primjer')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(edit).toBeFocused()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+  })
+}
