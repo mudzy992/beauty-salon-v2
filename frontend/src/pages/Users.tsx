@@ -28,7 +28,7 @@ import { getUploadUrl } from '../utils/uploadUrl'
 
 import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { ErrorState } from '../features/shell/admin/ui/data-state'
-import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert'
+import { Alert, AlertDescription } from '../components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -1228,7 +1228,7 @@ export default function Users() {
 
               <Alert>
                 <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                <AlertTitle>{t('users.stylistRemoval.noteTitle')}</AlertTitle>
+                <p className="mb-1 font-medium leading-none tracking-tight">{t('users.stylistRemoval.noteTitle')}</p>
                 <AlertDescription>
                   {t('users.stylistRemoval.note')}
                 </AlertDescription>
@@ -1289,7 +1289,7 @@ export default function Users() {
               {editUsernameStatus.suggestions.length > 0 && editUsernameStatus.available === false ? (
                 <Alert className="mt-2">
                   <UserRound className="h-4 w-4" aria-hidden="true" />
-                  <AlertTitle>{t('users.usernameAvailability.suggestions')}</AlertTitle>
+                  <p className="mb-1 font-medium leading-none tracking-tight">{t('users.usernameAvailability.suggestions')}</p>
                   <AlertDescription>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {editUsernameStatus.suggestions.map((item) => (
@@ -1482,7 +1482,7 @@ export default function Users() {
               <div className="md:col-span-2">
                 <Alert>
                   <UserRound className="h-4 w-4" aria-hidden="true" />
-                  <AlertTitle>{t('users.usernameAvailability.suggestions')}</AlertTitle>
+                  <p className="mb-1 font-medium leading-none tracking-tight">{t('users.usernameAvailability.suggestions')}</p>
                   <AlertDescription>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {usernameStatus.suggestions.map((item) => (

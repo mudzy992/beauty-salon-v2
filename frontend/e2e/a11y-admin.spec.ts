@@ -918,7 +918,7 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(dialog.locator('fieldset legend').first()).not.toBeEmpty()
       const removalAxe = await new AxeBuilder({ page }).include('[data-users-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
       console.log(`USERS_REMOVAL_${mode}_${viewport} ${JSON.stringify({ violations: removalAxe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: removalAxe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
-      expect(assertableViolations(removalAxe.violations)).toEqual([])
+      expect(removalAxe.violations).toEqual([])
       const selects = dialog.locator('select[id^="users-stylist-removal-target-"]')
       await expect(selects).toHaveCount(2)
       const labels = await selects.evaluateAll(elements => elements.map(el => ({ id: el.id, labels: (el as HTMLSelectElement).labels?.length ?? 0 })))
