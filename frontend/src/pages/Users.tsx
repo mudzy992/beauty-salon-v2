@@ -171,6 +171,7 @@ export default function Users() {
 
   const [activeTab, setActiveTab] = useState<'admins' | 'stylists' | 'clients'>('clients')
 
+  const editTriggerRef = useRef<HTMLButtonElement | null>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [credentialsOpen, setCredentialsOpen] = useState(false)
@@ -885,7 +886,7 @@ export default function Users() {
             variant="ghost"
             className="h-8 w-8"
             aria-label={t('users.aria.edit', { username: u.username })}
-            onClick={() => openEdit(u)}
+            onClick={(event) => { editTriggerRef.current = event.currentTarget; openEdit(u) }}
           >
             <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
           </Button>
@@ -967,7 +968,7 @@ export default function Users() {
               Kao vidljiva labela, uz susjedno {t('common.edit')}, ide kratki ključ. */}
           {t('users.analytics')}
         </Button>
-        <Button type="button" size="sm" onClick={() => openEdit(u)}>
+        <Button type="button" size="sm" aria-label={t('users.aria.edit', { username: u.username })} onClick={(event) => { editTriggerRef.current = event.currentTarget; openEdit(u) }}>
           {t('common.edit')}
         </Button>
       </div>
@@ -1098,7 +1099,12 @@ export default function Users() {
         if (!open) removalPreviewSequence.current += 1
         setRemoveStylistOpen(open)
       }}>
-        <DialogContent data-users-dialog className="max-w-3xl">
+        <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
+          if (editTriggerRef.current?.isConnected) {
+            event.preventDefault()
+            editTriggerRef.current.focus()
+          }
+        }}>
           <DialogHeader>
             <DialogTitle>{t('users.stylistRemoval.title')}</DialogTitle>
           </DialogHeader>
@@ -1228,7 +1234,12 @@ export default function Users() {
 
       {/* Edit user */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent data-users-dialog className="max-w-3xl">
+        <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
+          if (editTriggerRef.current?.isConnected) {
+            event.preventDefault()
+            editTriggerRef.current.focus()
+          }
+        }}>
           <DialogHeader>
             <DialogTitle>{t('users.editUserTitle', { username: editUser?.username ?? '' })}</DialogTitle>
           </DialogHeader>
