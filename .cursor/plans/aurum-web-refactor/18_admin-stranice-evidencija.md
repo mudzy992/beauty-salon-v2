@@ -35,3 +35,6 @@ Legenda: **otvoreno** = detaljan pregled još nije obavljen; **djelimično** = n
 - U glavnom korisničkom prikazu i označenim portalima Badge varijante koriste odgovarajuće postojeće ok/warn/bad/neutralne Aurum tokene. Default polja, selecti i odabrane boje poruka u korisničkim dijalozima također su usklađeni; Classic ostaje izvan pravila. I dalje ostaju ikone, akcije, drugi dijalozi/stanja i provjera svih značenja statusa — stranica nije završena.
 - Dodane izolirane browser fixturee za grešku i retry te create dijalog u oba režima/viewporta, uključujući izračunatu površinu i zasebni AAA axe; test ne piše podatke. Lokalni build, lint, source i E2E typecheck prošli. CI još potreban. Raniji inkrement `947ac57`: CI `43442340350` 5/5.
 - CI `43444240341`: 4/5 poslova; novi svijetli error-state AAA test je našao 6.53:1 za tekst na bijeloj (AA prolazi, AAA ne). Bez promjene palete tekst greške prebačen na postojeći osnovni tekstualni token; ikona i obrub zadržavaju semantiku greške. Ponovna CI provjera potrebna.
+
+### Korisnici — nastavak, 2026-11
+- Detaljni zapis i matrica su u `21_admin-users-pregled.md`. CI `43649195513` 5/5; stranica ostaje djelimična do odluke o očuvanju historijske atribucije pri uklanjanju stiliste, zatim vizuelne i preostalih manualnih provjera. Nepovezani dashboard WIP nije mijenjan.
