@@ -8,7 +8,7 @@ test('finance confirmation prevents rapid duplicate confirmations before pending
   assert.match(source, /const confirmInFlightRef = useRef\(false\)/)
   assert.match(source, /if \(isPending \|\| !isReasonValid \|\| confirmInFlightRef\.current\) return/)
   assert.match(source, /confirmInFlightRef\.current = true[\s\S]*?onConfirm\(reason\.trim\(\)\)/)
-  assert.match(source, /disabled=\{isPending \|\| !isReasonValid \|\| confirmInFlightRef\.current\}/)
+  assert.match(source, /disabled=\{isPending \|\| !isReasonValid \|\| confirmLocked\}/)
   assert.match(source, /if \(!open\)[\s\S]*?confirmInFlightRef\.current = false/)
 })
 

@@ -35,6 +35,8 @@ export function ConfirmDialog({
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const confirmInFlightRef = useRef(false)
+  const wasPending = useRef(false)
+  const [confirmLocked, setConfirmLocked] = useState(false)
   const requiresReason = Boolean(reasonLabel)
   const isReasonValid =
     !requiresReason || reason.trim().length >= minReasonLength
@@ -42,19 +44,33 @@ export function ConfirmDialog({
   useEffect(() => {
     if (!open) {
       confirmInFlightRef.current = false
+      wasPending.current = false
+      setConfirmLocked(false)
       setReason('')
     }
   }, [open])
 
+  // When a mutation fails while the dialog stays open, allow another attempt.
+  useEffect(() => {
+    if (wasPending.current && !isPending) {
+      confirmInFlightRef.current = false
+      setConfirmLocked(false)
+    }
+    wasPending.current = isPending
+  }, [isPending])
+
   const handleConfirm = () => {
     if (isPending || !isReasonValid || confirmInFlightRef.current) return
     confirmInFlightRef.current = true
+    setConfirmLocked(true)
     onConfirm(reason.trim())
   }
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       confirmInFlightRef.current = false
+      wasPending.current = false
+      setConfirmLocked(false)
       setReason('')
     }
     onOpenChange(next)
@@ -86,7 +102,7 @@ export function ConfirmDialog({
             type="button"
             variant={isDestructive ? 'destructive' : 'default'}
             onClick={handleConfirm}
-            disabled={isPending || !isReasonValid || confirmInFlightRef.current}
+            disabled={isPending || !isReasonValid || confirmLocked}
             aria-busy={isPending}
           >
             {isPending

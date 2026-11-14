@@ -922,3 +922,31 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+test('users debt write-off can retry after a failed request without duplicate submission', async ({ page }) => {
+  const user = { id: 'fixture-client', username: 'primjer.klijent', email: null, firstName: 'Primjer', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [{ id: 'debt-fixture', amount: '15', createdAt: '2026-01-01T00:00:00Z' }] }))
+  let attempts = 0
+  await page.route('**/api/client-debts/debt-fixture/write-off', route => {
+    attempts += 1
+    expect(route.request().postDataJSON()).toEqual({ note: 'Test razlog' })
+    return route.fulfill(attempts === 1 ? { status: 503, json: {} } : { json: { ok: true } })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: /uredi korisnika primjer.klijent|edit user primjer.klijent/i }).click()
+  const edit = page.locator('[data-users-dialog][role="dialog"]')
+  await edit.getByRole('button', { name: /otpiši dug|write off/i }).click()
+  const confirmDialog = page.getByRole('dialog').last()
+  await confirmDialog.getByRole('textbox').fill('Test razlog')
+  const confirm = confirmDialog.getByRole('button', { name: /otpiši dug|write off/i })
+  await confirm.click()
+  await expect.poll(() => attempts).toBe(1)
+  await expect(confirm).toBeEnabled()
+  await confirm.click()
+  await expect.poll(() => attempts).toBe(2)
+  await expect(confirmDialog).toBeHidden()
+})

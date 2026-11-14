@@ -32,3 +32,9 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - Dodatno: unikatna imena role akcija s username, vidljiv fokus i minimalni 24px gumb, brisanje privremene lozinke iz stanja na potvrdi, reduced-motion spinner, usklađene odabrane površine/tekst/ikone u korisničkom prikazu i dijalozima.
 - `Users.tsx` pročitan u cijelosti. Relevantni DataTable, DataState, Badge, Button, Card, Dialog, Alert, ConfirmDialog i API catalog pregledani; dodatne zavisnosti, backend ugovori, ostala stanja i svi testovi još nisu dovršeni.
 - Lokalno users-a11y 7/7, lint, build i E2E typecheck prošli; rezultat browser/CI još nije poznat.
+
+### CI i dodatni nalaz
+
+- CI `43585781634` za `d5fe688`: **5/5 poslova prošlo**. Ranija dva Users create AAA pada su otklonjena; četiri nova edit/role-transfer scenarija također su prošla. Ovo nije dokaz svih stanja niti automatska potvrda potpune pristupačnosti.
+- U-06: zajednički `ConfirmDialog` ostajao je zaključan nakon neuspješne mutacije dok se dijalog ne zatvori. Implementirana zaštita od duplog klika i reset zaključavanja poslije pending ciklusa; izmjena je zajednička za postojeće finance potrošače. Source test ažuriran, lokalni build/lint prošli. Dodan stvarni browser test neuspjeha i ponavljanja otpisa s mockom, čeka CI. Nije izvršena mutacija stvarnih podataka.
+- I dalje otvoreni detalji: izvršni test zastarjelih username odgovora, ostali dijalozi i stanja, sadržajne fixturee u oba moda, Classic, dostupnost čitačem ekrana i korisnikov vizuelni pregled. `/admin/users` nije još označen završenim.
