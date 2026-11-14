@@ -1124,6 +1124,7 @@ export default function Users() {
 
       {/* Remove STYLIST role */}
       <Dialog open={removeStylistOpen} onOpenChange={(open) => {
+        if (!open && removalSubmitting) return
         if (!open) removalPreviewSequence.current += 1
         setRemoveStylistOpen(open)
       }}>
@@ -1259,7 +1260,7 @@ export default function Users() {
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => { removalPreviewSequence.current += 1; setRemoveStylistOpen(false) }}>
+            <Button type="button" variant="ghost" disabled={removalSubmitting} onClick={() => { removalPreviewSequence.current += 1; setRemoveStylistOpen(false) }}>
               {t('common.cancel')}
             </Button>
             <Button
@@ -1276,7 +1277,7 @@ export default function Users() {
       </Dialog>
 
       {/* Edit user */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={(open) => { if (open || !saving) setEditOpen(open) }}>
         <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
           if (editTriggerRef.current?.isConnected) {
             event.preventDefault()
@@ -1451,7 +1452,7 @@ export default function Users() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setEditOpen(false)}>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setEditOpen(false)}>
               {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleSave()} disabled={saving}>
@@ -1462,7 +1463,7 @@ export default function Users() {
       </Dialog>
 
       {/* Create user */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={(open) => { if (open || !saving) setCreateOpen(open) }}>
         <DialogContent data-users-dialog className="max-w-2xl" onCloseAutoFocus={(event) => {
           if (transitioningToCredentials.current) {
             event.preventDefault()
@@ -1551,7 +1552,7 @@ export default function Users() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>
+            <Button type="button" variant="ghost" disabled={saving} onClick={() => setCreateOpen(false)}>
               {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleCreate()} disabled={saving}>

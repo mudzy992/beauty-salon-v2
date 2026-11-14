@@ -1209,3 +1209,33 @@ test('users reflects a server-clamped page and hides client pagination on other 
   await root.getByRole('tab', { name: /administratori|admins/i }).click()
   await expect(root.getByRole('button', { name: /sljedeća|next/i })).toHaveCount(0)
 })
+
+test('users cannot dismiss a creation while the request is pending', async ({ page }) => {
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [], total: 0, page: 0, pageSize: 20 } }))
+  await page.route('**/api/users/username-availability?**', route => route.fulfill({ json: { available: true, suggestions: [] } }))
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  let requests = 0
+  await page.route('**/api/users', async route => {
+    requests += 1
+    await gate
+    await route.fulfill({ json: { username: 'test.klijent', initialPassword: 'fixture-only-password' } })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /novi korisnik|new user|kreiraj korisnika|create user/i }).click()
+  const dialog = page.locator('[data-users-dialog][role="dialog"]')
+  await dialog.locator('#users-auth-first-name-2').fill('Test')
+  await dialog.locator('#users-auth-last-name-2').fill('Klijent')
+  await dialog.locator('#users-create-gender').selectOption('FEMALE')
+  await dialog.getByRole('button', { name: /^(sačuvaj|save)$/i }).click()
+  await expect.poll(() => requests).toBe(1)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /otkaži|cancel/i })).toBeDisabled()
+  release()
+  await expect(page.getByRole('dialog', { name: /pristupni podaci|credentials/i })).toBeVisible()
+  expect(requests).toBe(1)
+})
