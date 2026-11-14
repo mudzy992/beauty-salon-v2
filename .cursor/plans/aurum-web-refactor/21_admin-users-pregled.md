@@ -43,3 +43,5 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - Dodat izvršni browser test za namjerno odgođen stariji odgovor provjere korisničkog imena; čeka CI.
 - CI `43587542493` za `cee6449`: 5/5; browser test odgođenog zastarjelog username odgovora prošao.
 - U-07 (visok): uklanjanje uloge stiliste bez povezanih zapisa prethodno se slalo automatski nakon preview odgovora, čak i bez potvrde; zatvaranje dok preview traje nije prekidalo tok. Uklonjena automatska mutacija i dodana zaštita od zastarjelih preview odgovora. Sada je potrebna eksplicitna potvrda i kad nema povezanih zapisa; dodan izolovan browser test otkazivanja i potvrde. Test čeka CI; nijedan stvarni korisnik nije mijenjan.
+- CI `43588111224` za `d25d56b`: 5/5. Browser test potvrđuje da nema automatskog uklanjanja pri nula povezanih zapisa, otkazivanje ne šalje mutaciju, a izričita potvrda šalje jednu izolovanu mock mutaciju.
+- Dodani test kompletnog popunjenog prikaza (AA plus izvještaj AAA/incomplete) u oba moda/viewporta i simulirana kreacija s jednokratnim pristupnim podacima; čeka CI.
