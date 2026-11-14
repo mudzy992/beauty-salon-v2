@@ -227,6 +227,7 @@ export default function Users() {
     initialPassword: string
   } | null>(null)
 
+  const removalPreviewSequence = useRef(0)
   const [removeStylistOpen, setRemoveStylistOpen] = useState(false)
   const [removeStylistUser, setRemoveStylistUser] = useState<UserRow | null>(null)
   const [removalPreview, setRemovalPreview] = useState<StylistRemovalPreview | null>(null)
@@ -588,6 +589,7 @@ export default function Users() {
   }, [removalPreview, removalSummary])
 
   const openRemoveStylist = async (userId: string) => {
+    const sequence = ++removalPreviewSequence.current
     const u = [...admins, ...stylists, ...clients].find((x) => x.id === userId) ?? null
     setRemoveStylistUser(u)
     setRemovalPreview(null)
@@ -603,6 +605,7 @@ export default function Users() {
 
     try {
       const previewRes = await api.get<StylistRemovalPreview>(`/api/users/${userId}/stylist-removal-preview`)
+      if (sequence !== removalPreviewSequence.current) return
       setRemovalPreview(previewRes.data)
       const c = previewRes.data.counts
       const hasAnyLinks =
@@ -610,24 +613,14 @@ export default function Users() {
         (c.confirmedReservationsCount ?? 0) > 0 ||
         (c.reservationResponsesCount ?? 0) > 0 ||
         (c.reviewsCount ?? 0) > 0
-      if (!hasAnyLinks) {
-        setRemovalSubmitting(true)
-        await api.post(`/api/users/${userId}/remove-stylist-role`, {
-          dailyLogs: { mode: 'DELETE' },
-          confirmedReservations: { mode: 'DELETE' },
-          reservationResponses: { mode: 'DELETE' },
-          reviews: { mode: 'DELETE' },
-        })
-        success(t('users.toast.stylistRoleRemoved'))
-        setRemoveStylistOpen(false)
-        loadData()
-        setRemovalSubmitting(false)
-        return
-      }
+      // Even with no linked records, role removal must be explicitly confirmed.
+      if (!hasAnyLinks) return
 
       const items = await fetchAllAdminStylists<StylistOption>()
+      if (sequence !== removalPreviewSequence.current) return
       setAllStylists(items)
     } catch (err) {
+      if (sequence !== removalPreviewSequence.current) return
       showApiError(err, 'users.errors.prepareStylistRemovalFailed')
       setRemovalSubmitting(false)
       setRemoveStylistOpen(false)
@@ -1098,7 +1091,10 @@ export default function Users() {
       )}
 
       {/* Remove STYLIST role */}
-      <Dialog open={removeStylistOpen} onOpenChange={setRemoveStylistOpen}>
+      <Dialog open={removeStylistOpen} onOpenChange={(open) => {
+        if (!open) removalPreviewSequence.current += 1
+        setRemoveStylistOpen(open)
+      }}>
         <DialogContent data-users-dialog className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{t('users.stylistRemoval.title')}</DialogTitle>
@@ -1211,7 +1207,7 @@ export default function Users() {
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setRemoveStylistOpen(false)}>
+            <Button type="button" variant="ghost" onClick={() => { removalPreviewSequence.current += 1; setRemoveStylistOpen(false) }}>
               {t('common.cancel')}
             </Button>
             <Button
