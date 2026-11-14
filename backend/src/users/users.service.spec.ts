@@ -724,6 +724,22 @@ describe('UsersService', () => {
     }
   });
 
+  it('normalizes changed usernames consistently with availability and preserves unchanged legacy usernames', async () => {
+    const user = { id: 'user-1', username: 'Legacy.Name', gender: 'FEMALE', email: null };
+    mockRepo.user.findUnique.mockResolvedValueOnce(user)
+      .mockResolvedValueOnce({ userRoles: [{ role: { name: 'CLIENT' } }] })
+      .mockResolvedValueOnce(null);
+    mockRepo.user.update.mockResolvedValue({ id: user.id });
+    const actor = { sub: 'owner', roles: ['OWNER'] } as CurrentUserPayload;
+    await service.update(user.id, { username: ' Novo Ime ' }, actor);
+    expect(mockRepo.user.findUnique).toHaveBeenLastCalledWith({ where: { username: 'novo.ime' } });
+    expect(mockRepo.user.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ username: 'novo.ime' }) }));
+    mockRepo.user.findUnique.mockResolvedValueOnce(user)
+      .mockResolvedValueOnce({ userRoles: [{ role: { name: 'CLIENT' } }] });
+    await service.update(user.id, { username: 'Legacy.Name' }, actor);
+    expect(mockRepo.user.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ username: 'Legacy.Name' }) }));
+  });
+
   it('disconnects sockets after an account activity change', async () => {
     const user = {
       id: 'user-1',

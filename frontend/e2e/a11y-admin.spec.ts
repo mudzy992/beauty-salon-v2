@@ -1169,3 +1169,26 @@ test('users explains financial history blockers before stylist removal', async (
   await expect(dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i })).toBeDisabled()
   expect(mutations).toBe(0)
 })
+
+test('saving unrelated user edits does not overwrite gender onboarding state', async ({ page }) => {
+  const user = { id: 'fixture-user', username: 'test.klijent', email: null, firstName: 'Test', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+  let saved = 0
+  await page.route('**/api/users/fixture-user', route => {
+    expect(route.request().method()).toBe('PATCH')
+    expect(route.request().postDataJSON()).not.toHaveProperty('gender')
+    saved += 1
+    return route.fulfill({ json: user })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /uredi korisnika test.klijent|edit user test.klijent/i }).first().click()
+  const edit = page.locator('[data-users-dialog][role="dialog"]')
+  await edit.locator('#users-phone').fill('12345')
+  await edit.getByRole('button', { name: /^(sačuvaj|save)$/i }).click()
+  await expect.poll(() => saved).toBe(1)
+  await expect(edit).toBeHidden()
+})

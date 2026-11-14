@@ -486,6 +486,7 @@ export class UsersService {
           firstName: dto.firstName,
           lastName: dto.lastName,
         });
+    if (!username) throw new BadRequestException(apiError('USERS_USERNAME_INVALID'));
     const existingUsername = await this.repo.user.findUnique({
       where: { username },
       select: { id: true },
@@ -640,12 +641,17 @@ export class UsersService {
       });
       if (taken) throw new ConflictException(apiError('USERS_EMAIL_TAKEN'));
     }
-    if (dto.username && dto.username !== user.username) {
-      const taken = await this.repo.user.findUnique({
-        where: { username: dto.username },
-      });
-      if (taken)
-        throw new ConflictException(apiError('USERS_USERNAME_TAKEN'));
+    // Keep an unchanged legacy username intact, but normalize new values exactly
+    // as the availability endpoint does before checking and persisting them.
+    const nextUsername = dto.username == null || dto.username === user.username
+      ? dto.username
+      : this.normalizeUsername(dto.username);
+    if (dto.username != null && !nextUsername) {
+      throw new BadRequestException(apiError('USERS_USERNAME_INVALID'));
+    }
+    if (nextUsername && nextUsername !== user.username) {
+      const taken = await this.repo.user.findUnique({ where: { username: nextUsername } });
+      if (taken) throw new ConflictException(apiError('USERS_USERNAME_TAKEN'));
     }
     const nextEmail = dto.email?.trim() ?? null;
     const shouldResetEmailVerification =
@@ -671,7 +677,7 @@ export class UsersService {
             passwordResetExpiresAt: null,
           }),
         }),
-        ...(dto.username != null && { username: dto.username }),
+        ...(nextUsername != null && { username: nextUsername }),
         ...(dto.phone !== undefined && { phone: dto.phone || null }),
         ...(dto.gender !== undefined && {
           gender: dto.gender,

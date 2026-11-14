@@ -391,7 +391,7 @@ export default function Users() {
         lastName: trimmedLast,
         email: trimmedEmail ? trimmedEmail : null,
         phone: trimmedPhone ? trimmedPhone : null,
-        gender: formData.gender || null,
+        ...((formData.gender || null) !== (editUser.gender ?? null) ? { gender: formData.gender || null } : {}),
         isActive: formData.isActive,
       })
       success(t('users.toast.updated'))
@@ -1287,7 +1287,7 @@ export default function Users() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="users-username">{t('users.username')}</Label>
-              <Input id="users-username"
+              <Input id="users-username" aria-required="true"
                 value={formData.username}
                 onChange={(e) => {
                   setEditIsUsernameManuallyEdited(true)
@@ -1348,11 +1348,11 @@ export default function Users() {
 
             <div className="space-y-2">
               <Label htmlFor="users-auth-first-name">{t('auth.firstName')}</Label>
-              <Input id="users-auth-first-name" value={formData.firstName} onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))} />
+              <Input id="users-auth-first-name" aria-required="true" value={formData.firstName} onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="users-auth-last-name">{t('auth.lastName')}</Label>
-              <Input id="users-auth-last-name" value={formData.lastName} onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))} />
+              <Input id="users-auth-last-name" aria-required="true" value={formData.lastName} onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))} />
             </div>
 
             <div className="space-y-2">
