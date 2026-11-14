@@ -901,7 +901,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.goto('/admin/users', { waitUntil: 'networkidle' })
       const root = page.locator('[data-admin-users]')
       await expect(root.locator('p:visible, span:visible').filter({ hasText: 'test.stilist' }).first()).toBeVisible()
-      const edit = viewport === 'desktop' ? root.getByRole('button', { name: /uredi korisnika test.stilist|edit user test.stilist/i }) : root.getByRole('button', { name: /^(uredi|edit)$/i })
+      const edit = root.getByRole('button', { name: /uredi korisnika test.stilist|edit user test.stilist/i })
       await edit.click()
       const dialog = page.locator('[data-users-dialog][role="dialog"]')
       await expect(dialog.getByRole('switch')).toHaveAccessibleName(/aktivan|active/i)
