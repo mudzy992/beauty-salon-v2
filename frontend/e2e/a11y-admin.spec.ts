@@ -681,7 +681,7 @@ for (const mode of ['light', 'dark'] as const) {
       expect(results.violations).toEqual([])
       const pageAxe = await new AxeBuilder({ page }).include('[data-admin-users]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
       console.log(`USERS_POPULATED_${mode}_${viewport} ${JSON.stringify({ violations: pageAxe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: pageAxe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
-      expect(assertableViolations(pageAxe.violations)).toEqual([])
+      expect(pageAxe.violations).toEqual([])
       const selectedLabel = await activeTab.textContent()
       await activeTab.focus()
       await page.keyboard.press('ArrowLeft')

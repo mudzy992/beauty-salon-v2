@@ -1974,3 +1974,6 @@
 [data-skin="aurum"] [data-users-dialog] [class~="bg-emerald-50"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] div[class~="bg-white"] { background: hsl(var(--surface)); border-color: hsl(var(--line)); }
+/* Users table and status text: stronger existing text tokens for AAA on light surfaces. */
+[data-skin="aurum"] .admin-shell [data-admin-users] table.app-table th { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge] { color: hsl(var(--text)); }
