@@ -47,6 +47,49 @@ describe('stylist removal revision (real PostgreSQL)', () => {
       await db.$disconnect();
     }
   });
+  it('does not silently remove records committed while removal is running', async () => {
+    const other = await db.user.create({ data: { username: `race-${randomUUID()}`, firstName: 'Race', lastName: 'Stylist' } });
+    const profile = await db.stylistProfile.create({ data: { userId: other.id, status: 'ACTIVE' } });
+    const repository = new UsersRepository(db);
+    const service = new UsersService(repository, { disconnectUserSockets: jest.fn() } as unknown as EventsGateway);
+    try {
+      const preview = await service.getStylistRemovalPreview(other.id, ['OWNER']);
+      let release!: () => void;
+      let read!: () => void;
+      const paused = new Promise<void>(resolve => { read = resolve; });
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      const originalTransaction = repository.serializableTransaction.bind(repository);
+      jest.spyOn(repository, 'serializableTransaction').mockImplementation((callback) => originalTransaction(async tx => {
+        const wrapped = new Proxy(tx, {
+          get(target, key, receiver) {
+            if (key !== 'review') return Reflect.get(target, key, receiver);
+            return new Proxy(target.review, {
+              get(model, method, modelReceiver) {
+                if (method !== 'findMany') return Reflect.get(model, method, modelReceiver);
+                return async (...args: Parameters<typeof model.findMany>) => {
+                  const result = await model.findMany(...args);
+                  read();
+                  await gate;
+                  return result;
+                };
+              },
+            });
+          },
+        });
+        return callback(wrapped);
+      }));
+      const removal = service.removeStylistRole(other.id, { ...choices, previewRevision: preview.revision }, ['OWNER']);
+      await paused;
+      const review = await db.review.create({ data: { userId: other.id, serviceId, stylistProfileId: profile.id, serviceRating: 5 } });
+      release();
+      await expect(removal).rejects.toBeDefined();
+      expect(await db.review.findUnique({ where: { id: review.id } })).not.toBeNull();
+      expect(await db.stylistProfile.findUnique({ where: { id: profile.id } })).not.toBeNull();
+    } finally {
+      await db.user.deleteMany({ where: { id: other.id } });
+    }
+  });
+
   it('rejects a stale preview and preserves newly linked data, then accepts a fresh explicit confirmation', async () => {
     const original = await users.getStylistRemovalPreview(userId, ['OWNER']);
     expect(original.counts.reviewsCount).toBe(0);
