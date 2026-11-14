@@ -41,6 +41,7 @@ describe('stylist removal revision (real PostgreSQL)', () => {
   });
   afterAll(async () => {
     if (db) {
+      if (profileId) await db.clientDebt.deleteMany({ where: { stylistProfileId: profileId } });
       if (userId) await db.user.deleteMany({ where: { id: userId } });
       if (categoryId) await db.serviceCategory.deleteMany({ where: { id: categoryId } });
       await db.$disconnect();
@@ -55,6 +56,11 @@ describe('stylist removal revision (real PostgreSQL)', () => {
     expect(await db.stylistProfile.findUnique({ where: { id: profileId } })).not.toBeNull();
     const refreshed = await users.getStylistRemovalPreview(userId, ['OWNER']);
     expect(refreshed.counts.reviewsCount).toBe(1);
+    const debt = await db.clientDebt.create({ data: { clientId: userId, stylistProfileId: profileId, createdById: userId, amount: 10 } });
+    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: refreshed.revision }, ['OWNER'])).rejects.toBeInstanceOf(ConflictException);
+    expect(await db.clientDebt.findUnique({ where: { id: debt.id } })).not.toBeNull();
+    expect(await db.review.findUnique({ where: { id: review.id } })).not.toBeNull();
+    await db.clientDebt.delete({ where: { id: debt.id } });
     await users.removeStylistRole(userId, { ...choices, previewRevision: refreshed.revision }, ['OWNER']);
     expect(await db.review.findUnique({ where: { id: review.id } })).toBeNull();
     expect(await db.stylistProfile.findUnique({ where: { id: profileId } })).toBeNull();

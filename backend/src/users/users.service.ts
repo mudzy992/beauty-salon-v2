@@ -954,6 +954,18 @@ export class UsersService {
       if (snapshot.revision !== dto.previewRevision) {
         throw new ConflictException(apiError('USERS_STYLIST_PREVIEW_CHANGED'));
       }
+      // Preserve accounting attribution and debt history; never let FK cascades erase
+      // ledger entries or silently detach manual income from the stylist.
+      const [debts, manualIncome, bookedLogs] = await Promise.all([
+        tx.clientDebt.count({ where: { stylistProfileId } }),
+        tx.incomeBookManualEntry.count({ where: { stylistProfileId } }),
+        dto.dailyLogs.mode === 'DELETE'
+          ? tx.dailyLogEntry.count({ where: { stylistProfileId, incomeEntry: { isNot: null } } })
+          : Promise.resolve(0),
+      ]);
+      if (debts || manualIncome || bookedLogs) {
+        throw new ConflictException(apiError('USERS_STYLIST_FINANCIAL_HISTORY'));
+      }
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
       } else if (dailyLogsTarget) {

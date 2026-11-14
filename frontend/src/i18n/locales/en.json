@@ -1216,6 +1216,7 @@
       "roleNotAssigned": "This user does not have that role.",
       "noStylistProfile": "This user does not have a stylist profile.",
       "targetNotActive": "The target stylist must have an active profile.",
+      "stylistFinancialHistory": "Removal is blocked by linked financial records or debts. Transfer daily logs or review the financial records.",
       "targetRequired": "Choose a target stylist for every transfer option.",
       "targetSame": "Choose a different target stylist.",
       "targetNotFound": "Target stylist not found.",

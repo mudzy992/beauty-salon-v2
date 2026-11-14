@@ -1213,6 +1213,7 @@
       "roleNotAssigned": "Korisnik nema dodijeljenu ovu ulogu.",
       "noStylistProfile": "Korisnik nema profil stiliste.",
       "targetNotActive": "Ciljni stilista mora imati aktivan profil.",
+      "stylistFinancialHistory": "Uklanjanje nije moguće zbog povezanih finansijskih evidencija ili dugovanja. Odaberite prijenos dnevnih zapisa ili provjerite finansijsku evidenciju.",
       "targetRequired": "Odaberite ciljnog stilistu za sve opcije prijenosa.",
       "targetSame": "Ciljni stilista mora biti druga osoba.",
       "targetNotFound": "Ciljni stilista nije pronađen.",

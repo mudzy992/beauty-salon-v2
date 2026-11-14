@@ -875,13 +875,15 @@ describe('UsersService', () => {
     });
     const removedUser = { id: 'user-1', stylistProfile: null };
     const tx = {
-      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([]), deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0), deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
       reservation: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       review: { findMany: jest.fn().mockResolvedValue([]), deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
       reservationStylistResponse: {
         findMany: jest.fn().mockResolvedValue([]),
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
+      clientDebt: { count: jest.fn().mockResolvedValue(0) },
+      incomeBookManualEntry: { count: jest.fn().mockResolvedValue(0) },
       role: { findUnique: jest.fn().mockResolvedValue({ id: 'stylist-role' }) },
       userRole: { deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
       stylistProfile: {
