@@ -78,6 +78,7 @@ interface PaginatedResponse<T> {
 interface StylistRemovalPreview {
   stylistProfileId: string
   revision: string
+  financial: { clientDebtsCount: number; manualIncomeCount: number; bookedDailyLogsCount: number }
   counts: {
     dailyLogEntriesCount: number
     confirmedReservationsCount: number
@@ -594,11 +595,14 @@ export default function Users() {
 
   const isRemovalReady = useMemo(() => {
     if (!removalPreview) return false
+    const financial = removalPreview.financial
+    if (financial.clientDebtsCount > 0 || financial.manualIncomeCount > 0 ||
+        (financial.bookedDailyLogsCount > 0 && removalModes.dailyLogs === 'DELETE')) return false
     for (const row of removalSummary) {
       if (row.mode === 'TRANSFER' && !row.target) return false
     }
     return true
-  }, [removalPreview, removalSummary])
+  }, [removalPreview, removalSummary, removalModes.dailyLogs])
 
   const openRemoveStylist = async (userId: string) => {
     const sequence = ++removalPreviewSequence.current
@@ -621,8 +625,9 @@ export default function Users() {
       const preview = previewRes.data
       if (!preview || typeof preview.stylistProfileId !== 'string' ||
           typeof preview.revision !== 'string' || !/^[a-f0-9]{64}$/.test(preview.revision) ||
-          !preview.counts || [preview.counts.dailyLogEntriesCount, preview.counts.confirmedReservationsCount,
-            preview.counts.reservationResponsesCount, preview.counts.reviewsCount].some(value => !Number.isSafeInteger(value) || value < 0)) {
+          !preview.counts || !preview.financial || [preview.counts.dailyLogEntriesCount, preview.counts.confirmedReservationsCount,
+            preview.counts.reservationResponsesCount, preview.counts.reviewsCount, preview.financial.clientDebtsCount,
+            preview.financial.manualIncomeCount, preview.financial.bookedDailyLogsCount].some(value => !Number.isSafeInteger(value) || value < 0)) {
         throw new Error('Invalid stylist removal preview')
       }
       setRemovalPreview(preview)
@@ -1139,6 +1144,20 @@ export default function Users() {
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {t('users.stylistRemoval.stylist', { username: removeStylistUser?.username ?? '' })}
               </p>
+
+              {(removalPreview.financial.clientDebtsCount > 0 || removalPreview.financial.manualIncomeCount > 0) ? (
+                <Alert variant="warning">
+                  <AlertDescription>{t('users.stylistRemoval.financialBlocked', {
+                    debts: removalPreview.financial.clientDebtsCount,
+                    income: removalPreview.financial.manualIncomeCount,
+                  })}</AlertDescription>
+                </Alert>
+              ) : null}
+              {removalPreview.financial.bookedDailyLogsCount > 0 ? (
+                <Alert variant="warning">
+                  <AlertDescription>{t('users.stylistRemoval.bookedLogs', { count: removalPreview.financial.bookedDailyLogsCount })}</AlertDescription>
+                </Alert>
+              ) : null}
 
               {([
                 { key: 'dailyLogs', label: t('users.stylistRemoval.categories.dailyLogs'), count: removalPreview.counts.dailyLogEntriesCount },

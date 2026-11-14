@@ -820,10 +820,12 @@ describe('UsersService', () => {
   it('includes all daily logs and binds the preview to record identities', async () => {
     mockRepo.user.findUnique.mockResolvedValue({ id: 'user-1', stylistProfile: { id: 'stylist-1' } });
     const tx = {
-      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([{ id: 'archived' }]) },
+      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([{ id: 'archived' }]), count: jest.fn().mockResolvedValue(0) },
       reservation: { findMany: jest.fn().mockResolvedValue([]) },
       reservationStylistResponse: { findMany: jest.fn().mockResolvedValue([]) },
       review: { findMany: jest.fn().mockResolvedValue([]) },
+      clientDebt: { count: jest.fn().mockResolvedValue(0) },
+      incomeBookManualEntry: { count: jest.fn().mockResolvedValue(0) },
     };
     mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
     const preview = await service.getStylistRemovalPreview('user-1', ['OWNER']);
@@ -852,10 +854,12 @@ describe('UsersService', () => {
   it('rejects changed record identities before any destructive operation', async () => {
     mockRepo.user.findUnique.mockResolvedValue({ id: 'user-1', stylistProfile: { id: 'stylist-1' }, userRoles: [] });
     const tx = {
-      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([{ id: 'new-record' }]), deleteMany: jest.fn() },
+      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([{ id: 'new-record' }]), count: jest.fn().mockResolvedValue(0), deleteMany: jest.fn() },
       reservation: { findMany: jest.fn().mockResolvedValue([]) },
       reservationStylistResponse: { findMany: jest.fn().mockResolvedValue([]) },
       review: { findMany: jest.fn().mockResolvedValue([]) },
+      clientDebt: { count: jest.fn().mockResolvedValue(0) },
+      incomeBookManualEntry: { count: jest.fn().mockResolvedValue(0) },
     };
     mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
     await expect(service.removeStylistRole('user-1', {

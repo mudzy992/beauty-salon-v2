@@ -32,15 +32,19 @@ import { apiError } from '../common/errors/api-error-codes';
 
 // The revision binds confirmation to the exact record identities shown by the preview.
 async function stylistRemovalSnapshot(tx: Prisma.TransactionClient, stylistProfileId: string) {
-  const [logs, reservations, responses, reviews] = await Promise.all([
+  const [logs, reservations, responses, reviews, clientDebtsCount, manualIncomeCount, bookedDailyLogsCount] = await Promise.all([
     tx.dailyLogEntry.findMany({ where: { stylistProfileId }, select: { id: true } }),
     tx.reservation.findMany({ where: { confirmedStylistId: stylistProfileId }, select: { id: true } }),
     tx.reservationStylistResponse.findMany({ where: { stylistProfileId }, select: { id: true } }),
     tx.review.findMany({ where: { stylistProfileId }, select: { id: true } }),
+    tx.clientDebt.count({ where: { stylistProfileId } }),
+    tx.incomeBookManualEntry.count({ where: { stylistProfileId } }),
+    tx.dailyLogEntry.count({ where: { stylistProfileId, incomeEntry: { isNot: null } } }),
   ]);
   const ids = [logs, reservations, responses, reviews].map((rows) => rows.map((row) => row.id).sort());
   return {
     revision: createHash('sha256').update(JSON.stringify([stylistProfileId, ids])).digest('hex'),
+    financial: { clientDebtsCount, manualIncomeCount, bookedDailyLogsCount },
     counts: { dailyLogEntriesCount: logs.length, confirmedReservationsCount: reservations.length,
       reservationResponsesCount: responses.length, reviewsCount: reviews.length },
   };

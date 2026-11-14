@@ -94,3 +94,6 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - Pregled svih preostalih statusa i varijanti, ručni AT/uvećanje te korisnikov vizuelni pregled ostaju otvoreni; stranica nije zatvorena.
 - CI `43615711629` za `e59b3bc`: 5/5, ali log proširenog axe je otkrio `heading-order` (h5) u uklanjanju stiliste u sva četiri Aurum prikaza; raniji filter taj nalaz nije blokirao. U-17: lokalni Alert naslovi u Users prikazu zamijenjeni semantičkim nen-heading tekstom, bez promjene zajedničke komponente; removal axe sada zahtijeva nula svih violations, uključujući AAA. Potrebna ponovna CI provjera. Credentials fixture: nula violations i incomplete u jednom testiranom prikazu.
 - CI `43616524501` za `759a74d`: 5/5; strogi removal axe (AA i AAA tagovi) sada prolazi u četiri testirana Aurum prikaza. Nije dokaz za sva stanja ili punu WCAG usklađenost.
+
+### Nastavak cjelovitog pregleda
+- Finansijska blokada se sada prikazuje već u previewu s brojem dugovanja i ručnih prihoda; knjiženi dnevnici jasno upućuju na prijenos umjesto brisanja. Potvrda je onemogućena kada bi backend odbio radnju. Provjera na serveru ostaje mjerodavna i transakcijska. Browser scenarij čeka CI. Ovo čuva historiju, ali slučaj u kojem se ta historija treba premjestiti/anonimizirati zahtijeva poslovno pravilo i nije automatski izmišljen.

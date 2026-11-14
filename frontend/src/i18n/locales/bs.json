@@ -1168,6 +1168,8 @@
       "transfer": "Prebaci",
       "delete": "Obriši",
       "target": "Ciljni stilista",
+      "financialBlocked": "Uklanjanje je blokirano: povezano je {{debts}} dugovanja (uključujući zatvorena) i {{income}} ručnih prihoda. Ove evidencije moraju ostati povezane sa stilistom.",
+      "bookedLogs": "Broj dnevnih zapisa povezanih s knjigom prihoda: {{count}}. Njih nije moguće obrisati ovim postupkom; odaberite prijenos.",
       "chooseTarget": "Odaberite stilistu",
       "pendingOption": "(na čekanju — profil nije završen)",
       "pendingWarning": "Podatke nije moguće prebaciti stilisti čiji profil nije završen. Prvo dovršite profil na stranici Stilisti.",

@@ -1171,6 +1171,8 @@
       "transfer": "Transfer",
       "delete": "Delete",
       "target": "Target stylist",
+      "financialBlocked": "Removal is blocked: {{debts}} debts (including closed debts) and {{income}} manual income entries are linked. These records must remain linked to the stylist.",
+      "bookedLogs": "Daily logs linked to the income book: {{count}}. They cannot be deleted in this process; choose transfer.",
       "chooseTarget": "Choose a stylist",
       "pendingOption": "(pending — profile incomplete)",
       "pendingWarning": "Data cannot be transferred to a stylist whose profile is incomplete. Complete the profile on the Stylists page first.",

@@ -896,7 +896,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
       await page.route('**/api/client-debts**', route => route.fulfill({ json: [] }))
-      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 2, confirmedReservationsCount: 1, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', financial: { clientDebtsCount: 0, manualIncomeCount: 0, bookedDailyLogsCount: 0 }, revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 2, confirmedReservationsCount: 1, reservationResponsesCount: 0, reviewsCount: 0 } } }))
       await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
       await page.goto('/admin/users', { waitUntil: 'networkidle' })
       const root = page.locator('[data-admin-users]')
@@ -999,7 +999,7 @@ test('removing a stylist with no linked records still requires explicit confirma
   await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
   await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
   await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
-  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', financial: { clientDebtsCount: 0, manualIncomeCount: 0, bookedDailyLogsCount: 0 }, revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
   let removals = 0
   await page.route('**/api/users/fixture-user/remove-stylist-role', route => { removals += 1; expect(route.request().postDataJSON().previewRevision).toBe('a'.repeat(64)); return route.fulfill({ json: { ok: true } }) })
   await page.goto('/admin/users', { waitUntil: 'networkidle' })
@@ -1113,7 +1113,7 @@ test('users requires a fresh stylist preview after a conflict', async ({ page })
   let previews = 0
   await page.route('**/api/users/fixture-user/stylist-removal-preview', route => {
     previews += 1
-    return route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: (previews === 1 ? 'a' : 'b').repeat(64), counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } })
+    return route.fulfill({ json: { stylistProfileId: 'stylist-one', financial: { clientDebtsCount: 0, manualIncomeCount: 0, bookedDailyLogsCount: 0 }, revision: (previews === 1 ? 'a' : 'b').repeat(64), counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } })
   })
   let attempts = 0
   await page.route('**/api/users/fixture-user/remove-stylist-role', route => {
@@ -1151,4 +1151,21 @@ test('users does not report an empty list for a malformed successful client resp
   await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
   await expect(alert).toBeHidden()
   expect(calls).toBe(2)
+})
+
+test('users explains financial history blockers before stylist removal', async ({ page }) => {
+  const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }], stylistProfile: { id: 'stylist-one', status: 'ACTIVE' } }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+  let mutations = 0
+  await page.route('**/api/users/fixture-user/remove-stylist-role', route => { mutations += 1; return route.fulfill({ json: {} }) })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
+  const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
+  await expect(dialog).toContainText(/2 dugovanja|2 debts/i)
+  await expect(dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i })).toBeDisabled()
+  expect(mutations).toBe(0)
 })
