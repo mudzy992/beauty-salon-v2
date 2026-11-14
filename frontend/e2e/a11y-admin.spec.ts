@@ -950,3 +950,35 @@ test('users debt write-off can retry after a failed request without duplicate su
   await expect.poll(() => attempts).toBe(2)
   await expect(confirmDialog).toBeHidden()
 })
+
+test('users username availability ignores an older delayed response', async ({ page }) => {
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [], total: 0, page: 0, pageSize: 20 } }))
+  let releaseOld!: () => void
+  const oldGate = new Promise<void>(resolve => { releaseOld = resolve })
+  await page.route('**/api/users/username-availability?**', async route => {
+    const name = new URL(route.request().url()).searchParams.get('username')
+    if (name === 'staro.ime') {
+      await oldGate
+      await route.fulfill({ json: { available: false, suggestions: [] } })
+    } else await route.fulfill({ json: { available: true, suggestions: [] } })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /novi korisnik|new user|kreiraj korisnika|create user/i }).click()
+  const dialog = page.locator('[data-users-dialog][role="dialog"]')
+  const username = dialog.locator('#users-users-username-2')
+  const oldRequest = page.waitForRequest(request => request.url().includes('username=staro.ime'))
+  await username.fill('staro.ime')
+  await oldRequest
+  const newRequest = page.waitForResponse(response => response.url().includes('username=novo.ime'))
+  await username.fill('novo.ime')
+  await newRequest
+  await expect(dialog).toContainText(/Korisničko ime je dostupno|Username is available/i)
+  const oldResponse = page.waitForResponse(response => response.url().includes('username=staro.ime'))
+  releaseOld()
+  await oldResponse
+  await expect(dialog).not.toContainText(/Korisničko ime nije dostupno|Username is unavailable/i)
+  await expect(dialog).toContainText(/Korisničko ime je dostupno|Username is available/i)
+})
