@@ -893,8 +893,9 @@ export class UsersService {
       reservationResponsesCount,
       reviewsCount,
     ] = await Promise.all([
+      // Removal acts on all entries, including soft-deleted ones: preview the same set.
       this.repo.dailyLogEntry.count({
-        where: { stylistProfileId, deletedAt: null },
+        where: { stylistProfileId },
       }),
       this.repo.reservation.count({
         where: { confirmedStylistId: stylistProfileId },

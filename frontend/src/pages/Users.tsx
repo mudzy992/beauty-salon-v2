@@ -229,6 +229,7 @@ export default function Users() {
     initialPassword: string
   } | null>(null)
 
+  const removalTriggerRef = useRef<HTMLButtonElement | null>(null)
   const removalPreviewSequence = useRef(0)
   const [removeStylistOpen, setRemoveStylistOpen] = useState(false)
   const [removeStylistUser, setRemoveStylistUser] = useState<UserRow | null>(null)
@@ -735,7 +736,10 @@ export default function Users() {
                   type="button"
                   className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold-ring dark:hover:bg-slate-800"
                   aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName), username: u.username })}
-                  onClick={() => void handleRemoveRole(u.id, roleName)}
+                  onClick={(event) => {
+                    if (roleName === 'STYLIST') removalTriggerRef.current = event.currentTarget
+                    void handleRemoveRole(u.id, roleName)
+                  }}
                 >
                   <X className="h-3 w-3" aria-hidden="true" />
                 </button>
@@ -1100,9 +1104,9 @@ export default function Users() {
         setRemoveStylistOpen(open)
       }}>
         <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
-          if (editTriggerRef.current?.isConnected) {
+          if (removalTriggerRef.current?.isConnected) {
             event.preventDefault()
-            editTriggerRef.current.focus()
+            removalTriggerRef.current.focus()
           }
         }}>
           <DialogHeader>
@@ -1110,7 +1114,8 @@ export default function Users() {
           </DialogHeader>
 
           {!removalPreview ? (
-            <div className="flex justify-center py-10 text-muted-foreground">
+            <div role="status" aria-live="polite" className="flex justify-center py-10 text-muted-foreground">
+              <span className="sr-only">{t('common.loading')}</span>
               <Loader2 className="h-7 w-7 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>
           ) : (
@@ -1129,9 +1134,9 @@ export default function Users() {
                 const opts = getTargetOptions()
                 const mode = removalModes[row.key]
                 return (
-                  <div key={row.key} className="rounded-md border border-slate-200 p-4 dark:border-slate-800">
+                  <fieldset key={row.key} className="rounded-md border border-slate-200 p-4 dark:border-slate-800">
+                    <legend className="px-1 font-medium text-slate-900 dark:text-slate-50">{row.label}</legend>
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="font-medium text-slate-900 dark:text-slate-50">{row.label}</p>
                       <Badge variant="secondary">{row.count}</Badge>
                     </div>
 
@@ -1183,7 +1188,7 @@ export default function Users() {
                     ) : (
                       <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{t('users.stylistRemoval.deleteWarning')}</p>
                     )}
-                  </div>
+                  </fieldset>
                 )
               })}
 

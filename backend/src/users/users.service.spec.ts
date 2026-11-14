@@ -45,15 +45,19 @@ const mockRepo = {
   },
   transaction: jest.fn(),
   reservation: {
+    count: jest.fn(),
     findMany: jest.fn(),
   },
   review: {
+    count: jest.fn(),
     findMany: jest.fn(),
   },
   clientCancellationCount: {
     findUnique: jest.fn(),
   },
+  reservationStylistResponse: { count: jest.fn() },
   dailyLogEntry: {
+    count: jest.fn(),
     findMany: jest.fn(),
   },
   incomeBookManualEntry: {
@@ -810,6 +814,33 @@ describe('UsersService', () => {
     expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
       'user-1',
     );
+  });
+
+  it('includes soft-deleted daily logs in the removal preview because removal affects them too', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({ id: 'user-1', stylistProfile: { id: 'stylist-1' } });
+    mockRepo.dailyLogEntry.count.mockResolvedValue(3);
+    mockRepo.reservation.count.mockResolvedValue(0);
+    mockRepo.reservationStylistResponse.count.mockResolvedValue(0);
+    mockRepo.review.count.mockResolvedValue(0);
+    const preview = await service.getStylistRemovalPreview('user-1', ['OWNER']);
+    expect(mockRepo.dailyLogEntry.count).toHaveBeenCalledWith({ where: { stylistProfileId: 'stylist-1' } });
+    expect(preview.counts.dailyLogEntriesCount).toBe(3);
+  });
+
+  it('rejects unauthorized administrative mutations before accessing user data', async () => {
+    const removal = {
+      dailyLogs: { mode: 'DELETE' as const },
+      confirmedReservations: { mode: 'DELETE' as const },
+      reservationResponses: { mode: 'DELETE' as const },
+      reviews: { mode: 'DELETE' as const },
+    };
+    await expect(service.getStylistRemovalPreview('other-user', ['CLIENT'])).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.removeStylistRole('other-user', removal, ['STYLIST'])).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.assignRole('other-user', { role: 'SYSTEM_ADMIN' }, ['CLIENT'])).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.removeRole('other-user', 'SYSTEM_ADMIN', ['STYLIST'])).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.update('other-user', { isActive: false }, { sub: 'self', roles: ['CLIENT'] } as CurrentUserPayload)).rejects.toBeInstanceOf(ForbiddenException);
+    expect(mockRepo.user.findUnique).not.toHaveBeenCalled();
+    expect(mockRepo.transaction).not.toHaveBeenCalled();
   });
 
   it('disconnects sockets after the stylist-role removal transaction commits', async () => {

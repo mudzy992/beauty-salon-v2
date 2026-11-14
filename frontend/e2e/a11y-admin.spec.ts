@@ -911,8 +911,11 @@ for (const mode of ['light', 'dark'] as const) {
       expect(assertableViolations(editAxe.violations)).toEqual([])
       await page.keyboard.press('Escape')
       await expect(dialog).toBeHidden()
-      await root.getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
+      const removeRole = root.getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first()
+      await removeRole.click()
       await expect(dialog).toBeVisible()
+      await expect(dialog.locator('fieldset')).toHaveCount(2)
+      await expect(dialog.locator('fieldset legend').first()).not.toBeEmpty()
       const selects = dialog.locator('select[id^="users-stylist-removal-target-"]')
       await expect(selects).toHaveCount(2)
       const labels = await selects.evaluateAll(elements => elements.map(el => ({ id: el.id, labels: (el as HTMLSelectElement).labels?.length ?? 0 })))
@@ -922,6 +925,7 @@ for (const mode of ['light', 'dark'] as const) {
       await selects.nth(1).selectOption('stylist-two')
       await page.keyboard.press('Escape')
       await expect(dialog).toBeHidden()
+      await expect(removeRole).toBeFocused()
     })
   }
 }

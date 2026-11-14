@@ -45,3 +45,15 @@ describe('UsersController client-list access metadata', () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toContain(RolesGuard);
   });
 });
+
+describe('UsersController administrative mutation access metadata', () => {
+  it.each([
+    'findSystemAdmins', 'findStylists', 'findInitialPasswordResetCandidates',
+    'getUsernameAvailability', 'getUserUsernameAvailabilityForAdminEdit',
+    'getStylistRemovalPreview', 'removeStylistRole', 'create', 'assignRole', 'removeRole',
+  ])('%s is restricted to owner and system admin', (methodName) => {
+    const handler = getRouteHandler(methodName);
+    expect(Reflect.getMetadata(ROLES_KEY, handler)).toEqual(['SYSTEM_ADMIN', 'OWNER']);
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toContain(RolesGuard);
+  });
+});
