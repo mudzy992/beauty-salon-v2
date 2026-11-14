@@ -1234,7 +1234,7 @@ test('users cannot dismiss a creation while the request is pending', async ({ pa
   await expect.poll(() => requests).toBe(1)
   await page.keyboard.press('Escape')
   await expect(dialog).toBeVisible()
-  await expect(dialog.getByRole('button', { name: /otkaži|cancel/i })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: /odustani|cancel/i })).toBeDisabled()
   release()
   await expect(page.getByRole('dialog', { name: /pristupni podaci|credentials/i })).toBeVisible()
   expect(requests).toBe(1)
