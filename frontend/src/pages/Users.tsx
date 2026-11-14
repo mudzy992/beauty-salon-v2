@@ -276,6 +276,7 @@ export default function Users() {
         if (requestSequence !== requestSequenceRef.current) return
         if (!clientsRes.data || !Array.isArray(clientsRes.data.items) ||
             !Number.isSafeInteger(clientsRes.data.total) || clientsRes.data.total < 0 ||
+            !Number.isSafeInteger(clientsRes.data.page) || clientsRes.data.page < 0 ||
             !Array.isArray(resetCandidatesRes.data)) throw new Error('Invalid users list response')
         const resetCandidateIds = new Set(resetCandidatesRes.data.map(({ id }) => id))
         const withResetStatus = (users: UserRow[]) =>
@@ -287,6 +288,7 @@ export default function Users() {
         setStylists(withResetStatus(stylists))
         setClients(withResetStatus(clientsRes.data.items))
         setTotal(clientsRes.data.total)
+        if (clientsRes.data.page !== page) setPage(clientsRes.data.page)
       })
       .catch(() => {
         if (requestSequence !== requestSequenceRef.current) return
@@ -1060,7 +1062,7 @@ export default function Users() {
         </div>
       </Card>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      {activeTab === 'clients' ? <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{t('users.clientTotal', { count: total })}</p>
 
         <div className="flex items-center gap-2">
@@ -1083,6 +1085,7 @@ export default function Users() {
               type="button"
               size="sm"
               variant={p === page ? 'default' : 'ghost'}
+              aria-current={p === page ? 'page' : undefined}
               onClick={() => setPage(p)}
             >
               {p + 1}
@@ -1114,7 +1117,7 @@ export default function Users() {
             {t('common.next')}
           </Button>
         </div>
-      </div>
+      </div> : null}
 
         </>
       )}

@@ -1192,3 +1192,20 @@ test('saving unrelated user edits does not overwrite gender onboarding state', a
   await expect.poll(() => saved).toBe(1)
   await expect(edit).toBeHidden()
 })
+
+test('users reflects a server-clamped page and hides client pagination on other tabs', async ({ page }) => {
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => {
+    const requestPage = Number(new URL(route.request().url()).searchParams.get('page'))
+    return route.fulfill({ json: { items: [], total: requestPage === 0 ? 40 : 1, page: 0, pageSize: 20 } })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  const root = page.locator('[data-admin-users]')
+  await root.getByRole('button', { name: /sljedeća|next/i }).click()
+  await expect(root.getByRole('button', { name: '1', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(root.getByText('1 / 2', { exact: true })).toBeVisible()
+  await root.getByRole('tab', { name: /administratori|admins/i }).click()
+  await expect(root.getByRole('button', { name: /sljedeća|next/i })).toHaveCount(0)
+})
