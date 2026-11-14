@@ -44,6 +44,7 @@ const mockRepo = {
     delete: jest.fn(),
   },
   transaction: jest.fn(),
+  serializableTransaction: jest.fn(),
   reservation: {
     count: jest.fn(),
     findMany: jest.fn(),
@@ -816,19 +817,24 @@ describe('UsersService', () => {
     );
   });
 
-  it('includes soft-deleted daily logs in the removal preview because removal affects them too', async () => {
+  it('includes all daily logs and binds the preview to record identities', async () => {
     mockRepo.user.findUnique.mockResolvedValue({ id: 'user-1', stylistProfile: { id: 'stylist-1' } });
-    mockRepo.dailyLogEntry.count.mockResolvedValue(3);
-    mockRepo.reservation.count.mockResolvedValue(0);
-    mockRepo.reservationStylistResponse.count.mockResolvedValue(0);
-    mockRepo.review.count.mockResolvedValue(0);
+    const tx = {
+      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([{ id: 'archived' }]) },
+      reservation: { findMany: jest.fn().mockResolvedValue([]) },
+      reservationStylistResponse: { findMany: jest.fn().mockResolvedValue([]) },
+      review: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
     const preview = await service.getStylistRemovalPreview('user-1', ['OWNER']);
-    expect(mockRepo.dailyLogEntry.count).toHaveBeenCalledWith({ where: { stylistProfileId: 'stylist-1' } });
-    expect(preview.counts.dailyLogEntriesCount).toBe(3);
+    expect(tx.dailyLogEntry.findMany).toHaveBeenCalledWith({ where: { stylistProfileId: 'stylist-1' }, select: { id: true } });
+    expect(preview.counts.dailyLogEntriesCount).toBe(1);
+    expect(preview.revision).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it('rejects unauthorized administrative mutations before accessing user data', async () => {
     const removal = {
+      previewRevision: '0'.repeat(64),
       dailyLogs: { mode: 'DELETE' as const },
       confirmedReservations: { mode: 'DELETE' as const },
       reservationResponses: { mode: 'DELETE' as const },
@@ -843,6 +849,24 @@ describe('UsersService', () => {
     expect(mockRepo.transaction).not.toHaveBeenCalled();
   });
 
+  it('rejects changed record identities before any destructive operation', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({ id: 'user-1', stylistProfile: { id: 'stylist-1' }, userRoles: [] });
+    const tx = {
+      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([{ id: 'new-record' }]), deleteMany: jest.fn() },
+      reservation: { findMany: jest.fn().mockResolvedValue([]) },
+      reservationStylistResponse: { findMany: jest.fn().mockResolvedValue([]) },
+      review: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
+    await expect(service.removeStylistRole('user-1', {
+      previewRevision: '0'.repeat(64),
+      dailyLogs: { mode: 'DELETE' }, confirmedReservations: { mode: 'DELETE' },
+      reservationResponses: { mode: 'DELETE' }, reviews: { mode: 'DELETE' },
+    }, ['OWNER'])).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.dailyLogEntry.deleteMany).not.toHaveBeenCalled();
+    expect(mockEventsGateway.disconnectUserSockets).not.toHaveBeenCalled();
+  });
+
   it('disconnects sockets after the stylist-role removal transaction commits', async () => {
     mockRepo.user.findUnique.mockResolvedValue({
       id: 'user-1',
@@ -851,10 +875,11 @@ describe('UsersService', () => {
     });
     const removedUser = { id: 'user-1', stylistProfile: null };
     const tx = {
-      dailyLogEntry: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-      reservation: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
-      review: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      dailyLogEntry: { findMany: jest.fn().mockResolvedValue([]), deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      reservation: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      review: { findMany: jest.fn().mockResolvedValue([]), deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
       reservationStylistResponse: {
+        findMany: jest.fn().mockResolvedValue([]),
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       role: { findUnique: jest.fn().mockResolvedValue({ id: 'stylist-role' }) },
@@ -864,11 +889,13 @@ describe('UsersService', () => {
       },
       user: { findUnique: jest.fn().mockResolvedValue(removedUser) },
     };
-    mockRepo.transaction.mockImplementation(async (callback) => callback(tx));
+    mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
+    const preview = await service.getStylistRemovalPreview('user-1', ['OWNER']);
 
     const result = await service.removeStylistRole(
       'user-1',
       {
+        previewRevision: preview.revision,
         dailyLogs: { mode: 'DELETE' },
         confirmedReservations: { mode: 'DELETE' },
         reservationResponses: { mode: 'DELETE' },

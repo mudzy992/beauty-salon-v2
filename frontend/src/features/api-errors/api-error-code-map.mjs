@@ -21,6 +21,8 @@ export const API_ERROR_CODE_TO_KEY = {
   USERS_ROLE_REQUIRED: 'users.errors.roleRequired',
   USERS_ROLE_NOT_ASSIGNED: 'users.errors.roleNotAssigned',
   USERS_NO_STYLIST_PROFILE: 'users.errors.noStylistProfile',
+  USERS_STYLIST_PREVIEW_CHANGED: 'users.errors.stylistPreviewChanged',
+  USERS_TARGET_NOT_ACTIVE: 'users.errors.targetNotActive',
   USERS_TARGET_REQUIRED: 'users.errors.targetRequired',
   USERS_TARGET_SAME: 'users.errors.targetSame',
   USERS_TARGET_NOT_FOUND: 'users.errors.targetNotFound',

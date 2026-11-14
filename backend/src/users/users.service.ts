@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import type { Prisma } from '@prisma/client';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
@@ -29,6 +29,22 @@ import {
   MAX_API_PAGE_OFFSET,
 } from '../common/pagination.constants';
 import { apiError } from '../common/errors/api-error-codes';
+
+// The revision binds confirmation to the exact record identities shown by the preview.
+async function stylistRemovalSnapshot(tx: Prisma.TransactionClient, stylistProfileId: string) {
+  const [logs, reservations, responses, reviews] = await Promise.all([
+    tx.dailyLogEntry.findMany({ where: { stylistProfileId }, select: { id: true } }),
+    tx.reservation.findMany({ where: { confirmedStylistId: stylistProfileId }, select: { id: true } }),
+    tx.reservationStylistResponse.findMany({ where: { stylistProfileId }, select: { id: true } }),
+    tx.review.findMany({ where: { stylistProfileId }, select: { id: true } }),
+  ]);
+  const ids = [logs, reservations, responses, reviews].map((rows) => rows.map((row) => row.id).sort());
+  return {
+    revision: createHash('sha256').update(JSON.stringify([stylistProfileId, ids])).digest('hex'),
+    counts: { dailyLogEntriesCount: logs.length, confirmedReservationsCount: reservations.length,
+      reservationResponsesCount: responses.length, reviewsCount: reviews.length },
+  };
+}
 
 const AVATAR_SOURCE_MIMES = new Set([
   'image/jpeg',
@@ -887,33 +903,10 @@ export class UsersService {
     const stylistProfileId = user.stylistProfile?.id;
     if (!stylistProfileId)
       throw new NotFoundException(apiError('USERS_NO_STYLIST_PROFILE'));
-    const [
-      dailyLogEntriesCount,
-      confirmedReservationsCount,
-      reservationResponsesCount,
-      reviewsCount,
-    ] = await Promise.all([
-      // Removal acts on all entries, including soft-deleted ones: preview the same set.
-      this.repo.dailyLogEntry.count({
-        where: { stylistProfileId },
-      }),
-      this.repo.reservation.count({
-        where: { confirmedStylistId: stylistProfileId },
-      }),
-      this.repo.reservationStylistResponse.count({
-        where: { stylistProfileId },
-      }),
-      this.repo.review.count({ where: { stylistProfileId } }),
-    ]);
-    return {
-      stylistProfileId,
-      counts: {
-        dailyLogEntriesCount,
-        confirmedReservationsCount,
-        reservationResponsesCount,
-        reviewsCount,
-      },
-    };
+    const snapshot = await this.repo.serializableTransaction((tx) =>
+      stylistRemovalSnapshot(tx, stylistProfileId),
+    );
+    return { stylistProfileId, ...snapshot };
   }
 
   async removeStylistRole(
@@ -934,36 +927,33 @@ export class UsersService {
     if (!stylistProfileId)
       throw new NotFoundException(apiError('USERS_NO_STYLIST_PROFILE'));
 
-    const validateTransferTarget = async (category: {
-      mode: string;
-      targetStylistProfileId?: string;
-    }) => {
-      if (category.mode !== 'TRANSFER') return null;
-      const targetId = category.targetStylistProfileId?.trim();
-      if (!targetId)
-        throw new BadRequestException(apiError('USERS_TARGET_REQUIRED'));
-      if (targetId === stylistProfileId) {
-        throw new BadRequestException(apiError('USERS_TARGET_SAME'),
-        );
+    let removed;
+    try {
+      removed = await this.repo.serializableTransaction(async (tx) => {
+      const validateTransferTarget = async (category: {
+        mode: string;
+        targetStylistProfileId?: string;
+      }) => {
+        if (category.mode !== 'TRANSFER') return null;
+        const targetId = category.targetStylistProfileId?.trim();
+        if (!targetId) throw new BadRequestException(apiError('USERS_TARGET_REQUIRED'));
+        if (targetId === stylistProfileId) throw new BadRequestException(apiError('USERS_TARGET_SAME'));
+        const target = await tx.stylistProfile.findUnique({
+          where: { id: targetId }, select: { id: true, status: true },
+        });
+        if (!target) throw new NotFoundException(apiError('USERS_TARGET_NOT_FOUND'));
+        if (target.status !== 'ACTIVE') throw new BadRequestException(apiError('USERS_TARGET_NOT_ACTIVE'));
+        return targetId;
+      };
+      const dailyLogsTarget = await validateTransferTarget(dto.dailyLogs);
+      const confirmedReservationsTarget = await validateTransferTarget(dto.confirmedReservations);
+      const reservationResponsesTarget = await validateTransferTarget(dto.reservationResponses);
+      const reviewsTarget = await validateTransferTarget(dto.reviews);
+
+      const snapshot = await stylistRemovalSnapshot(tx, stylistProfileId);
+      if (snapshot.revision !== dto.previewRevision) {
+        throw new ConflictException(apiError('USERS_STYLIST_PREVIEW_CHANGED'));
       }
-      const target = await this.repo.stylistProfile.findUnique({
-        where: { id: targetId },
-        select: { id: true },
-      });
-      if (!target) throw new NotFoundException(apiError('USERS_TARGET_NOT_FOUND'));
-      return targetId;
-    };
-
-    const dailyLogsTarget = await validateTransferTarget(dto.dailyLogs);
-    const confirmedReservationsTarget = await validateTransferTarget(
-      dto.confirmedReservations,
-    );
-    const reservationResponsesTarget = await validateTransferTarget(
-      dto.reservationResponses,
-    );
-    const reviewsTarget = await validateTransferTarget(dto.reviews);
-
-    const removed = await this.repo.transaction(async (tx) => {
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
       } else if (dailyLogsTarget) {
@@ -1042,7 +1032,13 @@ export class UsersService {
         where: { id: userId },
         select: USER_MUTATION_SELECT,
       });
-    });
+      });
+    } catch (err) {
+      if (typeof err === 'object' && err !== null && 'code' in err && err.code === 'P2034') {
+        throw new ConflictException(apiError('USERS_STYLIST_PREVIEW_CHANGED'));
+      }
+      throw err;
+    }
     this.events.disconnectUserSockets(userId);
     return removed;
   }

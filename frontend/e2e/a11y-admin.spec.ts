@@ -896,7 +896,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
       await page.route('**/api/client-debts**', route => route.fulfill({ json: [] }))
-      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', counts: { dailyLogEntriesCount: 2, confirmedReservationsCount: 1, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 2, confirmedReservationsCount: 1, reservationResponsesCount: 0, reviewsCount: 0 } } }))
       await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
       await page.goto('/admin/users', { waitUntil: 'networkidle' })
       const root = page.locator('[data-admin-users]')
@@ -996,9 +996,9 @@ test('removing a stylist with no linked records still requires explicit confirma
   await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
   await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
   await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
-  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
   let removals = 0
-  await page.route('**/api/users/fixture-user/remove-stylist-role', route => { removals += 1; return route.fulfill({ json: { ok: true } }) })
+  await page.route('**/api/users/fixture-user/remove-stylist-role', route => { removals += 1; expect(route.request().postDataJSON().previewRevision).toBe('a'.repeat(64)); return route.fulfill({ json: { ok: true } }) })
   await page.goto('/admin/users', { waitUntil: 'networkidle' })
   const remove = page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first()
   await remove.click()
@@ -1092,3 +1092,34 @@ for (const viewport of ['desktop', 'mobile'] as const) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
   })
 }
+
+test('users requires a fresh stylist preview after a conflict', async ({ page }) => {
+  const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }], stylistProfile: { id: 'stylist-one', status: 'ACTIVE' } }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  let previews = 0
+  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => {
+    previews += 1
+    return route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: (previews === 1 ? 'a' : 'b').repeat(64), counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } })
+  })
+  let attempts = 0
+  await page.route('**/api/users/fixture-user/remove-stylist-role', route => {
+    attempts += 1
+    expect(route.request().postDataJSON().previewRevision).toBe((attempts === 1 ? 'a' : 'b').repeat(64))
+    return route.fulfill(attempts === 1 ? { status: 409, json: { code: 'USERS_STYLIST_PREVIEW_CHANGED', message: 'Conflict' } } : { json: { ok: true } })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  const remove = page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first()
+  await remove.click()
+  const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
+  await dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.getByText(/podaci stiliste su se promijenili|stylist.s records have changed/i)).toBeVisible()
+  expect(attempts).toBe(1)
+  await remove.click()
+  await dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i }).click()
+  await expect.poll(() => attempts).toBe(2)
+  expect(previews).toBe(2)
+})

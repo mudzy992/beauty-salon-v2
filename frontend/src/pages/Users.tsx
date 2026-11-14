@@ -77,6 +77,7 @@ interface PaginatedResponse<T> {
 
 interface StylistRemovalPreview {
   stylistProfileId: string
+  revision: string
   counts: {
     dailyLogEntriesCount: number
     confirmedReservationsCount: number
@@ -611,7 +612,14 @@ export default function Users() {
     try {
       const previewRes = await api.get<StylistRemovalPreview>(`/api/users/${userId}/stylist-removal-preview`)
       if (sequence !== removalPreviewSequence.current) return
-      setRemovalPreview(previewRes.data)
+      const preview = previewRes.data
+      if (!preview || typeof preview.stylistProfileId !== 'string' ||
+          typeof preview.revision !== 'string' || !/^[a-f0-9]{64}$/.test(preview.revision) ||
+          !preview.counts || [preview.counts.dailyLogEntriesCount, preview.counts.confirmedReservationsCount,
+            preview.counts.reservationResponsesCount, preview.counts.reviewsCount].some(value => !Number.isSafeInteger(value) || value < 0)) {
+        throw new Error('Invalid stylist removal preview')
+      }
+      setRemovalPreview(preview)
       const c = previewRes.data.counts
       const hasAnyLinks =
         (c.dailyLogEntriesCount ?? 0) > 0 ||
@@ -651,6 +659,7 @@ export default function Users() {
     if (!removeStylistUser || !removalPreview) return
     const counts = removalPreview.counts
     const payload = {
+      previewRevision: removalPreview.revision,
       dailyLogs: {
         mode: counts.dailyLogEntriesCount > 0 ? removalModes.dailyLogs : 'DELETE',
         targetStylistProfileId: removalModes.dailyLogs === 'TRANSFER' ? removalTargets.dailyLogs : undefined,
@@ -671,7 +680,7 @@ export default function Users() {
       },
     } as const
 
-    const missingTarget = (key: keyof typeof payload) =>
+    const missingTarget = (key: Exclude<keyof typeof payload, 'previewRevision'>) =>
       payload[key].mode === 'TRANSFER' && !payload[key].targetStylistProfileId
 
     if (
@@ -691,6 +700,7 @@ export default function Users() {
       setRemoveStylistOpen(false)
       loadData()
     } catch (err) {
+      if (getErrorCode(err) === 'USERS_STYLIST_PREVIEW_CHANGED') setRemoveStylistOpen(false)
       showApiError(err, 'users.errors.stylistRemovalFailed')
     } finally {
       setRemovalSubmitting(false)

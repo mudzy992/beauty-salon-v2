@@ -78,6 +78,10 @@ export class UsersRepository {
     return this.prisma.incomeBookManualEntry
   }
 
+  serializableTransaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(fn, { isolationLevel: 'Serializable' })
+  }
+
   transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     return this.prisma.$transaction(fn)
   }

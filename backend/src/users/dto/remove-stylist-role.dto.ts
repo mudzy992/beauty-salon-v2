@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, ValidateNested } from 'class-validator'
+import { IsDefined, IsIn, IsOptional, IsString, Matches, ValidateNested } from 'class-validator'
 import { Type } from 'class-transformer'
 
 type RemovalMode = 'DELETE' | 'TRANSFER'
@@ -14,18 +14,26 @@ export class RemoveStylistRoleCategoryDto {
 }
 
 export class RemoveStylistRoleDto {
+  @IsString()
+  @Matches(/^[a-f0-9]{64}$/)
+  previewRevision!: string
+
+  @IsDefined()
   @ValidateNested()
   @Type(() => RemoveStylistRoleCategoryDto)
   dailyLogs!: RemoveStylistRoleCategoryDto
 
+  @IsDefined()
   @ValidateNested()
   @Type(() => RemoveStylistRoleCategoryDto)
   confirmedReservations!: RemoveStylistRoleCategoryDto
 
+  @IsDefined()
   @ValidateNested()
   @Type(() => RemoveStylistRoleCategoryDto)
   reservationResponses!: RemoveStylistRoleCategoryDto
 
+  @IsDefined()
   @ValidateNested()
   @Type(() => RemoveStylistRoleCategoryDto)
   reviews!: RemoveStylistRoleCategoryDto
