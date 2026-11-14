@@ -1038,3 +1038,24 @@ test('users create shows one-time credentials and clears them after acknowledgme
   await expect(credentials).toBeHidden()
   await expect(page.locator('body')).not.toContainText('fixture-only-password')
 })
+
+test('users treats malformed debt data as an error and retries without reporting no debt', async ({ page }) => {
+  const user = { id: 'fixture-user', username: 'test.klijent', email: null, firstName: 'Test', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }], stylistProfile: null }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  let attempts = 0
+  await page.route('**/api/client-debts?**', route => {
+    attempts += 1
+    return route.fulfill({ json: attempts <= 2 ? { unexpected: true } : [] })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /uredi.*test.klijent|edit.*test.klijent/i }).first().click()
+  const dialog = page.locator('[data-users-dialog][role="dialog"]')
+  const alert = dialog.getByRole('alert')
+  await expect(alert).toBeVisible()
+  await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect(alert).toBeHidden()
+  expect(attempts).toBeGreaterThanOrEqual(3)
+})

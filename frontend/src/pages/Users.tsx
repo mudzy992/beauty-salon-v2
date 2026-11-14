@@ -187,7 +187,8 @@ export default function Users() {
       const { data } = await api.get('/api/client-debts', {
         params: { clientId: editUser.id },
       })
-      return Array.isArray(data) ? data : []
+      if (!Array.isArray(data)) throw new Error('Invalid client debts response')
+      return data
     },
   })
   const [formData, setFormData] = useState({
@@ -458,7 +459,7 @@ export default function Users() {
   }
 
   const handleCreate = async () => {
-    if (!createData.firstName || !createData.lastName || !createData.role) {
+    if (!createData.firstName.trim() || !createData.lastName.trim() || !createData.role) {
       warning(t('users.validation.allRequired'))
       return
     }
@@ -470,6 +471,8 @@ export default function Users() {
     try {
       const response = await api.post('/api/users', {
         ...createData,
+        firstName: createData.firstName.trim(),
+        lastName: createData.lastName.trim(),
         role: 'CLIENT',
         gender: createData.gender || undefined,
       })

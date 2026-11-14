@@ -48,3 +48,9 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - CI `43588639783` za `082e4a5`: 5/5, simulirana kreacija i brisanje prikazanih jednokratnih pristupnih podataka prošli. Popunjeni Users axe u light režimu prijavio AAA 6.38–6.39:1 na zaglavljima i značkama (AA prošao), dark bez nalaza. Usklađen tekst s postojećim jačim tokenima, zadržani statusni obrubi/pozadine, bez izmjene palete; test sada zahtijeva i AAA bez violations. Čeka ponovni CI.
 - CI `43589288269` za `e76a950`: svih 5 poslova prošlo; strogi axe za popunjeni Users u svijetlom/tamnom desktop/mobilnom prikazu nije prijavio violations. Ovo vrijedi samo za testirane fixture i stanja, ne za cijelu stranicu ili WCAG usklađenost.
 - Otvoreno: dovršiti pregled preostalih backend ugovora i zavisnosti, Classic i preostalih dijaloga/stanja, dokumentovati kompletnu matricu te ručno provjeriti tastaturu, čitač ekrana i uvećanje. Vizuelna provjera korisnika tek nakon dovršetka. Stranica nije zatvorena; ne prelaziti na analytics.
+
+### Nastavak: ugovori i podaci
+- Pregledani UsersController, create/update/removal DTO, relevantne metode UsersService i ClientDebtsController: liste/kreiranje/uloge/preview štite JWT i SYSTEM_ADMIN/OWNER; PATCH users dodatno provjerava identitet ili admin/owner u servisu; otpis štiti RolesGuard. Testovi s mockom nisu dokaz produkcijskih ovlasti.
+- U-08: neispravan uspješan odgovor liste dugova tretiran je kao prazna lista, što je moglo prikazati da klijent nema dug. Sada je to greška s postojećim retry stanjem; dodan browser test oporavka nakon neispravnog odgovora (uključuje automatski React Query retry). Ne mijenja stvarne dugove.
+- U-09: kreiranje korisnika prihvatalo je ime/prezime sastavljeno samo od razmaka; sada se validira i šalje trimovana vrijednost.
+- Lokalni lint, build, E2E typecheck i users source test 7/7 prošli. Novi browser test čeka CI.
