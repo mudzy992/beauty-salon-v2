@@ -74,3 +74,21 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - U-14: pregled Prisma relacija pokazao je da brisanje dnevnih zapisa može kaskadno obrisati stavke knjige prihoda, a brisanje profila može odvojiti ručne prihode; dugovi imaju Restrict. Dodana konzervativna backend zabrana uklanjanja uz povezane dugove/ručne prihode, te zabrana DELETE dnevnih zapisa s knjiženim prihodima (prijenos ostaje moguć gdje nema drugih blokada). Poruka objašnjava blokadu; dodan PostgreSQL test očuvanja duga i recenzije, čeka CI. Ovo namjerno ograničava uklanjanje i ne predstavlja kompletan postupak razrješenja finansijske historije.
 - CI `43614185610` za `61543fc`: 5/5; PostgreSQL fixture potvrdio je odbijanje uklanjanja kod povezanog duga bez gubitka duga/recenzije. Blokada je konzervativna i može spriječiti uklanjanje i za zatvoreni dug; ne postoji kompletan UX za premještanje finansijske historije.
 - U-15: klijentska lista s neispravnim 200 odgovorom više ne izgleda kao prazna/0. Dodan retry browser scenarij. U-16: vraćanje fokusa iz kreiranja i jednokratnih pristupnih podataka na stvarni okidač, bez krađe fokusa tokom prijelaza između dijaloga; proširen browser test. Lokalno lint/build/typecheck/source test prošli; CI na čekanju.
+- CI `43615050307` za `d6b585d`: 5/5; test neispravne klijentske liste i create → credentials → fokus te otkazivanje kreiranja prošli. Dodane axe AA i evidencija AAA/incomplete za dijalog uklanjanja i pristupne podatke; čeka CI.
+
+## Matrica dokaza — stvarni obuhvat
+| Stanje | Light desktop | Dark desktop | Light 320 | Dark 320 | Tastatura / ograničenja |
+|---|---|---|---|---|---|
+| Popunjena lista s klijentom | axe AA+AAA, CI 43589288269 | isto | isto | isto | tabovi strelice; ne sve radnje |
+| Greška liste/retry, create | CI 43585781634 | isto | isto | isto | samo testirana greška i forma |
+| Edit, prijenos 2 kategorije | CI 43611161901 | isto | isto | isto | Escape i povrat fokusa; ne svi odabiri |
+| Classic popunjeno + edit | CI 43593825960 | N/P (Classic, ne Aurum mod) | CI 43593825960 | N/P | Escape i povrat fokusa; nije puna Classic matrica |
+| Dug: greška/retry, otpis retry | CI 43593825960, pojedinačni scenariji | nije sve testirano | nije sve testirano | nije sve testirano | mock mutacije, ne stvarni podaci |
+| Kreiranje i jednokratna lozinka | CI 43615050307, pojedinačni scenarij | nije testirano | nije testirano | nije testirano | fokus pri otkazivanju i poslije potvrde |
+| Sukob previewa stiliste | CI 43613386868, pojedinačni browser + PostgreSQL | nije testirano | nije testirano | nije testirano | nije zasebno simuliran paralelni konflikt |
+| 400% zoom, pravi čitač ekrana, kompletna tastatura, hover/disabled, sve kombinacije role | otvoreno | otvoreno | otvoreno | otvoreno | bez dokaza, ne tvrditi WCAG konformnost |
+
+### Još otvoreno
+- U-14: blokada finansijskih zapisa je zaštitna, ali proizvodni postupak razrješavanja postojeće historije i potpuno objašnjenje relacija nije definisan. Potrebna odluka o poslovnim pravilima prije uklanjanja ograničenja.
+- U-13: identiteti su zaštićeni revizijom i Serializable transakcijom; pravi paralelni test i revizija promjene sadržaja istih identiteta nisu dokazani.
+- Pregled svih preostalih statusa i varijanti, ručni AT/uvećanje te korisnikov vizuelni pregled ostaju otvoreni; stranica nije zatvorena.
