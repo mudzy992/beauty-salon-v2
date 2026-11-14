@@ -940,7 +940,7 @@ test('users debt write-off can retry after a failed request without duplicate su
   await page.getByRole('button', { name: /uredi korisnika primjer.klijent|edit user primjer.klijent/i }).click()
   const edit = page.locator('[data-users-dialog][role="dialog"]')
   await edit.getByRole('button', { name: /otpiši dug|write off/i }).click()
-  const confirmDialog = page.getByRole('dialog').last()
+  const confirmDialog = page.getByRole('dialog', { name: /otpis duga|write off debt/i })
   await confirmDialog.getByRole('textbox').fill('Test razlog')
   const confirm = confirmDialog.getByRole('button', { name: /otpiši dug|write off/i })
   await confirm.click()
