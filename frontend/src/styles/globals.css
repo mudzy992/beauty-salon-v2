@@ -1932,7 +1932,7 @@
   background-color: hsl(var(--surface)); border-color: hsl(var(--control-border)); color: hsl(var(--text));
 }
 [data-skin="aurum"] [data-users-dialog] [class~="text-amber-700"] { color: hsl(var(--warn-fg)); }
-[data-skin="aurum"] [data-users-dialog] :is([class~="text-rose-600"], [class~="text-rose-700"], [class~="text-rose-900"]) { color: hsl(var(--bad-fg)); }
+[data-skin="aurum"] [data-users-dialog] :is([class~="text-rose-600"], [class~="text-rose-700"]) { color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-users-dialog] :is([class~="text-blue-600"], [class~="text-blue-700"]) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] [data-users-role-chip] [class~="text-amber-700"] { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] {
@@ -1969,7 +1969,7 @@
 /* Scoped user-management surfaces and action icons, preserving Classic. */
 [data-skin="aurum"] [data-admin-users] :is(svg.text-teal-600, svg.text-blue-600) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] svg.text-rose-600 { color: hsl(var(--bad-fg)); }
-[data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, .text-rose-900) { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] :is(.text-muted-foreground, .text-slate-500) { color: hsl(var(--text-muted-strong)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-emerald-50"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--text)); }

@@ -1292,6 +1292,7 @@ export default function Users() {
             <Button
               type="button"
               variant="outline"
+              data-users-remove-action
               className="border-rose-200 text-rose-900 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-950/20"
               onClick={() => void handleConfirmRemoveStylist()}
               disabled={!removalPreview || !isRemovalReady || removalSubmitting}
