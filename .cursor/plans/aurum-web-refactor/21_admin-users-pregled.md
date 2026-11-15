@@ -89,8 +89,8 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 | 400% zoom, pravi čitač ekrana, kompletna tastatura, hover/disabled, sve kombinacije role | otvoreno | otvoreno | otvoreno | otvoreno | bez dokaza, ne tvrditi WCAG konformnost |
 
 ### Još otvoreno
-- U-14: blokada finansijskih zapisa je zaštitna, ali proizvodni postupak razrješavanja postojeće historije i potpuno objašnjenje relacija nije definisan. Potrebna odluka o poslovnim pravilima prije uklanjanja ograničenja.
-- U-13: identiteti su zaštićeni revizijom i Serializable transakcijom; pravi paralelni test i revizija promjene sadržaja istih identiteta nisu dokazani.
+- U-14: odluka o prijenosu donesena i implementirana; detalji i ograničenja su navedeni u nastavku.
+- U-13: identiteti su zaštićeni revizijom i Serializable transakcijom; paralelni test umetanja recenzije prolazi, ali promjene sadržaja istih identiteta nisu obuhvaćene revizijom.
 - Pregled svih preostalih statusa i varijanti, ručni AT/uvećanje te korisnikov vizuelni pregled ostaju otvoreni; stranica nije zatvorena.
 - CI `43615711629` za `e59b3bc`: 5/5, ali log proširenog axe je otkrio `heading-order` (h5) u uklanjanju stiliste u sva četiri Aurum prikaza; raniji filter taj nalaz nije blokirao. U-17: lokalni Alert naslovi u Users prikazu zamijenjeni semantičkim nen-heading tekstom, bez promjene zajedničke komponente; removal axe sada zahtijeva nula svih violations, uključujući AAA. Potrebna ponovna CI provjera. Credentials fixture: nula violations i incomplete u jednom testiranom prikazu.
 - CI `43616524501` za `759a74d`: 5/5; strogi removal axe (AA i AAA tagovi) sada prolazi u četiri testirana Aurum prikaza. Nije dokaz za sva stanja ili punu WCAG usklađenost.
@@ -117,3 +117,7 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - CI `43660393178` za `2e50f12`: 5/5; finansijski dijalog, strogi axe AA+AAA u light/dark na desktop/320px, nula violations i nula incomplete u testiranim fixtureima. Ovo ne zamjenjuje vizuelni ili stvarni screen-reader pregled.
 - Audit U-14 je server-side zapis u istoj transakciji s ID-ovima izvornog/ciljnog korisnika i profila, izvršioca, dugova i ručnih prihoda; nema korisničkog UI za pregled i njegova nepromjenjivost nije nametnuta privilegijama baze. Poslovna odluka o prijenosu je primijenjena, nema automatskog prijenosa.
 - Preostali dokaz: ručni pregled čitačem ekrana i 400% uvećanje, sve kombinacije Classic i vizuelni pregled korisnika nisu provedeni u ovom okruženju; stranica se zato ne označava potpuno završenom.
+
+### Dodatna provjera finansijskih relacija
+- CI `43705770802` za `82afa5b`: 4/5; test knjiženog dnevnika je prošao, ali drugi novi test koristio je nepostojeći enum `INACTIVE` umjesto `PENDING`. CI `43706297503` za `4e935a8`: 5/5 nakon ispravke fixturea. PostgreSQL provjerava promjenu revizije nakon knjiženja, zabranu brisanja knjiženog dnevnika, očuvanje stavke prihoda pri eksplicitnom prijenosu i odbijanje PENDING cilja.
+- Ograničenje: postojeća audit tabela bilježi prijenos dugova i ručnih prihoda, ali zasebno ne zapisuje stare atribucije prenesenih knjiženih dnevnika. Upozorenje za njih navodi da se ne mogu obrisati i da se prenose; za rekonstrukciju prethodne atribucije potrebna je dodatna audit evidencija. Ovo ostaje otvoren nalaz, ne predstavljati kao potpun audit cjelokupne finansijske historije.
