@@ -91,6 +91,33 @@ describe('stylist removal revision (real PostgreSQL)', () => {
     }
   });
 
+  it('preserves booked income when deletion is requested and permits explicit daily-log transfer', async () => {
+    const source = await db.user.create({ data: { username: `booked-${randomUUID()}`, firstName: 'Booked', lastName: 'Source' } });
+    const targetUser = await db.user.create({ data: { username: `booked-target-${randomUUID()}`, firstName: 'Booked', lastName: 'Target' } });
+    const sourceProfile = await db.stylistProfile.create({ data: { userId: source.id, status: 'ACTIVE' } });
+    const target = await db.stylistProfile.create({ data: { userId: targetUser.id, status: 'ACTIVE' } });
+    const book = await db.incomeBook.create({ data: { year: 3026, month: 8 } });
+    try {
+      const log = await db.dailyLogEntry.create({ data: { stylistProfileId: sourceProfile.id, serviceId,
+        date: new Date('2026-01-01T00:00:00Z'), actualPrice: 10, publicReferenceCode: randomUUID() } });
+      const previewBeforeBooking = await users.getStylistRemovalPreview(source.id, ['OWNER']);
+      const entry = await db.incomeBookEntry.create({ data: { bookId: book.id, dailyLogEntryId: log.id,
+        amount: 10, date: new Date('2026-01-01T00:00:00Z') } });
+      await expect(users.removeStylistRole(source.id, { ...choices, previewRevision: previewBeforeBooking.revision }, ['OWNER'], userId)).rejects.toBeInstanceOf(ConflictException);
+      const preview = await users.getStylistRemovalPreview(source.id, ['OWNER']);
+      expect(preview.financial.bookedDailyLogsCount).toBe(1);
+      await expect(users.removeStylistRole(source.id, { ...choices, previewRevision: preview.revision }, ['OWNER'], userId)).rejects.toBeInstanceOf(ConflictException);
+      expect(await db.incomeBookEntry.findUnique({ where: { id: entry.id } })).not.toBeNull();
+      expect(await db.dailyLogEntry.findUnique({ where: { id: log.id } })).toMatchObject({ stylistProfileId: sourceProfile.id });
+      await users.removeStylistRole(source.id, { ...choices, dailyLogs: { mode: 'TRANSFER', targetStylistProfileId: target.id }, previewRevision: preview.revision }, ['OWNER'], userId);
+      expect(await db.dailyLogEntry.findUnique({ where: { id: log.id } })).toMatchObject({ stylistProfileId: target.id });
+      expect(await db.incomeBookEntry.findUnique({ where: { id: entry.id } })).toMatchObject({ dailyLogEntryId: log.id });
+    } finally {
+      await db.incomeBook.deleteMany({ where: { id: book.id } });
+      await db.user.deleteMany({ where: { id: { in: [source.id, targetUser.id] } } });
+    }
+  });
+
   it('rejects a stale preview and preserves newly linked data, then accepts a fresh explicit confirmation', async () => {
     const original = await users.getStylistRemovalPreview(userId, ['OWNER']);
     expect(original.counts.reviewsCount).toBe(0);
@@ -124,6 +151,10 @@ describe('stylist removal revision (real PostgreSQL)', () => {
         confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
       await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
         financialTargetStylistProfileId: profileId, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      await db.stylistProfile.update({ where: { id: target.id }, data: { status: 'INACTIVE' } });
+      await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
+        financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      await db.stylistProfile.update({ where: { id: target.id }, data: { status: 'ACTIVE' } });
       expect(await db.stylistFinancialTransferAudit.count({ where: { sourceUserId: userId } })).toBe(0);
       expect(await db.clientDebt.findUnique({ where: { id: debt.id } })).toMatchObject({ stylistProfileId: profileId });
       await users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
