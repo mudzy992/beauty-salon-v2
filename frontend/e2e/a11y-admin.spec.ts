@@ -1286,3 +1286,41 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+for (const mode of ['classic'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`users financial transfer dialog accessibility ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(() => { localStorage.removeItem('nejra.theme'); localStorage.removeItem('nejra.theme.mode') })
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'classic' }, { key: 'theme_default_mode', value: 'light' }] })
+      })
+      const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }] }
+      await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
+      await page.goto('/admin/users', { waitUntil: 'networkidle' })
+      await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
+      const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
+      await expect(dialog.locator('#users-financial-transfer-target').locator('option[value="stylist-two"]')).toHaveCount(1)
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'classic')
+      const select = dialog.locator('#users-financial-transfer-target')
+      await select.focus()
+      await select.selectOption('stylist-two')
+      await page.keyboard.press('Tab')
+      const checkbox = dialog.getByRole('checkbox')
+      await expect(checkbox).toBeFocused()
+      await page.keyboard.press('Space')
+      await expect(checkbox).toBeChecked()
+      const axe = await new AxeBuilder({ page }).include('[data-users-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`USERS_FINANCIAL_${mode}_${viewport} ${JSON.stringify({ violations: axe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: axe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(axe.violations).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}
