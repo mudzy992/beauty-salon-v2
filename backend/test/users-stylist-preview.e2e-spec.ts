@@ -159,6 +159,14 @@ describe('stylist removal revision (real PostgreSQL)', () => {
       await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
         financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
       await db.stylistProfile.update({ where: { id: target.id }, data: { status: 'ACTIVE' } });
+      await db.stylistProfile.update({ where: { id: target.id }, data: { isActive: false } });
+      await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
+        financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      await db.stylistProfile.update({ where: { id: target.id }, data: { isActive: true } });
+      await db.user.update({ where: { id: targetUser.id }, data: { isActive: false } });
+      await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
+        financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      await db.user.update({ where: { id: targetUser.id }, data: { isActive: true } });
       expect(await db.stylistFinancialTransferAudit.count({ where: { sourceUserId: userId } })).toBe(0);
       expect(await db.clientDebt.findUnique({ where: { id: debt.id } })).toMatchObject({ stylistProfileId: profileId });
       await users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,

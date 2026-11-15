@@ -89,7 +89,9 @@ interface StylistRemovalPreview {
 
 interface StylistOption {
   id: string
+  isActive?: boolean
   user?: {
+    isActive?: boolean
     firstName?: string | null
     lastName?: string | null
     username?: string | null
@@ -571,11 +573,11 @@ export default function Users() {
   const getTargetOptions = () => {
     const currentStylistId = removalPreview?.stylistProfileId
     return allStylists
-      .filter((s) => s.id !== currentStylistId)
+      .filter((s) => typeof s.id === 'string' && s.id.trim() !== '' && s.id !== currentStylistId && ['ACTIVE', 'PENDING'].includes(String(s.status ?? '').toUpperCase()))
       .map((s) => ({
         id: s.id,
         label: [s.user?.firstName, s.user?.lastName].filter(Boolean).join(' ') || s.user?.username || s.id,
-        isPending: String(s.status ?? '').toUpperCase() === 'PENDING',
+        isPending: String(s.status ?? '').toUpperCase() !== 'ACTIVE' || s.isActive !== true || s.user?.isActive !== true,
       }))
   }
 
@@ -636,8 +638,10 @@ export default function Users() {
             preview.financial.manualIncomeCount, preview.financial.bookedDailyLogsCount].some(value => !Number.isSafeInteger(value) || value < 0)) {
         throw new Error('Invalid stylist removal preview')
       }
-      setRemovalPreview(preview)
-      const c = previewRes.data.counts
+      if (preview.financial.bookedDailyLogsCount > preview.counts.dailyLogEntriesCount) {
+        throw new Error('Inconsistent stylist removal preview')
+      }
+      const c = preview.counts
       const hasAnyLinks =
         (c.dailyLogEntriesCount ?? 0) > 0 ||
         (c.confirmedReservationsCount ?? 0) > 0 ||
@@ -645,11 +649,15 @@ export default function Users() {
         (c.reviewsCount ?? 0) > 0 ||
         preview.financial.clientDebtsCount > 0 || preview.financial.manualIncomeCount > 0
       // Even with no linked records, role removal must be explicitly confirmed.
-      if (!hasAnyLinks) return
+      if (!hasAnyLinks) {
+        setRemovalPreview(preview)
+        return
+      }
 
       const items = await fetchAllAdminStylists<StylistOption>()
       if (sequence !== removalPreviewSequence.current) return
       setAllStylists(items)
+      setRemovalPreview(preview)
     } catch (err) {
       if (sequence !== removalPreviewSequence.current) return
       showApiError(err, 'users.errors.prepareStylistRemovalFailed')

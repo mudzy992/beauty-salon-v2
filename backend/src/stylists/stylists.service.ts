@@ -51,7 +51,7 @@ export class StylistsService {
     const userSelect = {
       id: true,
       username: true,
-      ...(publicView ? {} : { email: true }),
+      ...(publicView ? {} : { email: true, isActive: true }),
       firstName: true,
       lastName: true,
       avatar: true,

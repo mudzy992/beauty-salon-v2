@@ -951,10 +951,10 @@ export class UsersService {
         if (!targetId) throw new BadRequestException(apiError('USERS_TARGET_REQUIRED'));
         if (targetId === stylistProfileId) throw new BadRequestException(apiError('USERS_TARGET_SAME'));
         const target = await tx.stylistProfile.findUnique({
-          where: { id: targetId }, select: { id: true, status: true },
+          where: { id: targetId }, select: { id: true, status: true, isActive: true, user: { select: { isActive: true } } },
         });
         if (!target) throw new NotFoundException(apiError('USERS_TARGET_NOT_FOUND'));
-        if (target.status !== 'ACTIVE') throw new BadRequestException(apiError('USERS_TARGET_NOT_ACTIVE'));
+        if (target.status !== 'ACTIVE' || !target.isActive || !target.user.isActive) throw new BadRequestException(apiError('USERS_TARGET_NOT_ACTIVE'));
         return targetId;
       };
       const dailyLogsTarget = await validateTransferTarget(dto.dailyLogs);

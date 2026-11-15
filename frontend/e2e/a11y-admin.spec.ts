@@ -897,7 +897,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
       await page.route('**/api/client-debts**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', financial: { clientDebtsCount: 0, manualIncomeCount: 0, bookedDailyLogsCount: 0 }, revision: 'a'.repeat(64), counts: { dailyLogEntriesCount: 2, confirmedReservationsCount: 1, reservationResponsesCount: 0, reviewsCount: 0 } } }))
-      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
+      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { isActive: true, username: 'drugi' }, status: 'ACTIVE', isActive: true }] }))
       await page.goto('/admin/users', { waitUntil: 'networkidle' })
       const root = page.locator('[data-admin-users]')
       await expect(root.locator('p:visible, span:visible').filter({ hasText: 'test.stilist' }).first()).toBeVisible()
@@ -1160,7 +1160,7 @@ test('users requires explicit target and consent for financial history transfer'
   await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
   await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
   await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
-  await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }, { id: 'stylist-three', user: { username: 'treci' }, status: 'ACTIVE' }] }))
+  await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { isActive: true, username: 'drugi' }, status: 'ACTIVE', isActive: true }, { id: 'stylist-three', user: { isActive: true, username: 'treci' }, status: 'ACTIVE', isActive: true }] }))
   let mutations = 0
   await page.route('**/api/users/fixture-user/remove-stylist-role', route => {
     mutations += 1
@@ -1274,7 +1274,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
       await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
-      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
+      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { isActive: true, username: 'drugi' }, status: 'ACTIVE', isActive: true }] }))
       await page.goto('/admin/users', { waitUntil: 'networkidle' })
       await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
       const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
@@ -1303,7 +1303,7 @@ for (const mode of ['classic'] as const) {
       await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
       await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
-      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
+      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { isActive: true, username: 'drugi' }, status: 'ACTIVE', isActive: true }] }))
       await page.goto('/admin/users', { waitUntil: 'networkidle' })
       await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
       const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
@@ -1324,3 +1324,36 @@ for (const mode of ['classic'] as const) {
     })
   }
 }
+
+test('users waits for transfer targets and never offers pending or unknown targets as active', async ({ page }) => {
+  const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }] }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 1, manualIncomeCount: 0, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  let requested = false
+  await page.route('**/api/stylists/admin**', async route => {
+    requested = true
+    await gate
+    await route.fulfill({ json: [{ id: 'pending', status: 'PENDING', isActive: true, user: { username: 'pending', isActive: true } }, { id: 'inactive', status: 'ACTIVE', isActive: false, user: { username: 'inactive', isActive: true } }, { id: 'disabled-user', status: 'ACTIVE', isActive: true, user: { username: 'disabled-user', isActive: false } }, { id: 'unknown', status: null, isActive: true, user: { username: 'unknown', isActive: true } }] })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
+  const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
+  await expect.poll(() => requested).toBe(true)
+  await expect(dialog.getByRole('status')).toBeVisible()
+  await expect(dialog.locator('#users-financial-transfer-target')).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i })).toBeDisabled()
+  release()
+  const select = dialog.locator('#users-financial-transfer-target')
+  await expect(select.locator('option[value="pending"]')).toBeDisabled()
+  await expect(select.locator('option[value="inactive"]')).toBeDisabled()
+  await expect(select.locator('option[value="disabled-user"]')).toBeDisabled()
+  await expect(select.locator('option[value="unknown"]')).toHaveCount(0)
+  await expect(dialog.getByText(/nema drugog aktivnog stiliste|no other active stylist/i)).toBeVisible()
+  await dialog.getByRole('checkbox').check()
+  await expect(dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i })).toBeDisabled()
+})
