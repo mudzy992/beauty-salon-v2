@@ -3076,6 +3076,35 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     await request(http).post('/auth/login').send({ login: username, password: 'Test-New-Password-45' }).expect(201);
   });
 
+  it('rolls back stylist role assignment if profile creation fails and repairs legacy partial assignment', async () => {
+    const http = getHttpServer(app!);
+    const suffix = randomUUID().replaceAll('-', '');
+    const created = await request(http).post('/api/users').set('Authorization', `Bearer ${ownerToken}`)
+      .send({ username: `atomic${suffix.slice(0, 12)}`, firstName: 'Atomic', lastName: 'Fixture', gender: 'FEMALE', role: 'CLIENT' }).expect(201);
+    const id = created.body.id as string;
+    fixtureIds.users.push(id);
+    const functionName = `e2e_stylist_fail_${suffix}`;
+    const triggerName = `e2e_stylist_fail_${suffix}`;
+    try {
+      await prisma!.$executeRawUnsafe(`CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $function$
+        BEGIN IF NEW."user_id" = '${id}' THEN RAISE EXCEPTION 'synthetic stylist profile failure'; END IF; RETURN NEW; END; $function$`);
+      await prisma!.$executeRawUnsafe(`CREATE TRIGGER "${triggerName}" BEFORE INSERT ON "stylist_profiles" FOR EACH ROW EXECUTE FUNCTION "${functionName}"()`);
+      await request(http).post(`/api/users/${id}/roles`).set('Authorization', `Bearer ${ownerToken}`).send({ role: 'STYLIST' }).expect(500);
+      expect(await prisma!.userRole.count({ where: { userId: id, role: { name: 'STYLIST' } } })).toBe(0);
+      expect(await prisma!.stylistProfile.findUnique({ where: { userId: id } })).toBeNull();
+    } finally {
+      await prisma!.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${triggerName}" ON "stylist_profiles"`);
+      await prisma!.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+    }
+    await request(http).post(`/api/users/${id}/roles`).set('Authorization', `Bearer ${ownerToken}`).send({ role: 'STYLIST' }).expect(201);
+    expect(await prisma!.userRole.count({ where: { userId: id, role: { name: 'STYLIST' } } })).toBe(1);
+    expect(await prisma!.stylistProfile.findUniqueOrThrow({ where: { userId: id } })).toMatchObject({ status: 'PENDING', isActive: false });
+    await prisma!.stylistProfile.delete({ where: { userId: id } });
+    await request(http).post(`/api/users/${id}/roles`).set('Authorization', `Bearer ${ownerToken}`).send({ role: 'STYLIST' }).expect(201);
+    expect(await prisma!.stylistProfile.findUniqueOrThrow({ where: { userId: id } })).toMatchObject({ status: 'PENDING', isActive: false });
+    expect(await prisma!.userRole.count({ where: { userId: id, role: { name: 'STYLIST' } } })).toBe(1);
+  });
+
   it('issues a verified initial-password reset token and consumes it exactly once', async () => {
     const http = getHttpServer(app!);
     const suffix = randomUUID().replaceAll('-', '').slice(0, 12);

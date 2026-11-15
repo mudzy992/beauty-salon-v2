@@ -851,6 +851,26 @@ export class UsersService {
     const existing = user.userRoles.find(
       (ur) => ur.role.name === requestedRoleName,
     );
+    if (requestedRoleName === 'STYLIST') {
+      // Role and profile must commit together; retry also repairs legacy partial assignments.
+      const result = await this.repo.transaction(async (tx) => {
+        if (!existing) {
+          await tx.userRole.upsert({
+            where: { userId_roleId: { userId, roleId: role.id } },
+            create: { userId, roleId: role.id },
+            update: {},
+          });
+        }
+        await tx.stylistProfile.upsert({
+          where: { userId },
+          create: { userId, status: 'PENDING', isActive: false },
+          update: {},
+        });
+        return tx.user.findUnique({ where: { id: userId }, select: USER_MUTATION_SELECT });
+      });
+      if (!existing) this.events.disconnectUserSockets(userId);
+      return result;
+    }
     if (existing) {
       return this.repo.user.findUnique({
         where: { id: userId },
@@ -859,21 +879,6 @@ export class UsersService {
     }
     await this.repo.userRole.create({ data: { userId, roleId: role.id } });
     this.events.disconnectUserSockets(userId);
-    if (requestedRoleName === 'STYLIST') {
-      const existingProfile = await this.repo.stylistProfile.findUnique({
-        where: { userId },
-        select: { id: true },
-      });
-      if (!existingProfile) {
-        await this.repo.stylistProfile.create({
-          data: {
-            userId,
-            status: 'PENDING',
-            isActive: false,
-          },
-        });
-      }
-    }
     return this.repo.user.findUnique({
       where: { id: userId },
       select: USER_MUTATION_SELECT,
