@@ -1561,3 +1561,65 @@ test('users reset link requires verified email and explicit confirmation', async
   await send.click()
   await expect.poll(() => requests).toBe(1)
 })
+
+const analyticsDashboardFixture = {
+  fromDate: '2026-01-01', toDate: '2026-01-31', monthlyFinance: [{ year: 2026, month: 1, label: '2026-01', income: 100, expenses: 30, tips: 5 }],
+  stylistPerformance: [{ stylistProfileId: 'stylist-one', stylistName: 'Test Stilista', completedCount: 2, revenue: 100, tips: 5 }],
+  topServices: [{ serviceId: 'service-one', serviceName: 'Test Usluga', count: 2, revenue: 100 }], conversionRate: 50, totalPending: 2, totalCompleted: 2,
+  periodFinance: { servicesRevenue: 95, tips: 5, totalIncome: 100, expensesByCategory: [{ categoryId: 'category-one', categoryName: 'Test Trošak', total: 30 }], totalExpenses: 30, netProfit: 70 },
+}
+
+test('analytics custom range applies only on confirmation and rejects reversed dates', async ({ page }) => {
+  const queries: string[] = []
+  await page.route('**/api/analytics/dashboard**', route => { queries.push(new URL(route.request().url()).search); return route.fulfill({ json: analyticsDashboardFixture }) })
+  await page.goto('/admin/analytics', { waitUntil: 'networkidle' })
+  await expect(page.getByText('Test Trošak')).toBeVisible()
+  await expect(page.getByRole('table', { name: /performanse stilista|stylist performance/i })).toBeVisible()
+  await page.locator('#analytics-period').selectOption('custom')
+  await page.locator('#analytics-from').fill('2026-03-01')
+  await page.locator('#analytics-to').fill('2026-02-01')
+  await expect(page.getByRole('alert')).toBeVisible()
+  await expect(page.getByRole('button', { name: /primijeni|apply/i })).toBeDisabled()
+  expect(queries).toHaveLength(1)
+  await page.locator('#analytics-to').fill('2026-03-31')
+  expect(queries).toHaveLength(1)
+  await page.getByRole('button', { name: /primijeni|apply/i }).click()
+  await expect.poll(() => queries.length).toBe(2)
+  const applied = new URLSearchParams(queries[1])
+  expect(applied.get('fromDate')).toBe('2026-03-01')
+  expect(applied.get('toDate')).toBe('2026-03-31')
+  await expect(page.getByText('Test Trošak')).toBeVisible()
+  await page.getByText(/prikaži podatke grafa u tabeli|show data table/i).click()
+  await expect(page.getByRole('table', { name: /mjesečn|monthly/i })).toBeVisible()
+})
+
+test('analytics ignores older responses and retries failed requests without hiding filters', async ({ page }) => {
+  let count = 0
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/analytics/dashboard**', async route => {
+    count++
+    const sequence = count
+    if (sequence === 2) await gate
+    if (sequence === 4) return route.fulfill({ status: 500, json: {} })
+    return route.fulfill({ json: { ...analyticsDashboardFixture, periodFinance: { ...analyticsDashboardFixture.periodFinance, expensesByCategory: [{ categoryId: 'one', categoryName: sequence === 2 ? 'Zastarjelo' : 'Aktuelno', total: 30 }] } } })
+  })
+  await page.goto('/admin/analytics', { waitUntil: 'networkidle' })
+  const period = page.locator('#analytics-period')
+  await expect(page.getByText('Aktuelno')).toBeVisible()
+  await period.selectOption('thisMonth')
+  await expect.poll(() => count).toBe(2)
+  await expect(page.getByRole('status')).toBeVisible()
+  await period.selectOption('lastMonth')
+  await expect.poll(() => count).toBe(3)
+  await expect(page.getByText('Aktuelno')).toBeVisible()
+  release()
+  await expect(page.getByText('Zastarjelo')).toHaveCount(0)
+  await period.selectOption('12')
+  const alert = page.getByRole('alert')
+  await expect(alert).toBeVisible()
+  await expect(period).toBeVisible()
+  await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect.poll(() => count).toBe(5)
+  await expect(page.getByText('Aktuelno')).toBeVisible()
+})

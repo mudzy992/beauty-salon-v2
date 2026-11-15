@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bar,
   CartesianGrid,
@@ -110,18 +110,41 @@ export default function Analytics() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
 
-  const load = useCallback(() => {
+  const requestSequence = useRef(0)
+  const lastParams = useRef<Record<string, string>>({ monthsBack: '12' })
+  const [loadError, setLoadError] = useState(false)
+
+  const load = useCallback((params: Record<string, string>) => {
+    const sequence = ++requestSequence.current
+    lastParams.current = params
     setLoading(true)
-    const params = getPresetParams(period, customFrom, customTo)
+    setLoadError(false)
+    setData(null)
     api
       .get<AnalyticsDashboard>('/api/analytics/dashboard', { params })
-      .then((res) => setData(res.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
-  }, [period, customFrom, customTo])
+      .then((res) => {
+        if (sequence !== requestSequence.current) return
+        const value = res.data
+        if (!value || !value.periodFinance || !Array.isArray(value.monthlyFinance) ||
+            !Array.isArray(value.stylistPerformance) || !Array.isArray(value.topServices) ||
+            !Array.isArray(value.periodFinance.expensesByCategory) ||
+            !parseDateOnly(value.fromDate) || !parseDateOnly(value.toDate) ||
+            ![value.periodFinance.servicesRevenue, value.periodFinance.tips, value.periodFinance.totalIncome,
+              value.periodFinance.totalExpenses, value.periodFinance.netProfit, value.totalPending, value.totalCompleted].every(Number.isFinite) ||
+            (value.conversionRate !== null && !Number.isFinite(value.conversionRate)) ||
+            !value.monthlyFinance.every(row => Number.isInteger(row.year) && Number.isInteger(row.month) && row.month >= 1 && row.month <= 12 && [row.income, row.expenses, row.tips].every(Number.isFinite)) ||
+            !value.periodFinance.expensesByCategory.every(row => Number.isFinite(row.total)) ||
+            !value.stylistPerformance.every(row => [row.completedCount, row.revenue, row.tips].every(Number.isFinite)) ||
+            !value.topServices.every(row => [row.count, row.revenue].every(Number.isFinite))) throw new Error('Invalid analytics response')
+        setData(value)
+      })
+      .catch(() => { if (sequence === requestSequence.current) setLoadError(true) })
+      .finally(() => { if (sequence === requestSequence.current) setLoading(false) })
+  }, [])
 
   useEffect(() => {
-    load()
+    load({ monthsBack: '12' })
+    return () => { requestSequence.current += 1 }
   }, [load])
 
   // 1.1.1: graf mora imati tekstualnu alternativu s kljucnim brojevima.
@@ -155,29 +178,13 @@ export default function Analytics() {
     }
   }, [chartData, i18n.language])
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-10 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
-      </div>
-    )
-  }
-
-  if (!data) {
-    return (
-      <div className="p-6">
-        <p className="text-sm text-rose-600">{t('adminAnalytics.loadFailed')}</p>
-      </div>
-    )
-  }
-
-  const periodLabel =
-    data.fromDate && data.toDate
-      ? t('adminAnalytics.periodLabel', {
-          from: formatDateOnlyLocale(data.fromDate, i18n.language),
-          to: formatDateOnlyLocale(data.toDate, i18n.language),
-        })
-      : t('adminAnalytics.description')
+  const periodLabel = data?.fromDate && data.toDate
+    ? t('adminAnalytics.periodLabel', {
+        from: formatDateOnlyLocale(data.fromDate, i18n.language),
+        to: formatDateOnlyLocale(data.toDate, i18n.language),
+      })
+    : t('adminAnalytics.description')
+  const invalidRange = !!customFrom && !!customTo && customFrom > customTo
 
   return (
     <div className="space-y-6">
@@ -191,7 +198,11 @@ export default function Analytics() {
           <select
             id="analytics-period"
             value={period}
-            onChange={(e) => setPeriod(e.target.value as PeriodPreset)}
+            onChange={(e) => {
+              const next = e.target.value as PeriodPreset
+              setPeriod(next)
+              if (next !== 'custom') load(getPresetParams(next))
+            }}
             className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950 md:max-w-[220px]"
           >
             <option value="12">{t('adminAnalytics.last12Months')}</option>
@@ -227,15 +238,19 @@ export default function Analytics() {
                 className="mt-1 md:max-w-[180px]"
               />
             </div>
-            <Button type="button" onClick={load} disabled={!customFrom || !customTo} className="md:mb-0.5">
+            <Button type="button" onClick={() => load(getPresetParams('custom', customFrom, customTo))} disabled={!customFrom || !customTo || invalidRange} className="md:mb-0.5">
               {t('adminAnalytics.apply')}
             </Button>
+            {invalidRange ? <p role="alert" className="text-sm text-content">{t('adminAnalytics.invalidRange')}</p> : null}
           </>
         ) : (
           <p className="pb-1 text-sm text-slate-600 dark:text-slate-300 md:self-center">{periodLabel}</p>
         )}
       </div>
 
+      {loading ? <div role="status" className="flex justify-center p-10 text-content-muted"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
+      {loadError && !loading ? <div role="alert" className="space-y-3"><p>{t('adminAnalytics.loadFailed')}</p><Button type="button" variant="outline" onClick={() => load(lastParams.current)}>{t('common.retry')}</Button></div> : null}
+      {data && !loading ? <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="p-5">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.revenue')}</h2>
@@ -387,15 +402,15 @@ export default function Analytics() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.stylistPerformance')}</h2>
+          <h2 id="analytics-stylist-performance" className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.stylistPerformance')}</h2>
           <div className="app-table-wrap">
-            <table className="app-table w-full border-collapse">
+            <table aria-labelledby="analytics-stylist-performance" className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="py-2 pr-3 font-medium">{t('adminAnalytics.stylist')}</th>
-                  <th className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
-                  <th className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
-                  <th className="py-2 text-right font-medium">{t('adminAnalytics.tipsKm')}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.stylist')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
+                  <th scope="col" className="py-2 text-right font-medium">{t('adminAnalytics.tipsKm')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -428,14 +443,14 @@ export default function Analytics() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.topServices')}</h2>
+          <h2 id="analytics-top-services" className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.topServices')}</h2>
           <div className="app-table-wrap">
-            <table className="app-table w-full border-collapse">
+            <table aria-labelledby="analytics-top-services" className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="py-2 pr-3 font-medium">{t('adminAnalytics.service')}</th>
-                  <th className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
-                  <th className="py-2 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.service')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
+                  <th scope="col" className="py-2 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -459,6 +474,7 @@ export default function Analytics() {
           </div>
         </Card>
       </div>
+      </> : null}
     </div>
   )
 }

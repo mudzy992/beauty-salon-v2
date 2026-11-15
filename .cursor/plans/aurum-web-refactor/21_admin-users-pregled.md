@@ -146,3 +146,6 @@ Vizuelni pregled radi korisnik; automatski testovi ne zamjenjuju čitač ekrana 
 - Prvi CI `43753174778` 4/5 zbog nepotpunog testnog mocka socket gatewaya (`disconnectUserSockets`); nakon dopune CI `43753823532` 5/5.
 - U-27: dodjela STYLIST role i kreiranje profila prethodno su bili odvojeni zapisi, pa greška profila može ostaviti korisnika s rolom bez profila. Sada se zapisuju u istoj transakciji, a ponovna dodjela popravlja takvu staru djelimičnu dodjelu; nakon commita se odspajaju socketi. PostgreSQL HTTP test s namjerno izazvanom greškom potvrđuje rollback i naknadni retry/popravku. CI `43754521600` 5/5; nakon dodatnog usklađenja role unutar transakcije CI `43755120486` 5/5.
 - Ovi testovi pokrivaju navedene scenarije u disposable bazi i ne dokazuju svaku kombinaciju svih podataka, stvarni SMTP, screen reader ili fizički browser zoom.
+
+### Zatvaranje po odluci korisnika
+- Korisnik je izričito odobrio zatvaranje `/admin/users` i prelazak na analitiku. Stranica zatvorena uz dokumentovane izuzetke: stvarni screen-reader i browser 400% zoom nisu izvedeni, SMTP je mockiran, a iscrpnost svih kombinacija nije dokazana. Ovo nije tvrdnja o punoj WCAG konformnosti. Ne vraćati se stranici bez novog zahtjeva ili nužne povezane regresije.

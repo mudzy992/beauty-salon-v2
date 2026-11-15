@@ -937,6 +937,7 @@
     }
   },
   "adminAnalytics": {
+    "invalidRange": "The start date cannot be after the end date.",
     "tabContext": "analytics",
     "tabsLabel": "Choose analytics",
     "tabs": {

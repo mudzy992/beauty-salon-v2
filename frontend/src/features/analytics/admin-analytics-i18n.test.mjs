@@ -36,7 +36,7 @@ test('analytics date presets and dashboard request contract remain unchanged', (
   assert.match(source, /if \(preset === '12'\) return \{ monthsBack: '12' \}/)
   assert.match(source, /if \(preset === 'thisMonth'\) \{\s*return \{ year: String\(current\.year\), month: String\(current\.month\) \}/)
   assert.match(source, /if \(preset === 'custom' && customFrom && customTo\) return \{ fromDate: customFrom, toDate: customTo \}/)
-  assert.match(source, /\.catch\(\(\) => setData\(null\)\)/)
+  assert.match(source, /sequence === requestSequence\.current/)
 })
 
 test('dynamic financial categories, stylist and service names stay data', () => {

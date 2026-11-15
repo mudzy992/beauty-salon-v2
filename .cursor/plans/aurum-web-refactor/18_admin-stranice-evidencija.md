@@ -13,7 +13,7 @@ Legenda: **otvoreno** = detaljan pregled još nije obavljen; **djelimično** = n
 | `/admin/finance` i `?tab=income/expense/categories/debtors` | Zajednička stanja i Card djelimično obrađeni; svi finansijski podmoduli i dijalozi otvoreni. | Otvoreno |
 | `/admin/loyalty` | Osnovni route axe, ostale komponente/stanja otvoreni. | Otvoreno |
 | `/admin/analytics`, `?tab=clients/stylists` i deep linkovi | Direktne boje u grafovima, karticama i tabelama; značenje i realne vrijednosti zahtijevaju pažljiv pregled. | Otvoreno |
-| `/admin/users` | Pregled koda otkrio legacy kartice, tabove, polje pretrage, role i zasebne dijaloge. Prvi inkrement usklađuje tabove, default polja i role u glavnom prikazu; fixture s klijentom u oba režima i 320/desktop tek treba CI. Dijalozi, greške i ostale boje otvoreni. Uočeno: list-load catch briše podatke i može izgledati kao prazno stanje; potrebno posebno riješiti i testirati. | Djelimično |
+| `/admin/users` | Zatvoreno na izričit zahtjev korisnika; pregled i testovi u `21_admin-users-pregled.md`. Stvarni čitač ekrana, browser zoom i SMTP dostava nisu testirani. | Zatvoreno uz dokumentovane izuzetke |
 | `/admin/salon` | Zaglavlja, tabele, postavke i praznici otvoreni. | Otvoreno |
 | `/admin/services`, `/admin/services/:serviceId/work-gallery` | Default Card na listi kategorija testiran; hijerarhija, forme, dijalozi, galerija i sva stanja otvoreni. | Djelimično |
 | `/admin/stylists` | Tabovi, tabele, radno vrijeme, kompetencije i modali otvoreni. | Otvoreno |
