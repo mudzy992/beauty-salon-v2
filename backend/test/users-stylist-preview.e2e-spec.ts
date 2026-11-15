@@ -151,7 +151,7 @@ describe('stylist removal revision (real PostgreSQL)', () => {
         confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
       await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
         financialTargetStylistProfileId: profileId, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
-      await db.stylistProfile.update({ where: { id: target.id }, data: { status: 'INACTIVE' } });
+      await db.stylistProfile.update({ where: { id: target.id }, data: { status: 'PENDING' } });
       await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
         financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
       await db.stylistProfile.update({ where: { id: target.id }, data: { status: 'ACTIVE' } });
