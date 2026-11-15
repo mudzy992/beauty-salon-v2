@@ -3030,6 +3030,77 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   });
 
+  it('exercises the admin user lifecycle against HTTP and disposable PostgreSQL', async () => {
+    const http = getHttpServer(app!);
+    const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
+    const username = `life${suffix}`;
+    const body = { username, firstName: 'Test', lastName: 'Lifecycle', gender: 'FEMALE', role: 'CLIENT' };
+    await request(http).post('/api/users').set('Authorization', `Bearer ${clientToken}`).send(body).expect(403);
+    await request(http).post('/api/users').set('Authorization', `Bearer ${ownerToken}`).send({ ...body, gender: undefined }).expect(400);
+    const created = await request(http).post('/api/users').set('Authorization', `Bearer ${ownerToken}`).send(body).expect(201);
+    const id = created.body.id as string;
+    fixtureIds.users.push(id);
+    const initialPassword = created.body.initialPassword as string;
+    expect(initialPassword).toEqual(expect.any(String));
+    expect(created.body).toMatchObject({ username, initialPasswordShownOnce: true });
+    expect(created.body).not.toHaveProperty('passwordHash');
+    const saved = await prisma!.user.findUniqueOrThrow({ where: { id }, include: { userRoles: { include: { role: true } } } });
+    expect(saved.mustChangePassword).toBe(true);
+    expect(saved.userRoles.map(entry => entry.role.name)).toContain('CLIENT');
+    await request(http).post('/api/users').set('Authorization', `Bearer ${ownerToken}`).send(body).expect(409);
+    await request(http).get('/api/users/username-availability').query({ username }).set('Authorization', `Bearer ${ownerToken}`).expect(200).expect(({ body: result }) => expect(result.available).toBe(false));
+    await request(http).patch(`/api/users/${id}`).set('Authorization', `Bearer ${clientToken}`).send({ firstName: 'Forbidden' }).expect(403);
+    await request(http).patch(`/api/users/${id}`).set('Authorization', `Bearer ${ownerToken}`).send({ firstName: 'Updated', phone: '+38761111222' }).expect(200);
+    expect(await prisma!.user.findUniqueOrThrow({ where: { id } })).toMatchObject({ firstName: 'Updated', phone: '+38761111222', genderOnboardingCompleted: false });
+    await request(http).post(`/api/users/${id}/roles`).set('Authorization', `Bearer ${clientToken}`).send({ role: 'SYSTEM_ADMIN' }).expect(403);
+    await request(http).post(`/api/users/${id}/roles`).set('Authorization', `Bearer ${ownerToken}`).send({ role: 'SYSTEM_ADMIN' }).expect(201);
+    await request(http).delete(`/api/users/${id}/roles/CLIENT`).set('Authorization', `Bearer ${ownerToken}`).expect(400);
+    await request(http).delete(`/api/users/${id}/roles/SYSTEM_ADMIN`).set('Authorization', `Bearer ${ownerToken}`).expect(200);
+    await request(http).post(`/api/users/${id}/roles`).set('Authorization', `Bearer ${ownerToken}`).send({ role: 'STYLIST' }).expect(201);
+    expect(await prisma!.stylistProfile.findUniqueOrThrow({ where: { userId: id } })).toMatchObject({ status: 'PENDING', isActive: false });
+    await request(http).delete(`/api/users/${id}/roles/STYLIST`).set('Authorization', `Bearer ${ownerToken}`).expect(400);
+    const preview = await request(http).get(`/api/users/${id}/stylist-removal-preview`).set('Authorization', `Bearer ${ownerToken}`).expect(200);
+    const deletion = { mode: 'DELETE' };
+    await request(http).post(`/api/users/${id}/remove-stylist-role`).set('Authorization', `Bearer ${ownerToken}`).send({ previewRevision: preview.body.revision, dailyLogs: deletion, confirmedReservations: deletion, reservationResponses: deletion, reviews: deletion }).expect(201);
+    expect(await prisma!.stylistProfile.findUnique({ where: { userId: id } })).toBeNull();
+    const login = await request(http).post('/auth/login').send({ login: username, password: initialPassword }).expect(201);
+    expect(login.body.user.mustChangePassword).toBe(true);
+    const token = login.body.access_token as string;
+    await request(http).post('/auth/change-password').set('Authorization', `Bearer ${token}`).send({ currentPassword: initialPassword, newPassword: 'Test-New-Password-45' }).expect(201);
+    await request(http).post('/auth/login').send({ login: username, password: initialPassword }).expect(401);
+    await request(http).post('/auth/login').send({ login: username, password: 'Test-New-Password-45' }).expect(201).expect(({ body: result }) => expect(result.user.mustChangePassword).toBe(false));
+    await request(http).patch(`/api/users/${id}`).set('Authorization', `Bearer ${ownerToken}`).send({ isActive: false }).expect(200);
+    await request(http).post('/auth/login').send({ login: username, password: 'Test-New-Password-45' }).expect(401);
+    await request(http).patch(`/api/users/${id}`).set('Authorization', `Bearer ${ownerToken}`).send({ isActive: true }).expect(200);
+    await request(http).post('/auth/login').send({ login: username, password: 'Test-New-Password-45' }).expect(201);
+  });
+
+  it('issues a verified initial-password reset token and consumes it exactly once', async () => {
+    const http = getHttpServer(app!);
+    const suffix = randomUUID().replaceAll('-', '').slice(0, 12);
+    const username = `reset${suffix}`;
+    const created = await request(http).post('/api/users').set('Authorization', `Bearer ${ownerToken}`)
+      .send({ username, firstName: 'Reset', lastName: 'Fixture', gender: 'FEMALE', role: 'CLIENT' }).expect(201);
+    const id = created.body.id as string;
+    fixtureIds.users.push(id);
+    const initialPassword = created.body.initialPassword as string;
+    await request(http).post(`/auth/admin/users/${id}/password-reset-link`).set('Authorization', `Bearer ${clientToken}`).expect(403);
+    await request(http).post(`/auth/admin/users/${id}/password-reset-link`).set('Authorization', `Bearer ${ownerToken}`).expect(400);
+    await prisma!.user.update({ where: { id }, data: { email: `${username}@example.test`, isEmailVerified: true } });
+    const notifications = app!.get(NotificationsService);
+    const send = notifications.sendInitialPasswordResetLinkEmail as jest.Mock;
+    send.mockClear();
+    await request(http).post(`/auth/admin/users/${id}/password-reset-link`).set('Authorization', `Bearer ${ownerToken}`).expect(201);
+    expect(send).toHaveBeenCalledTimes(1);
+    const token = send.mock.calls[0][0].token as string;
+    expect(token).toEqual(expect.any(String));
+    await request(http).post('/auth/login').send({ login: username, password: initialPassword }).expect(401);
+    await request(http).post('/auth/reset-password').send({ token, newPassword: 'Reset-New-Password-45' }).expect(201);
+    await request(http).post('/auth/reset-password').send({ token, newPassword: 'Reset-New-Password-45' }).expect(400);
+    await request(http).post('/auth/login').send({ login: username, password: 'Reset-New-Password-45' }).expect(201);
+    expect(await prisma!.user.findUniqueOrThrow({ where: { id } })).toMatchObject({ mustChangePassword: false, passwordResetTokenHash: null });
+  });
+
   it('rejects non-CLIENT IDs on the manual-income HTTP write path', async () => {
     const db = prisma!;
     const suffix = randomUUID().replaceAll('-', '');
