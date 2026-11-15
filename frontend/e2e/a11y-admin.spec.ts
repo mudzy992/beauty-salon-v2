@@ -1357,3 +1357,34 @@ test('users waits for transfer targets and never offers pending or unknown targe
   await dialog.getByRole('checkbox').check()
   await expect(dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i })).toBeDisabled()
 })
+
+test('users cannot delete booked daily logs and must choose a transfer target', async ({ page }) => {
+  const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }] }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 0, manualIncomeCount: 0, bookedDailyLogsCount: 1 }, counts: { dailyLogEntriesCount: 1, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
+  await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', status: 'ACTIVE', isActive: true, user: { username: 'drugi', isActive: true } }] }))
+  let mutations = 0
+  await page.route('**/api/users/fixture-user/remove-stylist-role', route => {
+    mutations += 1
+    expect(route.request().postDataJSON().dailyLogs).toEqual({ mode: 'TRANSFER', targetStylistProfileId: 'stylist-two' })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
+  const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
+  await expect(dialog).toContainText(/mijenja historijsku atribuciju|changes historical income attribution/i)
+  const confirm = dialog.getByRole('button', { name: /ukloni ulogu stiliste|remove stylist role/i })
+  await expect(confirm).toBeDisabled()
+  await dialog.locator('input[name="dailyLogs-mode"][value="DELETE"]').check()
+  await expect(confirm).toBeDisabled()
+  await dialog.locator('input[name="dailyLogs-mode"][value="TRANSFER"]').check()
+  await expect(confirm).toBeDisabled()
+  await dialog.locator('#users-stylist-removal-target-dailyLogs').selectOption('stylist-two')
+  await expect(confirm).toBeEnabled()
+  expect(mutations).toBe(0)
+  await confirm.click()
+  await expect.poll(() => mutations).toBe(1)
+})
