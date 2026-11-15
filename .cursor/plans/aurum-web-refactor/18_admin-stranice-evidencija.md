@@ -38,3 +38,4 @@ Legenda: **otvoreno** = detaljan pregled još nije obavljen; **djelimično** = n
 
 ### Korisnici — nastavak, 2026-11
 - Detaljni zapis i matrica su u `21_admin-users-pregled.md`. CI `43649195513` 5/5; stranica ostaje djelimična do odluke o očuvanju historijske atribucije pri uklanjanju stiliste, zatim vizuelne i preostalih manualnih provjera. Nepovezani dashboard WIP nije mijenjan.
+- Korisnik je odabrao izričiti prijenos finansijske historije; implementirana potvrda, aktivni cilj, zaštita od zastarjelog previewa i transakcijski audit. CI `43660393178` 5/5, finansijski dijalog axe bez violations/incomplete u četiri testirane Aurum kombinacije. Ručni AT/zoom, puni Classic i vizuelni pregled ostaju otvoreni.
