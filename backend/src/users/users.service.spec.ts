@@ -840,8 +840,8 @@ describe('UsersService', () => {
       reservation: { findMany: jest.fn().mockResolvedValue([]) },
       reservationStylistResponse: { findMany: jest.fn().mockResolvedValue([]) },
       review: { findMany: jest.fn().mockResolvedValue([]) },
-      clientDebt: { count: jest.fn().mockResolvedValue(0) },
-      incomeBookManualEntry: { count: jest.fn().mockResolvedValue(0) },
+      clientDebt: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
+      incomeBookManualEntry: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
     };
     mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
     const preview = await service.getStylistRemovalPreview('user-1', ['OWNER']);
@@ -874,8 +874,8 @@ describe('UsersService', () => {
       reservation: { findMany: jest.fn().mockResolvedValue([]) },
       reservationStylistResponse: { findMany: jest.fn().mockResolvedValue([]) },
       review: { findMany: jest.fn().mockResolvedValue([]) },
-      clientDebt: { count: jest.fn().mockResolvedValue(0) },
-      incomeBookManualEntry: { count: jest.fn().mockResolvedValue(0) },
+      clientDebt: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
+      incomeBookManualEntry: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
     };
     mockRepo.serializableTransaction.mockImplementation(async (callback) => callback(tx));
     await expect(service.removeStylistRole('user-1', {
@@ -902,8 +902,8 @@ describe('UsersService', () => {
         findMany: jest.fn().mockResolvedValue([]),
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
-      clientDebt: { count: jest.fn().mockResolvedValue(0) },
-      incomeBookManualEntry: { count: jest.fn().mockResolvedValue(0) },
+      clientDebt: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
+      incomeBookManualEntry: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
       role: { findUnique: jest.fn().mockResolvedValue({ id: 'stylist-role' }) },
       userRole: { deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
       stylistProfile: {

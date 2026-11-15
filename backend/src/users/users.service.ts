@@ -32,19 +32,19 @@ import { apiError } from '../common/errors/api-error-codes';
 
 // The revision binds confirmation to the exact record identities shown by the preview.
 async function stylistRemovalSnapshot(tx: Prisma.TransactionClient, stylistProfileId: string) {
-  const [logs, reservations, responses, reviews, clientDebtsCount, manualIncomeCount, bookedDailyLogsCount] = await Promise.all([
+  const [logs, reservations, responses, reviews, debts, manualIncome, bookedLogs] = await Promise.all([
     tx.dailyLogEntry.findMany({ where: { stylistProfileId }, select: { id: true } }),
     tx.reservation.findMany({ where: { confirmedStylistId: stylistProfileId }, select: { id: true } }),
     tx.reservationStylistResponse.findMany({ where: { stylistProfileId }, select: { id: true } }),
     tx.review.findMany({ where: { stylistProfileId }, select: { id: true } }),
-    tx.clientDebt.count({ where: { stylistProfileId } }),
-    tx.incomeBookManualEntry.count({ where: { stylistProfileId } }),
-    tx.dailyLogEntry.count({ where: { stylistProfileId, incomeEntry: { isNot: null } } }),
+    tx.clientDebt.findMany({ where: { stylistProfileId }, select: { id: true } }),
+    tx.incomeBookManualEntry.findMany({ where: { stylistProfileId }, select: { id: true } }),
+    tx.dailyLogEntry.findMany({ where: { stylistProfileId, incomeEntry: { isNot: null } }, select: { id: true } }),
   ]);
-  const ids = [logs, reservations, responses, reviews].map((rows) => rows.map((row) => row.id).sort());
+  const ids = [logs, reservations, responses, reviews, debts, manualIncome, bookedLogs].map((rows) => rows.map((row) => row.id).sort());
   return {
     revision: createHash('sha256').update(JSON.stringify([stylistProfileId, ids])).digest('hex'),
-    financial: { clientDebtsCount, manualIncomeCount, bookedDailyLogsCount },
+    financial: { clientDebtsCount: debts.length, manualIncomeCount: manualIncome.length, bookedDailyLogsCount: bookedLogs.length },
     counts: { dailyLogEntriesCount: logs.length, confirmedReservationsCount: reservations.length,
       reservationResponsesCount: responses.length, reviewsCount: reviews.length },
   };
@@ -964,17 +964,19 @@ export class UsersService {
       if (snapshot.revision !== dto.previewRevision) {
         throw new ConflictException(apiError('USERS_STYLIST_PREVIEW_CHANGED'));
       }
-      // Preserve accounting attribution and debt history; never let FK cascades erase
-      // ledger entries or silently detach manual income from the stylist.
-      const [debts, manualIncome, bookedLogs] = await Promise.all([
-        tx.clientDebt.count({ where: { stylistProfileId } }),
-        tx.incomeBookManualEntry.count({ where: { stylistProfileId } }),
-        dto.dailyLogs.mode === 'DELETE'
-          ? tx.dailyLogEntry.count({ where: { stylistProfileId, incomeEntry: { isNot: null } } })
-          : Promise.resolve(0),
-      ]);
-      if (debts || manualIncome || bookedLogs) {
+      const { clientDebtsCount, manualIncomeCount, bookedDailyLogsCount } = snapshot.financial;
+      if (dto.dailyLogs.mode === 'DELETE' && bookedDailyLogsCount > 0) {
         throw new ConflictException(apiError('USERS_STYLIST_FINANCIAL_HISTORY'));
+      }
+      if (clientDebtsCount > 0 || manualIncomeCount > 0) {
+        if (dto.confirmFinancialTransfer !== true) {
+          throw new BadRequestException(apiError('USERS_FINANCIAL_TRANSFER_CONFIRM_REQUIRED'));
+        }
+        const financialTarget = await validateTransferTarget({
+          mode: 'TRANSFER', targetStylistProfileId: dto.financialTargetStylistProfileId,
+        });
+        await tx.clientDebt.updateMany({ where: { stylistProfileId }, data: { stylistProfileId: financialTarget! } });
+        await tx.incomeBookManualEntry.updateMany({ where: { stylistProfileId }, data: { stylistProfileId: financialTarget! } });
       }
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });

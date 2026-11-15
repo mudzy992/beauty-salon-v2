@@ -240,6 +240,8 @@ export default function Users() {
   const [removalPreview, setRemovalPreview] = useState<StylistRemovalPreview | null>(null)
   const [allStylists, setAllStylists] = useState<StylistOption[]>([])
   const [removalSubmitting, setRemovalSubmitting] = useState(false)
+  const [financialTarget, setFinancialTarget] = useState('')
+  const [financialConfirmed, setFinancialConfirmed] = useState(false)
 
   const [removalModes, setRemovalModes] = useState<{
     dailyLogs: RemovalMode
@@ -598,13 +600,13 @@ export default function Users() {
   const isRemovalReady = useMemo(() => {
     if (!removalPreview) return false
     const financial = removalPreview.financial
-    if (financial.clientDebtsCount > 0 || financial.manualIncomeCount > 0 ||
-        (financial.bookedDailyLogsCount > 0 && removalModes.dailyLogs === 'DELETE')) return false
+    if ((financial.clientDebtsCount > 0 || financial.manualIncomeCount > 0) && (!financialTarget || !financialConfirmed)) return false
+    if (financial.bookedDailyLogsCount > 0 && removalModes.dailyLogs === 'DELETE') return false
     for (const row of removalSummary) {
       if (row.mode === 'TRANSFER' && !row.target) return false
     }
     return true
-  }, [removalPreview, removalSummary, removalModes.dailyLogs])
+  }, [removalPreview, removalSummary, removalModes.dailyLogs, financialTarget, financialConfirmed])
 
   const openRemoveStylist = async (userId: string) => {
     const sequence = ++removalPreviewSequence.current
@@ -619,6 +621,8 @@ export default function Users() {
       reviews: 'TRANSFER',
     })
     setRemovalTargets({})
+    setFinancialTarget('')
+    setFinancialConfirmed(false)
     setRemoveStylistOpen(true)
 
     try {
@@ -638,7 +642,8 @@ export default function Users() {
         (c.dailyLogEntriesCount ?? 0) > 0 ||
         (c.confirmedReservationsCount ?? 0) > 0 ||
         (c.reservationResponsesCount ?? 0) > 0 ||
-        (c.reviewsCount ?? 0) > 0
+        (c.reviewsCount ?? 0) > 0 ||
+        preview.financial.clientDebtsCount > 0 || preview.financial.manualIncomeCount > 0
       // Even with no linked records, role removal must be explicitly confirmed.
       if (!hasAnyLinks) return
 
@@ -673,6 +678,8 @@ export default function Users() {
     const counts = removalPreview.counts
     const payload = {
       previewRevision: removalPreview.revision,
+      financialTargetStylistProfileId: financialTarget || undefined,
+      confirmFinancialTransfer: financialConfirmed,
       dailyLogs: {
         mode: counts.dailyLogEntriesCount > 0 ? removalModes.dailyLogs : 'DELETE',
         targetStylistProfileId: removalModes.dailyLogs === 'TRANSFER' ? removalTargets.dailyLogs : undefined,
@@ -693,7 +700,7 @@ export default function Users() {
       },
     } as const
 
-    const missingTarget = (key: Exclude<keyof typeof payload, 'previewRevision'>) =>
+    const missingTarget = (key: 'dailyLogs' | 'confirmedReservations' | 'reservationResponses' | 'reviews') =>
       payload[key].mode === 'TRANSFER' && !payload[key].targetStylistProfileId
 
     if (
@@ -1150,12 +1157,31 @@ export default function Users() {
               </p>
 
               {(removalPreview.financial.clientDebtsCount > 0 || removalPreview.financial.manualIncomeCount > 0) ? (
-                <Alert variant="warning">
-                  <AlertDescription>{t('users.stylistRemoval.financialBlocked', {
+                <div className="space-y-3 rounded-md border border-amber-300 p-4 dark:border-amber-700">
+                  <p className="text-sm font-medium">{t('users.stylistRemoval.financialWarning', {
                     debts: removalPreview.financial.clientDebtsCount,
                     income: removalPreview.financial.manualIncomeCount,
-                  })}</AlertDescription>
-                </Alert>
+                  })}</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="users-financial-transfer-target">{t('users.stylistRemoval.financialTarget')}</Label>
+                    <select id="users-financial-transfer-target" aria-required="true"
+                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+                      value={financialTarget}
+                      onChange={(e) => { setFinancialTarget(e.target.value); setFinancialConfirmed(false) }}>
+                      <option value="">{t('users.stylistRemoval.chooseTarget')}</option>
+                      {getTargetOptions().map((option) => (
+                        <option key={option.id} value={option.id} disabled={option.isPending}>{option.label}{option.isPending ? ` ${t('users.stylistRemoval.pendingOption')}` : ''}</option>
+                      ))}
+                    </select>
+                    {!getTargetOptions().some(option => !option.isPending) ? (
+                      <p className="text-sm text-muted-foreground">{t('users.stylistRemoval.noFinancialTarget')}</p>
+                    ) : null}
+                  </div>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input type="checkbox" className="mt-1" checked={financialConfirmed} onChange={(e) => setFinancialConfirmed(e.target.checked)} />
+                    <span>{t('users.stylistRemoval.financialConfirm')}</span>
+                  </label>
+                </div>
               ) : null}
               {removalPreview.financial.bookedDailyLogsCount > 0 ? (
                 <Alert variant="warning">

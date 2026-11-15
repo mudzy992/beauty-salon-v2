@@ -1,4 +1,4 @@
-import { IsDefined, IsIn, IsOptional, IsString, Matches, ValidateNested } from 'class-validator'
+import { IsBoolean, IsDefined, IsIn, IsOptional, IsString, Matches, ValidateNested } from 'class-validator'
 import { Type } from 'class-transformer'
 
 type RemovalMode = 'DELETE' | 'TRANSFER'
@@ -17,6 +17,14 @@ export class RemoveStylistRoleDto {
   @IsString()
   @Matches(/^[a-f0-9]{64}$/)
   previewRevision!: string
+
+  @IsOptional()
+  @IsString()
+  financialTargetStylistProfileId?: string
+
+  @IsOptional()
+  @IsBoolean()
+  confirmFinancialTransfer?: boolean
 
   @IsDefined()
   @ValidateNested()

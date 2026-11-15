@@ -24,6 +24,7 @@ export const API_ERROR_CODES = {
   USERS_STYLIST_PREVIEW_CHANGED: 'Podaci stiliste su se promijenili. Ponovo otvorite pregled prije potvrde.',
   USERS_TARGET_NOT_ACTIVE: 'Ciljni stilista mora imati aktivan profil.',
   USERS_STYLIST_FINANCIAL_HISTORY: 'Uklanjanje nije moguće zbog povezanih finansijskih evidencija ili dugovanja.',
+  USERS_FINANCIAL_TRANSFER_CONFIRM_REQUIRED: 'Potvrdite prijenos finansijske historije.',
   USERS_TARGET_REQUIRED: 'Nedostaje targetStylistProfileId.',
   USERS_TARGET_SAME: 'Target stilist ne može biti isti stilist.',
   USERS_TARGET_NOT_FOUND: 'Target stilist nije pronađen.',
