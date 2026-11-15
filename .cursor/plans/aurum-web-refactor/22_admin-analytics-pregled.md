@@ -13,3 +13,10 @@
 
 ## Evidencija i matrica
 Na početku nijedna kombinacija nije zaključena. Posebno evidentirati prikaz s podacima/prazno/greška, odgođene odgovore i 320px za oba Aurum moda; korisnik radi vizuelni pregled. Nema tvrdnje o potpunoj WCAG konformnosti.
+
+## Napredak — overview (nije završetak pregleda)
+- A-01 implementirano: custom datumi su draft do Primijeni, obrnuti raspon blokiran; filteri ostaju dostupni dok se učitava, ponovni pokušaj koristi posljednje poslane parametre, sekvenciranje odbacuje zastarjele odgovore, neispravan oblik i nefinancijski numerički podaci se odbacuju. Ne predstavlja iscrpnu validaciju svih polja.
+- A-03 djelimično: naslovi pridruženi tabelama i scope na zaglavljima. Pregled kontrasta, responsive i grafa još nije završen.
+- CI `43763504337` imao 405 prolaza i jedan neuspjeli novi browser test zbog nepreciznog status lokatora, te frontend source test koji je pretpostavljao uklonjeni early return. Lokator i test ažurirani; CI `43764239517` na `175cf70` prošao svih 5 poslova. Novi browser testovi obuhvataju potvrdu i neispravan raspon, utrku i retry sa mock API podacima; nisu potpuni pregled stranice.
+- CI inventar kontrasta pokazao overview Classic AAA nalaze i nepotpune procjene legende grafa; provjeriti namjenski u okviru ove stranice, ne predstavljati kao riješeno.
+- A-02, puni backend/računski audit, matrica stvarnih stanja, oba detaljna taba, i stvarni AT/400% ostaju otvoreni. Stranica nije spremna za zatvaranje ni finalnu vizuelnu verifikaciju.
