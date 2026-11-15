@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
@@ -9,7 +9,6 @@ import {
   Star,
   TriangleAlert,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import api from '../api/client'
 import { cn } from '../lib/cn'
 import { Badge } from '../components/ui/badge'
@@ -168,7 +167,9 @@ export default function ClientAnalytics() {
     t(`reservations.statuses.${status}`, { defaultValue: status })
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(searchParams.get('userId'))
+  const selectedUserId = searchParams.get('userId')
+  const appliedFrom = searchParams.get('fromDate') ?? ''
+  const appliedTo = searchParams.get('toDate') ?? ''
   const [analytics, setAnalytics] = useState<ClientAnalyticsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '')
@@ -180,50 +181,58 @@ export default function ClientAnalytics() {
   const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
   const [debtsLoading, setDebtsLoading] = useState(false)
 
-  const selectUser = useCallback(
-    async (userId: string, from?: string, to?: string) => {
-      setSelectedUserId(userId)
-      if (from) setDateFrom(from)
-      if (to) setDateTo(to)
-      const params: Record<string, string> = { userId }
-      if (from) params.fromDate = from
-      if (to) params.toDate = to
-      setSearchParams(params)
-      setLoading(true)
-      setDebtsLoading(true)
-      try {
-        const queryParams = from && to ? { fromDate: from, toDate: to } : {}
-        const { data } = await api.get<ClientAnalyticsData>(`/api/users/${userId}/analytics`, { params: queryParams })
-        setAnalytics(data)
-        const debtsRes = await api.get<ClientDebtRow[]>('/api/client-debts', { params: { clientId: userId } })
-        setClientDebts(Array.isArray(debtsRes.data) ? debtsRes.data : [])
-      } catch {
-        toast.error(t('clientAnalyticsPage.loadError'))
-        setAnalytics(null)
-        setClientDebts([])
-      } finally {
-        setLoading(false)
-        setDebtsLoading(false)
-      }
-    },
-    [setSearchParams, t],
-  )
+  const [loadError, setLoadError] = useState(false)
+  const [debtsError, setDebtsError] = useState(false)
+  const [retryVersion, setRetryVersion] = useState(0)
 
   useEffect(() => {
-    const uid = searchParams.get('userId')
-    const from = searchParams.get('fromDate') ?? undefined
-    const to = searchParams.get('toDate') ?? undefined
-    if (uid && !analytics) void selectUser(uid, from, to)
-  }, [analytics, searchParams, selectUser])
+    if (!selectedUserId) return
+    let current = true
+    setDateFrom(appliedFrom)
+    setDateTo(appliedTo)
+    setAnalytics(null)
+    setClientDebts([])
+    setLoadError(false)
+    setDebtsError(false)
+    setLoading(true)
+    setDebtsLoading(true)
+    const params = appliedFrom && appliedTo ? { fromDate: appliedFrom, toDate: appliedTo } : {}
+    api.get<ClientAnalyticsData>(`/api/users/${encodeURIComponent(selectedUserId)}/analytics`, { params })
+      .then(({ data }) => { if (current) setAnalytics(data) })
+      .catch(() => { if (current) setLoadError(true) })
+      .finally(() => { if (current) setLoading(false) })
+    api.get<ClientDebtRow[]>('/api/client-debts', { params: { clientId: selectedUserId } })
+      .then(({ data }) => {
+        if (!Array.isArray(data)) throw new Error('Invalid client debt response')
+        if (current) setClientDebts(data)
+      })
+      .catch(() => { if (current) setDebtsError(true) })
+      .finally(() => { if (current) setDebtsLoading(false) })
+    return () => { current = false }
+  }, [selectedUserId, appliedFrom, appliedTo, retryVersion])
 
   const applyDateFilter = () => {
-    if (selectedUserId && dateFrom && dateTo) void selectUser(selectedUserId, dateFrom, dateTo)
+    if (!selectedUserId || !dateFrom || !dateTo) return
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous)
+      next.set('tab', 'clients')
+      next.set('userId', selectedUserId)
+      next.set('fromDate', dateFrom)
+      next.set('toDate', dateTo)
+      return next
+    })
   }
 
   const clearDateFilter = () => {
     setDateFrom('')
     setDateTo('')
-    if (selectedUserId) void selectUser(selectedUserId)
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous)
+      next.set('tab', 'clients')
+      next.delete('fromDate')
+      next.delete('toDate')
+      return next
+    })
   }
 
   const goBack = () => {
@@ -275,8 +284,16 @@ export default function ClientAnalytics() {
       />
 
       {loading ? (
-        <div className="flex justify-center py-10 text-slate-500">
-          <Loader2 className="h-10 w-10 animate-spin" aria-hidden="true" />
+        <div role="status" className="flex justify-center py-10 text-slate-500">
+          <span className="sr-only">{t('clientAnalyticsPage.loading')}</span>
+          <Loader2 className="h-10 w-10 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+        </div>
+      ) : null}
+
+      {loadError && !loading ? (
+        <div role="alert" className="space-y-3">
+          <p>{t('clientAnalyticsPage.loadError')}</p>
+          <Button type="button" variant="outline" onClick={() => setRetryVersion(value => value + 1)}>{t('common.retry')}</Button>
         </div>
       ) : null}
 
@@ -429,7 +446,7 @@ export default function ClientAnalytics() {
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
               <TabsTrigger value="reservations">{t('clientAnalyticsPage.tabs.reservations')} ({analytics.reservations.length})</TabsTrigger>
               <TabsTrigger value="manual">{t('clientAnalyticsPage.tabs.manualEntries')} ({analytics.manualEntries.length})</TabsTrigger>
-              <TabsTrigger value="debts">{t('clientAnalyticsPage.tabs.debts')} ({clientDebts.length})</TabsTrigger>
+              <TabsTrigger value="debts">{t('clientAnalyticsPage.tabs.debts')}{!debtsLoading && !debtsError ? ` (${clientDebts.length})` : ''}</TabsTrigger>
               <TabsTrigger value="reviews">{t('clientAnalyticsPage.tabs.reviews')} ({analytics.reviews.length})</TabsTrigger>
             </TabsList>
 
@@ -605,6 +622,11 @@ export default function ClientAnalytics() {
               <Card className="p-4">
                 {debtsLoading ? (
                   <p className="text-sm text-slate-500">{t('clientAnalyticsPage.loading')}</p>
+                ) : debtsError ? (
+                  <div role="alert" className="space-y-3">
+                    <p>{t('clientAnalyticsPage.debtsLoadError')}</p>
+                    <Button type="button" variant="outline" onClick={() => setRetryVersion(value => value + 1)}>{t('common.retry')}</Button>
+                  </div>
                 ) : clientDebts.length === 0 ? (
                   <p className="text-sm text-slate-500">{t('common.noData')}</p>
                 ) : (

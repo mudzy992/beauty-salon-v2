@@ -426,6 +426,7 @@
     }
   },
   "clientAnalyticsPage": {
+    "debtsLoadError": "Could not load debts. Please try again.",
     "servicesCaption": "Spending by service: service name, visit count, and total amount.",
     "reservationsCaption": "Client reservations: date, time, service, stylist, price, status, and details.",
     "manualEntriesCaption": "Manual entries: date, service, stylist, price, tip, source, and note.",

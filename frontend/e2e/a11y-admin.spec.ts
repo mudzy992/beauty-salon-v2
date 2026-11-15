@@ -1388,3 +1388,65 @@ test('users cannot delete booked daily logs and must choose a transfer target', 
   await confirm.click()
   await expect.poll(() => mutations).toBe(1)
 })
+
+const clientAnalyticsFixture = {
+  fromDate: null, toDate: null,
+  user: { id: 'fixture-client', username: 'primjer.klijent', email: null, firstName: 'Primjer', lastName: 'Klijent', phone: null, isActive: true, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] },
+  stats: { totalReservations: 1, completedReservations: 1, cancelledReservations: 0, noShowCount: 0, totalSpent: 42, manualEntryCount: 0, manualSpent: 0, avgServiceRating: null, reviewCount: 0 },
+  penalty: { cancellationCount: 0, penaltyUntil: null, isPenalized: false }, topServices: [], reservations: [], reviews: [], manualEntries: [],
+}
+
+test('users eye opens the selected client analytics and preserves the tab through date filters', async ({ page }) => {
+  const user = { ...clientAnalyticsFixture.user, gender: 'FEMALE', avatar: null, isEmailVerified: false }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  let calls = 0
+  await page.route('**/api/users/fixture-client/analytics**', route => { calls++; return route.fulfill({ json: clientAnalyticsFixture }) })
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /analitika klijenta primjer.klijent|client analytics primjer.klijent/i }).first().click()
+  await expect(page).toHaveURL(/\/admin\/analytics\?tab=clients&userId=fixture-client/)
+  await expect(page.getByRole('heading', { name: /analitika klijenta|client analytics/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  await expect.poll(() => calls).toBe(1)
+  await page.locator('#client-from').fill('2026-01-01')
+  await page.locator('#client-to').fill('2026-02-01')
+  await page.getByRole('button', { name: /primijeni period|apply period/i }).click()
+  await expect(page).toHaveURL(/tab=clients.*userId=fixture-client.*fromDate=2026-01-01.*toDate=2026-02-01/)
+  await expect.poll(() => calls).toBe(2)
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  await page.getByRole('button', { name: /cijeli period|full period/i }).click()
+  await expect(page).toHaveURL(/tab=clients.*userId=fixture-client/)
+  await expect(page).not.toHaveURL(/fromDate=/)
+  await expect.poll(() => calls).toBe(3)
+  await page.getByRole('button', { name: /nazad na korisnike|back to users/i }).click()
+  await expect(page).toHaveURL(/\/admin\/users$/)
+})
+
+test('client analytics shows recoverable failures without hiding debt errors or looping', async ({ page }) => {
+  let analyticsCalls = 0
+  let debtCalls = 0
+  await page.route('**/api/users/fixture-client/analytics**', route => {
+    analyticsCalls++
+    return route.fulfill(analyticsCalls === 1 ? { status: 500, json: {} } : { json: clientAnalyticsFixture })
+  })
+  await page.route('**/api/client-debts?**', route => {
+    debtCalls++
+    return route.fulfill(debtCalls <= 2 ? { status: 500, json: {} } : { json: [] })
+  })
+  await page.goto('/admin/analytics?tab=clients&userId=fixture-client', { waitUntil: 'networkidle' })
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText(/greška pri učitavanju analitike|error loading analytics/i)
+  expect(analyticsCalls).toBe(1)
+  await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  await page.getByRole('tab', { name: /dugovanja|debts/i }).click()
+  await expect(alert).toContainText(/dugovanja nije moguće učitati|could not load debts/i)
+  await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: /dugovanja|debts/i })).toBeVisible()
+  expect(analyticsCalls).toBe(3)
+  expect(debtCalls).toBe(3)
+})

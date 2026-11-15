@@ -423,6 +423,7 @@
     }
   },
   "clientAnalyticsPage": {
+    "debtsLoadError": "Dugovanja nije moguće učitati. Pokušajte ponovo.",
     "servicesCaption": "Tabela potrosnje po uslugama: usluga, broj posjeta i ukupan iznos.",
     "reservationsCaption": "Tabela rezervacija klijenta: datum, vrijeme, usluga, frizer, cijena, status i detalji.",
     "manualEntriesCaption": "Tabela rucnih unosa: datum, usluga, frizer, cijena, napojnica, izvor i biljeska.",

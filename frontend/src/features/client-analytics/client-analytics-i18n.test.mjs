@@ -36,10 +36,10 @@ test('client analytics dates and amounts follow the active locale', () => {
 })
 
 test('client analytics request and route contracts remain unchanged', () => {
-  assert.match(source, /api\.get<ClientAnalyticsData>\(`\/api\/users\/\$\{userId\}\/analytics`, \{ params: queryParams \}\)/)
-  assert.match(source, /api\.get<ClientDebtRow\[]>\('\/api\/client-debts', \{ params: \{ clientId: userId \} \}\)/)
-  assert.match(source, /if \(from\) params\.fromDate = from/)
-  assert.match(source, /if \(to\) params\.toDate = to/)
+  assert.match(source, /api\.get<ClientAnalyticsData>\(`\/api\/users\/\$\{encodeURIComponent\(selectedUserId\)\}\/analytics`, \{ params \}\)/)
+  assert.match(source, /api\.get<ClientDebtRow\[]>\('\/api\/client-debts', \{ params: \{ clientId: selectedUserId \} \}\)/)
+  assert.match(source, /next\.set\('fromDate', dateFrom\)/)
+  assert.match(source, /next\.set\('toDate', dateTo\)/)
   assert.match(source, /navigate\('\/admin\/users'\)/)
   assert.match(source, /\{getUserName\(analytics\.user\)\}/)
   assert.match(source, /\{r\.service\?\.name \?\? '-'\}/)
