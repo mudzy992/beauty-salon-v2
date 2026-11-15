@@ -198,7 +198,14 @@ export default function ClientAnalytics() {
     setDebtsLoading(true)
     const params = appliedFrom && appliedTo ? { fromDate: appliedFrom, toDate: appliedTo } : {}
     api.get<ClientAnalyticsData>(`/api/users/${encodeURIComponent(selectedUserId)}/analytics`, { params })
-      .then(({ data }) => { if (current) setAnalytics(data) })
+      .then(({ data }) => {
+        if (!data || data.user?.id !== selectedUserId || !data.stats || !data.penalty ||
+            !Array.isArray(data.topServices) || !Array.isArray(data.reservations) ||
+            !Array.isArray(data.reviews) || !Array.isArray(data.manualEntries)) {
+          throw new Error('Invalid client analytics response')
+        }
+        if (current) setAnalytics(data)
+      })
       .catch(() => { if (current) setLoadError(true) })
       .finally(() => { if (current) setLoading(false) })
     api.get<ClientDebtRow[]>('/api/client-debts', { params: { clientId: selectedUserId } })

@@ -1450,3 +1450,35 @@ test('client analytics shows recoverable failures without hiding debt errors or 
   expect(analyticsCalls).toBe(3)
   expect(debtCalls).toBe(3)
 })
+
+test('client analytics rejects an invalid or wrong-user response and retries without a request loop', async ({ page }) => {
+  let requests = 0
+  await page.route('**/api/users/fixture-client/analytics**', route => {
+    requests++
+    return route.fulfill({ json: requests === 1 ? { ...clientAnalyticsFixture, user: { ...clientAnalyticsFixture.user, id: 'other-client' } } : clientAnalyticsFixture })
+  })
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+  await page.goto('/admin/analytics?tab=clients&userId=fixture-client', { waitUntil: 'networkidle' })
+  const alert = page.getByRole('alert')
+  await expect(alert).toContainText(/greška pri učitavanju analitike|error loading analytics/i)
+  expect(requests).toBe(1)
+  await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  expect(requests).toBe(2)
+})
+
+test('users mobile client analytics action opens the selected detail', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  const user = { ...clientAnalyticsFixture.user, gender: 'FEMALE', avatar: null, isEmailVerified: false }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  await page.route('**/api/users/fixture-client/analytics**', route => route.fulfill({ json: clientAnalyticsFixture }))
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  await page.locator('[data-admin-users]').getByRole('button', { name: /analitika|analytics/i }).first().click()
+  await expect(page).toHaveURL(/tab=clients&userId=fixture-client/)
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 320)
+})
