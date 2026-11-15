@@ -859,7 +859,7 @@ describe('UsersService', () => {
       reviews: { mode: 'DELETE' as const },
     };
     await expect(service.getStylistRemovalPreview('other-user', ['CLIENT'])).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(service.removeStylistRole('other-user', removal, ['STYLIST'])).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.removeStylistRole('other-user', removal, ['STYLIST'], 'actor')).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.assignRole('other-user', { role: 'SYSTEM_ADMIN' }, ['CLIENT'])).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.removeRole('other-user', 'SYSTEM_ADMIN', ['STYLIST'])).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.update('other-user', { isActive: false }, { sub: 'self', roles: ['CLIENT'] } as CurrentUserPayload)).rejects.toBeInstanceOf(ForbiddenException);
@@ -882,7 +882,7 @@ describe('UsersService', () => {
       previewRevision: '0'.repeat(64),
       dailyLogs: { mode: 'DELETE' }, confirmedReservations: { mode: 'DELETE' },
       reservationResponses: { mode: 'DELETE' }, reviews: { mode: 'DELETE' },
-    }, ['OWNER'])).rejects.toBeInstanceOf(ConflictException);
+    }, ['OWNER'], 'actor')).rejects.toBeInstanceOf(ConflictException);
     expect(tx.dailyLogEntry.deleteMany).not.toHaveBeenCalled();
     expect(mockEventsGateway.disconnectUserSockets).not.toHaveBeenCalled();
   });
@@ -924,6 +924,7 @@ describe('UsersService', () => {
         reviews: { mode: 'DELETE' },
       },
       ['OWNER'],
+      'actor',
     );
 
     expect(result).toBe(removedUser);

@@ -45,6 +45,7 @@ async function stylistRemovalSnapshot(tx: Prisma.TransactionClient, stylistProfi
   return {
     revision: createHash('sha256').update(JSON.stringify([stylistProfileId, ids])).digest('hex'),
     financial: { clientDebtsCount: debts.length, manualIncomeCount: manualIncome.length, bookedDailyLogsCount: bookedLogs.length },
+    financialRecordIds: { debts: ids[4], manualIncome: ids[5] },
     counts: { dailyLogEntriesCount: logs.length, confirmedReservationsCount: reservations.length,
       reservationResponsesCount: responses.length, reviewsCount: reviews.length },
   };
@@ -916,13 +917,14 @@ export class UsersService {
     const snapshot = await this.repo.serializableTransaction((tx) =>
       stylistRemovalSnapshot(tx, stylistProfileId),
     );
-    return { stylistProfileId, ...snapshot };
+    return { stylistProfileId, revision: snapshot.revision, counts: snapshot.counts, financial: snapshot.financial };
   }
 
   async removeStylistRole(
     userId: string,
     dto: RemoveStylistRoleDto,
     roles: string[],
+    actorUserId: string,
   ) {
     this.requireAdminOrOwner(roles);
     const user = await this.repo.user.findUnique({
@@ -975,6 +977,14 @@ export class UsersService {
         const financialTarget = await validateTransferTarget({
           mode: 'TRANSFER', targetStylistProfileId: dto.financialTargetStylistProfileId,
         });
+        const targetProfile = await tx.stylistProfile.findUniqueOrThrow({
+          where: { id: financialTarget! }, select: { userId: true },
+        });
+        await tx.stylistFinancialTransferAudit.create({ data: {
+          sourceUserId: userId, sourceProfileId: stylistProfileId,
+          targetProfileId: financialTarget!, targetUserId: targetProfile.userId, actorUserId,
+          debtIds: snapshot.financialRecordIds.debts, manualIncomeIds: snapshot.financialRecordIds.manualIncome,
+        } });
         await tx.clientDebt.updateMany({ where: { stylistProfileId }, data: { stylistProfileId: financialTarget! } });
         await tx.incomeBookManualEntry.updateMany({ where: { stylistProfileId }, data: { stylistProfileId: financialTarget! } });
       }

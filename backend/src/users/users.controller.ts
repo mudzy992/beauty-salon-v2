@@ -283,7 +283,7 @@ export class UsersController {
     @Body() dto: RemoveStylistRoleDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.usersService.removeStylistRole(id, dto, user.roles);
+    return this.usersService.removeStylistRole(id, dto, user.roles, user.sub);
   }
 
   @Post()

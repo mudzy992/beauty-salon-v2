@@ -338,6 +338,23 @@ model ServiceMutationAudit {
   @@map("service_mutation_audits")
 }
 
+/// Immutable attribution snapshot; profile IDs are not foreign keys because the source is deleted.
+model StylistFinancialTransferAudit {
+  id                   String   @id @default(uuid())
+  sourceUserId         String   @map("source_user_id")
+  sourceProfileId      String   @map("source_profile_id")
+  targetProfileId      String   @map("target_profile_id")
+  targetUserId         String   @map("target_user_id")
+  actorUserId          String   @map("actor_user_id")
+  debtIds              Json     @map("debt_ids")
+  manualIncomeIds      Json     @map("manual_income_ids")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  @@index([sourceUserId, createdAt], map: "stylist_fin_transfer_source_created_idx")
+  @@index([actorUserId, createdAt], map: "stylist_fin_transfer_actor_created_idx")
+  @@map("stylist_financial_transfer_audits")
+}
+
 // ============ RESERVATIONS ============
 
 model Reservation {

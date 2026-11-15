@@ -41,6 +41,7 @@ describe('stylist removal revision (real PostgreSQL)', () => {
   });
   afterAll(async () => {
     if (db) {
+      if (userId) await db.stylistFinancialTransferAudit.deleteMany({ where: { sourceUserId: userId } });
       if (profileId) await db.clientDebt.deleteMany({ where: { stylistProfileId: profileId } });
       if (userId) await db.user.deleteMany({ where: { id: userId } });
       if (categoryId) await db.serviceCategory.deleteMany({ where: { id: categoryId } });
@@ -78,7 +79,7 @@ describe('stylist removal revision (real PostgreSQL)', () => {
         });
         return callback(wrapped);
       }));
-      const removal = service.removeStylistRole(other.id, { ...choices, previewRevision: preview.revision }, ['OWNER']);
+      const removal = service.removeStylistRole(other.id, { ...choices, previewRevision: preview.revision }, ['OWNER'], userId);
       await paused;
       const review = await db.review.create({ data: { userId: other.id, serviceId, stylistProfileId: profile.id, serviceRating: 5 } });
       release();
@@ -94,13 +95,13 @@ describe('stylist removal revision (real PostgreSQL)', () => {
     const original = await users.getStylistRemovalPreview(userId, ['OWNER']);
     expect(original.counts.reviewsCount).toBe(0);
     const review = await db.review.create({ data: { userId, serviceId, stylistProfileId: profileId, serviceRating: 5 } });
-    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: original.revision }, ['OWNER'])).rejects.toBeInstanceOf(ConflictException);
+    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: original.revision }, ['OWNER'], userId)).rejects.toBeInstanceOf(ConflictException);
     expect(await db.review.findUnique({ where: { id: review.id } })).not.toBeNull();
     expect(await db.stylistProfile.findUnique({ where: { id: profileId } })).not.toBeNull();
     const refreshed = await users.getStylistRemovalPreview(userId, ['OWNER']);
     expect(refreshed.counts.reviewsCount).toBe(1);
     const debt = await db.clientDebt.create({ data: { clientId: userId, stylistProfileId: profileId, createdById: userId, amount: 10 } });
-    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: refreshed.revision }, ['OWNER'])).rejects.toBeInstanceOf(ConflictException);
+    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: refreshed.revision }, ['OWNER'], userId)).rejects.toBeInstanceOf(ConflictException);
     expect(await db.clientDebt.findUnique({ where: { id: debt.id } })).not.toBeNull();
     expect(await db.review.findUnique({ where: { id: review.id } })).not.toBeNull();
     const book = await db.incomeBook.create({ data: { year: 3026, month: 7 } });
@@ -113,12 +114,16 @@ describe('stylist removal revision (real PostgreSQL)', () => {
     } });
     const financialPreview = await users.getStylistRemovalPreview(userId, ['OWNER']);
     expect(financialPreview.financial).toMatchObject({ clientDebtsCount: 2, manualIncomeCount: 1 });
-    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision }, ['OWNER'])).rejects.toBeDefined();
+    await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision }, ['OWNER'], userId)).rejects.toBeDefined();
     const targetUser = await db.user.create({ data: { username: `target-${randomUUID()}`, firstName: 'Target', lastName: 'Stylist' } });
     const target = await db.stylistProfile.create({ data: { userId: targetUser.id, status: 'ACTIVE' } });
     try {
       await users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
-        financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER']);
+        financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId);
+      const audit = await db.stylistFinancialTransferAudit.findFirstOrThrow({ where: { sourceUserId: userId } });
+      expect(audit).toMatchObject({ sourceProfileId: profileId, targetProfileId: target.id, targetUserId: targetUser.id, actorUserId: userId });
+      expect(audit.debtIds).toEqual(expect.arrayContaining([debt.id, settled.id]));
+      expect(audit.manualIncomeIds).toEqual([manual.id]);
       expect(await db.clientDebt.findUnique({ where: { id: debt.id } })).toMatchObject({ stylistProfileId: target.id });
       expect(await db.clientDebt.findUnique({ where: { id: settled.id } })).toMatchObject({ stylistProfileId: target.id, status: 'SETTLED' });
       expect(await db.incomeBookManualEntry.findUnique({ where: { id: manual.id } })).toMatchObject({ stylistProfileId: target.id });
