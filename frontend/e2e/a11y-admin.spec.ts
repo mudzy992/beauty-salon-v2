@@ -1160,7 +1160,7 @@ test('users requires explicit target and consent for financial history transfer'
   await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
   await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
   await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
-  await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }] }))
+  await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { username: 'drugi' }, status: 'ACTIVE' }, { id: 'stylist-three', user: { username: 'treci' }, status: 'ACTIVE' }] }))
   let mutations = 0
   await page.route('**/api/users/fixture-user/remove-stylist-role', route => {
     mutations += 1
@@ -1175,6 +1175,12 @@ test('users requires explicit target and consent for financial history transfer'
   await expect(confirm).toBeDisabled()
   await dialog.locator('#users-financial-transfer-target').selectOption('stylist-two')
   await expect(confirm).toBeDisabled()
+  await dialog.getByRole('checkbox').check()
+  await expect(confirm).toBeEnabled()
+  await dialog.locator('#users-financial-transfer-target').selectOption('stylist-three')
+  await expect(dialog.getByRole('checkbox')).not.toBeChecked()
+  await expect(confirm).toBeDisabled()
+  await dialog.locator('#users-financial-transfer-target').selectOption('stylist-two')
   await dialog.getByRole('checkbox').check()
   await expect(confirm).toBeEnabled()
   expect(mutations).toBe(0)

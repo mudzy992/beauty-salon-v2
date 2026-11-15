@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { UsersRepository } from '../src/users/users.repository';
@@ -118,6 +118,14 @@ describe('stylist removal revision (real PostgreSQL)', () => {
     const targetUser = await db.user.create({ data: { username: `target-${randomUUID()}`, firstName: 'Target', lastName: 'Stylist' } });
     const target = await db.stylistProfile.create({ data: { userId: targetUser.id, status: 'ACTIVE' } });
     try {
+      await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
+        financialTargetStylistProfileId: target.id }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
+        confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      await expect(users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
+        financialTargetStylistProfileId: profileId, confirmFinancialTransfer: true }, ['OWNER'], userId)).rejects.toBeInstanceOf(BadRequestException);
+      expect(await db.stylistFinancialTransferAudit.count({ where: { sourceUserId: userId } })).toBe(0);
+      expect(await db.clientDebt.findUnique({ where: { id: debt.id } })).toMatchObject({ stylistProfileId: profileId });
       await users.removeStylistRole(userId, { ...choices, previewRevision: financialPreview.revision,
         financialTargetStylistProfileId: target.id, confirmFinancialTransfer: true }, ['OWNER'], userId);
       const audit = await db.stylistFinancialTransferAudit.findFirstOrThrow({ where: { sourceUserId: userId } });
