@@ -1609,7 +1609,7 @@ test('analytics ignores older responses and retries failed requests without hidi
   await expect(page.getByText('Aktuelno')).toBeVisible()
   await period.selectOption('thisMonth')
   await expect.poll(() => count).toBe(2)
-  await expect(page.getByRole('status')).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: /učitavanje|loading/i })).toBeVisible()
   await period.selectOption('lastMonth')
   await expect.poll(() => count).toBe(3)
   await expect(page.getByText('Aktuelno')).toBeVisible()

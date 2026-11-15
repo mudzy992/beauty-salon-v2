@@ -98,14 +98,14 @@ test('Analytics.tsx: chartData i chartSummary su iznad loading/data grana', () =
 
   const chartData = at('const chartData = useMemo(')
   const chartSummary = at('const chartSummary = useMemo(')
-  const loading = at('if (loading) {')
-  const noData = at('if (!data) {')
+  const loading = at('{loading ? <div role=')
+  const noData = at('{data && !loading ? <>')
 
   for (const [n, v] of [['chartData', chartData], ['chartSummary', chartSummary], ['loading', loading], ['noData', noData]]) {
     assert.ok(v > 0, `${n} nije naden`)
   }
-  assert.ok(chartData < loading, `chartData (${chartData}) mora biti iznad if (loading) (${loading})`)
-  assert.ok(chartSummary < loading, `chartSummary (${chartSummary}) mora biti iznad if (loading) (${loading})`)
+  assert.ok(chartData < loading, `chartData (${chartData}) mora biti iznad loading prikaza (${loading})`)
+  assert.ok(chartSummary < loading, `chartSummary (${chartSummary}) mora biti iznad loading prikaza (${loading})`)
   // chartData vise ne smije pretpostavljati da data postoji (jer se racuna i dok je null)
   assert.match(readFileSync(join(root, 'pages/Analytics.tsx'), 'utf8'), /data\?\.monthlyFinance \?\? \[\]/)
 })
