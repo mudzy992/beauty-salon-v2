@@ -1171,7 +1171,7 @@
       "transfer": "Transfer",
       "delete": "Delete",
       "target": "Target stylist",
-      "bookedLogs": "Daily logs linked to the income book: {{count}}. They cannot be deleted in this process; choose transfer.",
+      "bookedLogs": "Daily logs linked to the income book: {{count}}. They cannot be deleted in this process; transfer changes historical income attribution to the selected stylist.",
       "financialWarning": "Transferring {{debts}} debts (including closed debts) and {{income}} manual income entries changes their historical attribution: the records will be assigned to the selected stylist rather than the original stylist.",
       "noFinancialTarget": "There is no other active stylist available for transfer. Complete another stylist profile first.",
       "financialTarget": "Stylist receiving financial history",

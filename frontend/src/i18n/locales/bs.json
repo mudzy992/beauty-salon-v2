@@ -1168,7 +1168,7 @@
       "transfer": "Prebaci",
       "delete": "Obriši",
       "target": "Ciljni stilista",
-      "bookedLogs": "Broj dnevnih zapisa povezanih s knjigom prihoda: {{count}}. Njih nije moguće obrisati ovim postupkom; odaberite prijenos.",
+      "bookedLogs": "Broj dnevnih zapisa povezanih s knjigom prihoda: {{count}}. Njih nije moguće obrisati ovim postupkom; prijenos mijenja historijsku atribuciju prihoda na odabranog stilistu.",
       "financialWarning": "Prijenos {{debts}} dugovanja (uključujući zatvorena) i {{income}} ručnih prihoda promijenit će historijsku atribuciju: evidencije će se voditi na odabranog stilistu, a ne na izvornog.",
       "noFinancialTarget": "Nema drugog aktivnog stiliste za prijenos. Prvo dovršite profil drugog stiliste.",
       "financialTarget": "Stilist koji preuzima finansijsku historiju",

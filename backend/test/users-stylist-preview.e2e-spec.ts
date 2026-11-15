@@ -112,8 +112,12 @@ describe('stylist removal revision (real PostgreSQL)', () => {
       await users.removeStylistRole(source.id, { ...choices, dailyLogs: { mode: 'TRANSFER', targetStylistProfileId: target.id }, previewRevision: preview.revision }, ['OWNER'], userId);
       expect(await db.dailyLogEntry.findUnique({ where: { id: log.id } })).toMatchObject({ stylistProfileId: target.id });
       expect(await db.incomeBookEntry.findUnique({ where: { id: entry.id } })).toMatchObject({ dailyLogEntryId: log.id });
+      const audit = await db.stylistFinancialTransferAudit.findFirstOrThrow({ where: { sourceUserId: source.id } });
+      expect(audit).toMatchObject({ targetUserId: targetUser.id, sourceProfileId: sourceProfile.id,
+        targetProfileId: target.id, actorUserId: userId, bookedDailyLogIds: [log.id] });
     } finally {
       await db.incomeBook.deleteMany({ where: { id: book.id } });
+      await db.stylistFinancialTransferAudit.deleteMany({ where: { sourceUserId: source.id } });
       await db.user.deleteMany({ where: { id: { in: [source.id, targetUser.id] } } });
     }
   });

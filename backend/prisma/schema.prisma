@@ -348,6 +348,7 @@ model StylistFinancialTransferAudit {
   actorUserId          String   @map("actor_user_id")
   debtIds              Json     @map("debt_ids")
   manualIncomeIds      Json     @map("manual_income_ids")
+  bookedDailyLogIds    Json     @default("[]") @map("booked_daily_log_ids")
   createdAt            DateTime @default(now()) @map("created_at")
 
   @@index([sourceUserId, createdAt], map: "stylist_fin_transfer_source_created_idx")

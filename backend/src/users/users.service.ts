@@ -45,7 +45,7 @@ async function stylistRemovalSnapshot(tx: Prisma.TransactionClient, stylistProfi
   return {
     revision: createHash('sha256').update(JSON.stringify([stylistProfileId, ids])).digest('hex'),
     financial: { clientDebtsCount: debts.length, manualIncomeCount: manualIncome.length, bookedDailyLogsCount: bookedLogs.length },
-    financialRecordIds: { debts: ids[4], manualIncome: ids[5] },
+    financialRecordIds: { debts: ids[4], manualIncome: ids[5], bookedLogs: ids[6] },
     counts: { dailyLogEntriesCount: logs.length, confirmedReservationsCount: reservations.length,
       reservationResponsesCount: responses.length, reviewsCount: reviews.length },
   };
@@ -987,6 +987,16 @@ export class UsersService {
         } });
         await tx.clientDebt.updateMany({ where: { stylistProfileId }, data: { stylistProfileId: financialTarget! } });
         await tx.incomeBookManualEntry.updateMany({ where: { stylistProfileId }, data: { stylistProfileId: financialTarget! } });
+      }
+      if (bookedDailyLogsCount > 0 && dailyLogsTarget) {
+        const targetProfile = await tx.stylistProfile.findUniqueOrThrow({
+          where: { id: dailyLogsTarget }, select: { userId: true },
+        });
+        await tx.stylistFinancialTransferAudit.create({ data: {
+          sourceUserId: userId, sourceProfileId: stylistProfileId,
+          targetProfileId: dailyLogsTarget, targetUserId: targetProfile.userId, actorUserId,
+          debtIds: [], manualIncomeIds: [], bookedDailyLogIds: snapshot.financialRecordIds.bookedLogs,
+        } });
       }
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
