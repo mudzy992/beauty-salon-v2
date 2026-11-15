@@ -854,13 +854,11 @@ export class UsersService {
     if (requestedRoleName === 'STYLIST') {
       // Role and profile must commit together; retry also repairs legacy partial assignments.
       const result = await this.repo.transaction(async (tx) => {
-        if (!existing) {
-          await tx.userRole.upsert({
-            where: { userId_roleId: { userId, roleId: role.id } },
-            create: { userId, roleId: role.id },
-            update: {},
-          });
-        }
+        await tx.userRole.upsert({
+          where: { userId_roleId: { userId, roleId: role.id } },
+          create: { userId, roleId: role.id },
+          update: {},
+        });
         await tx.stylistProfile.upsert({
           where: { userId },
           create: { userId, status: 'PENDING', isActive: false },
@@ -868,7 +866,7 @@ export class UsersService {
         });
         return tx.user.findUnique({ where: { id: userId }, select: USER_MUTATION_SELECT });
       });
-      if (!existing) this.events.disconnectUserSockets(userId);
+      this.events.disconnectUserSockets(userId);
       return result;
     }
     if (existing) {
