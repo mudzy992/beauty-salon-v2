@@ -1509,3 +1509,55 @@ for (const viewport of ['desktop', 'mobile'] as const) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
   })
 }
+
+test('users role management preserves client role and confirms removal', async ({ page }) => {
+  const user = { ...clientAnalyticsFixture.user, gender: 'FEMALE', avatar: null, isEmailVerified: false, userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'SYSTEM_ADMIN' } }] }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+  let additions = 0
+  let removals = 0
+  await page.route('**/api/users/fixture-client/roles**', route => {
+    if (route.request().method() === 'POST') {
+      additions++
+      expect(route.request().postDataJSON()).toEqual({ role: 'STYLIST' })
+    } else if (route.request().method() === 'DELETE') removals++
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  const root = page.locator('[data-admin-users]')
+  await expect(root.getByRole('button', { name: /ukloni ulogu klijent korisniku|remove client role/i })).toHaveCount(0)
+  await root.getByRole('button', { name: /dodaj ulogu korisniku primjer.klijent|add role.*primjer.klijent/i }).first().click()
+  await page.getByRole('menuitem', { name: /^stilist$|^stylist$/i }).click()
+  await expect.poll(() => additions).toBe(1)
+  const remove = root.getByRole('button', { name: /ukloni ulogu sistemski administrator korisniku primjer.klijent|remove.*administrator.*primjer.klijent/i }).first()
+  await expect(remove).toBeVisible()
+  page.once('dialog', dialog => dialog.dismiss())
+  await remove.click()
+  expect(removals).toBe(0)
+  page.once('dialog', dialog => dialog.accept())
+  await remove.click()
+  await expect.poll(() => removals).toBe(1)
+})
+
+test('users reset link requires verified email and explicit confirmation', async ({ page }) => {
+  const verified = { ...clientAnalyticsFixture.user, gender: 'FEMALE', avatar: null, email: 'fixture@example.test', isEmailVerified: true }
+  const unverified = { ...verified, id: 'fixture-unverified', username: 'nepotvrdjen', isEmailVerified: false }
+  await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [{ id: verified.id }, { id: unverified.id }] }))
+  await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [verified, unverified], total: 2, page: 0, pageSize: 20 } }))
+  let requests = 0
+  await page.route('**/auth/admin/users/fixture-client/password-reset-link', route => { requests++; return route.fulfill({ json: {} }) })
+  await page.goto('/admin/users', { waitUntil: 'networkidle' })
+  const root = page.locator('[data-admin-users]')
+  await expect(root.getByRole('button', { name: /pošalji link za reset lozinke korisniku nepotvrdjen|reset.*nepotvrdjen/i }).first()).toBeDisabled()
+  const send = root.getByRole('button', { name: /pošalji link za reset lozinke korisniku primjer.klijent|reset.*primjer.klijent/i }).first()
+  page.once('dialog', dialog => dialog.dismiss())
+  await send.click()
+  expect(requests).toBe(0)
+  page.once('dialog', dialog => dialog.accept())
+  await send.click()
+  await expect.poll(() => requests).toBe(1)
+})
