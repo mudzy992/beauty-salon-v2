@@ -982,7 +982,7 @@ export default function Users() {
         </div>
       </div>
 
-      <div className="mt-4 flex justify-end gap-2">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
         {u.mustChangePassword ? (
           <Button
             type="button"
@@ -994,6 +994,7 @@ export default function Users() {
                 ? t('users.credentials.resetLinkAction')
                 : t('users.credentials.resetLinkNeedsVerifiedEmail')
             }
+            aria-label={t('users.aria.resetLink', { username: u.username })}
             onClick={() => void handleIssueInitialPasswordResetLink(u)}
           >
             {resetLinkSendingId === u.id ? (
@@ -1004,7 +1005,7 @@ export default function Users() {
             {t('users.credentials.resetLinkAction')}
           </Button>
         ) : null}
-        <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}>
+        <Button type="button" size="sm" variant="outline" aria-label={t('users.aria.analytics', { username: u.username })} onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}>
           {/* i18n: `users.aria.analytics` je ARIA ključ i glasi „Analitika klijenta
               {{username}}" — bez opcija bi se na ekranu ispisalo doslovno „{{username}}".
               Kao vidljiva labela, uz susjedno {t('common.edit')}, ide kratki ključ. */}
@@ -1013,6 +1014,11 @@ export default function Users() {
         <Button type="button" size="sm" aria-label={t('users.aria.edit', { username: u.username })} onClick={(event) => { editTriggerRef.current = event.currentTarget; openEdit(u) }}>
           {t('common.edit')}
         </Button>
+        {u.isActive ? (
+          <Button type="button" size="sm" variant="outline" aria-label={t('users.aria.deactivate', { username: u.username })} onClick={() => void handleDeactivate(u.id, u.username)}>
+            {t('users.deactivate')}
+          </Button>
+        ) : null}
       </div>
     </Card>
   )

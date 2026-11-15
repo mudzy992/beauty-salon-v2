@@ -1482,3 +1482,30 @@ test('users mobile client analytics action opens the selected detail', async ({ 
   await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 320)
 })
+
+for (const viewport of ['desktop', 'mobile'] as const) {
+  test(`users deactivation requires confirmation and remains available on ${viewport}`, async ({ page }) => {
+    await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+    const user = { ...clientAnalyticsFixture.user, gender: 'FEMALE', avatar: null, isEmailVerified: false }
+    await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+    await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+    let requests = 0
+    await page.route('**/api/users/fixture-client', route => {
+      requests++
+      expect(route.request().method()).toBe('PATCH')
+      expect(route.request().postDataJSON()).toEqual({ isActive: false })
+      return route.fulfill({ json: { ...user, isActive: false } })
+    })
+    await page.goto('/admin/users', { waitUntil: 'networkidle' })
+    const action = page.locator('[data-admin-users]').getByRole('button', { name: /deaktiviraj korisnika primjer.klijent|deactivate user primjer.klijent/i }).first()
+    page.once('dialog', dialog => dialog.dismiss())
+    await action.click()
+    expect(requests).toBe(0)
+    page.once('dialog', dialog => dialog.accept())
+    await action.click()
+    await expect.poll(() => requests).toBe(1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+  })
+}
