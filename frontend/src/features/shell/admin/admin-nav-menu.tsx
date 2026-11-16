@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LayoutDashboard, ChartNoAxesCombined, CalendarDays, BookOpen, Wallet, Star, Store, Scissors, UserRound, UsersRound, FileText, Images, MessageSquareHeart, Settings, Smartphone, Bell, Mail } from 'lucide-react'
+import { LayoutDashboard, ChartNoAxesCombined, CalendarDays, BookOpen, Wallet, Star, Store, Scissors, UserRound, UsersRound, FileText, Images, MessageSquareHeart, Settings, Smartphone, Bell, Mail, BarChart3, User, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import { Badge } from '../../../components/ui/badge'
@@ -30,6 +30,9 @@ const navigationIcons: Record<string, LucideIcon> = {
   'nav.appReleases': Smartphone,
   'nav.notifications': Bell,
   'nav.emailSettings': Mail,
+  'adminAnalytics.tabs.overview': BarChart3,
+  'adminAnalytics.tabs.clients': User,
+  'adminAnalytics.tabs.stylists': TrendingUp,
 }
 
 type Props = {
@@ -120,12 +123,18 @@ const AdminNavLink = ({
 }) => {
   const { t } = useTranslation()
   const Icon = navigationIcons[item.labelKey]
+  // 2.4.9 / 2.5.3 — pod-pogledi analitike dijele naziv s stavkama za upravljanje
+  // (npr. „Stilisti"), pa kontekst ide u pristupačno ime, a vidljivi tekst ostaje kratak.
+  const ariaLabel = item.ariaLabelKey
+    ? `${t(item.labelKey)} — ${t(item.ariaLabelKey)}`
+    : undefined
 
   return (
     <Link
       to={adminNavItemHref(item)}
       onClick={onNavigate}
       className={linkClass(compact, active)}
+      aria-label={ariaLabel}
       // WCAG 4.1.2 — trenutna stranica je označena programski, ne samo stilom.
       aria-current={active ? 'page' : undefined}
     >

@@ -2,7 +2,7 @@ import { Suspense, lazy } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { RouteLoadingFallback } from '../app/route-loading-fallback'
-import { AnalyticsTabNav, isAnalyticsTab, type AnalyticsTab } from '../features/analytics/analytics-tab-nav'
+import { isAnalyticsTab, type AnalyticsTab } from '../features/analytics/analytics-tab-nav'
 
 /**
  * M1 (Q3 + Q7) — `/admin/analytics` hub sa `?tab=`.
@@ -38,7 +38,6 @@ export default function AnalyticsHub() {
 
   return (
     <div data-analytics-hub className="min-w-0 max-w-full space-y-6">
-      <AnalyticsTabNav />
       <Suspense fallback={<RouteLoadingFallback />}>
         <Panel />
       </Suspense>

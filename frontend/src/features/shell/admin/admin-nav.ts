@@ -1,6 +1,13 @@
 export type AdminNavItem = {
   path: string
   labelKey: string
+  /**
+   * Opcioni kontekst za pristupačno ime linka (2.4.9 / 2.5.3). Vidljivi tekst
+   * ostaje `labelKey`, a `aria-label` postaje `${labelKey} — ${ariaLabelKey}`
+   * (npr. „Stilisti — analitika" da se razlikuje od stavke „Stilisti" za
+   * upravljanje u grupi Salon).
+   */
+  ariaLabelKey?: string
   /** Match active for nested paths (e.g. /admin/finance?tab=) */
   matchPrefix?: string
   /**
@@ -26,7 +33,16 @@ export const adminNavGroups: AdminNavGroup[] = [
     labelKey: 'nav.sectionOverview',
     items: [
       { path: '/admin', labelKey: 'nav.home' },
-      { path: '/admin/analytics', labelKey: 'nav.analytics' },
+    ],
+  },
+  {
+    // M1/Q7 — pod-pogledi analitike (`?tab=`) su grupisani ovdje umjesto kao
+    // zaseban tab-menu na vrhu stranice, čime se uklanja dupliranje navigacije.
+    labelKey: 'nav.sectionAnalytics',
+    items: [
+      { path: '/admin/analytics', labelKey: 'adminAnalytics.tabs.overview', tab: 'overview', tabDefault: true, ariaLabelKey: 'adminAnalytics.tabContext' },
+      { path: '/admin/analytics', labelKey: 'adminAnalytics.tabs.clients', tab: 'clients', ariaLabelKey: 'adminAnalytics.tabContext' },
+      { path: '/admin/analytics', labelKey: 'adminAnalytics.tabs.stylists', tab: 'stylists', ariaLabelKey: 'adminAnalytics.tabContext' },
     ],
   },
   {

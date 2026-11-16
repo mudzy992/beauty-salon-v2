@@ -1,5 +1,8 @@
 {
-  "app": { "title": "Beauty Salon Nejra", "admin": "Admin Panel" },
+  "app": {
+    "title": "Beauty Salon Nejra",
+    "admin": "Admin Panel"
+  },
   "nav": {
     "home": "Početna",
     "users": "Korisnici",
@@ -27,7 +30,8 @@
     "sectionFinance": "Finansije",
     "sectionContent": "Sadržaj",
     "sectionPeople": "Ljudi",
-    "sectionSystem": "Sistem"
+    "sectionSystem": "Sistem",
+    "sectionAnalytics": "Analitika"
   },
   "pageTitles": {
     "serviceWorkGallery": "Galerija radova usluge",
@@ -61,7 +65,10 @@
     "optional": "opcionalno"
   },
   "shell": {
-    "languageNames": { "bs": "Bosanski", "en": "Engleski" },
+    "languageNames": {
+      "bs": "Bosanski",
+      "en": "Engleski"
+    },
     "switchLanguageTo": "Prebaci jezik na {{language}}",
     "adminMenu": "Admin meni",
     "skipToContent": "Preskoči na sadržaj",
@@ -181,7 +188,6 @@
     "sendingCode": "Slanje…",
     "resendCode": "Pošalji kod ponovo"
   },
-
   "adminSettings": {
     "navigationLabel": "Kategorije postavki",
     "nav": {
@@ -401,13 +407,16 @@
       }
     },
     "appearance": {
-      "errors": { "invalidTheme": "Neispravna tema.", "invalidMode": "Neispravan režim teme." },
+      "errors": {
+        "invalidTheme": "Neispravna tema.",
+        "invalidMode": "Neispravan režim teme."
+      },
       "title": "Postavke — Izgled",
       "description": "Logo, naziv aplikacije i boje teme javnog sajta.",
       "aurumNote": "Aurum paleta je fiksna: primarna i akcentna boja iz ovih postavki nisu aktivne. Klasična tema ih ponovo koristi.",
       "group": "Vizuelni identitet",
       "newIdentity": "Novi identitet",
-    "groupDescription": "Logo i naziv aplikacije; boje teme mijenjaju akcentne boje javnog sajta.",
+      "groupDescription": "Logo i naziv aplikacije; boje teme mijenjaju akcentne boje javnog sajta.",
       "fields": {
         "appTitle": "Naziv aplikacije",
         "logo": "Logo",
@@ -711,7 +720,7 @@
       "noEvents": "Nema događaja za provjeru.",
       "actions": "Akcije",
       "replay": "Ponovi isporuku",
-    "replayForEvent": "Ponovi isporuku za događaj {{eventId}}",
+      "replayForEvent": "Ponovi isporuku za događaj {{eventId}}",
       "replayDialogTitle": "Potvrda ponovne isporuke",
       "replayDialogDescription": "Događaj #{{eventId}} ima {{attempts}} pokušaja. Bit će vraćen u red čekanja bez resetovanja broja pokušaja.",
       "replayWarning": "Push ili email može biti isporučen više puta ako je prethodni pokušaj već stigao do vanjskog providera. Ovo je at-least-once isporuka; ako novi pokušaj ne uspije, događaj ponovo završava u trajnoj grešci.",
@@ -835,20 +844,20 @@
       "ctaLabel": "Tekst CTA dugmeta",
       "body": "Tijelo poruke",
       "ctaUrl": "URL CTA dugmeta",
-    "plainTextFallback": "Rezervni tekst (plain text)",
-    "visualEditorHeading": "Vizuelni dizajner emaila",
-    "visualEditorDescription": "Složite poruku od sigurnih sadržajnih blokova bez uređivanja HTML koda.",
-    "previewHeading": "Pregled poruke",
-    "previewSampleNote": "Prikaz koristi ogledne podatke. Stvarne vrijednosti se umeću pri slanju.",
-    "addDivider": "Razdjelnik",
-    "addHighlight": "Istaknuta poruka",
-    "blockPlaceholders": {
-      "title": "Naslov poruke",
-      "text": "Ovdje unesite tekst poruke.",
-      "button": "Rezervišite termin",
-      "highlight": "Istaknuta ponuda ili važna informacija."
-    },
-    "saveExisting": "Sačuvaj postojeći template",
+      "plainTextFallback": "Rezervni tekst (plain text)",
+      "visualEditorHeading": "Vizuelni dizajner emaila",
+      "visualEditorDescription": "Složite poruku od sigurnih sadržajnih blokova bez uređivanja HTML koda.",
+      "previewHeading": "Pregled poruke",
+      "previewSampleNote": "Prikaz koristi ogledne podatke. Stvarne vrijednosti se umeću pri slanju.",
+      "addDivider": "Razdjelnik",
+      "addHighlight": "Istaknuta poruka",
+      "blockPlaceholders": {
+        "title": "Naslov poruke",
+        "text": "Ovdje unesite tekst poruke.",
+        "button": "Rezervišite termin",
+        "highlight": "Istaknuta ponuda ili važna informacija."
+      },
+      "saveExisting": "Sačuvaj postojeći template",
       "templateSaved": "Template je sačuvan.",
       "templateSaveFailed": "Greška pri čuvanju template-a."
     },
@@ -865,21 +874,21 @@
       "internalNamePlaceholder": "npr. Proljetna kampanja 2026",
       "addTitle": "Naslov",
       "addText": "Tekst",
-  "addButton": "Dugme",
-  "addSpacer": "Razmak",
-  "addHighlight": "Istaknuta poruka",
-  "addDivider": "Razdjelnik",
-  "blockTypes": {
-    "title": "Naslov",
-    "text": "Tekst",
-    "button": "Dugme",
-    "spacer": "Razmak",
-    "highlight": "Istaknuta poruka",
-    "divider": "Razdjelnik"
-  },
-  "previewHeading": "Vizuelni pregled",
-  "previewSampleNote": "Pregled koristi ogledne podatke; stvarne vrijednosti se umeću pri slanju.",
-  "dragHint": "Prevucite blok da promijenite redoslijed ili koristite dugmad za pomjeranje.",
+      "addButton": "Dugme",
+      "addSpacer": "Razmak",
+      "addHighlight": "Istaknuta poruka",
+      "addDivider": "Razdjelnik",
+      "blockTypes": {
+        "title": "Naslov",
+        "text": "Tekst",
+        "button": "Dugme",
+        "spacer": "Razmak",
+        "highlight": "Istaknuta poruka",
+        "divider": "Razdjelnik"
+      },
+      "previewHeading": "Vizuelni pregled",
+      "previewSampleNote": "Pregled koristi ogledne podatke; stvarne vrijednosti se umeću pri slanju.",
+      "dragHint": "Prevucite blok da promijenite redoslijed ili koristite dugmad za pomjeranje.",
       "moveUp": "Pomjeri blok gore",
       "moveDown": "Pomjeri blok dolje",
       "deleteBlock": "Obriši blok",
@@ -943,9 +952,9 @@
     "tabContext": "analitika",
     "tabsLabel": "Odaberi analitiku",
     "tabs": {
-        "overview": "Pregled",
-        "clients": "Klijenti",
-        "stylists": "Stilisti"
+      "overview": "Pregled",
+      "clients": "Klijenti",
+      "stylists": "Stilisti"
     },
     "chartAriaLabel": "Grafikon prihoda i rashoda po mjesecima. Obuhvata {{months}} mjeseci. Ukupni prihodi {{revenue}}, rashodi {{expenses}}, napojnice {{tips}}. Podaci su dostupni i kao tabela ispod grafa.",
     "showDataTable": "Prikaži podatke grafa u tabeli",
@@ -1729,7 +1738,46 @@
     "period": "Period: {{from}} → {{to}}",
     "refresh": "Osvježi",
     "refreshing": "Osvježavam…",
-    "newEntry": "Novi unos",
+    "newEntry": {
+      "profileNotFound": "Profil stilista nije pronađen.",
+      "selectClient": "Odaberite klijenta.",
+      "clientGenderRequired": "Klijent mora imati definisan spol.",
+      "selectService": "Odaberite najmanje jedan servis.",
+      "invalidPaidAmount": "Unesite ispravan iznos naplaćenog računa.",
+      "created": "Kreirano",
+      "createdDescription": "Možete dodati before/after slike i završiti zapis u detalju.",
+      "createFailed": "Greška pri kreiranju zapisa.",
+      "entryCreated": "Zapis je kreiran.",
+      "createdWithDebt": "Zapis je kreiran, a {{amount}} je evidentirano kao dug.",
+      "noProfile": "Nema profila",
+      "title": "Novi unos",
+      "pageDescription": "Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.",
+      "client": "Klijent",
+      "searchClient": "Pretraži klijenta…",
+      "selectedClient": "Odabrano: {{client}}",
+      "service": "Servis",
+      "selectClientForServices": "Prvo odaberite klijenta da bi se prikazali servisi po spolu.",
+      "searchService": "Pretraži servis…",
+      "date": "Datum",
+      "paidAmount": "Naplaćeno (KM)",
+      "serviceTotal": "Servis: {{amount}}",
+      "loyaltyDiscount": "Loyalty popust: {{percent}}% ({{amount}})",
+      "amountDue": "Za naplatu: {{amount}}",
+      "notesOptional": "Napomena (opciono)",
+      "loyalty": "Program lojalnosti",
+      "loyaltySummary": "Bodovi: {{points}} · Maks. popust: {{percent}}%",
+      "loyaltyUnavailable": "Program lojalnosti nije dostupan za odabranog klijenta ili servis.",
+      "paymentSection": "Podaci o naplati",
+      "discountPercent": "Popust (%)",
+      "maxDiscountAmount": "Maksimalni iznos popusta: {{amount}}",
+      "creating": "Kreiram…",
+      "createEntry": "Kreiraj zapis",
+      "partialPaymentTitle": "Naplaćuje se manje nego što sistem zahtijeva",
+      "partialPaymentDescription": "Razlika iznosi {{amount}}. Želite li da se ta razlika evidentira kao dug klijentu?",
+      "ignoreDebt": "Ne evidentiraj dug",
+      "recordDebt": "Evidentiraj dug",
+      "drawerDescription": "Brzi unos u dnevnu knjigu (stilist)."
+    },
     "entriesLoadFailed": "Zapise trenutno nije moguće učitati.",
     "noEntries": "Nema zapisa",
     "noEntriesDescription": "Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte fotografije prije i poslije.",
@@ -1846,46 +1894,6 @@
       "confirmTitle": "Obavijestiti klijente?",
       "confirmDescription": "Klijenti će dobiti push obavijest i moraju potvrditi novi termin. Do tada rezervacije ostaju na čekanju.",
       "notify": "Obavijesti"
-    },
-    "newEntry": {
-      "profileNotFound": "Profil stilista nije pronađen.",
-      "selectClient": "Odaberite klijenta.",
-      "clientGenderRequired": "Klijent mora imati definisan spol.",
-      "selectService": "Odaberite najmanje jedan servis.",
-      "invalidPaidAmount": "Unesite ispravan iznos naplaćenog računa.",
-      "created": "Kreirano",
-      "createdDescription": "Možete dodati before/after slike i završiti zapis u detalju.",
-      "createFailed": "Greška pri kreiranju zapisa.",
-      "entryCreated": "Zapis je kreiran.",
-      "createdWithDebt": "Zapis je kreiran, a {{amount}} je evidentirano kao dug.",
-      "noProfile": "Nema profila",
-      "title": "Novi unos",
-      "pageDescription": "Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.",
-      "client": "Klijent",
-      "searchClient": "Pretraži klijenta…",
-      "selectedClient": "Odabrano: {{client}}",
-      "service": "Servis",
-      "selectClientForServices": "Prvo odaberite klijenta da bi se prikazali servisi po spolu.",
-      "searchService": "Pretraži servis…",
-      "date": "Datum",
-      "paidAmount": "Naplaćeno (KM)",
-      "serviceTotal": "Servis: {{amount}}",
-      "loyaltyDiscount": "Loyalty popust: {{percent}}% ({{amount}})",
-      "amountDue": "Za naplatu: {{amount}}",
-      "notesOptional": "Napomena (opciono)",
-      "loyalty": "Program lojalnosti",
-      "loyaltySummary": "Bodovi: {{points}} · Maks. popust: {{percent}}%",
-      "loyaltyUnavailable": "Program lojalnosti nije dostupan za odabranog klijenta ili servis.",
-      "paymentSection": "Podaci o naplati",
-      "discountPercent": "Popust (%)",
-      "maxDiscountAmount": "Maksimalni iznos popusta: {{amount}}",
-      "creating": "Kreiram…",
-      "createEntry": "Kreiraj zapis",
-      "partialPaymentTitle": "Naplaćuje se manje nego što sistem zahtijeva",
-      "partialPaymentDescription": "Razlika iznosi {{amount}}. Želite li da se ta razlika evidentira kao dug klijentu?",
-      "ignoreDebt": "Ne evidentiraj dug",
-      "recordDebt": "Evidentiraj dug",
-      "drawerDescription": "Brzi unos u dnevnu knjigu (stilist)."
     }
   },
   "stylistPortal": {
@@ -3136,7 +3144,9 @@
       "mapLocation": "Lokacija salona",
       "access": "Pristup"
     },
-    "footer": { "rights": "Sva prava zadržana." },
+    "footer": {
+      "rights": "Sva prava zadržana."
+    },
     "reserve": {
       "title": "Rezervacija",
       "selectService": "Odaberite uslugu",

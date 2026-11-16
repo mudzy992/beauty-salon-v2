@@ -31,6 +31,7 @@ const tabNav = at('features/analytics/analytics-tab-nav.tsx')
 const hub = at('pages/AnalyticsHub.tsx')
 const routes = at('app/routes/admin.routes.tsx')
 const seo = at('seo/SeoRouteDefaults.tsx')
+const adminNav = at('features/shell/admin/admin-nav.ts')
 
 /** Rekursivno sve datoteke u src/ (bez testova). */
 const walk = (dir) =>
@@ -45,22 +46,25 @@ const walk = (dir) =>
 const SRC = walk(root)
 const rel = (p) => p.slice(root.length + 1).replace(/\\/g, '/')
 
-test('ANALYTICS_TABS: 3 taba, default `overview` bez ?tab=, eksplicitno aria-current', () => {
+test('analytics je grupisan u sidebar pod „Analitika"; 3 pod-pogleda kao ?tab=', () => {
+  // mehanizam taba ostaje (hub ga koristi za izbor panela)
   assert.match(tabNav, /export const ANALYTICS_TABS = \['overview', 'clients', 'stylists'\] as const/)
   assert.match(tabNav, /export type AnalyticsTab = \(typeof ANALYTICS_TABS\)\[number\]/)
   assert.match(tabNav, /export const isAnalyticsTab = \(value: string \| null\): value is AnalyticsTab =>/)
-  assert.match(tabNav, /const ICONS = \{ overview: BarChart3, clients: User, stylists: TrendingUp \} as const/)
 
-  // default se ne smije pisati u URL (isto pravilo kao finance-page.tsx)
-  assert.match(tabNav, /tab === 'overview' \? '\/admin\/analytics' : `\/admin\/analytics\?tab=\$\{tab\}`/)
-  assert.match(tabNav, /aria-current=\{isActive \? 'page' : undefined\}/)
-  // 2.5.5 / 2.4.7: ciljna velicina i focus-ring na samoj referenci, ne na wrapperu
-  const link = tabNav.slice(tabNav.indexOf('<Link'))
-  assert.match(link, /min-h-target/)
-  assert.match(link, /px-3 py-2/)
-  assert.match(link, /focus-visible:ring-focus-ring/)
-  assert.match(link, /aria-hidden="true" \/>/)
-  assert.match(tabNav, /aria-label=\{t\('adminAnalytics\.tabsLabel'\)\}/)
+  // gornji tab-menu je uklonjen — navigacija je sada u bočnoj traci
+  assert.doesNotMatch(tabNav, /export function AnalyticsTabNav/)
+
+  // nova grupa u sidebaru
+  assert.match(adminNav, /labelKey: 'nav\.sectionAnalytics'/)
+  // tri stavke dijele /admin/analytics s različitim tab=
+  for (const tab of ['overview', 'clients', 'stylists']) {
+    assert.match(adminNav, new RegExp(`path: '/admin/analytics', labelKey: 'adminAnalytics\\.tabs\\.${tab}', tab: '${tab}'`))
+  }
+  // pregled je zadani tab (aktivan i bez ?tab=)
+  assert.match(adminNav, /tab: 'overview', tabDefault: true/)
+  // kontekst u pristupačnom imenu razlikuje pod-poglede od stavki za upravljanje (2.4.9 / 2.5.3)
+  assert.match(adminNav, /ariaLabelKey: 'adminAnalytics\.tabContext'/)
 })
 
 test('AnalyticsHub: lazy + Suspense za sva tri panela (code-splitting očuvan)', () => {
