@@ -1772,7 +1772,7 @@ test('legacy analytics links preserve identifiers, dates and replace conflicting
 
 test('analytics subviews are keyboard-navigable from the sidebar and chart table toggles', async ({ page }) => {
   await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
-  await page.goto('/admin/analytics?tab=invalid', { waitUntil: 'networkidle' })
+  await page.goto('/admin/analytics', { waitUntil: 'networkidle' })
   // Pod-pogledi analitike su grupisani u bočnoj traci (grupa „Analitika"), a ne kao
   // zaseban tab-menu na vrhu stranice. Lokator po href-u je nezavisan od jezika.
   const analyticsNav = page
