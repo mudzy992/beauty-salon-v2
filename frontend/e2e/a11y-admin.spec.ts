@@ -1839,7 +1839,34 @@ for (const mode of ['light', 'dark'] as const) {
       await page.keyboard.press('Escape')
       await expect(dialog).toBeHidden()
       await expect(review).toBeFocused()
+      for (const name of [/rezervacije|reservations/i, /manuelni prihodi|manual entries/i, /dugovanja|debts/i, /recenzije|reviews/i]) {
+        await page.getByRole('tab', { name }).click()
+        await settleAnimations(page)
+        const scan = await new AxeBuilder({ page }).include('[data-analytics-hub]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+        console.log(`ANALYTICS_CLIENT_TAB_${mode}_${viewport}_${name.source} ${JSON.stringify({ violations: scan.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: scan.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+        expect(scan.violations.filter(v => v.id !== 'color-contrast-enhanced')).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
     })
   }
 }
+
+test('analytics renders English navigation, empty data and recoverable errors', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('APP_LOCALE', 'en'))
+  let fail = false
+  await page.route('**/api/analytics/dashboard**', route => route.fulfill(fail ? { status: 500, json: {} } : { json: { ...analyticsDashboardFixture, monthlyFinance: [], stylistPerformance: [], topServices: [], periodFinance: { ...analyticsDashboardFixture.periodFinance, expensesByCategory: [] } } }))
+  await page.goto('/admin/analytics', { waitUntil: 'networkidle' })
+  await expect(page.getByRole('heading', { name: 'Analytics', exact: true })).toBeVisible()
+  await expect(page.locator('[data-analytics-hub] nav').getByRole('link', { name: /overview/i })).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('[data-analytics-hub]')).not.toContainText('adminAnalytics.')
+  fail = true
+  await page.locator('#analytics-period').selectOption('thisMonth')
+  await expect(page.getByRole('alert')).toBeVisible()
+  await expect(page.getByRole('alert').getByRole('button', { name: /retry/i })).toBeVisible()
+  fail = false
+  await page.getByRole('alert').getByRole('button', { name: /retry/i }).click()
+  await expect(page.getByRole('alert')).toBeHidden()
+  await page.locator('[data-analytics-hub] nav').getByRole('link', { name: /stylists/i }).click()
+  await expect(page.getByText(/select a stylist/i)).toBeVisible()
+})
