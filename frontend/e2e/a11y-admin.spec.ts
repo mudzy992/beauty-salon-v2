@@ -1679,3 +1679,35 @@ test('expense date preserves estimated provenance until explicitly confirmed', a
   await expect.poll(() => bodies.length).toBe(2)
   expect(bodies[1].expenseDate).toBe('2026-03-01')
 })
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    for (const panel of ['overview', 'clients', 'stylists'] as const) {
+      test(`analytics populated accessibility ${panel} ${mode} ${viewport}`, async ({ page }) => {
+        await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+        await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+        await page.route('**/api/settings/public', async route => {
+          const response = await route.fetch()
+          const rows = await response.json() as Array<{ key: string; value: string }>
+          await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        })
+        await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
+        await page.route('**/api/users/fixture-client/analytics**', route => route.fulfill({ json: { ...clientAnalyticsFixture, topServices: [{ name: 'Usluga test', count: 2, totalSpent: 42 }] } }))
+        await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+        await page.route('**/api/stylists/stylist-one/analytics**', route => route.fulfill({ json: { stylist: { id: 'stylist-one', name: 'Test Stilista', user: { email: 'stylist@example.test' } }, fromDate: '2026-01-01', toDate: '2026-01-31', completedCount: 2, revenue: 100, tips: 5, topServices: [{ serviceId: 'service-one', serviceName: 'Usluga test', count: 2, revenue: 100 }], recentEntries: [{ id: 'entry-1', date: '2026-01-15', serviceName: 'Usluga test', clientName: 'Klijent Test', actualPrice: 55, tipAmount: 5 }] } }))
+        const path = panel === 'overview' ? '/admin/analytics' : panel === 'clients' ? '/admin/analytics?tab=clients&userId=fixture-client' : '/admin/analytics?tab=stylists&stylistId=stylist-one'
+        await page.goto(path, { waitUntil: 'networkidle' })
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('[data-analytics-hub]')).toContainText(panel === 'overview' ? 'Test Trošak' : panel === 'clients' ? 'Primjer Klijent' : 'Test Stilista')
+        if (panel === 'overview') await page.getByText(/prikaži podatke grafa u tabeli|show data table/i).click()
+        await settleAnimations(page)
+        const results = await new AxeBuilder({ page }).include('[data-analytics-hub]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+        console.log(`ANALYTICS_MATRIX_${panel}_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+        const aa = results.violations.filter(v => v.id !== 'color-contrast-enhanced')
+        expect(aa).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+      })
+    }
+  }
+}

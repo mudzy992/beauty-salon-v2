@@ -37,7 +37,7 @@ export default function AnalyticsHub() {
   const Panel = PANELS[tab]
 
   return (
-    <div className="space-y-6">
+    <div data-analytics-hub className="space-y-6">
       <AnalyticsTabNav />
       <Suspense fallback={<RouteLoadingFallback />}>
         <Panel />
