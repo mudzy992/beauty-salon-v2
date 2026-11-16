@@ -1703,6 +1703,16 @@ for (const mode of ['light', 'dark'] as const) {
         await expect(page.locator('[data-analytics-hub]')).toContainText(panel === 'overview' ? 'Test Trošak' : panel === 'clients' ? 'Primjer Klijent' : 'Test Stilista')
         if (panel === 'overview') await page.getByText(/prikaži podatke grafa u tabeli|show data table/i).click()
         await settleAnimations(page)
+        if (panel === 'clients' && viewport === 'mobile') {
+          const stat = page.locator('[data-analytics-hub] .grid.grid-cols-2 > [data-default-card-surface]').nth(4)
+          await stat.scrollIntoViewIfNeeded()
+          await page.evaluate(() => window.scrollBy(0, -100))
+          await settleAnimations(page)
+          const focusedScan = await new AxeBuilder({ page }).include('[data-analytics-hub] .grid.grid-cols-2 > [data-default-card-surface]:nth-child(5)').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+          console.log(`ANALYTICS_PENALTY_STAT_${mode} ${JSON.stringify({ violations: focusedScan.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })), incomplete: focusedScan.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })) })}`)
+          expect(focusedScan.violations).toEqual([])
+          expect(focusedScan.incomplete).toEqual([])
+        }
         const results = await new AxeBuilder({ page }).include('[data-analytics-hub]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
         console.log(`ANALYTICS_MATRIX_${panel}_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
         const aa = results.violations.filter(v => v.id !== 'color-contrast-enhanced')
@@ -1863,9 +1873,9 @@ test('analytics renders English navigation, empty data and recoverable errors', 
   fail = true
   await page.locator('#analytics-period').selectOption('thisMonth')
   await expect(page.getByRole('alert')).toBeVisible()
-  await expect(page.getByRole('alert').getByRole('button', { name: /retry/i })).toBeVisible()
+  await expect(page.getByRole('alert').getByRole('button', { name: /retry|try again/i })).toBeVisible()
   fail = false
-  await page.getByRole('alert').getByRole('button', { name: /retry/i }).click()
+  await page.getByRole('alert').getByRole('button', { name: /retry|try again/i }).click()
   await expect(page.getByRole('alert')).toBeHidden()
   await page.locator('[data-analytics-hub] nav').getByRole('link', { name: /stylists/i }).click()
   await expect(page.getByText(/select a stylist/i)).toBeVisible()

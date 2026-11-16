@@ -2017,3 +2017,10 @@
 }
 [data-skin="aurum"] [data-client-analytics-dialog] [data-ui-badge] { color: hsl(var(--text)); background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
 [data-skin="aurum"] [data-client-analytics-dialog] div[class~="bg-slate-50"] { background: hsl(var(--surface-muted)); color: hsl(var(--text)); }
+/* Analytics status labels keep semantic surfaces, with the approved strong text
+   token so their small copy stays legible in both Aurum modes. */
+[data-skin="aurum"] [data-analytics-hub] [data-ui-badge] { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] [data-analytics-hub] [data-ui-badge="success"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); }
+[data-skin="aurum"] [data-analytics-hub] [data-ui-badge="warning"] { background: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg)); }
+[data-skin="aurum"] [data-analytics-hub] [data-ui-badge="danger"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); }
+[data-skin="aurum"] [data-analytics-hub] :is([data-ui-badge="secondary"], [data-ui-badge="brand"]) { background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
