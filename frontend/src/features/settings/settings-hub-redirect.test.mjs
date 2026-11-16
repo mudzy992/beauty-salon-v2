@@ -77,18 +77,22 @@ test('hub dispatch-uje na ?tab= s fallback-om na zadani tab', () => {
   assert.match(hub, /<Suspense fallback=\{<RouteLoadingFallback \/>\}>/)
 })
 
-test('aktivno stanje sidebar-a gleda ?tab=, ne samo pathname', () => {
-  // 4 sistemske stavke sada dijele /admin/settings
-  assert.equal((nav.match(/path: '\/admin\/settings'/g) ?? []).length, 4)
-  assert.match(nav, /tab: 'site', tabDefault: true/)
-  for (const tab of ['releases', 'notifications', 'email']) {
-    assert.match(nav, new RegExp(`tab: '${tab}'`), `admin-nav: nedostaje tab ${tab}`)
-  }
-  assert.match(nav, /searchTab\?: string \| null,/)
-  assert.match(nav, /if \(item\.tabDefault\) return !searchTab \|\| searchTab === item\.tab/)
+test('Settings je grupisan u jednu sidebar stavku, tabovi žive u hub-u', () => {
+  // M2 tabovi (site/operations/appearance/seo/email/notifications/releases) sada
+  // dijele jednu sidebar stavku `/admin/settings`; duplikati u sidebaru su uklonjeni.
+  assert.equal((nav.match(/path: '\/admin\/settings'/g) ?? []).length, 1)
+  // Sistemski pod-tabovi više nisu zasebne sidebar stavke.
+  assert.doesNotMatch(nav, /tab: 'releases'/)
+  assert.doesNotMatch(nav, /tab: 'notifications'/)
+  assert.doesNotMatch(nav, /tab: 'email'/)
+  // Aktivno stanje grupisane stavke se oslanja na pathname (hub internally
+  // razlikuje tabove), pa je stavka aktivna na bilo kojem /admin/settings?tab=.
+  assert.match(nav, /if \(item\.tab\) \{/)
+  assert.match(nav, /return pathname === item\.path \|\| pathname\.startsWith\(`\$\{item\.path\}\/`\)/)
+  // Plumbing searchTab-a ostaje (hub interni tab-nav ga koristi).
   assert.match(navMenu, /new URLSearchParams\(search \?\? ''\)\.get\('tab'\)/)
   assert.match(navMenu, /isAdminNavItemActive\(pathname, item, searchTab\)/)
-  assert.match(navMenu, /key=\{adminNavItemHref\(item\)\}/, 'key ne smije biti item.path (duplikati)')
+  assert.match(navMenu, /key=\{adminNavItemHref\(item\)\}/)
   assert.match(navMenu, /to=\{adminNavItemHref\(item\)\}/)
   assert.match(layout, /search=\{location\.search\}/)
 })

@@ -1706,10 +1706,14 @@ for (const mode of ['light', 'dark'] as const) {
         await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('[data-analytics-hub]')).toContainText(panel === 'overview' ? 'Test Trošak' : panel === 'clients' ? 'Primjer Klijent' : 'Test Stilista')
         if (panel === 'overview') {
-          const chart = page.locator('[data-analytics-hub] .recharts-responsive-container')
-          await expect(chart.locator('svg.recharts-surface')).toBeVisible()
-          await expect.poll(async () => (await chart.locator('.recharts-wrapper').boundingBox())?.width ?? 0).toBeGreaterThan(100)
-          await expect.poll(async () => (await chart.locator('.recharts-bar-rectangle path').first().boundingBox())?.height ?? 0).toBeGreaterThan(0)
+          // The legend renders three tiny 14×14 <svg> icons; the chart itself is
+          // the single <svg role="application">. Scope the assertion to it so
+          // strict-mode doesn't resolve the selector to 4 elements.
+          const chartSurface = page.locator('[data-analytics-hub] .recharts-responsive-container svg.recharts-surface[role="application"]')
+          await expect(chartSurface).toBeVisible()
+          await expect.poll(async () => (await chartSurface.boundingBox())?.width ?? 0).toBeGreaterThan(100)
+          await expect.poll(async () => (await chartSurface.boundingBox())?.height ?? 0).toBeGreaterThan(100)
+          await expect.poll(async () => (await chartSurface.locator('.recharts-bar-rectangle path').first().boundingBox())?.height ?? 0).toBeGreaterThan(0)
           const selectStyle = await page.locator('#analytics-period').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, border: getComputedStyle(el).borderColor }))
           const cardStyle = await page.locator('[data-analytics-hub] [data-default-card-surface]').first().evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, border: getComputedStyle(el).borderColor }))
           expect(selectStyle.background).toBe(cardStyle.background)
