@@ -7,11 +7,14 @@ import test from 'node:test'
 //
 // Axe je na `/admin/analytics` prijavio `identical-links-same-purpose` kao
 // **nepotpuno** (run 42985731553): čvor `a[href$="stylists"]`. Uzrok čitan iz izvora:
-// tab „Stilisti" ide na `/admin/analytics?tab=stylists`, a stavka u bočnoj traci
-// „Stilisti" ide na `/admin/stylists`. Identično ime, različita svrha. Isto za
-// „Klijenti" u oba jezika.
+// pod-pogled analitike „Stilisti" ide na `/admin/analytics?tab=stylists`, a stavka u
+// bočnoj traci „Stilisti" ide na `/admin/stylists`. Identično ime, različita svrha.
+// Isto za „Klijenti" u oba jezika.
 //
-// Mjera ne vjeruje tom opisu — sama računa imena iz i18n datoteka i izvora.
+// M1/Q7: pod-pogledi su od S6 grupisani u bočnu traku (grupa „Analitika") umjesto kao
+// zaseban tab-menu na vrhu stranice. Kontekst se nosi kroz `ariaLabelKey` na stavci —
+// vidljivi tekst ostaje kratak (npr. „Stilisti"), a pristupačno ime postaje
+// „Stilisti — analitika". Mjera sama računa imena iz i18n datoteka i izvora.
 // ---------------------------------------------------------------------------
 
 const LOCALES = ['bs', 'en']
@@ -19,96 +22,69 @@ const locales = Object.fromEntries(
   LOCALES.map((l) => [l, JSON.parse(readFileSync(new URL(`../../i18n/locales/${l}.json`, import.meta.url), 'utf8'))]),
 )
 const nav = readFileSync(new URL('../shell/admin/admin-nav.ts', import.meta.url), 'utf8')
-const tabNav = readFileSync(new URL('./analytics-tab-nav.tsx', import.meta.url), 'utf8')
+const menu = readFileSync(new URL('../shell/admin/admin-nav-menu.tsx', import.meta.url), 'utf8')
 
 /** `nav.stylists` → vrijednost iz locale datoteke. */
 const resolve = (locale, dotted) =>
   dotted.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), locales[locale])
 
 /**
- * `labelKey`-eve bočne trake čita iz izvora, ne iz nekog popisa — i to **samo one koji su
- * linkovi**. `admin-nav.ts` ima i `labelKey` na naslovima grupa (`nav.sectionSalon`), a
- * naslov grupe nije link pa ni ne može biti u sukobu po 2.4.9. Da se to ne razdvoji, mjera
- * bi prijavila „Pregled" (naslov grupe) kao sukob s tabom „Pregled" — lažni pozitivni.
+ * Svaki link bočne trake čita se iz izvora (labelKey + opcioni ariaLabelKey), ne iz
+ * nekog popisa. Naslovi grupa (`nav.sectionSalon`) nemaju `path:`, pa nisu linkovi i
+ * ne ulaze u provjeru. Obrazac hvata i stavke s `tab`/`tabDefault` i one s `ariaLabelKey`.
  */
+const itemRe =
+  /\{\s*path:\s*'[^']+',\s*labelKey:\s*'([^']+)'(?:\s*,\s*tab:\s*'[^']+')?(?:\s*,\s*tabDefault:\s*true)?(?:\s*,\s*ariaLabelKey:\s*'([^']+)')?\s*\}/g
+const sidebarItems = [...nav.matchAll(itemRe)].map((m) => ({ labelKey: m[1], ariaLabelKey: m[2] }))
 
-const sidebarLabelKeys = [...nav.matchAll(/\{\s*path:\s*'[^']+',\s*labelKey:\s*'(nav\.[A-Za-z.]+)'/g)].map(
-  (m) => m[1],
-)
-
-/** Koliko linkova izvor stvarno ima — mjera sama sebi provjerava opseg. */
-const sidebarPathCount = (nav.match(/path:\s*'/g) || []).length
-
-/** Ključevi tabova čitaju se iz izvora, da novi tab ne prođe neprimijećen. */
-const tabBlock = tabNav.slice(tabNav.indexOf('ANALYTICS_TABS = ['), tabNav.indexOf(']', tabNav.indexOf('ANALYTICS_TABS = [')))
-const tabs = [...tabBlock.matchAll(/'([a-z]+)'/g)].map((m) => m[1])
-
-/** Ime kakvo ga čita AT: aria-label ako postoji, inače vidljivi tekst. */
-const tabAccessibleName = (locale, tab) => {
-  const visible = resolve(locale, `adminAnalytics.tabs.${tab}`)
-  const context = resolve(locale, 'adminAnalytics.tabContext')
-  return `${visible} — ${context}`
+/** Pristupačno ime: aria-label ako postoji, inače vidljivi tekst. */
+const accessibleName = (locale, item) => {
+  const visible = resolve(locale, item.labelKey)
+  if (!item.ariaLabelKey) return visible
+  return `${visible} — ${resolve(locale, item.ariaLabelKey)}`
 }
 
-test('nijedan tab analitike nema ime identično stavci u bočnoj traci (2.4.9)', () => {
-  assert.ok(sidebarLabelKeys.length >= 13, `očekivan pun popis linkova bočne trake, dobijeno ${sidebarLabelKeys.length}`)
-  // Samoprovjera opsega: četiri linka u `admin-nav.ts` imaju i polja `tab`/`tabDefault`, pa
-  // obrazac koji traži `}` odmah za `labelKey`-om tiho preskače upravo njih.
-  assert.equal(
-    sidebarLabelKeys.length,
-    sidebarPathCount,
-    `mjera hvata ${sidebarLabelKeys.length} od ${sidebarPathCount} linkova bočne trake`,
-  )
-  assert.deepEqual(tabs, ['overview', 'clients', 'stylists'], 'tabovi pročitani iz izvora')
+test('nijedan link bočne trake nema ime identično drugom linku (2.4.9)', () => {
+  assert.ok(sidebarItems.length >= 13, `očekivan pun popis linkova bočne trake, dobijeno ${sidebarItems.length}`)
+  // Samoprovjera opsega: broj uhvaćenih stavki mora biti jednak broju `path:` u izvoru.
+  const pathCount = (nav.match(/path:\s*'/g) || []).length
+  assert.equal(sidebarItems.length, pathCount, `mjera hvata ${sidebarItems.length} od ${pathCount} linkova bočne trake`)
 
   for (const locale of LOCALES) {
-    const sidebar = new Map(
-      sidebarLabelKeys.map((key) => [resolve(locale, key), key]).filter(([label]) => typeof label === 'string'),
-    )
-    assert.ok(sidebar.size >= 12, `${locale}: bočna traka mora imati imena, dobijeno ${sidebar.size}`)
-
-    // Presuđuje **pristupačno ime**, ne vidljivi tekst: vidljivi tekst taba namjerno ostaje
-    // kratak, a kontekst nosi `aria-label`. Bez tog `aria-label`-a ovo pada — i to je poanta.
-    const clashes = tabs.filter((tab) => sidebar.has(tabAccessibleName(locale, tab)))
-    assert.deepEqual(
-      clashes,
-      [],
-      `${locale}: tab i bočna traka dijele pristupačno ime pa 2.4.9 ne zna kamo link vodi (${clashes.join(', ')})`,
-    )
-
-    // Samoprovjera mjere: da `aria-label` nije dodan, sukob BI morao biti prijavljen.
-    // Inače bi test prolazio i kad kontekst nestane.
-    const bezKonteksta = tabs.filter((tab) => sidebar.has(resolve(locale, `adminAnalytics.tabs.${tab}`)))
-    assert.ok(
-      bezKonteksta.length > 0,
-      `${locale}: bez konteksta u imenu nema nijednog sukoba, pa mjera ne bi uhvatila regresiju`,
-    )
+    const names = sidebarItems.map((item) => accessibleName(locale, item)).filter((n) => typeof n === 'string')
+    assert.ok(names.length >= 12, `${locale}: bočna traka mora imati imena, dobijeno ${names.length}`)
+    const seen = new Map()
+    for (const name of names) {
+      assert.ok(!seen.has(name), `${locale}: duplikat pristupačnog imena „${name}" krši 2.4.9`)
+      seen.set(name, true)
+    }
   }
 })
 
-test('vidljivi tekst taba je doslovno prefiks njegovog imena (2.5.3)', () => {
+test('analitički pod-pogledi imaju kontekst u pristupačnom imenu (2.4.9)', () => {
   for (const locale of LOCALES) {
-    for (const tab of tabs) {
+    for (const tab of ['overview', 'clients', 'stylists']) {
+      const item = sidebarItems.find((i) => i.labelKey === `adminAnalytics.tabs.${tab}`)
+      assert.ok(item, `${locale}: nedostaje stavka analitike za ${tab}`)
+      assert.equal(item.ariaLabelKey, 'adminAnalytics.tabContext', `${locale}/${tab}: stavka mora nositi kontekst`)
+      const name = accessibleName(locale, item)
       const visible = resolve(locale, `adminAnalytics.tabs.${tab}`)
-      const name = tabAccessibleName(locale, tab)
+      // vidljivi tekst je doslovno prefiks imena (2.5.3 Label in Name)
       assert.ok(name.startsWith(visible), `${locale}/${tab}: „${name}" ne počinje s „${visible}"`)
       assert.ok(name.length > visible.length, `${locale}/${tab}: ime mora nositi i kontekst`)
+      // kontekst stvarno mijenja ime u odnosu na goli tekst
+      assert.notEqual(name, visible, `${locale}/${tab}: kontekst se ne primjenjuje`)
     }
   }
 })
 
 test('popravka se ne može tiho ukloniti iz izvora (2.4.9)', () => {
-  assert.match(tabNav, /aria-label=\{tabLabel\(tab\)\}/, 'tab mora imati aria-label')
-  assert.match(tabNav, /export const analyticsTabName = \(tab: AnalyticsTab, t:/)
-  assert.match(
-    tabNav,
-    /t\('adminAnalytics\.tabContext'\)/,
-    'kontekst mora dolaziti iz i18n ključa, ne biti hardkodovan',
-  )
-  // Tijelo `analyticsTabName` — ne samo postojanje ključa. Bez ove provjere funkcija može
-  // vratiti samo vidljivi tekst, ključ i dalje postoji u i18n, i 2.4.9 se tiho vrati.
-  const tijelo = tabNav.slice(tabNav.indexOf('export const analyticsTabName'))
-  assert.match(tijelo, /analyticsTabContext\(t\)/, 'ime taba mora stvarno sadržavati kontekst')
+  // sidebar nosi kontekst
+  assert.match(nav, /ariaLabelKey: 'adminAnalytics\.tabContext'/, 'stavke analitike moraju nositi ariaLabelKey')
+  // meni gradi aria-label iz ariaLabelKey
+  assert.match(menu, /aria-label=\{ariaLabel\}/, 'link mora imati aria-label')
+  assert.match(menu, /item\.ariaLabelKey/, 'meni mora čitati ariaLabelKey')
+  assert.match(menu, /t\(item\.ariaLabelKey\)/, 'kontekst mora dolaziti iz i18n ključa, ne biti hardkodovan')
   for (const locale of LOCALES) {
     assert.ok(
       typeof resolve(locale, 'adminAnalytics.tabContext') === 'string',
