@@ -6,6 +6,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
+      data-default-card-border={/(?:^|\s)(?:[\w-]+:)*!?border-(?!collapse|separate|spacing)[^\s]+/.test(className ?? '') ? undefined : ''}
       data-default-card-surface={/(?:^|\s)(?:[\w-]+:)*!?bg-(?!clip-|origin-)[^\s]+/.test(className ?? '') ? undefined : ''}
       className={cn(
         'rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50',

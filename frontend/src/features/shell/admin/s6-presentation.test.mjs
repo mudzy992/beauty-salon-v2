@@ -6,12 +6,12 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const nav = read('./admin-nav.ts')
 const calendar = read('../../../pages/ReservationsCalendar.tsx')
 
-test('approved five navigation groups preserve the 17 original hrefs', () => {
+test('five navigation groups consolidate settings while preserving its tabs', () => {
   const groups = [...nav.matchAll(/labelKey: 'nav\.section(\w+)',\s*items: \[([\s\S]*?)\],/g)]
   assert.deepEqual(groups.map((g) => g[1]), ['Overview', 'Operational', 'Salon', 'Content', 'System'])
   const hrefs = [...nav.matchAll(/\{ path: '([^']+)', labelKey: '[^']+'(?:, tab: '([^']+)')?/g)]
     .map(([, path, tab]) => tab ? `${path}?tab=${tab}` : path)
-  assert.deepEqual(hrefs, ['/admin', '/admin/analytics', '/admin/reservations', '/admin/daily-log', '/admin/finance', '/admin/loyalty', '/admin/salon', '/admin/services', '/admin/stylists', '/admin/users', '/admin/blog', '/admin/gallery', '/admin/reviews', '/admin/settings?tab=site', '/admin/settings?tab=releases', '/admin/settings?tab=notifications', '/admin/settings?tab=email'])
+  assert.deepEqual(hrefs, ['/admin', '/admin/analytics', '/admin/reservations', '/admin/daily-log', '/admin/finance', '/admin/loyalty', '/admin/salon', '/admin/services', '/admin/stylists', '/admin/users', '/admin/blog', '/admin/gallery', '/admin/reviews', '/admin/settings'])
 })
 
 test('fullscreen calendar has a skip target and theme switcher in the header', () => {

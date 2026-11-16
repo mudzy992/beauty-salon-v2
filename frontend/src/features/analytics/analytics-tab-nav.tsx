@@ -68,7 +68,7 @@ export function AnalyticsTabNav() {
             }`}
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
-            {t(`adminAnalytics.tabs.${tab}`)}
+            {tab === 'overview' ? t(`adminAnalytics.tabs.${tab}`) : tabLabel(tab)}
           </Link>
         )
       })}

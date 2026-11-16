@@ -598,6 +598,10 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(trigger).toBeFocused()
       const navigation = viewport === 'mobile' ? page.locator('#admin-mobile-navigation [data-admin-navigation]') : page.locator('[data-admin-sidebar] [data-admin-navigation]')
       if (viewport === 'mobile') { await trigger.click(); await expect(navigation).toBeVisible() }
+      await expect(navigation.locator('a[href="/admin/settings"]')).toHaveCount(1)
+      await expect(navigation.locator('a[href^="/admin/settings?tab="]')).toHaveCount(0)
+      await expect(navigation.locator('a[href="/admin/stylists"]')).toHaveCount(1)
+      await expect(navigation.locator('a[href="/admin/users"]')).toHaveCount(1)
       const results = await new AxeBuilder({ page }).include(viewport === 'mobile' ? '#admin-mobile-navigation [data-admin-navigation]' : '[data-admin-sidebar] [data-admin-navigation]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
       console.log(`ADMIN_NAV_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
       expect(results.violations).toEqual([])
@@ -1701,7 +1705,17 @@ for (const mode of ['light', 'dark'] as const) {
         await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
         await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('[data-analytics-hub]')).toContainText(panel === 'overview' ? 'Test Trošak' : panel === 'clients' ? 'Primjer Klijent' : 'Test Stilista')
-        if (panel === 'overview') await page.getByText(/prikaži podatke grafa u tabeli|show data table/i).click()
+        if (panel === 'overview') {
+          const chart = page.locator('[data-analytics-hub] .recharts-responsive-container')
+          await expect(chart.locator('svg.recharts-surface')).toBeVisible()
+          await expect.poll(async () => (await chart.locator('.recharts-wrapper').boundingBox())?.width ?? 0).toBeGreaterThan(100)
+          await expect.poll(async () => (await chart.locator('.recharts-bar-rectangle path').first().boundingBox())?.height ?? 0).toBeGreaterThan(0)
+          const selectStyle = await page.locator('#analytics-period').evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, border: getComputedStyle(el).borderColor }))
+          const cardStyle = await page.locator('[data-analytics-hub] [data-default-card-surface]').first().evaluate(el => ({ background: getComputedStyle(el).backgroundColor, color: getComputedStyle(el).color, border: getComputedStyle(el).borderColor }))
+          expect(selectStyle.background).toBe(cardStyle.background)
+          expect(selectStyle.border).toBe(cardStyle.border)
+          await page.getByText(/prikaži podatke grafa u tabeli|show data table/i).click()
+        }
         await settleAnimations(page)
         if (panel === 'clients' && viewport === 'mobile') {
           const stat = page.locator('[data-analytics-hub] .grid.grid-cols-2 > [data-default-card-surface]').nth(4)
@@ -1884,4 +1898,13 @@ test('analytics renders English navigation, empty data and recoverable errors', 
   await expect(page.getByRole('alert')).toBeHidden()
   await page.locator('[data-analytics-hub] nav').getByRole('link', { name: /stylists/i }).click()
   await expect(page.getByText(/select a stylist/i)).toBeVisible()
+})
+
+test('settings sidebar is grouped while existing settings tab deep links remain reachable', async ({ page }) => {
+  await page.goto('/admin/settings?tab=email', { waitUntil: 'networkidle' })
+  const nav = page.getByRole('navigation', { name: /kategorije postavki|settings categories/i })
+  await expect(nav.locator('a[href="/admin/settings?tab=email"]')).toHaveAttribute('aria-current', 'page')
+  await expect(nav.locator('a[href="/admin/settings?tab=notifications"]')).toHaveCount(1)
+  await expect(nav.locator('a[href="/admin/settings?tab=releases"]')).toHaveCount(1)
+  await expect(page.locator('[data-admin-sidebar] a[href="/admin/settings"]')).toHaveAttribute('aria-current', 'page')
 })

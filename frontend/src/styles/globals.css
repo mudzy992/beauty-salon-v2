@@ -1885,6 +1885,9 @@
 [data-skin="aurum"] .admin-shell [data-default-card-surface] {
   background-color: hsl(var(--surface));
 }
+[data-skin="aurum"] .admin-shell [data-default-card-border] {
+  border-color: hsl(var(--line));
+}
 
 /* Admin shared primitives: paired Aurum surfaces and foregrounds, Classic unchanged. */
 [data-skin="aurum"] .admin-shell [data-admin-tabs-list] {
@@ -1987,7 +1990,9 @@
   color: hsl(var(--text-muted-strong));
 }
 [data-analytics-hub] .grid > [data-default-card-surface] { min-width: 0; }
-[data-analytics-hub] .recharts-wrapper, [data-analytics-hub] .recharts-responsive-container { min-width: 0; max-width: 100%; }
+/* Recharts deliberately mounts its wrapper inside a zero-width measuring node.
+   Constraining that wrapper to 100% collapses every chart to zero width. */
+[data-analytics-hub] .recharts-responsive-container { min-width: 0; max-width: 100%; }
 
 /* The chart's data alternative must reflow independently of the chart at 320px.
    index.css is not loaded by the application, so scope the card presentation here. */
@@ -2024,3 +2029,12 @@
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge="warning"] { background: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg)); }
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge="danger"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-analytics-hub] :is([data-ui-badge="secondary"], [data-ui-badge="brand"]) { background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
+/* Analytics still contains older slate utilities. Pair them with the approved
+   Aurum foreground and border tokens rather than letting dark-mode utilities
+   reintroduce blue/grey text or outlines. Status labels keep semantic surfaces. */
+[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.border-slate-100, .border-slate-200) {
+  border-color: hsl(var(--line));
+}

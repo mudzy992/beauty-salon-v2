@@ -191,19 +191,20 @@ export default function Analytics() {
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.title')}</h1>
 
       <div className="flex flex-col flex-wrap items-stretch gap-4 md:flex-row md:items-end">
-        <div className="w-full md:w-auto md:min-w-[220px]">
+        <div className="w-full md:w-auto md:min-w-[290px]">
           <Label htmlFor="analytics-period" className="text-sm">
             {t('adminAnalytics.period')}
           </Label>
           <select
             id="analytics-period"
+            data-default-admin-field=""
             value={period}
             onChange={(e) => {
               const next = e.target.value as PeriodPreset
               setPeriod(next)
               if (next !== 'custom') load(getPresetParams(next))
             }}
-            className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950 md:max-w-[220px]"
+            className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950 md:max-w-[360px]"
           >
             <option value="12">{t('adminAnalytics.last12Months')}</option>
             <option value="thisMonth">{t('adminAnalytics.thisMonth')}</option>
@@ -244,7 +245,7 @@ export default function Analytics() {
             {invalidRange ? <p role="alert" className="text-sm text-content">{t('adminAnalytics.invalidRange')}</p> : null}
           </>
         ) : (
-          <p className="pb-1 text-sm text-slate-600 dark:text-slate-300 md:self-center">{periodLabel}</p>
+          <p className="pb-1 text-sm text-content-strong md:self-center">{periodLabel}</p>
         )}
       </div>
 
@@ -258,13 +259,13 @@ export default function Analytics() {
           <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between gap-2 tabular-nums">
-              <dt className="text-slate-600 dark:text-slate-400">{t('adminAnalytics.servicesTotal')}</dt>
+              <dt className="text-content-strong">{t('adminAnalytics.servicesTotal')}</dt>
               <dd className="font-medium text-slate-900 dark:text-slate-50">
                 {formatLocalizedAmount(data.periodFinance.servicesRevenue, i18n.language)}
               </dd>
             </div>
             <div className="flex justify-between gap-2 tabular-nums">
-              <dt className="text-slate-600 dark:text-slate-400">{t('adminAnalytics.tipsTotal')}</dt>
+              <dt className="text-content-strong">{t('adminAnalytics.tipsTotal')}</dt>
               <dd className="font-medium text-slate-900 dark:text-slate-50">
                 {formatLocalizedAmount(data.periodFinance.tips, i18n.language)}
               </dd>
@@ -290,7 +291,7 @@ export default function Analytics() {
                   key={row.categoryId}
                   className="flex justify-between gap-2 border-b border-slate-100 pb-2 tabular-nums last:border-0 dark:border-slate-800/80"
                 >
-                  <span className="text-slate-600 dark:text-slate-400">{row.categoryName}</span>
+                  <span className="text-content-strong">{row.categoryName}</span>
                   <span className="font-medium text-slate-900 dark:text-slate-50">{formatLocalizedAmount(row.total, i18n.language)}</span>
                 </li>
               ))
@@ -347,22 +348,15 @@ export default function Analytics() {
         >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" fontSize={12} />
-              <YAxis fontSize={12} tickFormatter={(v) => formatLocalizedAmount(v, i18n.language)} />
-              <Tooltip formatter={(value: unknown) => [formatLocalizedAmount(Number(value ?? 0), i18n.language), '']} />
-              {/* WCAG 1.4.3 — Recharts boji tekst legende bojom serije
-                  (`DefaultLegendContent.js:120`: `finalLabelStyle.color || entry.color`),
-                  a te tri boje na bijeloj kartici imaju 3.25:1 (#38A169), 4.13:1 (#E53E3E)
-                  i 2.39:1 (#D69E2E) — sve ispod 4.5:1 koliko traži AA za tekst te veličine.
-                  Axe to ne hvata jer `.recharts-legend-item-text` sadrži SVG ikonu serije,
-                  pa vrati `incomplete` („background color could not be determined because
-                  element contains an image node", run 43000853379). Boja serije ostaje na
-                  ikoni pored teksta i na stupcima; tekst dobija boju sadržaja. */}
+              <CartesianGrid stroke="hsl(var(--line))" strokeDasharray="3 3" />
+              <XAxis dataKey="label" fontSize={12} stroke="hsl(var(--text-muted-strong))" />
+              <YAxis fontSize={12} stroke="hsl(var(--text-muted-strong))" tickFormatter={(v) => formatLocalizedAmount(v, i18n.language)} />
+              <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--surface))', borderColor: 'hsl(var(--line))', color: 'hsl(var(--text))' }} labelStyle={{ color: 'hsl(var(--text))' }} itemStyle={{ color: 'hsl(var(--text))' }} formatter={(value: unknown) => formatLocalizedAmount(Number(value ?? 0), i18n.language)} />
+              {/* Labels use content colour; series use existing semantic palette tokens. */}
               <Legend labelStyle={{ color: 'hsl(var(--text))' }} />
-              <Bar dataKey="income" name={t('adminAnalytics.revenue')} fill="#38A169" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expenses" name={t('adminAnalytics.expenses')} fill="#E53E3E" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="tips" name={t('adminAnalytics.tips')} fill="#D69E2E" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="income" name={t('adminAnalytics.revenue')} fill="hsl(var(--ok-fg))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expenses" name={t('adminAnalytics.expenses')} fill="hsl(var(--bad-fg))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="tips" name={t('adminAnalytics.tips')} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
