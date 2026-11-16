@@ -6,6 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parseDateOnlyString } from '../common/utils/date-only';
+import { apiError } from '../common/errors/api-error-codes';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -224,10 +225,10 @@ export class ExpensesService {
     try {
       date = parseDateOnlyString(dateValue);
     } catch {
-      throw new BadRequestException('Datum rashoda nije važeći kalendarski datum.');
+      throw new BadRequestException(apiError('EXPENSE_DATE_INVALID'));
     }
     if (date.getUTCFullYear() !== book.year || date.getUTCMonth() + 1 !== book.month) {
-      throw new BadRequestException('Datum rashoda mora pripadati mjesecu knjige.');
+      throw new BadRequestException(apiError('EXPENSE_DATE_OUTSIDE_BOOK'));
     }
     return date;
   }

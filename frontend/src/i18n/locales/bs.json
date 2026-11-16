@@ -2496,6 +2496,7 @@
       "noInvoiceItems": "Nema pojedinačnih stavki."
     },
     "expenseForm": {
+      "dateInvalid": "Datum rashoda nije važeći kalendarski datum.",
       "expenseDate": "Datum rashoda",
       "dateRequired": "Unesite datum unutar mjeseca ove knjige.",
       "estimatedDate": "Datum je procijenjen na prvi dan mjeseca. Ispravite ga ili potvrdite ako je tačan.",

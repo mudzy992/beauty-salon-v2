@@ -1149,8 +1149,8 @@ test('users does not report an empty list for a malformed successful client resp
   const alert = root.getByRole('alert')
   await expect(alert).toBeVisible()
   await alert.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect.poll(() => calls).toBe(2)
   await expect(alert).toBeHidden()
-  expect(calls).toBe(2)
 })
 
 test('users requires explicit target and consent for financial history transfer', async ({ page }) => {

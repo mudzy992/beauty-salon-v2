@@ -29,9 +29,10 @@ const DATA_TABLE_CONSUMERS = [
   {
     file: 'expense/expense-table.tsx',
     captionKey: 'finance.expenseList.caption',
-    columns: 6,
+    columns: 7,
     headerKeys: [
       'finance.expenseList.columns.date',
+      'finance.expenseForm.expenseDate',
       'finance.expenseList.columns.title',
       'finance.expenseList.columns.amount',
       'finance.expenseList.columns.category',

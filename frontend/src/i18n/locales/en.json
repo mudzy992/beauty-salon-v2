@@ -2499,6 +2499,7 @@
       "noInvoiceItems": "There are no individual line items."
     },
     "expenseForm": {
+      "dateInvalid": "The expense date is not a valid calendar date.",
       "expenseDate": "Expense date",
       "dateRequired": "Enter a date within this book’s month.",
       "estimatedDate": "This date was estimated as the first day of the month. Correct it or confirm if accurate.",

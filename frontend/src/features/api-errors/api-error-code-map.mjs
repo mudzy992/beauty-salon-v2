@@ -10,6 +10,8 @@
  * Parnost s backend registrom cuva `test:api-error-code-parity`.
  */
 export const API_ERROR_CODE_TO_KEY = {
+  EXPENSE_DATE_INVALID: 'finance.expenseForm.dateInvalid',
+  EXPENSE_DATE_OUTSIDE_BOOK: 'finance.expenseForm.dateRequired',
   SETTINGS_INVALID_THEME: 'adminSettings.appearance.errors.invalidTheme',
   SETTINGS_INVALID_THEME_MODE: 'adminSettings.appearance.errors.invalidMode',
   USERS_NOT_FOUND: 'users.errors.notFound',
