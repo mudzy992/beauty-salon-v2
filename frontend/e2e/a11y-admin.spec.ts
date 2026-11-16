@@ -1713,3 +1713,71 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+test('legacy analytics links preserve identifiers, dates and replace conflicting tab', async ({ page }) => {
+  const seen: string[] = []
+  await page.route('**/api/users/fixture-client/analytics**', route => { seen.push(route.request().url()); return route.fulfill({ json: clientAnalyticsFixture }) })
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+  await page.route('**/api/stylists/stylist-one/analytics**', route => { seen.push(route.request().url()); return route.fulfill({ json: { stylist: { id: 'stylist-one', name: 'Test Stilista' }, fromDate: '2026-01-01', toDate: '2026-01-31', completedCount: 0, revenue: 0, tips: 0, topServices: [], recentEntries: [] } }) })
+  for (const item of [
+    { old: 'client-analytics', id: 'userId=fixture-client', tab: 'clients', name: 'Primjer Klijent' },
+    { old: 'stylist-analytics', id: 'stylistId=stylist-one', tab: 'stylists', name: 'Test Stilista' },
+  ]) {
+    await page.goto(`/admin/${item.old}?${item.id}&fromDate=2026-01-01&toDate=2026-01-31&tab=overview`, { waitUntil: 'networkidle' })
+    const url = new URL(page.url())
+    expect(url.pathname).toBe('/admin/analytics')
+    expect(url.searchParams.get('tab')).toBe(item.tab)
+    expect(url.searchParams.get(item.id.split('=')[0])).toBe(item.id.split('=')[1])
+    expect(url.searchParams.get('fromDate')).toBe('2026-01-01')
+    expect(url.searchParams.get('toDate')).toBe('2026-01-31')
+    await expect(page.getByRole('heading', { name: item.name })).toBeVisible()
+    const requestUrl = new URL(seen[seen.length - 1])
+    expect(requestUrl.searchParams.get('fromDate')).toBe('2026-01-01')
+    expect(requestUrl.searchParams.get('toDate')).toBe('2026-01-31')
+  }
+})
+
+test('analytics navigation and chart table work with keyboard', async ({ page }) => {
+  await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
+  await page.goto('/admin/analytics?tab=invalid', { waitUntil: 'networkidle' })
+  const nav = page.locator('[data-analytics-hub] nav')
+  const links = nav.getByRole('link')
+  await expect(links).toHaveCount(3)
+  await expect(links.nth(0)).toHaveAttribute('aria-current', 'page')
+  await links.nth(0).focus()
+  await page.keyboard.press('Tab')
+  await expect(links.nth(1)).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(links.nth(2)).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/tab=stylists/)
+  await expect(links.nth(2)).toHaveAttribute('aria-current', 'page')
+  await links.nth(0).focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/admin\/analytics$/)
+  const summary = page.getByText(/prikaži podatke grafa u tabeli|show data table/i)
+  await summary.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('table', { name: /mjesečn|monthly/i })).toBeVisible()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('table', { name: /mjesečn|monthly/i })).toBeHidden()
+})
+
+test('client analytics retains incomplete deep-link date and reports request failure until corrected', async ({ page }) => {
+  const queries: string[] = []
+  await page.route('**/api/users/fixture-client/analytics**', route => {
+    const url = new URL(route.request().url())
+    queries.push(url.search)
+    return route.fulfill(url.searchParams.has('toDate') ? { json: clientAnalyticsFixture } : { status: 400, json: {} })
+  })
+  await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+  await page.goto('/admin/analytics?tab=clients&userId=fixture-client&fromDate=2026-01-01', { waitUntil: 'networkidle' })
+  await expect(page.getByRole('alert')).toBeVisible()
+  expect(new URLSearchParams(queries[0]).get('fromDate')).toBe('2026-01-01')
+  expect(new URLSearchParams(queries[0]).has('toDate')).toBe(false)
+  await expect(page.locator('#client-from')).toHaveValue('2026-01-01')
+  await page.locator('#client-to').fill('2026-01-31')
+  await page.getByRole('button', { name: /primijeni period|apply period/i }).click()
+  await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+  expect(new URLSearchParams(queries[1]).get('toDate')).toBe('2026-01-31')
+})

@@ -3368,6 +3368,33 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     ).toBe(0);
   });
 
+  it('enforces analytics endpoint roles and date-range boundaries over HTTP', async () => {
+    const http = getHttpServer(app!);
+    const paths = [
+      '/api/analytics/dashboard',
+      `/api/users/${clientUserId}/analytics`,
+      `/api/stylists/${fixtureIds.stylistProfile}/analytics`,
+    ];
+    for (const path of paths) {
+      await request(http).get(path).expect(401);
+      await request(http).get(path).set('Authorization', `Bearer ${clientToken}`).expect(403);
+      await request(http).get(path).set('Authorization', `Bearer ${stylistToken}`).expect(403);
+      for (const token of [ownerToken, systemAdminToken]) {
+        await request(http).get(path).query({ fromDate: '2020-01-01', toDate: '2020-01-31' }).set('Authorization', `Bearer ${token}`).expect(200);
+      }
+    }
+    // Dashboard service is mocked in this HTTP fixture; the other two use real services.
+    for (const path of paths.slice(1)) {
+      for (const query of [
+        { fromDate: '2020-01-01' },
+        { fromDate: '2020-02-01', toDate: '2020-01-01' },
+        { fromDate: '2020-01-01', toDate: '2025-01-02' },
+        { fromDate: '2020-02-30', toDate: '2020-03-01' },
+      ]) await request(http).get(path).query(query).set('Authorization', `Bearer ${ownerToken}`).expect(400);
+      await request(http).get(path).query({ fromDate: '2020-01-01', toDate: '2025-01-01' }).set('Authorization', `Bearer ${ownerToken}`).expect(200);
+    }
+  });
+
   it('deduplicates linked reservation, daily-log and debt-payment records across analytics', async () => {
     const db = prisma!;
     const stylistId = fixtureIds.stylistProfile!;
