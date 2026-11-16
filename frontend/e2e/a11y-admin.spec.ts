@@ -1646,3 +1646,36 @@ test('stylist analytics honours deep-link period, explicit apply, response ident
   await expect(page.getByRole('heading', { name: 'Ana Test' })).toBeVisible()
   expect(new URLSearchParams(queries[2]).get('fromDate')).toBe('2026-03-01')
 })
+
+test('expense date preserves estimated provenance until explicitly confirmed', async ({ page }) => {
+  const field = { id: 'field-1', fieldName: 'Iznos test', fieldType: 'NUMBER', isRequired: true, sortOrder: 0, defaultValue: null }
+  const category = { id: 'category-1', name: 'Test kategorija', isActive: true, isFixed: true, templateId: 'template-1', template: { id: 'template-1', name: 'Test', fields: [field], requiresAttachmentPerItem: false } }
+  const expense = { id: 'expense-1', title: 'Test rashod', expenseDate: '2026-03-01T00:00:00.000Z', dateEstimated: true, totalAmount: 30, notes: null, createdAt: '2026-03-02T00:00:00.000Z', category, fieldValues: [{ id: 'value-1', fieldId: 'field-1', value: '30' }], attachments: [] }
+  const book = { id: 'book-1', year: 2026, month: 3, isClosed: false, openedAt: '2026-03-01T00:00:00Z', closedAt: null, expenses: [expense], totalExpenses: 30, lockEvents: [] }
+  const bodies: Array<Record<string, unknown>> = []
+  await page.route('**/api/expense-books', route => route.fulfill({ json: [book] }))
+  await page.route('**/api/expense-books/book-1', route => route.fulfill({ json: book }))
+  await page.route('**/api/expense-categories', route => route.fulfill({ json: [category] }))
+  await page.route('**/api/expenses/expense-1', route => {
+    bodies.push(route.request().postDataJSON())
+    return route.fulfill({ json: expense })
+  })
+  await page.goto('/admin/finance?tab=expense', { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: /otvori knjigu.*2026|open book.*2026/i }).click()
+  await expect(page.getByText(/procijenjeno|estimated/i)).toBeVisible()
+  await page.getByRole('button', { name: /uredi rashod test rashod|edit expense test rashod/i }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByLabel(/datum rashoda|expense date/i)).toHaveValue('2026-03-01')
+  await dialog.getByLabel(/datum rashoda|expense date/i).fill('2026-04-01')
+  await expect(dialog.getByRole('button', { name: /sačuvaj|save/i })).toBeDisabled()
+  await dialog.getByLabel(/datum rashoda|expense date/i).fill('2026-03-01')
+  await dialog.getByRole('button', { name: /sačuvaj|save/i }).click()
+  await expect.poll(() => bodies.length).toBe(1)
+  expect(bodies[0]).not.toHaveProperty('expenseDate')
+  await expect(dialog).toBeHidden()
+  await page.getByRole('button', { name: /uredi rashod test rashod|edit expense test rashod/i }).click()
+  await dialog.getByRole('checkbox', { name: /potvrđujem da je prikazani datum tačan|i confirm the displayed date/i }).check()
+  await dialog.getByRole('button', { name: /sačuvaj|save/i }).click()
+  await expect.poll(() => bodies.length).toBe(2)
+  expect(bodies[1].expenseDate).toBe('2026-03-01')
+})

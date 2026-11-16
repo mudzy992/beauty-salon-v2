@@ -162,6 +162,10 @@ export function ExpenseBookDetail({
             formatInstantDateLocalized(e.createdAt, i18n.language),
         },
         {
+          header: t('finance.expenseForm.expenseDate'),
+          value: (e: Expense) => `${e.expenseDate?.slice(0, 10) ?? '—'}${e.dateEstimated ? ` (${t('finance.expenseForm.estimatedShort')})` : ''}`,
+        },
+        {
           header: t('finance.expenseList.columns.title'),
           value: (e: Expense) => e.title,
         },
@@ -187,6 +191,7 @@ export function ExpenseBookDetail({
         t('finance.expenseDetail.csvTotal'),
         '',
         '',
+        '',
         filteredTotal.toFixed(2),
         '',
       ],
@@ -206,12 +211,14 @@ export function ExpenseBookDetail({
       language: i18n.language.startsWith('en') ? 'en' : 'bs',
       headers: [
         t('finance.expenseList.columns.date'),
+        t('finance.expenseForm.expenseDate'),
         t('finance.expenseForm.title'),
         t('finance.expenseList.columns.category'),
         t('finance.expenseList.columns.amount'),
       ],
       rows: expenses.map((e) => [
         formatInstantDateLocalized(e.createdAt, i18n.language),
+        `${e.expenseDate?.slice(0, 10) ?? '—'}${e.dateEstimated ? ` (${t('finance.expenseForm.estimatedShort')})` : ''}`,
         e.title,
         e.category?.name ?? '—',
         formatLocalizedAmount(e.totalAmount, i18n.language),
