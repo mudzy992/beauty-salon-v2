@@ -523,7 +523,6 @@ export class StylistsService {
             client: { select: { id: true, firstName: true, lastName: true } },
           },
           orderBy: { reservationDate: 'desc' },
-          take: 100,
         }),
         this.prisma.dailyLogEntry.findMany({
           where: {
@@ -537,7 +536,6 @@ export class StylistsService {
             client: { select: { id: true, firstName: true, lastName: true } },
           },
           orderBy: { date: 'desc' },
-          take: 100,
         }),
         this.prisma.incomeBookManualEntry.findMany({
           where: {
@@ -546,7 +544,6 @@ export class StylistsService {
           },
           include: { service: { select: { id: true, name: true } } },
           orderBy: { date: 'desc' },
-          take: 100,
         }),
       ]);
 

@@ -1623,3 +1623,26 @@ test('analytics ignores older responses and retries failed requests without hidi
   await expect.poll(() => count).toBe(5)
   await expect(page.getByText('Aktuelno')).toBeVisible()
 })
+
+test('stylist analytics honours deep-link period, explicit apply, response identity and retry', async ({ page }) => {
+  const queries: string[] = []
+  const fixture = { stylist: { id: 'profile-1', name: 'Ana Test' }, fromDate: '2026-01-01', toDate: '2026-01-31', completedCount: 1, revenue: 50, tips: 5, topServices: [{ serviceId: 's1', serviceName: 'Šišanje Test', count: 1, revenue: 50 }], recentEntries: [] }
+  await page.route('**/api/stylists/profile-1/analytics**', route => {
+    queries.push(new URL(route.request().url()).search)
+    if (queries.length === 2) return route.fulfill({ json: { ...fixture, stylist: { id: 'wrong-profile', name: 'Pogrešan stilista' } } })
+    return route.fulfill({ json: fixture })
+  })
+  await page.goto('/admin/analytics?tab=stylists&stylistId=profile-1&fromDate=2026-01-01&toDate=2026-01-31', { waitUntil: 'networkidle' })
+  await expect(page.getByRole('heading', { name: 'Ana Test' })).toBeVisible()
+  expect(new URLSearchParams(queries[0]).get('fromDate')).toBe('2026-01-01')
+  await page.locator('#stylist-from').fill('2026-03-01')
+  await expect(page.getByRole('button', { name: /primijeni period|apply period/i })).toBeDisabled()
+  await page.locator('#stylist-to').fill('2026-03-31')
+  expect(queries).toHaveLength(1)
+  await page.getByRole('button', { name: /primijeni period|apply period/i }).click()
+  await expect(page.getByRole('alert')).toBeVisible()
+  await expect(page.getByText('Pogrešan stilista')).toHaveCount(0)
+  await page.getByRole('alert').getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+  await expect(page.getByRole('heading', { name: 'Ana Test' })).toBeVisible()
+  expect(new URLSearchParams(queries[2]).get('fromDate')).toBe('2026-03-01')
+})

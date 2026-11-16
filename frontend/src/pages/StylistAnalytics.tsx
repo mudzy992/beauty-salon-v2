@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -49,61 +49,68 @@ export default function StylistAnalytics() {
   }
   const [searchParams] = useSearchParams()
   const stylistId = searchParams.get('stylistId')
+  const appliedFrom = searchParams.get('fromDate') ?? ''
+  const appliedTo = searchParams.get('toDate') ?? ''
   const [data, setData] = useState<StylistAnalyticsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '')
   const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '')
 
-  const load = useCallback(() => {
+  const [error, setError] = useState(false)
+  const sequence = useRef(0)
+  const lastParams = useRef<Record<string, string>>({})
+  const invalidRange = Boolean(dateFrom) !== Boolean(dateTo) || (!!dateFrom && !!dateTo && dateFrom > dateTo)
+
+  const load = useCallback((params: Record<string, string>) => {
     if (!stylistId) return
+    const request = ++sequence.current
+    lastParams.current = params
     setLoading(true)
-    const params: Record<string, string> = {}
-    if (dateFrom) params.fromDate = dateFrom
-    if (dateTo) params.toDate = dateTo
+    setError(false)
+    setData(null)
     api
-      .get<StylistAnalyticsData>(`/api/stylists/${stylistId}/analytics`, { params })
-      .then((res) => setData(res.data))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
-  }, [stylistId, dateFrom, dateTo])
+      .get<StylistAnalyticsData>(`/api/stylists/${encodeURIComponent(stylistId)}/analytics`, { params })
+      .then((res) => {
+        if (request !== sequence.current) return
+        const value = res.data
+        if (!value?.stylist || value.stylist.id !== stylistId || typeof value.stylist.name !== 'string' ||
+            !Array.isArray(value.topServices) || !Array.isArray(value.recentEntries) ||
+            ![value.completedCount, value.revenue, value.tips].every(Number.isFinite) ||
+            !value.topServices.every(row => typeof row.serviceName === 'string' && [row.count, row.revenue].every(Number.isFinite)) ||
+            !value.recentEntries.every(row => typeof row.id === 'string' && typeof row.date === 'string' && Number.isFinite(Number(row.actualPrice)))) {
+          throw new Error('Invalid stylist analytics response')
+        }
+        setData(value)
+      })
+      .catch(() => { if (request === sequence.current) setError(true) })
+      .finally(() => { if (request === sequence.current) setLoading(false) })
+  }, [stylistId])
 
   useEffect(() => {
-    if (stylistId) load()
-    else setData(null)
-  }, [stylistId, load])
+    setDateFrom(appliedFrom)
+    setDateTo(appliedTo)
+    setData(null)
+    setError(false)
+    if (stylistId) {
+      const params: Record<string, string> = {}
+      if (appliedFrom) params.fromDate = appliedFrom
+      if (appliedTo) params.toDate = appliedTo
+      load(params)
+    } else setLoading(false)
+    return () => { sequence.current += 1 }
+  }, [stylistId, appliedFrom, appliedTo, load])
 
   if (!stylistId) {
     return (
       <div>
         <Button asChild variant="ghost" className="mb-4">
           <RouterLink to="/admin/stylists">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('stylistAnalytics.backToStylists')}
           </RouterLink>
         </Button>
-        <p className="text-sm text-slate-500">{t('stylistAnalytics.selectStylist')}</p>
-      </div>
-    )
-  }
-
-  if (loading && !data) {
-    return (
-      <div className="flex justify-center p-10 text-slate-500">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
-      </div>
-    )
-  }
-
-  if (!data) {
-    return (
-      <div>
-        <Button asChild variant="ghost" className="mb-4">
-          <RouterLink to="/admin/stylists">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('stylistAnalytics.backToStylists')}
-          </RouterLink>
-        </Button>
-        <p className="text-sm text-rose-600">{t('stylistAnalytics.loadFailed')}</p>
+        <h1 className="text-xl font-semibold">{t('adminAnalytics.tabs.stylists')}</h1>
+        <p className="text-sm text-content-muted">{t('stylistAnalytics.selectStylist')}</p>
       </div>
     )
   }
@@ -130,7 +137,12 @@ export default function StylistAnalytics() {
           </Label>
           <Input id="stylist-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1 md:max-w-[160px]" />
         </div>
-        <Button type="button" size="sm" onClick={load} disabled={loading} className="md:mb-0.5">
+        <Button type="button" size="sm" onClick={() => {
+          const params: Record<string, string> = {}
+          if (dateFrom) params.fromDate = dateFrom
+          if (dateTo) params.toDate = dateTo
+          load(params)
+        }} disabled={invalidRange} className="md:mb-0.5">
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -140,18 +152,23 @@ export default function StylistAnalytics() {
             t('stylistAnalytics.applyPeriod')
           )}
         </Button>
-        {data.fromDate || data.toDate ? (
+        {data && data.stylist.id === stylistId && (data.fromDate || data.toDate) ? (
           <p className="pb-1 text-sm text-slate-500 md:self-center">
             {t('stylistAnalytics.period', { from: formatDate(data.fromDate), to: formatDate(data.toDate) })}
           </p>
         ) : null}
       </div>
 
+      {invalidRange ? <p role="alert" className="text-sm text-content">{t('stylistAnalytics.invalidRange')}</p> : null}
+      {loading ? <div role="status" className="flex justify-center p-10 text-content-muted"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
+      {error && !loading ? <div role="alert" className="space-y-3"><p>{t('stylistAnalytics.loadFailed')}</p><Button type="button" variant="outline" onClick={() => load(lastParams.current)}>{t('common.retry')}</Button></div> : null}
+      {data && data.stylist.id === stylistId && !loading ? <>
       <div>
         <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-50">{data.stylist.name}</h1>
         {data.stylist.user?.email ? <p className="text-sm text-slate-500">{data.stylist.user.email}</p> : null}
       </div>
 
+      <p className="text-sm text-content">{t('stylistAnalytics.sourceNote')}</p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard title={t('stylistAnalytics.completedInPeriod')} value={formatLocalizedNumber(data.completedCount, i18n.language)} />
         <StatCard title={t('stylistAnalytics.revenue')} value={formatLocalizedAmount(data.revenue, i18n.language)} />
@@ -225,6 +242,7 @@ export default function StylistAnalytics() {
           </div>
         </Card>
       </div>
+      </> : <h1 className="sr-only">{t('adminAnalytics.tabs.stylists')}</h1>}
     </div>
   )
 }

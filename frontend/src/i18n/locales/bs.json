@@ -423,6 +423,7 @@
     }
   },
   "clientAnalyticsPage": {
+    "sourceNote": "Iznosi uključuju trenutne cijene završenih rezervacija te zapise dnevnika i ručne prihode; povezani zapisi mogu biti uračunati više puta, a zapisi dnevnika mogu biti nezavršeni.",
     "debtsLoadError": "Dugovanja nije moguće učitati. Pokušajte ponovo.",
     "servicesCaption": "Tabela potrosnje po uslugama: usluga, broj posjeta i ukupan iznos.",
     "reservationsCaption": "Tabela rezervacija klijenta: datum, vrijeme, usluga, frizer, cijena, status i detalji.",
@@ -738,6 +739,8 @@
     "manualEntryReference": "Ručni unos: {{date}}"
   },
   "stylistAnalytics": {
+    "sourceNote": "Brojevi usluga kombinuju rezervacije, dnevnik i ručne prihode. Povezani zapisi mogu biti uračunati više puta; cijena rezervacije je trenutna cijena usluge.",
+    "invalidRange": "Unesite oba datuma u ispravnom redoslijedu ili ostavite oba prazna.",
     "backToStylists": "Nazad na stiliste",
     "selectStylist": "Odaberite stilistu (npr. s liste Stilisti) da vidite analitiku.",
     "loadFailed": "Nije moguće učitati analitiku stiliste.",
@@ -934,6 +937,8 @@
     }
   },
   "adminAnalytics": {
+    "financePeriodNote": "Finansijski iznosi i graf sabiraju cijele mjesečne knjige koje dodiruju odabrani raspon; nisu precizan obračun po danima.",
+    "sourceNote": "Brojevi usluga kombinuju rezervacije, dnevnik i ručne prihode. Povezani zapisi mogu biti uračunati više puta; cijena rezervacije je trenutna cijena usluge.",
     "invalidRange": "Početni datum ne može biti nakon završnog datuma.",
     "tabContext": "analitika",
     "tabsLabel": "Odaberi analitiku",
@@ -952,7 +957,7 @@
     "loadFailed": "Analitiku trenutno nije moguće učitati.",
     "periodLabel": "Period: {{from}} – {{to}}",
     "period": "Period",
-    "last12Months": "Posljednjih 12 mjeseci",
+    "last12Months": "Prethodnih 12 mjeseci i tekući mjesec",
     "thisMonth": "Ovaj mjesec",
     "lastMonth": "Prošli mjesec",
     "customRange": "Raspon datuma",
@@ -968,10 +973,10 @@
     "totalExpenses": "Ukupni rashodi",
     "profit": "Zarada",
     "profitHint": "Prihodi − rashodi · {{period}}",
-    "conversion": "Konverzija (završeno / ukupno)",
+    "conversion": "Udio završenih (bez otkazanih i nedolazaka)",
     "conversionHint": "{{completed}} završenih / {{total}} ukupno",
     "completedReservations": "Završene rezervacije (u periodu)",
-    "pendingReservations": "Na čekanju",
+    "pendingReservations": "Aktivne i rezervacije na čekanju",
     "monthlyChartTitle": "Prihodi i rashodi po mjesecima",
     "monthlyChartRange": "({{from}} – {{to}})",
     "monthlyChartLast12": "(posljednjih 12 mjeseci)",

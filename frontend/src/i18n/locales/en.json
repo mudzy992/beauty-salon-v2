@@ -426,6 +426,7 @@
     }
   },
   "clientAnalyticsPage": {
+    "sourceNote": "Amounts include current prices of completed reservations plus daily log and manual income records; linked records may be counted more than once and daily log records may be incomplete.",
     "debtsLoadError": "Could not load debts. Please try again.",
     "servicesCaption": "Spending by service: service name, visit count, and total amount.",
     "reservationsCaption": "Client reservations: date, time, service, stylist, price, status, and details.",
@@ -741,6 +742,8 @@
     "manualEntryReference": "Manual entry: {{date}}"
   },
   "stylistAnalytics": {
+    "sourceNote": "Service figures combine reservations, daily log and manual income. Linked records may be counted more than once; reservation prices are current service prices.",
+    "invalidRange": "Enter both dates in order, or leave both empty.",
     "backToStylists": "Back to stylists",
     "selectStylist": "Select a stylist (for example, from the Stylists list) to view analytics.",
     "loadFailed": "Unable to load stylist analytics.",
@@ -937,6 +940,8 @@
     }
   },
   "adminAnalytics": {
+    "financePeriodNote": "Financial amounts and the chart sum entire monthly books touched by the selected range; they are not an exact daily calculation.",
+    "sourceNote": "Service figures combine reservations, daily log and manual income. Linked records may be counted more than once; reservation prices are current service prices.",
     "invalidRange": "The start date cannot be after the end date.",
     "tabContext": "analytics",
     "tabsLabel": "Choose analytics",
@@ -955,7 +960,7 @@
     "loadFailed": "Analytics could not be loaded.",
     "periodLabel": "Period: {{from}} – {{to}}",
     "period": "Period",
-    "last12Months": "Last 12 months",
+    "last12Months": "Previous 12 months and current month",
     "thisMonth": "This month",
     "lastMonth": "Last month",
     "customRange": "Custom date range",
@@ -971,10 +976,10 @@
     "totalExpenses": "Total expenses",
     "profit": "Profit",
     "profitHint": "Income − expenses · {{period}}",
-    "conversion": "Conversion (completed / total)",
+    "conversion": "Completed share (excluding cancellations and no-shows)",
     "conversionHint": "{{completed}} completed / {{total}} total",
     "completedReservations": "Completed reservations (in period)",
-    "pendingReservations": "Pending",
+    "pendingReservations": "Active and pending reservations",
     "monthlyChartTitle": "Income and expenses by month",
     "monthlyChartRange": "({{from}} – {{to}})",
     "monthlyChartLast12": "(last 12 months)",

@@ -367,6 +367,20 @@ describe('StylistsService socket revocation', () => {
     );
   });
 
+  it('calculates stylist analytics over all matching rows rather than truncating at 100', async () => {
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'profile-1', user: { username: 'ana' } });
+    mockPrisma.reservation.findMany.mockResolvedValue([]);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
+    mockPrisma.incomeBookManualEntry.findMany.mockResolvedValue(
+      Array.from({ length: 101 }, (_, i) => ({ id: `m${i}`, serviceId: 's1', amount: 10, tipAmount: 1, service: { name: 'Service' } })),
+    );
+    const result = await service.getStylistAnalytics('profile-1', ['OWNER'], '2026-03-01', '2026-03-31');
+    expect(result).toMatchObject({ completedCount: 101, revenue: 1010, tips: 101 });
+    for (const query of [mockPrisma.reservation.findMany, mockPrisma.dailyLogEntry.findMany, mockPrisma.incomeBookManualEntry.findMany]) {
+      expect(query.mock.calls[0][0]).not.toHaveProperty('take');
+    }
+  });
+
   it('disconnects the stylist after profile eligibility changes', async () => {
     const activeProfile = {
       id: 'profile-1',

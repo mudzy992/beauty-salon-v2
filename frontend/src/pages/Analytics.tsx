@@ -251,6 +251,7 @@ export default function Analytics() {
       {loading ? <div role="status" className="flex justify-center p-10 text-content-muted"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
       {loadError && !loading ? <div role="alert" className="space-y-3"><p>{t('adminAnalytics.loadFailed')}</p><Button type="button" variant="outline" onClick={() => load(lastParams.current)}>{t('common.retry')}</Button></div> : null}
       {data && !loading ? <>
+      <p className="text-sm text-content">{t('adminAnalytics.financePeriodNote')}</p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="p-5">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.revenue')}</h2>
@@ -400,6 +401,7 @@ export default function Analytics() {
         </figure>
       </Card>
 
+      <p className="text-sm text-content">{t('adminAnalytics.sourceNote')}</p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-5">
           <h2 id="analytics-stylist-performance" className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.stylistPerformance')}</h2>
@@ -425,7 +427,7 @@ export default function Analytics() {
                     <tr key={s.stylistProfileId} className="border-b border-slate-100 dark:border-slate-800/80">
                       <td className="py-2 pr-3">
                         <RouterLink
-                          to={`/admin/analytics?tab=stylists&stylistId=${s.stylistProfileId}`}
+                          to={`/admin/analytics?${new URLSearchParams({ tab: 'stylists', stylistId: s.stylistProfileId, fromDate: data.fromDate, toDate: data.toDate })}`}
                           className="font-medium text-brand-gold-text hover:underline"
                         >
                           {s.stylistName}

@@ -158,5 +158,5 @@ test('moduli ostaju u pages/ i nisu ispražnjeni (13 testova ih čita po putanji
   for (const p of ['pages/Analytics.tsx', 'pages/ClientAnalytics.tsx', 'pages/StylistAnalytics.tsx']) {
     assert.ok(statSync(join(root, p)).size > 500, `${p} je ispražnjen`)
   }
-  assert.match(at('pages/Analytics.tsx'), /to=\{`\/admin\/analytics\?tab=stylists&stylistId=\$\{s\.stylistProfileId\}`\}/)
+  assert.match(at('pages/Analytics.tsx'), /new URLSearchParams\(\{ tab: \'stylists\', stylistId: s\.stylistProfileId, fromDate: data\.fromDate, toDate: data\.toDate \}\)/)
 })

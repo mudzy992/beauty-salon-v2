@@ -31,7 +31,7 @@ test('stylist analytics UI uses keys present in both locales', () => {
 })
 
 test('stylist analytics keeps API data dynamic and formats dates, numbers, and amounts by locale', () => {
-  assert.match(source, /`\/api\/stylists\/\$\{stylistId\}\/analytics`/)
+  assert.match(source, /`\/api\/stylists\/\$\{encodeURIComponent\(stylistId\)\}\/analytics`/)
   assert.match(source, /params\.fromDate = dateFrom/)
   assert.match(source, /params\.toDate = dateTo/)
   assert.match(source, /data\.stylist\.name/)

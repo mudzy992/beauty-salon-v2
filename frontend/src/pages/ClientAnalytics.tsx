@@ -196,7 +196,7 @@ export default function ClientAnalytics() {
     setDebtsError(false)
     setLoading(true)
     setDebtsLoading(true)
-    const params = appliedFrom && appliedTo ? { fromDate: appliedFrom, toDate: appliedTo } : {}
+    const params = { ...(appliedFrom ? { fromDate: appliedFrom } : {}), ...(appliedTo ? { toDate: appliedTo } : {}) }
     api.get<ClientAnalyticsData>(`/api/users/${encodeURIComponent(selectedUserId)}/analytics`, { params })
       .then(({ data }) => {
         if (!data || data.user?.id !== selectedUserId || !data.stats || !data.penalty ||
@@ -219,7 +219,7 @@ export default function ClientAnalytics() {
   }, [selectedUserId, appliedFrom, appliedTo, retryVersion])
 
   const applyDateFilter = () => {
-    if (!selectedUserId || !dateFrom || !dateTo) return
+    if (!selectedUserId || !dateFrom || !dateTo || dateFrom > dateTo) return
     setSearchParams(previous => {
       const next = new URLSearchParams(previous)
       next.set('tab', 'clients')
@@ -290,6 +290,34 @@ export default function ClientAnalytics() {
         description={analytics?.user ? getUserName(analytics.user) : undefined}
       />
 
+          <div className="flex flex-col flex-wrap gap-3 md:flex-row md:items-end">
+            <div className="w-full md:w-auto">
+              <Label htmlFor="client-from" className="text-sm">
+                {t('clientAnalyticsPage.fromDate')}
+              </Label>
+              <Input id="client-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1 md:max-w-[160px]" />
+            </div>
+            <div className="w-full md:w-auto">
+              <Label htmlFor="client-to" className="text-sm">
+                {t('clientAnalyticsPage.toDate')}
+              </Label>
+              <Input id="client-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1 md:max-w-[160px]" />
+            </div>
+            <Button type="button" size="sm" onClick={applyDateFilter} disabled={!dateFrom || !dateTo || dateFrom > dateTo} className="md:mb-0.5">
+              {t('clientAnalyticsPage.applyPeriod')}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={clearDateFilter} className="md:mb-0.5">
+              {t('clientAnalyticsPage.fullPeriod')}
+            </Button>
+            {analytics && (analytics.fromDate || analytics.toDate) ? (
+              <p className="pb-1 text-sm text-slate-500 md:self-center">
+                {t('clientAnalyticsPage.showingPeriod', { from: formatDateOnly(analytics.fromDate), to: formatDateOnly(analytics.toDate) })}
+              </p>
+            ) : null}
+          </div>
+
+          {dateFrom && dateTo && dateFrom > dateTo ? <p role="alert" className="text-sm text-content">{t('adminAnalytics.invalidRange')}</p> : null}
+
       {loading ? (
         <div role="status" className="flex justify-center py-10 text-slate-500">
           <span className="sr-only">{t('clientAnalyticsPage.loading')}</span>
@@ -306,32 +334,7 @@ export default function ClientAnalytics() {
 
       {analytics && !loading ? (
         <div className="space-y-6">
-          <div className="flex flex-col flex-wrap gap-3 md:flex-row md:items-end">
-            <div className="w-full md:w-auto">
-              <Label htmlFor="client-from" className="text-sm">
-                {t('clientAnalyticsPage.fromDate')}
-              </Label>
-              <Input id="client-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1 md:max-w-[160px]" />
-            </div>
-            <div className="w-full md:w-auto">
-              <Label htmlFor="client-to" className="text-sm">
-                {t('clientAnalyticsPage.toDate')}
-              </Label>
-              <Input id="client-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1 md:max-w-[160px]" />
-            </div>
-            <Button type="button" size="sm" onClick={applyDateFilter} disabled={!dateFrom || !dateTo} className="md:mb-0.5">
-              {t('clientAnalyticsPage.applyPeriod')}
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={clearDateFilter} className="md:mb-0.5">
-              {t('clientAnalyticsPage.fullPeriod')}
-            </Button>
-            {analytics.fromDate || analytics.toDate ? (
-              <p className="pb-1 text-sm text-slate-500 md:self-center">
-                {t('clientAnalyticsPage.showingPeriod', { from: formatDateOnly(analytics.fromDate), to: formatDateOnly(analytics.toDate) })}
-              </p>
-            ) : null}
-          </div>
-
+          <p className="text-sm text-content">{t('clientAnalyticsPage.sourceNote')}</p>
           <Card className="p-5">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
               <div className="min-w-0">
