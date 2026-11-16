@@ -1770,22 +1770,25 @@ test('legacy analytics links preserve identifiers, dates and replace conflicting
   }
 })
 
-test('analytics navigation and chart table work with keyboard', async ({ page }) => {
+test('analytics subviews are keyboard-navigable from the sidebar and chart table toggles', async ({ page }) => {
   await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
   await page.goto('/admin/analytics?tab=invalid', { waitUntil: 'networkidle' })
-  const nav = page.locator('[data-analytics-hub] nav')
-  const links = nav.getByRole('link')
-  await expect(links).toHaveCount(3)
-  await expect(links.nth(0)).toHaveAttribute('aria-current', 'page')
-  await links.nth(0).focus()
+  // Pod-pogledi analitike su grupisani u bočnoj traci (grupa „Analitika"), a ne kao
+  // zaseban tab-menu na vrhu stranice. Lokator po href-u je nezavisan od jezika.
+  const analyticsNav = page
+    .locator('[data-admin-sidebar] [data-admin-navigation]')
+    .locator('a[href="/admin/analytics"], a[href="/admin/analytics?tab=clients"], a[href="/admin/analytics?tab=stylists"]')
+  await expect(analyticsNav).toHaveCount(3)
+  await expect(analyticsNav.nth(0)).toHaveAttribute('aria-current', 'page')
+  await analyticsNav.nth(0).focus()
   await page.keyboard.press('Tab')
-  await expect(links.nth(1)).toBeFocused()
+  await expect(analyticsNav.nth(1)).toBeFocused()
   await page.keyboard.press('Tab')
-  await expect(links.nth(2)).toBeFocused()
+  await expect(analyticsNav.nth(2)).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/tab=stylists/)
-  await expect(links.nth(2)).toHaveAttribute('aria-current', 'page')
-  await links.nth(0).focus()
+  await expect(analyticsNav.nth(2)).toHaveAttribute('aria-current', 'page')
+  await analyticsNav.nth(0).focus()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/admin\/analytics$/)
   const summary = page.getByText(/prikaži podatke grafa u tabeli|show data table/i)
@@ -1891,7 +1894,7 @@ test('analytics renders English navigation, empty data and recoverable errors', 
   await page.route('**/api/analytics/dashboard**', route => route.fulfill(fail ? { status: 500, json: {} } : { json: { ...analyticsDashboardFixture, monthlyFinance: [], stylistPerformance: [], topServices: [], periodFinance: { ...analyticsDashboardFixture.periodFinance, expensesByCategory: [] } } }))
   await page.goto('/admin/analytics', { waitUntil: 'networkidle' })
   await expect(page.getByRole('heading', { name: 'Analytics', exact: true })).toBeVisible()
-  await expect(page.locator('[data-analytics-hub] nav').getByRole('link', { name: /overview/i })).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('[data-admin-sidebar] [data-admin-navigation] a[href="/admin/analytics"]')).toHaveAttribute('aria-current', 'page')
   await expect(page.locator('[data-analytics-hub]')).not.toContainText('adminAnalytics.')
   fail = true
   await page.locator('#analytics-period').selectOption('thisMonth')
@@ -1900,7 +1903,7 @@ test('analytics renders English navigation, empty data and recoverable errors', 
   fail = false
   await page.getByRole('alert').getByRole('button', { name: /retry|try again/i }).click()
   await expect(page.getByRole('alert')).toBeHidden()
-  await page.locator('[data-analytics-hub] nav').getByRole('link', { name: /stylists/i }).click()
+  await page.locator('[data-admin-sidebar] [data-admin-navigation] a[href="/admin/analytics?tab=stylists"]').click()
   await expect(page.getByText(/select a stylist/i)).toBeVisible()
 })
 

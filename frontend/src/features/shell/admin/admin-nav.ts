@@ -19,9 +19,10 @@ export type AdminNavItem = {
   tabDefault?: boolean
 }
 
-/** Href stavke, uklj. `?tab=` ako ga ima. */
+/** Href stavke, uklj. `?tab=` ako ga ima. Zadani tab (tabDefault) ne piše `?tab=` u URL
+ *  — isto pravilo kao `finance-page.tsx`, pa pregled analitike ostaje na `/admin/analytics`. */
 export const adminNavItemHref = (item: AdminNavItem): string =>
-  item.tab ? `${item.path}?tab=${item.tab}` : item.path
+  item.tab && !item.tabDefault ? `${item.path}?tab=${item.tab}` : item.path
 
 export type AdminNavGroup = {
   labelKey: string

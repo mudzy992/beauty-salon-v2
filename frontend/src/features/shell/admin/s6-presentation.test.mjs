@@ -9,11 +9,12 @@ const calendar = read('../../../pages/ReservationsCalendar.tsx')
 test('six navigation groups group analytics subviews and consolidate settings tabs', () => {
   const groups = [...nav.matchAll(/labelKey: 'nav\.section(\w+)',\s*items: \[([\s\S]*?)\],/g)]
   assert.deepEqual(groups.map((g) => g[1]), ['Overview', 'Analytics', 'Operational', 'Salon', 'Content', 'System'])
-  const hrefs = [...nav.matchAll(/\{ path: '([^']+)', labelKey: '[^']+'(?:, tab: '([^']+)')?/g)]
-    .map(([, path, tab]) => tab ? `${path}?tab=${tab}` : path)
+  // Zadani tab (tabDefault) ne piše ?tab= u URL-u — isto pravilo kao finance-page.
+  const hrefs = [...nav.matchAll(/\{ path: '([^']+)', labelKey: '[^']+'(?:, tab: '([^']+)')?(, tabDefault: true)?/g)]
+    .map(([, path, tab, tabDefault]) => (tab && !tabDefault) ? `${path}?tab=${tab}` : path)
   assert.deepEqual(hrefs, [
     '/admin',
-    '/admin/analytics?tab=overview',
+    '/admin/analytics',
     '/admin/analytics?tab=clients',
     '/admin/analytics?tab=stylists',
     '/admin/reservations',
