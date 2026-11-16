@@ -151,6 +151,8 @@ export interface Expense {
   id: string
   title: string
   totalAmount: number | string
+  expenseDate: string
+  dateEstimated: boolean
   notes: string | null
   createdAt: string
   category?: ExpenseCategory
@@ -213,6 +215,7 @@ export interface ExpensePayload {
   categoryId: string
   title: string
   totalAmount: number
+  expenseDate?: string
   notes?: string
   invoiceUploadId?: string
   fieldValues?: ExpenseFieldValuePayload[]

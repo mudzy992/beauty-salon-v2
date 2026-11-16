@@ -25,6 +25,8 @@ export type { ExpenseFormState, PendingAtt } from './expense-form-state'
 export const useExpenseForm = (params: {
   open: boolean
   bookId: string
+  bookYear: number
+  bookMonth: number
   editing: Expense | null
   categories: ExpenseCategory[]
 }) => {
@@ -71,7 +73,7 @@ export const useExpenseForm = (params: {
 
   const selectCategory = (categoryId: string) => {
     const next = params.categories.find((c) => c.id === categoryId)
-    setForm(next ? formFromCategory(next) : emptyExpenseForm())
+    setForm(prev => ({ ...(next ? formFromCategory(next) : emptyExpenseForm()), expenseDate: prev.expenseDate, confirmDate: prev.confirmDate }))
   }
 
   const setFieldValue = (fieldId: string, value: string) =>
@@ -90,6 +92,8 @@ export const useExpenseForm = (params: {
   const validationError = (() => {
     if (!form.categoryId) return t('finance.expenseForm.validation.categoryRequired')
     if (!form.title.trim()) return t('finance.expenseForm.validation.titleRequired')
+    const prefix = `${String(params.bookYear).padStart(4, '0')}-${String(params.bookMonth).padStart(2, '0')}-`
+    if (!form.expenseDate || !form.expenseDate.startsWith(prefix)) return t('finance.expenseForm.dateRequired')
     if (!Number.isFinite(effectiveTotal) || effectiveTotal <= 0) {
       return t('finance.expenseForm.validation.amountGreaterThanZero')
     }
@@ -150,6 +154,7 @@ export const useExpenseForm = (params: {
       bookId: params.bookId,
       categoryId: form.categoryId,
       title: form.title.trim(),
+      ...(!params.editing || form.expenseDate !== params.editing.expenseDate?.slice(0, 10) || form.confirmDate ? { expenseDate: form.expenseDate } : {}),
       totalAmount: effectiveTotal,
       notes: isFixed
         ? form.notes.trim() || undefined

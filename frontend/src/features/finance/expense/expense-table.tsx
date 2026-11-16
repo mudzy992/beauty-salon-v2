@@ -1,3 +1,4 @@
+import { formatDateOnlyLocale } from '../../../../../shared/business-date.mjs'
 import { useState } from 'react'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -56,6 +57,12 @@ export function ExpenseTable({
           month: '2-digit',
           day: '2-digit',
         }),
+    },
+    {
+      key: 'expenseDate',
+      headerKey: 'finance.expenseForm.expenseDate',
+      className: 'whitespace-nowrap align-top',
+      render: (expense) => <span>{expense.expenseDate ? formatDateOnlyLocale(expense.expenseDate.slice(0, 10), getIntlLocale(i18n.language)) : '—'}{expense.dateEstimated ? ` (${t('finance.expenseForm.estimatedShort')})` : null}</span>,
     },
     {
       key: 'title',

@@ -153,9 +153,9 @@ describe('AnalyticsService', () => {
       }),
     );
     expect(mockPrisma.incomeBook.findUnique).toHaveBeenCalledTimes(1);
-    expect(mockPrisma.incomeBook.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.incomeBook.findUnique).toHaveBeenCalledWith(expect.objectContaining({
       where: { year_month: { year: 2026, month: 3 } },
-    });
+    }));
   });
 
   it('uses UTC calendar dates and months for dashboard relative ranges', async () => {
@@ -173,12 +173,12 @@ describe('AnalyticsService', () => {
 
       expect(result.fromDate).toBe('2026-09-01');
       expect(result.toDate).toBe('2026-10-22');
-      expect(mockPrisma.incomeBook.findUnique).toHaveBeenNthCalledWith(1, {
+      expect(mockPrisma.incomeBook.findUnique).toHaveBeenNthCalledWith(1, expect.objectContaining({
         where: { year_month: { year: 2026, month: 9 } },
-      });
-      expect(mockPrisma.incomeBook.findUnique).toHaveBeenNthCalledWith(2, {
+      }));
+      expect(mockPrisma.incomeBook.findUnique).toHaveBeenNthCalledWith(2, expect.objectContaining({
         where: { year_month: { year: 2026, month: 10 } },
-      });
+      }));
     } finally {
       jest.useRealTimers();
     }
@@ -186,8 +186,8 @@ describe('AnalyticsService', () => {
 
   it('getDashboard periodFinance sabira prihode, rashode po kategoriji i neto zaradu', async () => {
     mockPrisma.incomeBook.findUnique.mockResolvedValue({
-      totalRevenue: 100,
-      totalTips: 25,
+      entries: [{ amount: 60, tipAmount: 15 }],
+      manualEntries: [{ amount: 40, tipAmount: 10 }],
     });
     mockPrisma.expenseBook.findUnique.mockResolvedValue({
       expenses: [
@@ -220,4 +220,21 @@ describe('AnalyticsService', () => {
       netProfit: 80,
     });
   });
+  it('constrains financial line items, including expenses, to the exact requested date bounds', async () => {
+    mockPrisma.incomeBook.findUnique.mockResolvedValue({ entries: [{ amount: 30, tipAmount: 2 }], manualEntries: [{ amount: 20, tipAmount: 3 }] });
+    mockPrisma.expenseBook.findUnique.mockResolvedValue({ expenses: [{ totalAmount: 10, category: { id: 'c1', name: 'X' } }] });
+    mockPrisma.reservation.groupBy.mockResolvedValue([]);
+    mockPrisma.reservation.findMany.mockResolvedValue([]);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
+    mockPrisma.incomeBookManualEntry.findMany.mockResolvedValue([]);
+    const result = await service.getDashboard(['OWNER'], { fromDate: '2026-03-10', toDate: '2026-03-15' });
+    const bounds = { gte: new Date('2026-03-10T00:00:00Z'), lt: new Date('2026-03-16T00:00:00Z') };
+    expect(mockPrisma.incomeBook.findUnique).toHaveBeenCalledWith(expect.objectContaining({ include: {
+      entries: { where: { date: bounds }, select: { amount: true, tipAmount: true } },
+      manualEntries: { where: { date: bounds }, select: { amount: true, tipAmount: true } },
+    } }));
+    expect(mockPrisma.expenseBook.findUnique).toHaveBeenCalledWith(expect.objectContaining({ include: { expenses: expect.objectContaining({ where: { expenseDate: bounds } }) } }));
+    expect(result.periodFinance).toMatchObject({ servicesRevenue: 50, tips: 5, totalExpenses: 10, netProfit: 45 });
+  });
+
 });

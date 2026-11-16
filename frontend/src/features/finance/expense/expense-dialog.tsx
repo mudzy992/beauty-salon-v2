@@ -19,6 +19,8 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   bookId: string
+  bookYear: number
+  bookMonth: number
   editing: Expense | null
   categories: ExpenseCategory[]
   categoriesLoading: boolean
@@ -32,6 +34,8 @@ export function ExpenseDialog({
   open,
   onOpenChange,
   bookId,
+  bookYear,
+  bookMonth,
   editing,
   categories,
   categoriesLoading,
@@ -44,7 +48,7 @@ export function ExpenseDialog({
   const { toastApiError } = useAppToast()
   const formatAmount = (value: number | string) =>
     formatLocalizedAmount(value, i18n.language)
-  const f = useExpenseForm({ open, bookId, editing, categories })
+  const f = useExpenseForm({ open, bookId, bookYear, bookMonth, editing, categories })
   const uploads = useExpenseUploads({
     fieldAttachments: f.form.fieldAttachments,
     lineAttachments: f.form.lineAttachments,
@@ -134,6 +138,15 @@ export function ExpenseDialog({
                 </option>
               ))}
           </select>
+        </div>
+
+        <div className="grid gap-1">
+          <Label htmlFor="expense-date">{t('finance.expenseForm.expenseDate')}</Label>
+          <Input id="expense-date" type="date" required value={f.form.expenseDate} onChange={(e) => f.update({ expenseDate: e.target.value })} aria-describedby={editing?.dateEstimated ? 'expense-date-estimated' : undefined} />
+          {editing?.dateEstimated ? <>
+            <p id="expense-date-estimated" className="text-sm text-content">{t('finance.expenseForm.estimatedDate')}</p>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.form.confirmDate} onChange={(e) => f.update({ confirmDate: e.target.checked })} />{t('finance.expenseForm.confirmDate')}</label>
+          </> : null}
         </div>
 
         <div className="grid gap-1">

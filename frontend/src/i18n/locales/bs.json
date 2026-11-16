@@ -937,7 +937,7 @@
     }
   },
   "adminAnalytics": {
-    "financePeriodNote": "Finansijski iznosi i graf sabiraju cijele mjesečne knjige koje dodiruju odabrani raspon; nisu precizan obračun po danima.",
+    "financePeriodNote": "Finansijski iznosi prate odabrani raspon. Datumi starih rashoda migrirani su kao procjena na prvi dan mjeseca i mogu se ispraviti u knjizi rashoda.",
     "sourceNote": "Brojevi usluga kombinuju rezervacije, dnevnik i ručne prihode. Povezani zapisi mogu biti uračunati više puta; cijena rezervacije je trenutna cijena usluge.",
     "invalidRange": "Početni datum ne može biti nakon završnog datuma.",
     "tabContext": "analitika",
@@ -2496,6 +2496,11 @@
       "noInvoiceItems": "Nema pojedinačnih stavki."
     },
     "expenseForm": {
+      "expenseDate": "Datum rashoda",
+      "dateRequired": "Unesite datum unutar mjeseca ove knjige.",
+      "estimatedDate": "Datum je procijenjen na prvi dan mjeseca. Ispravite ga ili potvrdite ako je tačan.",
+      "confirmDate": "Potvrđujem da je prikazani datum tačan",
+      "estimatedShort": "procijenjeno",
       "noAttachments": "Nema priloga.",
       "createTitle": "Novi rashod",
       "editTitle": "Uredi rashod",

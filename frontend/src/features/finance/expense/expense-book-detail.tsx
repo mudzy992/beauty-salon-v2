@@ -343,6 +343,8 @@ export function ExpenseBookDetail({
           if (!open) setEditing(null)
         }}
         bookId={bookId}
+        bookYear={book?.year ?? 0}
+        bookMonth={book?.month ?? 0}
         editing={editing}
         categories={categoriesQuery.data ?? []}
         categoriesLoading={categoriesQuery.isLoading}

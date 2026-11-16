@@ -3368,6 +3368,44 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     ).toBe(0);
   });
 
+  it('uses transaction dates for partial-month financial analytics and preserves estimated expense provenance', async () => {
+    const db = prisma!;
+    const ownerId = fixtureIds.ownerUserId!;
+    let year = 1900;
+    while (await db.expenseBook.findUnique({ where: { year_month: { year, month: 1 } } }) ||
+           await db.incomeBook.findUnique({ where: { year_month: { year, month: 1 } } })) year++;
+    const expenseBook = await db.expenseBook.create({ data: { year, month: 1 } });
+    const incomeBook = await db.incomeBook.create({ data: { year, month: 1 } });
+    const template = await db.expenseCategoryTemplate.create({ data: { name: `date-test-${randomUUID()}` } });
+    const category = await db.expenseCategory.create({ data: { name: 'Date test', templateId: template.id } });
+    try {
+      const expenses = app!.get(ExpensesService);
+      const legacy = await expenses.create({ bookId: expenseBook.id, categoryId: category.id, title: 'Estimated', totalAmount: 9 }, { sub: ownerId, roles: ['OWNER'] } as never);
+      expect(legacy.dateEstimated).toBe(true);
+      expect(legacy.expenseDate.toISOString().slice(0, 10)).toBe(`${year}-01-01`);
+      const dated = await expenses.create({ bookId: expenseBook.id, categoryId: category.id, title: 'Dated', totalAmount: 20, expenseDate: `${year}-01-12` }, { sub: ownerId, roles: ['OWNER'] } as never);
+      expect(dated.dateEstimated).toBe(false);
+      await expect(expenses.create({ bookId: expenseBook.id, categoryId: category.id, title: 'Invalid', totalAmount: 10, expenseDate: `${year}-02-01` }, { sub: ownerId, roles: ['OWNER'] } as never)).rejects.toThrow(/mjesecu knjige/);
+      await db.incomeBookManualEntry.createMany({ data: [
+        { bookId: incomeBook.id, date: new Date(`${year}-01-03T00:00:00Z`), serviceId: fixtureIds.service!, amount: 100, tipAmount: 10, createdById: ownerId },
+        { bookId: incomeBook.id, date: new Date(`${year}-01-12T00:00:00Z`), serviceId: fixtureIds.service!, amount: 50, tipAmount: 5, createdById: ownerId },
+      ] });
+      const analytics = new AnalyticsService(db);
+      const result = await analytics.getDashboard(['OWNER'], { fromDate: `${year}-01-10`, toDate: `${year}-01-15` });
+      expect(result.periodFinance).toMatchObject({ servicesRevenue: 50, tips: 5, totalIncome: 55, totalExpenses: 20, netProfit: 35 });
+      expect(result.monthlyFinance[0]).toMatchObject({ income: 50, tips: 5, expenses: 20 });
+      const confirmed = await expenses.update(legacy.id, { expenseDate: `${year}-01-11` }, { sub: ownerId, roles: ['OWNER'] } as never);
+      expect(confirmed.dateEstimated).toBe(false);
+      const after = await analytics.getDashboard(['OWNER'], { fromDate: `${year}-01-10`, toDate: `${year}-01-15` });
+      expect(after.periodFinance.totalExpenses).toBe(29);
+    } finally {
+      await db.expenseBook.delete({ where: { id: expenseBook.id } });
+      await db.incomeBook.delete({ where: { id: incomeBook.id } });
+      await db.expenseCategory.delete({ where: { id: category.id } });
+      await db.expenseCategoryTemplate.delete({ where: { id: template.id } });
+    }
+  });
+
   it('serializes BIZ-08 finance close/write races, keeps lock audits one-per-transition, and atomically increments cancellation counts', async () => {
     const db = prisma!;
     const ownerId = fixtureIds.ownerUserId!;
@@ -3977,7 +4015,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
           year: 1800 + Math.floor(Math.random() * 200),
           month: 1 + Math.floor(Math.random() * 12),
         },
-        select: { id: true },
+        select: { id: true, year: true, month: true },
       });
       expenseBookId = expenseBook.id;
       const template = await db.expenseCategoryTemplate.create({
@@ -3998,6 +4036,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
           bookId: expenseBook.id,
           categoryId: category.id,
           title: `Synthetic invoice ${suffix}`,
+          expenseDate: new Date(Date.UTC(expenseBook.year, expenseBook.month - 1, 1)),
           totalAmount: 1,
           invoiceUploadId: upload.id,
           createdById: ownerId,

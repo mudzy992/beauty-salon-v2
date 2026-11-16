@@ -8,6 +8,8 @@ export type PendingAtt = { uploadId: string; name: string }
 export type ExpenseFormState = {
   categoryId: string
   title: string
+  expenseDate: string
+  confirmDate: boolean
   totalAmount: string
   notes: string
   fieldValues: Record<string, string>
@@ -19,6 +21,8 @@ export type ExpenseFormState = {
 export const emptyExpenseForm = (): ExpenseFormState => ({
   categoryId: '',
   title: '',
+  expenseDate: '',
+  confirmDate: false,
   totalAmount: '',
   notes: '',
   fieldValues: {},
@@ -40,6 +44,7 @@ export const formFromExpense = (
       ...emptyExpenseForm(),
       categoryId: expense.category?.id ?? '',
       title: expense.title,
+      expenseDate: expense.expenseDate?.slice(0, 10) ?? '',
       totalAmount: String(toNumber(expense.totalAmount)),
       notes: expense.notes ?? '',
       fieldValues: Object.fromEntries(
@@ -55,6 +60,7 @@ export const formFromExpense = (
     ...emptyExpenseForm(),
     categoryId: expense.category?.id ?? '',
     title: expense.title,
+    expenseDate: expense.expenseDate?.slice(0, 10) ?? '',
     totalAmount: String(toNumber(expense.totalAmount)),
     notes: parsed.userNotes,
     lineItems,

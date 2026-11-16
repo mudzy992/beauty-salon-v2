@@ -43,18 +43,28 @@ describe('ExpensesService', () => {
     }).compile();
     service = module.get(ExpensesService);
 
-    prisma.expenseBook.findUnique.mockResolvedValue({ id: 'b1', isClosed: false });
+    prisma.expenseBook.findUnique.mockResolvedValue({ id: 'b1', isClosed: false, year: 2026, month: 3 });
     prisma.expenseCategory.findUnique.mockResolvedValue(category);
     prisma.expense.create.mockResolvedValue({ id: 'ex1' });
     prisma.expense.findUnique.mockResolvedValue({
       id: 'ex1',
       bookId: 'b1',
       categoryId: 'cat1',
-      book: { id: 'b1', isClosed: false },
+      book: { id: 'b1', isClosed: false, year: 2026, month: 3 },
     });
   });
 
   describe('create', () => {
+    it('marks legacy missing dates estimated and accepts explicit dates only inside the book month', async () => {
+      const values = [{ fieldId: 'f1', value: '123' }];
+      await service.create({ ...baseDto, fieldValues: values }, user);
+      expect(prisma.expense.create).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ expenseDate: new Date('2026-03-01T00:00:00Z'), dateEstimated: true }) }));
+      await service.create({ ...baseDto, expenseDate: '2026-03-12', fieldValues: values }, user);
+      expect(prisma.expense.create).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ expenseDate: new Date('2026-03-12T00:00:00Z'), dateEstimated: false }) }));
+      await expect(service.create({ ...baseDto, expenseDate: '2026-04-01', fieldValues: values }, user)).rejects.toThrow(/mjesecu knjige/);
+      await expect(service.create({ ...baseDto, expenseDate: '2026-03-32', fieldValues: values }, user)).rejects.toThrow(/datum/);
+    });
+
     it('odbija zatvorenu knjigu', async () => {
       prisma.expenseBook.findUnique.mockResolvedValue({ id: 'b1', isClosed: true });
       await expect(

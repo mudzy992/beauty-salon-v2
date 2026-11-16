@@ -712,6 +712,8 @@ model Expense {
   bookId          String   @map("book_id")
   categoryId      String   @map("category_id")
   title           String
+  expenseDate     DateTime @map("expense_date") @db.Date
+  dateEstimated   Boolean  @default(false) @map("date_estimated")
   totalAmount     Decimal  @map("total_amount") @db.Decimal(12, 2)
   invoiceUploadId String?  @map("invoice_upload_id")
   notes           String?  @db.Text
@@ -725,6 +727,7 @@ model Expense {
   fieldValues ExpenseFieldValue[]
   attachments ExpenseAttachment[]
 
+  @@index([expenseDate])
   @@index([bookId, createdAt])
   @@index([categoryId])
   @@map("expenses")

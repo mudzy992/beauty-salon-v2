@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parseDateOnlyString } from '../common/utils/date-only';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -21,13 +22,16 @@ export class ExpensesService {
     assertExpensePayload(category, dto.fieldValues, dto.notes, dto.totalAmount);
 
     const expense = await this.prisma.$transaction(async (tx) => {
-      await this.lockEditableBook(tx, dto.bookId, 'dodavati rashode');
+      const book = await this.lockEditableBook(tx, dto.bookId, 'dodavati rashode');
+      const expenseDate = this.resolveExpenseDate(dto.expenseDate, book);
       await lockUploadIdReference(tx, dto.invoiceUploadId);
       const created = await tx.expense.create({
         data: {
           bookId: dto.bookId,
           categoryId: dto.categoryId,
           title: dto.title,
+          expenseDate,
+          dateEstimated: dto.expenseDate === undefined,
           totalAmount: dto.totalAmount,
           invoiceUploadId: dto.invoiceUploadId,
           notes: dto.notes,
@@ -101,7 +105,8 @@ export class ExpensesService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await this.lockEditableExpense(tx, id, 'mijenjati rashod');
+      const lockedExpense = await this.lockEditableExpense(tx, id, 'mijenjati rashod');
+      const expenseDate = dto.expenseDate === undefined ? undefined : this.resolveExpenseDate(dto.expenseDate, lockedExpense.book);
       if (dto.invoiceUploadId !== undefined) {
         await lockUploadIdReference(tx, dto.invoiceUploadId);
       }
@@ -109,6 +114,7 @@ export class ExpensesService {
         where: { id },
         data: {
           ...(dto.title != null && { title: dto.title }),
+          ...(expenseDate && { expenseDate, dateEstimated: false }),
           ...(dto.totalAmount != null && { totalAmount: dto.totalAmount }),
           ...(dto.invoiceUploadId !== undefined && {
             invoiceUploadId: dto.invoiceUploadId,
@@ -183,8 +189,8 @@ export class ExpensesService {
       select: { bookId: true },
     });
     if (!expense) throw new NotFoundException('Rashod nije pronađen.');
-    await this.lockEditableBook(tx, expense.bookId, action);
-    return expense;
+    const book = await this.lockEditableBook(tx, expense.bookId, action);
+    return { ...expense, book };
   }
 
   /**
@@ -201,7 +207,7 @@ export class ExpensesService {
     );
     const book = await tx.expenseBook.findUnique({
       where: { id: bookId },
-      select: { id: true, isClosed: true },
+      select: { id: true, isClosed: true, year: true, month: true },
     });
     if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
     if (book.isClosed) {
@@ -210,6 +216,20 @@ export class ExpensesService {
       );
     }
     return book;
+  }
+
+  private resolveExpenseDate(value: string | undefined, book: { year: number; month: number }): Date {
+    const dateValue = value ?? `${String(book.year).padStart(4, '0')}-${String(book.month).padStart(2, '0')}-01`;
+    let date: Date;
+    try {
+      date = parseDateOnlyString(dateValue);
+    } catch {
+      throw new BadRequestException('Datum rashoda nije važeći kalendarski datum.');
+    }
+    if (date.getUTCFullYear() !== book.year || date.getUTCMonth() + 1 !== book.month) {
+      throw new BadRequestException('Datum rashoda mora pripadati mjesecu knjige.');
+    }
+    return date;
   }
 
   private async getCategoryWithTemplate(categoryId: string) {

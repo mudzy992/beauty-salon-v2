@@ -940,7 +940,7 @@
     }
   },
   "adminAnalytics": {
-    "financePeriodNote": "Financial amounts and the chart sum entire monthly books touched by the selected range; they are not an exact daily calculation.",
+    "financePeriodNote": "Financial amounts follow the selected range. Dates of older expenses were estimated as the first of the month and can be corrected in the expense book.",
     "sourceNote": "Service figures combine reservations, daily log and manual income. Linked records may be counted more than once; reservation prices are current service prices.",
     "invalidRange": "The start date cannot be after the end date.",
     "tabContext": "analytics",
@@ -2499,6 +2499,11 @@
       "noInvoiceItems": "There are no individual line items."
     },
     "expenseForm": {
+      "expenseDate": "Expense date",
+      "dateRequired": "Enter a date within this book’s month.",
+      "estimatedDate": "This date was estimated as the first day of the month. Correct it or confirm if accurate.",
+      "confirmDate": "I confirm the displayed date is accurate",
+      "estimatedShort": "estimated",
       "noAttachments": "No attachments.",
       "createTitle": "New expense",
       "editTitle": "Edit expense",

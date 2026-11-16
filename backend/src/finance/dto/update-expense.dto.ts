@@ -32,6 +32,11 @@ export class UpdateExpenseDto {
   totalAmount?: number;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  expenseDate?: string;
+
+  @IsOptional()
   @IsUUID()
   invoiceUploadId?: string;
 

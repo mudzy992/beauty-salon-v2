@@ -188,6 +188,7 @@ export class AnalyticsService {
     }
 
     const { fromDateStr, toDateStr, months } = resolveDateRange(params);
+    const queryDateBounds = analyticsDateBounds({ fromDate: fromDateStr, toDate: toDateStr });
     const monthlyFinance: MonthlyFinance[] = [];
     const categoryTotals = new Map<
       string,
@@ -198,11 +199,16 @@ export class AnalyticsService {
       const [incomeBook, expenseBook] = await Promise.all([
         this.prisma.incomeBook.findUnique({
           where: { year_month: { year, month } },
+          include: {
+            entries: { where: { date: queryDateBounds }, select: { amount: true, tipAmount: true } },
+            manualEntries: { where: { date: queryDateBounds }, select: { amount: true, tipAmount: true } },
+          },
         }),
         this.prisma.expenseBook.findUnique({
           where: { year_month: { year, month } },
           include: {
             expenses: {
+              where: { expenseDate: queryDateBounds },
               select: {
                 totalAmount: true,
                 category: { select: { id: true, name: true } },
@@ -212,8 +218,9 @@ export class AnalyticsService {
         }),
       ]);
 
-      const income = Number(incomeBook?.totalRevenue ?? 0);
-      const tips = Number(incomeBook?.totalTips ?? 0);
+      const incomeRows = [...(incomeBook?.entries ?? []), ...(incomeBook?.manualEntries ?? [])];
+      const income = incomeRows.reduce((sum, row) => sum + Number(row.amount), 0);
+      const tips = incomeRows.reduce((sum, row) => sum + Number(row.tipAmount), 0);
       const expenses =
         expenseBook?.expenses?.reduce(
           (s, e) => s + Number(e.totalAmount ?? 0),
@@ -265,10 +272,6 @@ export class AnalyticsService {
       netProfit: roundFinance2(totalIncomeRaw - totalExpensesRaw),
     };
 
-    const queryDateBounds = analyticsDateBounds({
-      fromDate: fromDateStr,
-      toDate: toDateStr,
-    });
     const [stylistAgg, topServicesRaw, reservationCounts] = await Promise.all([
       this.getStylistPerformance(queryDateBounds),
       this.getTopServices(queryDateBounds),
