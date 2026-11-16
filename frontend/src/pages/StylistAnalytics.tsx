@@ -26,7 +26,7 @@ interface StylistAnalyticsData {
 }
 
 const StatCard = ({ title, value }: { title: string; value: string }) => (
-  <Card className="p-5">
+  <Card className="min-w-0 p-5">
     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{title}</p>
     <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-50">{value}</p>
   </Card>
@@ -176,7 +176,7 @@ export default function StylistAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 id={topServicesLabelId} className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistAnalytics.topServices')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby={topServicesLabelId} className="app-table w-full border-collapse">
@@ -208,7 +208,7 @@ export default function StylistAnalytics() {
           </div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 id={recentEntriesLabelId} className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistAnalytics.recentEntries')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby={recentEntriesLabelId} className="app-table w-full border-collapse">

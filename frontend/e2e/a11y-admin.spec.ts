@@ -1591,6 +1591,7 @@ test('analytics custom range applies only on confirmation and rejects reversed d
   await expect(page.getByText('Test Trošak')).toBeVisible()
   await page.getByText(/prikaži podatke grafa u tabeli|show data table/i).click()
   await expect(page.getByRole('table', { name: /mjesečn|monthly/i })).toBeVisible()
+  await expect(page.getByRole('table', { name: /mjesečn|monthly/i })).toContainText(/75[,.]00/)
 })
 
 test('analytics ignores older responses and retries failed requests without hiding filters', async ({ page }) => {
@@ -1706,7 +1707,8 @@ for (const mode of ['light', 'dark'] as const) {
         console.log(`ANALYTICS_MATRIX_${panel}_${mode}_${viewport} ${JSON.stringify({ violations: results.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: results.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
         const aa = results.violations.filter(v => v.id !== 'color-contrast-enhanced')
         expect(aa).toEqual([])
-        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+        const overflow = await page.evaluate(() => ({ excess: document.documentElement.scrollWidth - document.documentElement.clientWidth, elements: Array.from(document.querySelectorAll('[data-analytics-hub] *')).filter(el => el.getBoundingClientRect().right > document.documentElement.clientWidth + 1).slice(0, 12).map(el => ({ tag: el.tagName, className: el.getAttribute('class'), right: el.getBoundingClientRect().right })) }))
+        expect(overflow.excess, JSON.stringify(overflow.elements)).toBeLessThanOrEqual(1)
       })
     }
   }

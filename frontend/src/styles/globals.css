@@ -1977,3 +1977,14 @@
 /* Users table and status text: stronger existing text tokens for AAA on light surfaces. */
 [data-skin="aurum"] .admin-shell [data-admin-users] table.app-table th { color: hsl(var(--text-muted-strong)); }
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge] { color: hsl(var(--text)); }
+
+/* Analytics: retain the approved Aurum palette but use its stronger paired text
+   token on small copy and controls, including tables on card surfaces. */
+[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-slate-500, .text-content-muted, .text-emerald-700, .text-rose-700, .text-rose-600, .text-brand-gold-text, .text-brand-rose-text) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] .admin-shell [data-analytics-hub] table.app-table th {
+  color: hsl(var(--text-muted-strong));
+}
+[data-analytics-hub] .grid > [data-default-card-surface] { min-width: 0; }
+[data-analytics-hub] .recharts-wrapper, [data-analytics-hub] .recharts-responsive-container { min-width: 0; max-width: 100%; }

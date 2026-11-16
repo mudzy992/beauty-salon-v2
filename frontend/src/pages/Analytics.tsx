@@ -95,7 +95,7 @@ const getPresetParams = (preset: PeriodPreset, customFrom?: string, customTo?: s
 }
 
 const StatCard = ({ title, value, hint }: { title: string; value: string; hint?: string }) => (
-  <Card className="p-5">
+  <Card className="min-w-0 p-5">
     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{title}</p>
     <p className="mt-2 text-3xl font-semibold text-slate-900 dark:text-slate-50">{value}</p>
     {hint ? <p className="mt-2 text-sm text-slate-500">{hint}</p> : null}
@@ -162,7 +162,7 @@ export default function Analytics() {
           year: 'numeric',
           timeZone: 'UTC',
         }).format(new Date(Date.UTC(m.year, m.month - 1, 1))),
-        net: m.income - m.expenses,
+        net: m.income + m.tips - m.expenses,
       })),
     [data, i18n.language],
   )
@@ -253,7 +253,7 @@ export default function Analytics() {
       {data && !loading ? <>
       <p className="text-sm text-content">{t('adminAnalytics.financePeriodNote')}</p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.revenue')}</h2>
           <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
           <dl className="mt-4 space-y-2 text-sm">
@@ -278,7 +278,7 @@ export default function Analytics() {
           </dl>
         </Card>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.expenses')}</h2>
           <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
           <ul className="mt-4 max-h-40 space-y-2 overflow-y-auto text-sm">
@@ -304,7 +304,7 @@ export default function Analytics() {
           </div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.profit')}</h2>
           <p className="mt-1 text-xs text-slate-500">{t('adminAnalytics.profitHint', { period: periodLabel })}</p>
           <p
@@ -329,7 +329,7 @@ export default function Analytics() {
         <StatCard title={t('adminAnalytics.pendingReservations')} value={formatLocalizedNumber(data.totalPending, i18n.language)} />
       </div>
 
-      <Card className="p-5">
+      <Card className="min-w-0 p-5">
         <h2 className="mb-4 text-sm font-semibold text-slate-900 dark:text-slate-50">
           {t('adminAnalytics.monthlyChartTitle')}{' '}
           {data.fromDate && data.toDate
@@ -341,7 +341,7 @@ export default function Analytics() {
         </h2>
         <figure className="m-0">
         <div
-          className="h-80 w-full"
+          className="h-80 w-full min-w-0"
           role="img"
           aria-label={t('adminAnalytics.chartAriaLabel', chartSummary)}
         >
@@ -403,7 +403,7 @@ export default function Analytics() {
 
       <p className="text-sm text-content">{t('adminAnalytics.sourceNote')}</p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 id="analytics-stylist-performance" className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.stylistPerformance')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby="analytics-stylist-performance" className="app-table w-full border-collapse">
@@ -444,7 +444,7 @@ export default function Analytics() {
           </div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <h2 id="analytics-top-services" className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('adminAnalytics.topServices')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby="analytics-top-services" className="app-table w-full border-collapse">
