@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
@@ -175,6 +175,7 @@ export default function ClientAnalytics() {
   const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '')
   const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '')
 
+  const detailTriggerRef = useRef<HTMLElement | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailReservation, setDetailReservation] = useState<ClientAnalyticsData['reservations'][0] | null>(null)
   const [detailReview, setDetailReview] = useState<ClientAnalyticsData['reviews'][0] | null>(null)
@@ -246,13 +247,15 @@ export default function ClientAnalytics() {
     navigate('/admin/users')
   }
 
-  const openReservationDetail = (r: ClientAnalyticsData['reservations'][0]) => {
+  const openReservationDetail = (r: ClientAnalyticsData['reservations'][0], trigger: HTMLElement | null) => {
+    detailTriggerRef.current = trigger
     setDetailReservation(r)
     setDetailReview(null)
     setDetailOpen(true)
   }
 
-  const openReviewDetail = (r: ClientAnalyticsData['reviews'][0]) => {
+  const openReviewDetail = (r: ClientAnalyticsData['reviews'][0], trigger: HTMLElement) => {
+    detailTriggerRef.current = trigger
     setDetailReview(r)
     setDetailReservation(null)
     setDetailOpen(true)
@@ -428,10 +431,8 @@ export default function ClientAnalytics() {
               <p className="mb-3 font-semibold text-slate-900 dark:text-slate-50">{t('clientAnalyticsPage.topServices')}</p>
               <div className="app-table-wrap">
                 <table className="app-table data-table w-full border-collapse">
-                                    <caption className="sr-only">{t('clientAnalyticsPage.servicesCaption')}</caption>
-                                      <caption className="sr-only">{t('clientAnalyticsPage.reservationsCaption')}</caption>
-                                        <caption className="sr-only">{t('clientAnalyticsPage.manualEntriesCaption')}</caption>
-                    <thead>
+                  <caption className="sr-only">{t('clientAnalyticsPage.servicesCaption')}</caption>
+                  <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                       <th scope="col" className="py-2 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
                       <th scope="col" className="py-2 pr-3 text-right font-medium">{t('clientAnalyticsPage.visitCount')}</th>
@@ -464,6 +465,7 @@ export default function ClientAnalytics() {
               <Card className="overflow-hidden">
                 <div className="app-table-wrap">
                   <table className="app-table data-table w-full border-collapse">
+                    <caption className="sr-only">{t('clientAnalyticsPage.reservationsCaption')}</caption>
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                         <th scope="col" className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
@@ -491,7 +493,7 @@ export default function ClientAnalytics() {
                             // role koja kaže da je aktivabilan — AT najavi samo "red". Pristupačni
                             // put je dugme "Detalji" u zadnjoj koloni, isto kao u Reservations.tsx
                             // i Stylists.tsx, pa red ostaje klikabilan samo mišem (zgodna prečica).
-                            onClick={() => openReservationDetail(r)}
+                            onClick={(event) => openReservationDetail(r, event.currentTarget.querySelector('button'))}
                           >
                             <td data-label={t('clientAnalyticsPage.date')} className="py-3 pl-4 pr-3">{formatDateOnly(r.reservationDate)}</td>
                             <td data-label={t('clientAnalyticsPage.time')} className="py-3 pr-3">
@@ -508,7 +510,7 @@ export default function ClientAnalytics() {
                             <td data-label={t('clientAnalyticsPage.details')} className="py-3 pr-4 text-right">
                               <Button type="button" size="icon" variant="ghost" aria-label={t('clientAnalyticsPage.details')} onClick={(e) => {
                                 e.stopPropagation()
-                                openReservationDetail(r)
+                                openReservationDetail(r, e.currentTarget)
                               }}
                               >
                                 <Eye className="h-4 w-4" />
@@ -527,6 +529,7 @@ export default function ClientAnalytics() {
               <Card className="overflow-hidden">
                 <div className="app-table-wrap">
                   <table className="app-table data-table w-full border-collapse">
+                    <caption className="sr-only">{t('clientAnalyticsPage.manualEntriesCaption')}</caption>
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                         <th scope="col" className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
@@ -594,7 +597,7 @@ export default function ClientAnalytics() {
                           <div className="mb-1 flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => openReviewDetail(r)}
+                              onClick={(event) => openReviewDetail(r, event.currentTarget)}
                               aria-label={t('clientAnalyticsPage.reviewDetailsAction', {
                                 service: r.service?.name ?? '-',
                               })}
@@ -687,7 +690,12 @@ export default function ClientAnalytics() {
           if (!open) closeDetail()
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent data-client-analytics-dialog aria-describedby={undefined} className="max-w-2xl" onCloseAutoFocus={(event) => {
+          if (detailTriggerRef.current?.isConnected) {
+            event.preventDefault()
+            detailTriggerRef.current.focus()
+          }
+        }}>
           {detailReservation ? (
             <>
               <DialogHeader>

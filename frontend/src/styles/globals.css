@@ -2010,3 +2010,10 @@
     content: attr(data-label); text-align: left; font-weight: 500; color: hsl(var(--text-muted-strong));
   }
 }
+
+/* Client analytics dialogs render in a portal, outside the hub scope. */
+[data-skin="aurum"] [data-client-analytics-dialog] :is(.text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800, .text-rose-600) {
+  color: hsl(var(--text-muted-strong));
+}
+[data-skin="aurum"] [data-client-analytics-dialog] [data-ui-badge] { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-client-analytics-dialog] div[class~="bg-slate-50"] { background: hsl(var(--surface-muted)); color: hsl(var(--text)); }

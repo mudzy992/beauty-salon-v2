@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const analytics = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
 const client = readFileSync(new URL('../../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
-const css = readFileSync(new URL('../../index.css', import.meta.url), 'utf8')
+const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), 'utf8')
 
 // ---------------------------------------------------------------------------
 // Faza 6 — Analitika
@@ -77,7 +77,12 @@ test('ClientAnalytics tabele imaju scope i caption (1.3.1)', () => {
     [],
     'nijedan <th> ne smije ostati bez scope',
   )
-  assert.equal((client.match(/<caption/g) || []).length, 3, 'tri tabele -> tri <caption>')
+  const tables = [...client.matchAll(/<table className="app-table data-table[\s\S]*?<\/table>/g)].map(match => match[0])
+  assert.equal(tables.length, 3)
+  for (const [table, key] of tables.map((table, i) => [table, ['servicesCaption', 'reservationsCaption', 'manualEntriesCaption'][i]])) {
+    assert.equal((table.match(/<caption/g) || []).length, 1)
+    assert.ok(table.includes(`clientAnalyticsPage.${key}`))
+  }
   assert.equal((client.match(/<table className="app-table data-table/g) || []).length, 3)
   // 17 celija + 2 empty-state colSpan = 19
   assert.equal((client.match(/<td\b/g) || []).length, 19)

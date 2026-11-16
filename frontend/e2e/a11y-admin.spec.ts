@@ -1781,3 +1781,63 @@ test('client analytics retains incomplete deep-link date and reports request fai
   await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
   expect(new URLSearchParams(queries[1]).get('toDate')).toBe('2026-01-31')
 })
+
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`client analytics details and keyboard ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => { localStorage.removeItem('nejra.theme'); localStorage.setItem('nejra.theme.mode', value) }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      })
+      const fixture = { ...clientAnalyticsFixture,
+        topServices: [{ name: 'Test Usluga', count: 1, totalSpent: 42 }],
+        reservations: [{ id: 'reservation-one', reservationDate: '2026-01-15', startTime: '10:00', endTime: '11:00', status: 'COMPLETED', clientNotes: 'Napomena rezervacije', cancelReason: null, cancelledAt: null, service: { id: 'service-one', name: 'Test Usluga', price: 42 } }],
+        manualEntries: [{ id: 'manual-one', date: '2026-01-15', actualPrice: 42, tipAmount: 2, isManual: true, notes: 'Test unos', status: 'COMPLETED', service: { id: 'service-one', name: 'Test Usluga', price: 42 } }],
+        reviews: [{ id: 'review-one', serviceRating: 5, stylistRating: 4, comment: 'Odličan tretman', isApproved: true, createdAt: '2026-01-16T12:00:00Z', service: { name: 'Test Usluga' } }],
+      }
+      await page.route('**/api/users/fixture-client/analytics**', route => route.fulfill({ json: fixture }))
+      await page.route('**/api/client-debts?**', route => route.fulfill({ json: [{ id: 'debt-one', amount: 15, createdAt: '2026-01-16T12:00:00Z', status: 'OPEN', service: { id: 'service-one', name: 'Test Usluga' } }] }))
+      await page.goto('/admin/analytics?tab=clients&userId=fixture-client', { waitUntil: 'networkidle' })
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      await expect(page.getByRole('table', { name: /potrosnje po uslugama|spending by service/i })).toBeVisible()
+      const reservationTable = page.getByRole('table', { name: /tabela rezervacija klijenta|client reservations/i })
+      await expect(reservationTable).toContainText('Test Usluga')
+      const trigger = reservationTable.getByRole('button', { name: /detalji|details/i })
+      await trigger.focus()
+      await page.keyboard.press('Enter')
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toContainText('Napomena rezervacije')
+      await settleAnimations(page)
+      const reservationAxe = await new AxeBuilder({ page }).include('[data-client-analytics-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`ANALYTICS_DIALOG_reservation_${mode}_${viewport} ${JSON.stringify({ violations: reservationAxe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: reservationAxe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(reservationAxe.violations.filter(v => v.id !== 'color-contrast-enhanced')).toEqual([])
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+      await expect(trigger).toBeFocused()
+      const reservationsTab = page.getByRole('tab', { name: /rezervacije|reservations/i })
+      await reservationsTab.focus()
+      await page.keyboard.press('ArrowRight')
+      await expect(page.getByRole('tab', { name: /manuelni prihodi|manual entries/i })).toHaveAttribute('aria-selected', 'true')
+      await expect(page.getByRole('table', { name: /tabela rucnih unosa|manual entries/i })).toContainText('Test unos')
+      await page.keyboard.press('ArrowRight')
+      await expect(page.getByRole('tabpanel')).toContainText('15')
+      await page.keyboard.press('ArrowRight')
+      const review = page.getByRole('button', { name: /otvori detalje recenzije|review details/i })
+      await expect(review).toBeVisible()
+      await review.focus()
+      await page.keyboard.press('Enter')
+      await expect(dialog).toContainText('Odličan tretman')
+      await settleAnimations(page)
+      const reviewAxe = await new AxeBuilder({ page }).include('[data-client-analytics-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
+      console.log(`ANALYTICS_DIALOG_review_${mode}_${viewport} ${JSON.stringify({ violations: reviewAxe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: reviewAxe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
+      expect(reviewAxe.violations.filter(v => v.id !== 'color-contrast-enhanced')).toEqual([])
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+      await expect(review).toBeFocused()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+    })
+  }
+}
