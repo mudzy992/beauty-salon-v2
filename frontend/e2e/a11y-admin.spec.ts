@@ -1715,7 +1715,7 @@ for (const mode of ['light', 'dark'] as const) {
             const r = el.getBoundingClientRect()
             return { rect: { x: r.x, y: r.y, width: r.width, height: r.height }, stack: document.elementsFromPoint(Math.min(innerWidth - 1, Math.max(0, r.x + r.width / 2)), Math.min(innerHeight - 1, Math.max(0, r.y + r.height / 2))).slice(0, 6).map(node => ({ tag: node.tagName, className: node.getAttribute('class'), text: node.textContent?.slice(0, 40) })) }
           }))}`)
-          // Axe can be inconclusive when a sampled point is covered; retain the result for manual review.
+          expect(focusedScan.incomplete).toEqual([])
 
         }
         const results = await new AxeBuilder({ page }).include('[data-analytics-hub]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()

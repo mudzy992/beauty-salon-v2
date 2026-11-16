@@ -123,7 +123,7 @@ const SmallStatCard = ({
 }) => (
   <Card className={cn('p-4', className)}>
     <p className="text-xs text-slate-500">{title}</p>
-    <p className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-50">{value}</p>
+    <p className="mt-1 text-2xl font-semibold text-slate-900 [overflow-wrap:anywhere] dark:text-slate-50">{value}</p>
     {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
   </Card>
 )
