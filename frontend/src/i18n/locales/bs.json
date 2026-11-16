@@ -423,7 +423,7 @@
     }
   },
   "clientAnalyticsPage": {
-    "sourceNote": "Iznosi uključuju trenutne cijene završenih rezervacija te zapise dnevnika i ručne prihode; povezani zapisi mogu biti uračunati više puta, a zapisi dnevnika mogu biti nezavršeni.",
+    "sourceNote": "Iznosi koriste završene zapise i samostalne ručne prihode; naplate duga uključene su u ukupno potrošeno, ali nisu nova posjeta. Rezervacije bez završenog dnevnika koriste trenutnu katalošku cijenu. Tabela prikazuje izvorne zapise, uključujući nezavršene i povezane.",
     "debtsLoadError": "Dugovanja nije moguće učitati. Pokušajte ponovo.",
     "servicesCaption": "Tabela potrosnje po uslugama: usluga, broj posjeta i ukupan iznos.",
     "reservationsCaption": "Tabela rezervacija klijenta: datum, vrijeme, usluga, frizer, cijena, status i detalji.",
@@ -446,9 +446,9 @@
       "reservations": "Rezervacije",
       "completed": "{{count}} završenih",
       "cancelledNoShow": "Otkazane / No-show",
-      "manualEntries": "Manuelni unosi",
+      "manualEntries": "Završeni zapisi i samostalni prihodi",
       "totalSpent": "Ukupno potrošeno",
-      "reservationsPlusManual": "rezervacije + manuelno",
+      "reservationsPlusManual": "Uključuje naplate i procijenjene rezervacije",
       "penalties": "Penali",
       "cancellations": "{{count}} otkazivanja",
       "ok": "U redu",
@@ -739,7 +739,7 @@
     "manualEntryReference": "Ručni unos: {{date}}"
   },
   "stylistAnalytics": {
-    "sourceNote": "Brojevi usluga kombinuju rezervacije, dnevnik i ručne prihode. Povezani zapisi mogu biti uračunati više puta; cijena rezervacije je trenutna cijena usluge.",
+    "sourceNote": "Završeni dnevnik ima prednost nad povezanom rezervacijom; naplate duga ne broje se kao nova usluga. Rezervacije bez završenog dnevnika koriste trenutnu katalošku cijenu. Samostalni ručni prihodi uključeni su u broj usluga.",
     "invalidRange": "Unesite oba datuma u ispravnom redoslijedu ili ostavite oba prazna.",
     "backToStylists": "Nazad na stiliste",
     "selectStylist": "Odaberite stilistu (npr. s liste Stilisti) da vidite analitiku.",
@@ -938,7 +938,7 @@
   },
   "adminAnalytics": {
     "financePeriodNote": "Finansijski iznosi prate odabrani raspon. Datumi starih rashoda migrirani su kao procjena na prvi dan mjeseca i mogu se ispraviti u knjizi rashoda.",
-    "sourceNote": "Brojevi usluga kombinuju rezervacije, dnevnik i ručne prihode. Povezani zapisi mogu biti uračunati više puta; cijena rezervacije je trenutna cijena usluge.",
+    "sourceNote": "Završeni dnevnik ima prednost nad povezanom rezervacijom; naplate duga ne broje se kao nova usluga. Rezervacije bez završenog dnevnika koriste trenutnu katalošku cijenu. Samostalni ručni prihodi uključeni su u broj usluga.",
     "invalidRange": "Početni datum ne može biti nakon završnog datuma.",
     "tabContext": "analitika",
     "tabsLabel": "Odaberi analitiku",

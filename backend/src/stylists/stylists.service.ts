@@ -14,6 +14,7 @@ import {
   resolveAnalyticsDateRange,
 } from '../common/analytics-date-range';
 import { PrismaService } from '../prisma/prisma.service';
+import { getServiceAmount } from '../daily-log/daily-log.amounts';
 import { CreateStylistProfileDto } from './dto/create-stylist-profile.dto';
 import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
 import { StylistWorkingHoursDto } from './dto/stylist-working-hours.dto';
@@ -514,6 +515,7 @@ export class StylistsService {
           where: {
             confirmedStylistId: stylistProfileId,
             status: 'COMPLETED',
+            dailyLogEntry: { none: { kind: 'SERVICE', status: 'COMPLETED', deletedAt: null } },
             ...(Object.keys(dateFilter).length
               ? { reservationDate: dateFilter }
               : {}),
@@ -540,6 +542,7 @@ export class StylistsService {
         this.prisma.incomeBookManualEntry.findMany({
           where: {
             stylistProfileId,
+            dailyLogEntryId: null,
             ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
           },
           include: { service: { select: { id: true, name: true } } },
@@ -547,14 +550,16 @@ export class StylistsService {
         }),
       ]);
 
+    // Debt repayments remain visible in recent history, but are not new services.
+    const serviceEntries = fromDailyLog.filter((entry) => entry.kind === 'SERVICE');
     const completedCount =
-      fromReservations.length + fromDailyLog.length + fromManualIncome.length;
+      fromReservations.length + serviceEntries.length + fromManualIncome.length;
     const revenue =
       fromReservations.reduce((s, r) => s + Number(r.service?.price ?? 0), 0) +
-      fromDailyLog.reduce((s, e) => s + Number(e.actualPrice ?? 0), 0) +
+      serviceEntries.reduce((s, e) => s + getServiceAmount(e.actualPrice, e.tipAmount), 0) +
       fromManualIncome.reduce((s, m) => s + Number(m.amount ?? 0), 0);
     const tips =
-      fromDailyLog.reduce((s, e) => s + Number(e.tipAmount ?? 0), 0) +
+      serviceEntries.reduce((s, e) => s + Number(e.tipAmount ?? 0), 0) +
       fromManualIncome.reduce((s, m) => s + Number(m.tipAmount ?? 0), 0);
 
     const byService = new Map<
@@ -570,10 +575,10 @@ export class StylistsService {
       row.count++;
       row.revenue += amt;
     }
-    for (const e of fromDailyLog) {
+    for (const e of serviceEntries) {
       const id = e.serviceId;
       const name = e.service?.name ?? '—';
-      const amt = Number(e.actualPrice ?? 0);
+      const amt = getServiceAmount(e.actualPrice, e.tipAmount);
       if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
       const row = byService.get(id)!;
       row.count++;

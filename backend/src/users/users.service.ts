@@ -1131,6 +1131,7 @@ export class UsersService {
         where: { clientId: userId, ...dateFilter },
         include: {
           service: { select: { id: true, name: true, price: true } },
+          dailyLogEntry: { where: { kind: 'SERVICE', status: 'COMPLETED', deletedAt: null }, select: { id: true } },
           confirmedStylist: {
             include: {
               user: {
@@ -1173,6 +1174,7 @@ export class UsersService {
       this.repo.incomeBookManualEntry.findMany({
         where: { clientId: userId, ...dailyLogDateFilter },
         include: {
+          dailyLogEntry: { select: { status: true, deletedAt: true } },
           service: { select: { id: true, name: true, price: true } },
           stylistProfile: {
             include: {
@@ -1213,20 +1215,20 @@ export class UsersService {
       (r) => r.status === 'NO_SHOW',
     ).length;
 
-    const reservationSpent = reservations
-      .filter((r) => r.status === 'COMPLETED')
+    const fallbackReservations = reservations.filter((r) => r.status === 'COMPLETED' && r.dailyLogEntry.length === 0);
+    const completedEntries = manualEntries.filter((entry) => entry.status === 'COMPLETED');
+    const standaloneIncome = incomeManualEntries.filter((entry) => !entry.dailyLogEntry || entry.dailyLogEntry.status !== 'COMPLETED' || entry.dailyLogEntry.deletedAt !== null);
+    const reservationSpent = fallbackReservations
       .reduce((sum, r) => sum + Number(r.service?.price ?? 0), 0);
-    const manualSpent = combinedManualEntries.reduce(
-      (sum, e) => sum + Number(e.actualPrice ?? 0),
-      0,
-    );
+    const manualSpent = completedEntries.reduce((sum, e) => sum + Number(e.actualPrice ?? 0), 0) +
+      standaloneIncome.reduce((sum, e) => sum + Number(e.amount ?? 0) + Number(e.tipAmount ?? 0), 0);
     const totalSpent = reservationSpent + manualSpent;
 
     const serviceCounts: Record<
       string,
       { name: string; count: number; totalSpent: number }
     > = {};
-    for (const r of reservations.filter((r) => r.status === 'COMPLETED')) {
+    for (const r of fallbackReservations) {
       const svcId = r.serviceId;
       if (!serviceCounts[svcId])
         serviceCounts[svcId] = {
@@ -1237,7 +1239,7 @@ export class UsersService {
       serviceCounts[svcId].count++;
       serviceCounts[svcId].totalSpent += Number(r.service?.price ?? 0);
     }
-    for (const e of combinedManualEntries) {
+    for (const e of completedEntries.filter((entry) => entry.kind === 'SERVICE')) {
       const svcId = e.serviceId;
       if (!serviceCounts[svcId])
         serviceCounts[svcId] = {
@@ -1247,6 +1249,12 @@ export class UsersService {
         };
       serviceCounts[svcId].count++;
       serviceCounts[svcId].totalSpent += Number(e.actualPrice ?? 0);
+    }
+    for (const e of standaloneIncome) {
+      const svcId = e.serviceId;
+      if (!serviceCounts[svcId]) serviceCounts[svcId] = { name: e.service?.name ?? '-', count: 0, totalSpent: 0 };
+      serviceCounts[svcId].count++;
+      serviceCounts[svcId].totalSpent += Number(e.amount ?? 0) + Number(e.tipAmount ?? 0);
     }
     const topServices = Object.values(serviceCounts).sort(
       (a, b) => b.count - a.count,
@@ -1274,7 +1282,7 @@ export class UsersService {
         cancelledReservations,
         noShowCount,
         totalSpent,
-        manualEntryCount: combinedManualEntries.length,
+        manualEntryCount: completedEntries.length + standaloneIncome.length,
         manualSpent,
         avgServiceRating: avgServiceRating
           ? Math.round(avgServiceRating * 10) / 10

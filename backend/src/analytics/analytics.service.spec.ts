@@ -129,7 +129,7 @@ describe('AnalyticsService', () => {
     );
     expect(mockPrisma.reservation.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { status: 'COMPLETED', reservationDate: dateBounds },
+        where: { status: 'COMPLETED', reservationDate: dateBounds, dailyLogEntry: { none: { kind: 'SERVICE', status: 'COMPLETED', deletedAt: null } } },
       }),
     );
     expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenNthCalledWith(
@@ -137,6 +137,7 @@ describe('AnalyticsService', () => {
       expect.objectContaining({
         where: {
           status: 'COMPLETED',
+          kind: 'SERVICE',
           deletedAt: null,
           date: dateBounds,
         },
@@ -147,6 +148,7 @@ describe('AnalyticsService', () => {
       expect.objectContaining({
         where: {
           status: 'COMPLETED',
+          kind: 'SERVICE',
           deletedAt: null,
           date: dateBounds,
         },

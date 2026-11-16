@@ -349,6 +349,7 @@ describe('UsersService', () => {
         isManual: true,
         notes: null,
         status: 'COMPLETED',
+        kind: 'SERVICE',
         service: { id: 's1', name: 'Manicure', price: 20 },
         stylistProfile: {
           user: { firstName: 'Ana', lastName: 'A', username: 'ana' },
@@ -358,6 +359,7 @@ describe('UsersService', () => {
     mockRepo.incomeBookManualEntry.findMany.mockResolvedValue([
       {
         id: 'm1',
+        dailyLogEntryId: null,
         serviceId: 's2',
         date: new Date('2026-03-06T00:00:00Z'),
         amount: 50,
@@ -405,7 +407,7 @@ describe('UsersService', () => {
     expect(result.fromDate).toBe('2026-03-01');
     expect(result.toDate).toBe('2026-03-31');
     expect(result.stats.manualEntryCount).toBe(2);
-    expect(result.stats.manualSpent).toBe(70);
+    expect(result.stats.manualSpent).toBe(75);
     expect(result.manualEntries).toHaveLength(2);
     expect(result.manualEntries[0].id).toBe('m1');
     expect(result.manualEntries[0].isManual).toBe(true);

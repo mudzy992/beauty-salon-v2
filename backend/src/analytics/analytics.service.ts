@@ -15,6 +15,7 @@ import {
   toDateOnlyStringInTimeZone,
 } from '../common/utils/date-only';
 import { PrismaService } from '../prisma/prisma.service';
+import { getServiceAmount } from '../daily-log/daily-log.amounts';
 
 export interface MonthlyFinance {
   year: number;
@@ -329,9 +330,9 @@ export class AnalyticsService {
     gte: Date;
     lt: Date;
   }): Promise<StylistPerformance[]> {
-    const [entries, manualEntries] = await Promise.all([
+    const [entries, manualEntries, reservations] = await Promise.all([
       this.prisma.dailyLogEntry.findMany({
-        where: { status: 'COMPLETED', deletedAt: null, date: dateBounds },
+        where: { status: 'COMPLETED', kind: 'SERVICE', deletedAt: null, date: dateBounds },
         include: {
           stylistProfile: {
             include: {
@@ -345,6 +346,7 @@ export class AnalyticsService {
       this.prisma.incomeBookManualEntry.findMany({
         where: {
           stylistProfileId: { not: null },
+          dailyLogEntryId: null,
           date: dateBounds,
         },
         include: {
@@ -356,6 +358,11 @@ export class AnalyticsService {
             },
           },
         },
+      }),
+      this.prisma.reservation.findMany({
+        where: { status: 'COMPLETED', confirmedStylistId: { not: null }, reservationDate: dateBounds,
+          dailyLogEntry: { none: { kind: 'SERVICE', status: 'COMPLETED', deletedAt: null } } },
+        include: { service: { select: { price: true } }, confirmedStylist: { include: { user: { select: { firstName: true, lastName: true, username: true } } } } },
       }),
     ]);
 
@@ -377,7 +384,7 @@ export class AnalyticsService {
       }
       const row = byStylist.get(id)!;
       row.count += 1;
-      row.revenue += Number(e.actualPrice ?? 0);
+      row.revenue += getServiceAmount(e.actualPrice, e.tipAmount);
       row.tips += Number(e.tipAmount ?? 0);
     }
     for (const m of manualEntries) {
@@ -395,6 +402,15 @@ export class AnalyticsService {
       row.count += 1;
       row.revenue += Number(m.amount ?? 0);
       row.tips += Number(m.tipAmount ?? 0);
+    }
+
+    for (const r of reservations) {
+      const id = r.confirmedStylistId!;
+      const name = [r.confirmedStylist?.user?.firstName, r.confirmedStylist?.user?.lastName].filter(Boolean).join(' ') || r.confirmedStylist?.user?.username || '—';
+      if (!byStylist.has(id)) byStylist.set(id, { name, count: 0, revenue: 0, tips: 0 });
+      const row = byStylist.get(id)!;
+      row.count += 1;
+      row.revenue += Number(r.service?.price ?? 0);
     }
 
     return Array.from(byStylist.entries()).map(([stylistProfileId, v]) => ({
@@ -416,19 +432,20 @@ export class AnalyticsService {
           where: {
             status: 'COMPLETED',
             reservationDate: dateBounds,
+            dailyLogEntry: { none: { kind: 'SERVICE', status: 'COMPLETED', deletedAt: null } },
           },
           include: {
             service: { select: { id: true, name: true, price: true } },
           },
         }),
         this.prisma.dailyLogEntry.findMany({
-          where: { status: 'COMPLETED', deletedAt: null, date: dateBounds },
+          where: { status: 'COMPLETED', kind: 'SERVICE', deletedAt: null, date: dateBounds },
           include: {
             service: { select: { id: true, name: true, price: true } },
           },
         }),
         this.prisma.incomeBookManualEntry.findMany({
-          where: { date: dateBounds },
+          where: { date: dateBounds, dailyLogEntryId: null },
           include: { service: { select: { id: true, name: true } } },
         }),
       ]);
@@ -450,7 +467,7 @@ export class AnalyticsService {
     for (const e of fromDailyLog) {
       const id = e.serviceId;
       const name = e.service?.name ?? '—';
-      const price = Number(e.actualPrice ?? 0);
+      const price = getServiceAmount(e.actualPrice, e.tipAmount);
       if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
       const row = byService.get(id)!;
       row.count += 1;

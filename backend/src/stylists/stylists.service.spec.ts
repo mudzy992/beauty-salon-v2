@@ -346,6 +346,7 @@ describe('StylistsService socket revocation', () => {
         where: {
           confirmedStylistId: 'profile-1',
           status: 'COMPLETED',
+          dailyLogEntry: { none: { kind: 'SERVICE', status: 'COMPLETED', deletedAt: null } },
           reservationDate: dateBounds,
         },
       }),
@@ -362,7 +363,7 @@ describe('StylistsService socket revocation', () => {
     );
     expect(mockPrisma.incomeBookManualEntry.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { stylistProfileId: 'profile-1', date: dateBounds },
+        where: { stylistProfileId: 'profile-1', dailyLogEntryId: null, date: dateBounds },
       }),
     );
   });

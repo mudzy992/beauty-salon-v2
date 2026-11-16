@@ -426,7 +426,7 @@
     }
   },
   "clientAnalyticsPage": {
-    "sourceNote": "Amounts include current prices of completed reservations plus daily log and manual income records; linked records may be counted more than once and daily log records may be incomplete.",
+    "sourceNote": "Totals use completed records and standalone manual income; debt payments are included in total spent but are not new visits. Reservations without a completed log use the current catalog price. The table shows original records, including pending and linked entries.",
     "debtsLoadError": "Could not load debts. Please try again.",
     "servicesCaption": "Spending by service: service name, visit count, and total amount.",
     "reservationsCaption": "Client reservations: date, time, service, stylist, price, status, and details.",
@@ -449,9 +449,9 @@
       "reservations": "Reservations",
       "completed": "{{count}} completed",
       "cancelledNoShow": "Cancelled / no-show",
-      "manualEntries": "Manual entries",
+      "manualEntries": "Completed records and standalone income",
       "totalSpent": "Total spent",
-      "reservationsPlusManual": "reservations + manual entries",
+      "reservationsPlusManual": "Includes payments and estimated reservations",
       "penalties": "Penalties",
       "cancellations": "{{count}} cancellations",
       "ok": "OK",
@@ -742,7 +742,7 @@
     "manualEntryReference": "Manual entry: {{date}}"
   },
   "stylistAnalytics": {
-    "sourceNote": "Service figures combine reservations, daily log and manual income. Linked records may be counted more than once; reservation prices are current service prices.",
+    "sourceNote": "Completed daily logs take precedence over linked reservations; debt payments are not new services. Reservations without a completed log use the current catalog price. Standalone manual income is included in service counts.",
     "invalidRange": "Enter both dates in order, or leave both empty.",
     "backToStylists": "Back to stylists",
     "selectStylist": "Select a stylist (for example, from the Stylists list) to view analytics.",
@@ -941,7 +941,7 @@
   },
   "adminAnalytics": {
     "financePeriodNote": "Financial amounts follow the selected range. Dates of older expenses were estimated as the first of the month and can be corrected in the expense book.",
-    "sourceNote": "Service figures combine reservations, daily log and manual income. Linked records may be counted more than once; reservation prices are current service prices.",
+    "sourceNote": "Completed daily logs take precedence over linked reservations; debt payments are not new services. Reservations without a completed log use the current catalog price. Standalone manual income is included in service counts.",
     "invalidRange": "The start date cannot be after the end date.",
     "tabContext": "analytics",
     "tabsLabel": "Choose analytics",

@@ -3368,6 +3368,57 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     ).toBe(0);
   });
 
+  it('deduplicates linked reservation, daily-log and debt-payment records across analytics', async () => {
+    const db = prisma!;
+    const stylistId = fixtureIds.stylistProfile!;
+    const serviceId = fixtureIds.service!;
+    const ownerId = fixtureIds.ownerUserId!;
+    const suffix = randomUUID();
+    let year = 2300;
+    while (await db.incomeBook.findUnique({ where: { year_month: { year, month: 3 } } })) year++;
+    const date = new Date(`${year}-03-10T00:00:00Z`);
+    const outside = new Date(`${year}-04-10T00:00:00Z`);
+    const book = await db.incomeBook.create({ data: { year, month: 3 } });
+    const reservationIds: string[] = [];
+    const logIds: string[] = [];
+    try {
+      const createReservation = async (tag: string) => {
+        const reservation = await db.reservation.create({ data: { clientId: clientUserId, serviceId, reservationDate: date, startTime: '10:00', endTime: '11:00', status: 'COMPLETED', confirmedStylistId: stylistId, publicReferenceCode: `dedup-${tag}-${suffix}`, clientViewToken: `dedup-token-${tag}-${suffix}` } });
+        reservationIds.push(reservation.id);
+        return reservation;
+      };
+      const createLog = async (tag: string, kind: 'SERVICE' | 'DEBT_PAYMENT', status: string, actualPrice: number, tipAmount: number, entryDate: Date, reservationId?: string) => {
+        const entry = await db.dailyLogEntry.create({ data: { stylistProfileId: stylistId, clientId: clientUserId, serviceId, reservationId, kind, status, date: entryDate, actualPrice, tipAmount, publicReferenceCode: `dedup-log-${tag}-${suffix}` } });
+        logIds.push(entry.id);
+        return entry;
+      };
+      const reservation = await createReservation('one');
+      await createLog('service', 'SERVICE', 'COMPLETED', 110, 10, date, reservation.id);
+      const otherReservation = await createReservation('other-month');
+      await createLog('other-month', 'SERVICE', 'COMPLETED', 90, 0, outside, otherReservation.id);
+      const payment = await createLog('payment', 'DEBT_PAYMENT', 'COMPLETED', 20, 0, date);
+      await createLog('pending', 'SERVICE', 'PENDING', 999, 0, date);
+      await db.incomeBookManualEntry.createMany({ data: [
+        { bookId: book.id, date, serviceId, stylistProfileId: stylistId, clientId: clientUserId, dailyLogEntryId: payment.id, amount: 20, tipAmount: 0, createdById: ownerId },
+        { bookId: book.id, date, serviceId, stylistProfileId: stylistId, clientId: clientUserId, amount: 30, tipAmount: 5, createdById: ownerId },
+      ] });
+      const dashboard = await new AnalyticsService(db).getDashboard(['OWNER'], { fromDate: `${year}-03-01`, toDate: `${year}-03-31` });
+      expect(dashboard.topServices.find(row => row.serviceId === serviceId)).toMatchObject({ count: 2, revenue: 130 });
+      expect(dashboard.stylistPerformance.find(row => row.stylistProfileId === stylistId)).toMatchObject({ completedCount: 2, revenue: 130, tips: 15 });
+      const stylist = await app!.get(StylistsService).getStylistAnalytics(stylistId, ['OWNER'], `${year}-03-01`, `${year}-03-31`);
+      expect(stylist).toMatchObject({ completedCount: 2, revenue: 130, tips: 15 });
+      expect(stylist.recentEntries.some(row => row.id === payment.id)).toBe(true);
+      const client = await app!.get(UsersService).getClientAnalytics(clientUserId, ['OWNER'], `${year}-03-01`, `${year}-03-31`);
+      expect(client.stats).toMatchObject({ totalReservations: 2, completedReservations: 2, manualEntryCount: 3, manualSpent: 165, totalSpent: 165 });
+      expect(client.topServices.find(row => row.count === 2)).toMatchObject({ count: 2, totalSpent: 145 });
+      expect(client.manualEntries).toHaveLength(5);
+    } finally {
+      await db.incomeBook.delete({ where: { id: book.id } });
+      await db.dailyLogEntry.deleteMany({ where: { id: { in: logIds } } });
+      await db.reservation.deleteMany({ where: { id: { in: reservationIds } } });
+    }
+  });
+
   it('uses transaction dates for partial-month financial analytics and preserves estimated expense provenance', async () => {
     const db = prisma!;
     const ownerId = fixtureIds.ownerUserId!;
