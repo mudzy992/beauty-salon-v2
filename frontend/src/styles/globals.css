@@ -176,7 +176,7 @@
     --surface-muted: 40.000 45.763% 88.431%;
     --surface-sunken: 38.182 52.381% 95.882%;
     --text: 32.000 31.915% 9.216%;
-    --text-muted: 35.294 18.889% 35.294%;
+    --text-muted: 33.000 20.000% 30.000%; /* ~7.7:1 / aurum svijetla površina (AAA) */
     --text-muted-strong: 32.000 31.915% 9.216%;
     --line: 38.049 17.155% 46.863%;
     --control-border: 38.049 17.155% 46.863%;

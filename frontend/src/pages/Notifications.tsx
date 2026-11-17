@@ -276,11 +276,11 @@ export default function Notifications() {
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-8 text-slate-500">
+            <div className="flex justify-center py-8 text-content-muted">
               <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
             </div>
           ) : notifications.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('common.noData')}</p>
+            <p className="text-sm text-content-muted">{t('common.noData')}</p>
           ) : (
             <div className="space-y-2">
               {notifications.map((n) => (
@@ -304,7 +304,7 @@ export default function Notifications() {
                         </Badge>
                       </div>
                       <p className="text-sm text-content-strong dark:text-slate-200">{n.body}</p>
-                      <p className="mt-1 text-xs text-slate-500">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
+                      <p className="mt-1 text-xs text-content-muted">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
                     </div>
                     {!n.isRead ? (
                       <Button
@@ -326,7 +326,7 @@ export default function Notifications() {
         </TabsContent>
 
         <TabsContent value="prefs" className="mt-4">
-          <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mb-4 text-sm text-content-muted ">
             {t('notifications.preferencesDescription')}
           </p>
           <Card className="mb-4 p-4">
@@ -335,7 +335,7 @@ export default function Notifications() {
                 <h2 className="font-semibold text-content dark:text-slate-50">
                   {t('notifications.campaignConsent.title')}
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-sm text-content-muted ">
                   {t('notifications.campaignConsent.description')}
                 </p>
                 {campaignConsent ? (
@@ -347,7 +347,7 @@ export default function Notifications() {
                 ) : null}
               </div>
               {campaignConsentLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-slate-500" aria-label={t('common.loading')} />
+                <Loader2 className="h-5 w-5 animate-spin text-content-muted" aria-label={t('common.loading')} />
               ) : campaignConsentLoadFailed ? (
                 <Button type="button" variant="outline" onClick={loadCampaignConsent}>
                   {t('notifications.campaignConsent.retryLoad')}
@@ -368,7 +368,7 @@ export default function Notifications() {
             ) : null}
           </Card>
           {prefLoading ? (
-            <div className="flex justify-center py-8 text-slate-500">
+            <div className="flex justify-center py-8 text-content-muted">
               <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
             </div>
           ) : (

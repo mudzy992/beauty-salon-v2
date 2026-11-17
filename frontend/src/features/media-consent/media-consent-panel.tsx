@@ -157,14 +157,14 @@ export function MediaConsentPanel() {
             <h2 className="text-lg font-semibold text-slate-950">
               {t('mediaConsent.title')}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-content-muted">
               {t('mediaConsent.intro')}
             </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="flex items-center gap-2 text-sm text-content-muted">
             <Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}
           </div>
         ) : null}
@@ -190,7 +190,7 @@ export function MediaConsentPanel() {
                       className="aspect-[4/3] w-full bg-surface-muted object-cover"
                     />
                   ) : (
-                    <div className="flex aspect-[4/3] items-center justify-center bg-surface-muted text-slate-600">
+                    <div className="flex aspect-[4/3] items-center justify-center bg-surface-muted text-content-muted">
                       <ImageOff
                         className="h-6 w-6"
                         aria-label={t('mediaConsent.previewUnavailable')}
@@ -202,7 +202,7 @@ export function MediaConsentPanel() {
                       <p className="font-semibold text-content">
                         {labelFor(item)}
                       </p>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-content-muted">
                         {item.serviceName} ·{' '}
                         {formatDateOnlyLocale(item.serviceDate.slice(0, 10), locale)}
                       </p>
@@ -260,7 +260,7 @@ export function MediaConsentPanel() {
                       className="h-20 w-20 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-surface-muted text-slate-600">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-surface-muted text-content-muted">
                       <ImageOff
                         className="h-5 w-5"
                         aria-label={t('mediaConsent.previewUnavailable')}
@@ -271,7 +271,7 @@ export function MediaConsentPanel() {
                     <p className="font-medium text-content">
                       {labelFor(item)} · {item.serviceName}
                     </p>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-content-muted">
                       {formatDateOnlyLocale(item.serviceDate.slice(0, 10), locale)}
                       {item.consentedAt
                         ? ` · ${t('mediaConsent.consentedAt', { date: formatInstantDateLocale(item.consentedAt, locale) })}`
@@ -288,7 +288,7 @@ export function MediaConsentPanel() {
                         })}
                       </p>
                     ) : (
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-content-muted">
                         {t('mediaConsent.notPublished')}
                       </p>
                     )}
@@ -314,7 +314,7 @@ export function MediaConsentPanel() {
         payload &&
         payload.pending.length === 0 &&
         payload.active.length === 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-content-muted">
             {t('mediaConsent.nonePending')}
           </p>
         ) : null}
@@ -324,7 +324,7 @@ export function MediaConsentPanel() {
             {message}
           </p>
         ) : null}
-        <p className="text-xs leading-5 text-slate-500">
+        <p className="text-xs leading-5 text-content-muted">
           {t('mediaConsent.privacyNote')}
         </p>
         <ConfirmDialog

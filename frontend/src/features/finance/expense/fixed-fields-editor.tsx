@@ -62,12 +62,12 @@ export function FixedFieldsEditor({
                     value={values[field.id] ?? ''}
                     onChange={(e) => onValueChange(field.id, e.target.value)}
                   />
-                  <span className="text-xs text-slate-500">KM</span>
+                  <span className="text-xs text-content-muted">KM</span>
                 </div>
               </div>
               {requiresPerItem ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-slate-500">{t('finance.expenseForm.attachment')}:</span>
+                  <span className="text-xs text-content-muted">{t('finance.expenseForm.attachment')}:</span>
                   {pending ? (
                     <>
                       <Badge variant="secondary">{pending.name}</Badge>
@@ -104,7 +104,7 @@ export function FixedFieldsEditor({
         })}
       </ul>
       <div className="flex justify-between rounded-md bg-surface-muted px-3 py-2 text-sm dark:bg-slate-900">
-        <span className="text-slate-500">{t('finance.expenseForm.total')}</span>
+        <span className="text-content-muted">{t('finance.expenseForm.total')}</span>
         <span className="font-semibold tabular-nums">
           {formatLocalizedAmount(total, i18n.language)}
         </span>

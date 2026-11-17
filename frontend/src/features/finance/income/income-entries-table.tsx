@@ -123,7 +123,7 @@ export function IncomeEntriesTable({
       headerKey: 'finance.incomeList.columns.tips',
       sortKey: 'tipAmount',
       align: 'right',
-      className: 'tabular-nums text-slate-500',
+      className: 'tabular-nums text-content-muted',
       render: (row) =>
         row.tipAmount > 0 ? formatLocalizedAmount(row.tipAmount, i18n.language) : '—',
     },

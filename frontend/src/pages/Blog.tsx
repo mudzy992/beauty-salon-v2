@@ -153,11 +153,11 @@ export default function Blog() {
       </div>
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-slate-500">
+          <div className="flex justify-center p-10 text-content-muted">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </div>
         ) : loadError ? (
-          <div role="alert" className="p-8 text-center text-slate-600">
+          <div role="alert" className="p-8 text-center text-content-muted">
             <p>{t('blog.admin.loadFailed')}</p>
             <Button type="button" variant="outline" className="mt-3" onClick={loadData}>
               {t('common.retry')}

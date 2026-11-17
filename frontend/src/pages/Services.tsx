@@ -1084,7 +1084,7 @@ export default function Services() {
           </DialogHeader>
           {deletionService ? (
             <div className="space-y-5">
-              <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+              <p className="text-sm leading-6 text-content-muted ">
                 {t('services.deletion.description', {
                   service: deletionService.name,
                 })}
@@ -1100,7 +1100,7 @@ export default function Services() {
                   <span className="block text-sm font-semibold text-rose-700 dark:text-rose-300">
                     {t('services.deletion.deleteMode')}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-600 dark:text-slate-300">
+                  <span className="mt-1 block text-xs leading-5 text-content-muted ">
                     {t('services.deletion.deleteModeDescription')}
                   </span>
                 </button>
@@ -1113,7 +1113,7 @@ export default function Services() {
                   <span className="block text-sm font-semibold text-content dark:text-slate-50">
                     {t('services.deletion.mergeMode')}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-600 dark:text-slate-300">
+                  <span className="mt-1 block text-xs leading-5 text-content-muted ">
                     {t('services.deletion.mergeModeDescription')}
                   </span>
                 </button>
@@ -1152,7 +1152,7 @@ export default function Services() {
                 <div
                   role="status"
                   aria-live="polite"
-                  className="rounded-xl border border-line p-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
+                  className="rounded-xl border border-line p-4 text-sm text-content-muted dark:border-slate-700 "
                 >
                   <Loader2
                     className="mr-2 inline h-4 w-4 animate-spin"

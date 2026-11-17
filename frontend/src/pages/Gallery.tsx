@@ -473,7 +473,7 @@ export default function Gallery() {
             <section className="space-y-4 rounded-xl border border-line p-4">
               <div>
                 <h3 className="font-semibold text-content">{t('gallery.admin.nonClientSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
+                <p className="mt-1 text-xs leading-5 text-content-muted">
                   {t('gallery.admin.nonClientSectionGuidance')}
                 </p>
               </div>
@@ -519,7 +519,7 @@ export default function Gallery() {
             <section className="space-y-4 rounded-xl border border-line p-4">
               <div>
                 <h3 className="font-semibold text-content">{t('gallery.admin.consentedSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
+                <p className="mt-1 text-xs leading-5 text-content-muted">
                   {t('gallery.admin.consentedSectionGuidance')}
                 </p>
               </div>

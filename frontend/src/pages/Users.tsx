@@ -959,7 +959,7 @@ export default function Users() {
           </Avatar>
           <div className="min-w-0">
             <p className="truncate font-medium text-content dark:text-slate-50">{u.username}</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">{getUserDisplayName(u)}</p>
+            <p className="text-sm text-content-muted ">{getUserDisplayName(u)}</p>
           </div>
         </div>
         <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
@@ -1031,7 +1031,7 @@ export default function Users() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.users')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('users.subtitle')}</p>
+          <p className="mt-1 text-sm text-content-muted ">{t('users.subtitle')}</p>
         </div>
 
         <Button type="button" ref={createTriggerRef} onClick={() => setCreateOpen(true)}>
@@ -1124,7 +1124,7 @@ export default function Users() {
             </>
           ) : null}
 
-          <span className="text-sm text-slate-600 dark:text-slate-300">
+          <span className="text-sm text-content-muted ">
             {page + 1} / {totalPages}
           </span>
 
@@ -1166,7 +1166,7 @@ export default function Users() {
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-content-muted ">
                 {t('users.stylistRemoval.stylist', { username: removeStylistUser?.username ?? '' })}
               </p>
 
@@ -1471,9 +1471,9 @@ export default function Users() {
                             {formatLocalizedAmount(d.amount, i18n.language)}
                             {d.service?.name ? <span className="ml-2 text-xs text-muted-foreground">• {d.service.name}</span> : null}
                           </div>
-                          {d.note ? <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{d.note}</div> : null}
+                          {d.note ? <div className="mt-1 text-xs text-muted-foreground ">{d.note}</div> : null}
                           {d.createdBy?.username ? (
-                            <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
+                            <div className="mt-1 text-xs text-muted-foreground ">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
                           ) : null}
                         </div>
                         <Button

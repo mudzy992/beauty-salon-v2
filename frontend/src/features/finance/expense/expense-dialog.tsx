@@ -99,12 +99,12 @@ export function ExpenseDialog({
     >
       <div className="grid gap-4">
         {uploads.isUploading ? (
-          <p role="status" aria-live="polite" className="text-xs text-slate-500">
+          <p role="status" aria-live="polite" className="text-xs text-content-muted">
             {t('finance.expenseForm.uploadingAttachments')}
           </p>
         ) : null}
         {categoriesLoading && categories.length === 0 ? (
-          <p role="status" className="text-xs text-slate-500">
+          <p role="status" className="text-xs text-content-muted">
             {t('finance.states.loading')}
           </p>
         ) : null}
@@ -206,7 +206,7 @@ export function ExpenseDialog({
                 />
               </div>
             ) : (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-content-muted">
                 {t('finance.expenseForm.amount')}: {formatAmount(f.effectiveTotal)}
               </p>
             )}

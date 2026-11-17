@@ -295,7 +295,7 @@ export default function Stylists() {
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
             {t('common.previous')}
           </Button>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-content-muted ">
             {page + 1} / {Math.max(1, Math.ceil(total / pageSize))}
           </p>
           <Button type="button" size="sm" variant="outline" disabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
@@ -334,7 +334,7 @@ export default function Stylists() {
                   </p>
                   {selectedServices.length > 0 ? (
                     <div className="mt-3">
-                      <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')}</p>
+                      <p className="mb-1 text-xs text-content-muted ">{t('stylists.selectedCompetencies')}</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedServices.map((svc) => (
                           <Badge key={svc.id} variant="brand" className="text-[10px]">
@@ -416,7 +416,7 @@ export default function Stylists() {
             <TabsContent value="skills" className="mt-4">
               <div className="space-y-4">
                 <div>
-                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
+                  <p className="mb-1 text-xs text-content-muted ">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
                   {selectedServices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('stylists.noSelectedCompetencies')}</p>
                   ) : (
@@ -439,7 +439,7 @@ export default function Stylists() {
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.availableCompetencies')}</p>
+                  <p className="mb-1 text-xs text-content-muted ">{t('stylists.availableCompetencies')}</p>
                   {unselectedServices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('stylists.allCompetenciesSelected')}</p>
                   ) : (
