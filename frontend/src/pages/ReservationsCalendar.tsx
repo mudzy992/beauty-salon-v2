@@ -180,10 +180,10 @@ export default function ReservationsCalendar() {
       <div className="flex min-h-dvh w-full flex-col p-3 sm:p-4">
         <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold text-content ">
+            <h1 className="truncate text-base font-semibold text-content dark:text-slate-50">
               {t('reservations.calendar.title')}
             </h1>
-            <p className="mt-0.5 hidden text-xs text-content-muted  sm:block">
+            <p className="mt-0.5 hidden text-xs text-slate-600 dark:text-slate-300 sm:block">
               {t('reservations.calendar.workspace')}
             </p>
           </div>
@@ -208,7 +208,7 @@ export default function ReservationsCalendar() {
 
         <main id="calendar-main" tabIndex={-1} data-admin-calendar-main className="min-h-[28rem] flex-1 rounded-xl border border-line bg-surface shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring  ">
           {loading ? (
-            <div role="status" aria-live="polite" className="flex h-full items-center justify-center text-content-muted">
+            <div role="status" aria-live="polite" className="flex h-full items-center justify-center text-slate-500">
               <span className="sr-only">{t('common.loading')}</span>
               <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>

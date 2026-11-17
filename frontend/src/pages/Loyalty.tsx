@@ -151,7 +151,7 @@ export default function Loyalty() {
     {
       key: 'user',
       headerKey: 'loyaltyAdmin.user',
-      className: 'p-3 font-medium text-content ',
+      className: 'p-3 font-medium text-content dark:text-slate-50',
       render: (a) => userName(a.user),
     },
     { key: 'email', headerKey: 'loyaltyAdmin.email', className: 'p-3', render: (a) => a.user.email },
@@ -213,14 +213,14 @@ export default function Loyalty() {
       <Card>
         <div className="p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-content ">{t('loyaltyAdmin.accounts')}</h2>
-            {loadingAccounts ? <p className="text-xs text-content-muted">{t('loyaltyAdmin.loading')}</p> : null}
+            <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('loyaltyAdmin.accounts')}</h2>
+            {loadingAccounts ? <p className="text-xs text-slate-500">{t('loyaltyAdmin.loading')}</p> : null}
           </div>
 
           {loadingAccounts ? (
-            <div className="py-10 text-center text-sm text-content-muted">{t('loyaltyAdmin.loading')}</div>
+            <div className="py-10 text-center text-sm text-slate-500">{t('loyaltyAdmin.loading')}</div>
           ) : accounts.length === 0 ? (
-            <p className="text-sm text-content-muted">
+            <p className="text-sm text-slate-500">
               {t('loyaltyAdmin.noAccounts')}
             </p>
           ) : (
@@ -242,7 +242,7 @@ export default function Loyalty() {
             <DialogTitle>{t('loyaltyAdmin.redeemDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-content-muted ">{redeemTitle}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{redeemTitle}</p>
             <div className="space-y-2">
               <Label htmlFor="redeem-points">{t('loyaltyAdmin.pointsToRedeem')}</Label>
               <Input
@@ -286,7 +286,7 @@ export default function Loyalty() {
             <DialogTitle>{t('loyaltyAdmin.adjustDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-content-muted ">{adjustTitle}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{adjustTitle}</p>
             <div className="space-y-2">
               <Label htmlFor="adjust-delta">{t('loyaltyAdmin.pointsChange')}</Label>
               <Input

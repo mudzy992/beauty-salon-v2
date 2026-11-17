@@ -121,7 +121,7 @@ type ServiceMutationAction = 'DELETE_LINKED_RECORDS' | 'MERGE'
 type ModalMode = 'category' | 'subcategory' | 'service'
 
 const selectClass =
-  'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2    dark:focus-visible:ring-offset-slate-950'
+  'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950'
 
 export default function Services() {
   const { t, i18n } = useTranslation()
@@ -599,7 +599,7 @@ export default function Services() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content ">
+        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">
           {t('nav.services')}
         </h1>
         <Button type="button" onClick={() => openCategoryForm()}>
@@ -684,7 +684,7 @@ export default function Services() {
                         >
                           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold text-content ">
+                              <p className="font-semibold text-content dark:text-slate-100">
                                 {sub.name}
                               </p>
                               <Badge
@@ -1084,7 +1084,7 @@ export default function Services() {
           </DialogHeader>
           {deletionService ? (
             <div className="space-y-5">
-              <p className="text-sm leading-6 text-content-muted ">
+              <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {t('services.deletion.description', {
                   service: deletionService.name,
                 })}
@@ -1100,7 +1100,7 @@ export default function Services() {
                   <span className="block text-sm font-semibold text-rose-700 dark:text-rose-300">
                     {t('services.deletion.deleteMode')}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-content-muted ">
+                  <span className="mt-1 block text-xs leading-5 text-slate-600 dark:text-slate-300">
                     {t('services.deletion.deleteModeDescription')}
                   </span>
                 </button>
@@ -1110,10 +1110,10 @@ export default function Services() {
                   onClick={() => selectDeletionAction('MERGE')}
                   className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'MERGE' ? 'border-brand-gold-ring bg-amber-50 dark:bg-amber-950/20' : 'border-line dark:border-slate-700'}`}
                 >
-                  <span className="block text-sm font-semibold text-content ">
+                  <span className="block text-sm font-semibold text-content dark:text-slate-50">
                     {t('services.deletion.mergeMode')}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-content-muted ">
+                  <span className="mt-1 block text-xs leading-5 text-slate-600 dark:text-slate-300">
                     {t('services.deletion.mergeModeDescription')}
                   </span>
                 </button>
@@ -1152,7 +1152,7 @@ export default function Services() {
                 <div
                   role="status"
                   aria-live="polite"
-                  className="rounded-xl border border-line p-4 text-sm text-content-muted dark:border-slate-700 "
+                  className="rounded-xl border border-line p-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300"
                 >
                   <Loader2
                     className="mr-2 inline h-4 w-4 animate-spin"
@@ -1190,7 +1190,7 @@ export default function Services() {
                 >
                   <h3
                     id="service-deletion-impact-title"
-                    className="text-sm font-semibold text-content "
+                    className="text-sm font-semibold text-content dark:text-slate-50"
                   >
                     {t('services.deletion.impactTitle')}
                   </h3>

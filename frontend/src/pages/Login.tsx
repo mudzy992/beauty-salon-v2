@@ -118,7 +118,7 @@ export default function Login() {
         </div>
       </div>
 
-      <main className="flex items-center justify-center bg-surface-muted px-6 py-10">
+      <main className="flex items-center justify-center bg-slate-50 px-6 py-10">
         <MotionDiv
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -131,10 +131,10 @@ export default function Login() {
 
           <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
             <AuthCardHeader />
-            <h1 className="text-2xl font-semibold text-content">
+            <h1 className="text-2xl font-semibold text-slate-900">
               {t('auth.login')}
             </h1>
-            <div className="text-content-muted mt-2 mb-8">
+            <div className="text-slate-500 mt-2 mb-8">
               {t('auth.loginPrompt')}
             </div>
 
@@ -176,11 +176,11 @@ export default function Login() {
               ) : null}
             </form>
 
-            <div className="mt-6 text-center text-content-muted">
+            <div className="mt-6 text-center text-slate-600">
               {t('auth.noAccount')}{' '}
               <Link
                 to="/register"
-                className="font-semibold text-content underline underline-offset-4 hover:text-content-muted"
+                className="font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600"
               >
                 {t('public.nav.register')}
               </Link>

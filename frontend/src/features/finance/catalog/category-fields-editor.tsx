@@ -116,7 +116,7 @@ export function CategoryFieldsEditor({
               : 'finance.expenseCategories.rowColumns',
           )}
         </h3>
-        <p className="text-xs text-content-muted">
+        <p className="text-xs text-slate-500">
           {t(
             isFixed
               ? 'finance.expenseCategories.fixedFieldsHint'

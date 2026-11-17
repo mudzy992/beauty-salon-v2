@@ -243,7 +243,7 @@ export function ExpenseBookDetail({
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <h2 className="text-lg font-semibold text-content ">
+          <h2 className="text-lg font-semibold text-content dark:text-slate-50">
             {period}
           </h2>
           <BookLockBadge isLocked={isLocked} />
@@ -304,7 +304,7 @@ export function ExpenseBookDetail({
         </CardHeader>
         <CardContent className="grid gap-3">
           {categoriesQuery.isLoading ? (
-            <p role="status" className="text-xs text-content-muted">
+            <p role="status" className="text-xs text-slate-500">
               {t('finance.states.loading')}
             </p>
           ) : null}

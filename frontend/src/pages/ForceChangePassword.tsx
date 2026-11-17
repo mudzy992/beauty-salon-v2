@@ -139,7 +139,7 @@ export default function ForceChangePassword() {
           >
             {loading ? t('common.loading') : t('onboarding.savePassword')}
           </Button>
-          <div className="text-sm text-content-muted">
+          <div className="text-sm text-slate-500">
             {t('onboarding.nextStep')}
           </div>
         </form>

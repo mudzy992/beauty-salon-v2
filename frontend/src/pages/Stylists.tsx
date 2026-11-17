@@ -211,7 +211,7 @@ export default function Stylists() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content ">{t('nav.stylists')}</h1>
+        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.stylists')}</h1>
       </div>
 
       <Card className="overflow-hidden">
@@ -248,7 +248,7 @@ export default function Stylists() {
                       className="cursor-pointer border-b border-slate-100 hover:bg-surface-muted dark:border-slate-800/80 dark:hover:bg-slate-900/40"
                       onClick={() => void openEditForm(s)}
                     >
-                      <td data-label={t('stylists.table.user')} className="p-3 font-medium text-content ">
+                      <td data-label={t('stylists.table.user')} className="p-3 font-medium text-content dark:text-slate-50">
                         {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
                       </td>
                       <td data-label={t('stylists.table.email')} className="p-3">{s.user?.email ?? '-'}</td>
@@ -295,7 +295,7 @@ export default function Stylists() {
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
             {t('common.previous')}
           </Button>
-          <p className="text-sm text-content-muted ">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             {page + 1} / {Math.max(1, Math.ceil(total / pageSize))}
           </p>
           <Button type="button" size="sm" variant="outline" disabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
@@ -334,7 +334,7 @@ export default function Stylists() {
                   </p>
                   {selectedServices.length > 0 ? (
                     <div className="mt-3">
-                      <p className="mb-1 text-xs text-content-muted ">{t('stylists.selectedCompetencies')}</p>
+                      <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')}</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedServices.map((svc) => (
                           <Badge key={svc.id} variant="brand" className="text-[10px]">
@@ -416,13 +416,13 @@ export default function Stylists() {
             <TabsContent value="skills" className="mt-4">
               <div className="space-y-4">
                 <div>
-                  <p className="mb-1 text-xs text-content-muted ">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
+                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
                   {selectedServices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('stylists.noSelectedCompetencies')}</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {selectedServices.map((svc) => (
-                        <span key={svc.id} className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-1 text-[11px] text-content-strong dark:bg-slate-900 ">
+                        <span key={svc.id} className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-1 text-[11px] text-content-strong dark:bg-slate-900 dark:text-slate-200">
                           <span>{svc.name}</span>
                           <button
                             type="button"
@@ -439,7 +439,7 @@ export default function Stylists() {
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-content-muted ">{t('stylists.availableCompetencies')}</p>
+                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.availableCompetencies')}</p>
                   {unselectedServices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t('stylists.allCompetenciesSelected')}</p>
                   ) : (
@@ -456,7 +456,7 @@ export default function Stylists() {
                             className="mt-0.5 h-4 w-4 accent-brand-gold-ring"
                           />
                           <span className="text-sm">
-                            <span className="font-medium text-content ">{svc.name}</span>
+                            <span className="font-medium text-content dark:text-slate-50">{svc.name}</span>
                             {svc.subcategory ? (
                               <span className="ml-1 text-muted-foreground">
                                 ({svc.subcategory.category?.name} &gt; {svc.subcategory.name})

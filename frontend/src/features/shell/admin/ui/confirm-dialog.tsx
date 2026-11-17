@@ -124,7 +124,7 @@ export function ConfirmDialog({
               count: minReasonLength,
             })}
           />
-          <p className="text-xs text-content-muted ">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {t('finance.confirm.reasonHistory')}
           </p>
         </div>

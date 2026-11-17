@@ -89,11 +89,11 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
     >
       <div className="grid gap-4">
         {notes ? (
-          <p className="text-sm text-content-muted ">{notes}</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{notes}</p>
         ) : null}
 
         {rows.length === 0 ? (
-          <p className="text-sm text-content-muted">{t('finance.expenseList.noInvoiceItems')}</p>
+          <p className="text-sm text-slate-500">{t('finance.expenseList.noInvoiceItems')}</p>
         ) : (
           <div className="app-table-wrap rounded-md border border-line ">
             <table className="app-table data-table w-full">
@@ -103,7 +103,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                 {t('finance.expenseList.invoiceItemsCaption')}
               </caption>
               <thead>
-                <tr className="border-b border-line bg-surface-muted text-left text-xs uppercase tracking-wide text-content-muted  dark:bg-slate-900 ">
+                <tr className="border-b border-line bg-surface-muted text-left text-xs uppercase tracking-wide text-slate-500  dark:bg-slate-900 dark:text-slate-400">
                   <th scope="col" className="px-3 py-2 font-medium">{t('finance.expenseList.columns.lineItem')}</th>
                   <th scope="col" className="px-3 py-2 text-right font-medium">{t('finance.expenseList.columns.amount')}</th>
                 </tr>
@@ -114,7 +114,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                     key={`${row.name}-${index}`}
                     className="border-b border-slate-100 last:border-0 dark:border-slate-900"
                   >
-                    <td data-label={t('finance.expenseList.columns.lineItem')} className="px-3 py-2 font-medium text-content ">
+                    <td data-label={t('finance.expenseList.columns.lineItem')} className="px-3 py-2 font-medium text-content dark:text-slate-50">
                       {row.name}
                     </td>
                     <td data-label={t('finance.expenseList.columns.amount')} className="px-3 py-2 text-right tabular-nums font-medium">
@@ -125,7 +125,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
               </tbody>
               <tfoot>
                 <tr className="bg-surface-muted dark:bg-slate-900">
-                  <td className="px-3 py-2 text-right text-sm font-medium text-content-muted ">
+                  <td className="px-3 py-2 text-right text-sm font-medium text-slate-600 dark:text-slate-300">
                     {t('finance.expenseForm.total')}
                   </td>
                   <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums text-rose-700 dark:text-rose-300">
@@ -139,7 +139,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
 
         {(expense.attachments ?? []).length > 0 ? (
           <div className="grid gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-content-muted">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
               {t('finance.expenseList.columns.attachments')}
             </p>
             <ExpenseAttachmentsList attachments={expense.attachments ?? []} />

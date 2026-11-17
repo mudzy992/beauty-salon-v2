@@ -118,13 +118,13 @@ export default function Reviews() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content ">{t('nav.reviews')}</h1>
+        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.reviews')}</h1>
         {/* 1.3.1/3.3.2/4.1.2: filter nije imao NI vidljivu NI programsku labelu —
             AT ga je imenovao tek po izabranoj opciji. Vidljiva labela bi bila
             dizajnerska promjena, pa je dodata programska. */}
         <select
           aria-label={t('reviews.filterLabel')}
-          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2    dark:focus-visible:ring-offset-slate-950"
+          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
         >
@@ -136,7 +136,7 @@ export default function Reviews() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-content-muted">
+          <div className="flex justify-center p-10 text-slate-500">
             <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
           </div>
         ) : (
@@ -144,7 +144,7 @@ export default function Reviews() {
             <table className="app-table data-table w-full border-collapse">
                                 <caption className="sr-only">{t('reviews.tableCaption')}</caption>
                   <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-slate-500 ">
                   <th scope="col" className="p-3 font-medium">{t('reviews.client')}</th>
                   <th scope="col" className="p-3 font-medium">{t('reviews.service')}</th>
                   <th scope="col" className="p-3 font-medium">{t('reviews.stylist')}</th>
@@ -159,7 +159,7 @@ export default function Reviews() {
               <tbody>
                 {reviews.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-6 text-content-muted">
+                    <td colSpan={9} className="p-6 text-slate-500">
                       {t('common.noData')}
                     </td>
                   </tr>
@@ -170,7 +170,7 @@ export default function Reviews() {
                       className="cursor-pointer border-b border-slate-100 hover:bg-surface-muted dark:border-slate-800/80 dark:hover:bg-slate-900/40"
                       onClick={() => openDetail(r)}
                     >
-                      <td data-label={t('reviews.client')} className="p-3 font-medium text-content ">{getUserName(r.user)}</td>
+                      <td data-label={t('reviews.client')} className="p-3 font-medium text-content dark:text-slate-50">{getUserName(r.user)}</td>
                       <td data-label={t('reviews.service')} className="p-3">{r.service?.name ?? '-'}</td>
                       <td data-label={t('reviews.stylist')} className="p-3">{getUserName(r.stylist?.user)}</td>
                       <td data-label={t('reviews.serviceRating')} className="p-3">
@@ -240,54 +240,54 @@ export default function Reviews() {
           {detail ? (
             <div className="space-y-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-content ">{t('common.status')}</p>
+                <p className="font-medium text-content dark:text-slate-50">{t('common.status')}</p>
                 {getApprovalBadge(detail.isApproved)}
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.client')}</p>
-                  <p className="font-medium text-content ">{getUserName(detail.user)}</p>
+                  <p className="text-xs text-slate-500">{t('reviews.client')}</p>
+                  <p className="font-medium text-content dark:text-slate-50">{getUserName(detail.user)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.service')}</p>
-                  <p className="font-medium text-content ">{detail.service?.name ?? '-'}</p>
+                  <p className="text-xs text-slate-500">{t('reviews.service')}</p>
+                  <p className="font-medium text-content dark:text-slate-50">{detail.service?.name ?? '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.stylist')}</p>
-                  <p className="font-medium text-content ">{getUserName(detail.stylist?.user)}</p>
+                  <p className="text-xs text-slate-500">{t('reviews.stylist')}</p>
+                  <p className="font-medium text-content dark:text-slate-50">{getUserName(detail.stylist?.user)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.serviceRating')}</p>
+                  <p className="text-xs text-slate-500">{t('reviews.serviceRating')}</p>
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <Stars count={detail.serviceRating} />
-                    <span className="font-semibold text-content ">{formatLocalizedNumber(detail.serviceRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
+                    <span className="font-semibold text-content dark:text-slate-50">{formatLocalizedNumber(detail.serviceRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.stylistRating')}</p>
+                  <p className="text-xs text-slate-500">{t('reviews.stylistRating')}</p>
                   {detail.stylistRating ? (
                     <div className="mt-1 flex items-center justify-between gap-3">
                       <Stars count={detail.stylistRating} />
-                      <span className="font-semibold text-content ">{formatLocalizedNumber(detail.stylistRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
+                      <span className="font-semibold text-content dark:text-slate-50">{formatLocalizedNumber(detail.stylistRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
                     </div>
                   ) : (
-                    <p className="mt-1 text-content-muted">{t('reviews.notRated')}</p>
+                    <p className="mt-1 text-slate-500">{t('reviews.notRated')}</p>
                   )}
                 </div>
               </div>
 
               {detail.comment ? (
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.comment')}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-content ">{detail.comment}</p>
+                  <p className="text-xs text-slate-500">{t('reviews.comment')}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-content dark:text-slate-50">{detail.comment}</p>
                 </div>
               ) : null}
 
-              <p className="text-xs text-content-muted">{t('common.date')}: {detailDate ?? '-'}</p>
+              <p className="text-xs text-slate-500">{t('common.date')}: {detailDate ?? '-'}</p>
             </div>
           ) : null}
 

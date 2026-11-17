@@ -772,7 +772,7 @@ export default function EmailSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-content-muted">
+      <div className="flex items-center gap-2 text-slate-500">
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
         {t('common.loading')}
       </div>
@@ -780,12 +780,12 @@ export default function EmailSettings() {
   }
 
   const selectClass =
-    'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content   '
+    'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content   dark:text-slate-50'
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold text-content ">{t('emailSettings.title')}</h1>
-      <p className="mb-6 text-content-muted ">
+      <h1 className="mb-2 text-2xl font-semibold text-content dark:text-slate-50">{t('emailSettings.title')}</h1>
+      <p className="mb-6 text-slate-600 dark:text-slate-300">
         {t('emailSettings.description')}
       </p>
 
@@ -865,7 +865,7 @@ export default function EmailSettings() {
                     placeholder={hasPasswordConfigured ? t('emailSettings.smtp.passwordSavedPlaceholder') : ''}
                   />
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <p className="text-xs text-content-muted">
+                    <p className="text-xs text-slate-500">
                       {hasPasswordConfigured
                         ? t('emailSettings.smtp.passwordSavedHint')
                         : t('emailSettings.smtp.passwordEntryHint')}
@@ -920,11 +920,11 @@ export default function EmailSettings() {
                     nikakvo ime, pa ga je AT najavio kao „edit, prazno". Sada je vidljivi
                     tekst ime GRUPE (role="group" + aria-labelledby), a svako polje ima
                     svoje. Vizuelno identično: <span> nosi iste razrede koje Label ima
-                    u osnovi (text-sm font-medium leading-none text-content-strong ). */}
+                    u osnovi (text-sm font-medium leading-none text-content-strong dark:text-slate-200). */}
                 <div role="group" aria-labelledby="email-smtp-limits-label">
                   <span
                     id="email-smtp-limits-label"
-                    className="text-sm font-medium leading-none text-content-strong "
+                    className="text-sm font-medium leading-none text-content-strong dark:text-slate-200"
                   >
                     {t('emailSettings.smtp.maxConnectionsAndMessages')}
                   </span>
@@ -946,7 +946,7 @@ export default function EmailSettings() {
               </div>
 
               {!isCustomLike ? (
-                <p className="text-sm text-content-muted">
+                <p className="text-sm text-slate-500">
                   {t('emailSettings.smtp.providerCredentialsHint', { provider: provider === 'google' ? 'Google' : 'Office 365' })}
                 </p>
               ) : null}
@@ -1184,12 +1184,12 @@ export default function EmailSettings() {
                   )}
 
                   <div>
-                    <p id="email-campaign-html-preview-source" className="text-sm font-medium leading-none text-content-strong ">
+                    <p id="email-campaign-html-preview-source" className="text-sm font-medium leading-none text-content-strong dark:text-slate-200">
                       {t('emailSettings.campaigns.htmlPreviewSource')}
                     </p>
                     <pre
                       aria-labelledby="email-campaign-html-preview-source"
-                      className="mt-1 max-h-[280px] overflow-auto rounded-md border border-line bg-surface-muted p-3 text-xs text-content  dark:bg-slate-900/40 ">
+                      className="mt-1 max-h-[280px] overflow-auto rounded-md border border-line bg-surface-muted p-3 text-xs text-content  dark:bg-slate-900/40 dark:text-slate-100">
                       {(campaignMode === 'builder'
                         ? renderCampaignHtml(selectedCampaign.blocks ?? [])
                         : selectedCampaign.html
@@ -1200,7 +1200,7 @@ export default function EmailSettings() {
                   <Separator />
 
                   <div className="space-y-3">
-                    <p className="font-semibold text-content ">
+                    <p className="font-semibold text-content dark:text-slate-50">
                       {t('emailSettings.campaigns.audienceHeading')}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1235,7 +1235,7 @@ export default function EmailSettings() {
                         />
                       </div>
                     </div>
-                    <p className="text-xs text-content-muted">
+                    <p className="text-xs text-slate-500">
                       {t('emailSettings.campaigns.verifiedConsentOnly')}
                     </p>
 
@@ -1278,11 +1278,11 @@ export default function EmailSettings() {
                           </p>
                         ) : null}
                         {audienceSummary.total === 0 ? (
-                          <p className="text-sm text-content-muted ">
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
                             {t('emailSettings.campaigns.audienceEmpty')}
                           </p>
                         ) : (
-                          <p className="text-sm text-content-muted ">
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
                             {t('emailSettings.campaigns.sampleFirstTen', {
                               names: audienceSummary.sample.map((item) => item.username).join(', ') || '-',
                             })}
@@ -1304,14 +1304,14 @@ export default function EmailSettings() {
                       return (
                         <Card className="space-y-3 p-4" aria-live="polite">
                           <div className="flex flex-wrap items-center justify-between gap-3">
-                            <h3 className="font-semibold text-content ">
+                            <h3 className="font-semibold text-content dark:text-slate-50">
                               {t('emailSettings.campaigns.progressHeading')}
                             </h3>
                             <Badge variant={active ? 'brand' : 'outline'}>
                               {t(`emailSettings.campaigns.jobStatuses.${campaignJob.status}`, { defaultValue: campaignJob.status })}
                             </Badge>
                           </div>
-                          <p className="text-sm text-content-muted ">
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
                             {t('emailSettings.campaigns.counts', {
                               pending: formatLocalizedNumber(counts.pending, i18n.language),
                               processing: formatLocalizedNumber(counts.processing, i18n.language),
@@ -1339,7 +1339,7 @@ export default function EmailSettings() {
                           {failedRecipients.length > 0 ? (
                             <div className="space-y-1">
                               <p className="text-sm font-medium">{t('emailSettings.campaigns.recipientListHeading')}</p>
-                              <ul className="space-y-1 text-sm text-content-muted ">
+                              <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
                                 {failedRecipients.map((recipient) => (
                                   <li key={recipient.id} className="flex justify-between gap-3">
                                     <span>{recipient.username}</span>
@@ -1367,7 +1367,7 @@ export default function EmailSettings() {
                       )
                     })() : null}
 
-                    <p className="text-xs text-content-muted">
+                    <p className="text-xs text-slate-500">
                       {t('emailSettings.campaigns.dynamicVariables')}{' '}
                       {'{{firstName}}'} {'{{lastName}}'} {'{{username}}'} {'{{email}}'} {'{{appUrl}}'}
                     </p>
@@ -1384,7 +1384,7 @@ export default function EmailSettings() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-content-muted">
+                <p className="text-sm text-slate-500">
                   {t('emailSettings.campaigns.noTemplates', {
                     action: t('emailSettings.campaigns.newTemplate'),
                   })}

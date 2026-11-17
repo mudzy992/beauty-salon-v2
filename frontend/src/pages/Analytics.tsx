@@ -96,9 +96,9 @@ const getPresetParams = (preset: PeriodPreset, customFrom?: string, customTo?: s
 
 const StatCard = ({ title, value, hint }: { title: string; value: string; hint?: string }) => (
   <Card className="min-w-0 p-5">
-    <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{title}</p>
-    <p className="mt-2 text-3xl font-semibold text-content ">{value}</p>
-    {hint ? <p className="mt-2 text-sm text-content-muted">{hint}</p> : null}
+    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{title}</p>
+    <p className="mt-2 text-3xl font-semibold text-content dark:text-slate-50">{value}</p>
+    {hint ? <p className="mt-2 text-sm text-slate-500">{hint}</p> : null}
   </Card>
 )
 
@@ -188,7 +188,7 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-content ">{t('adminAnalytics.title')}</h1>
+      <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('adminAnalytics.title')}</h1>
 
       <div className="flex flex-col flex-wrap items-stretch gap-4 md:flex-row md:items-end">
         <div className="w-full md:w-auto md:min-w-[290px]">
@@ -204,7 +204,7 @@ export default function Analytics() {
               setPeriod(next)
               if (next !== 'custom') load(getPresetParams(next))
             }}
-            className="mt-1 flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2    dark:focus-visible:ring-offset-slate-950 md:max-w-[360px]"
+            className="mt-1 flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950 md:max-w-[360px]"
           >
             <option value="12">{t('adminAnalytics.last12Months')}</option>
             <option value="thisMonth">{t('adminAnalytics.thisMonth')}</option>
@@ -255,23 +255,23 @@ export default function Analytics() {
       <p className="text-sm text-content">{t('adminAnalytics.financePeriodNote')}</p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="min-w-0 p-5">
-          <h2 className="text-sm font-semibold text-content ">{t('adminAnalytics.revenue')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{periodLabel}</p>
+          <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.revenue')}</h2>
+          <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between gap-2 tabular-nums">
               <dt className="text-content-strong">{t('adminAnalytics.servicesTotal')}</dt>
-              <dd className="font-medium text-content ">
+              <dd className="font-medium text-content dark:text-slate-50">
                 {formatLocalizedAmount(data.periodFinance.servicesRevenue, i18n.language)}
               </dd>
             </div>
             <div className="flex justify-between gap-2 tabular-nums">
               <dt className="text-content-strong">{t('adminAnalytics.tipsTotal')}</dt>
-              <dd className="font-medium text-content ">
+              <dd className="font-medium text-content dark:text-slate-50">
                 {formatLocalizedAmount(data.periodFinance.tips, i18n.language)}
               </dd>
             </div>
             <div className="mt-3 flex justify-between gap-2 border-t border-line pt-3 tabular-nums ">
-              <dt className="text-sm font-semibold text-content ">{t('adminAnalytics.totalIncome')}</dt>
+              <dt className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.totalIncome')}</dt>
               <dd className="text-lg font-semibold text-emerald-700 dark:text-emerald-400">
                 {formatLocalizedAmount(data.periodFinance.totalIncome, i18n.language)}
               </dd>
@@ -280,11 +280,11 @@ export default function Analytics() {
         </Card>
 
         <Card className="min-w-0 p-5">
-          <h2 className="text-sm font-semibold text-content ">{t('adminAnalytics.expenses')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{periodLabel}</p>
+          <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.expenses')}</h2>
+          <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
           <ul className="mt-4 max-h-40 space-y-2 overflow-y-auto text-sm">
             {data.periodFinance.expensesByCategory.length === 0 ? (
-              <li className="text-content-muted">{t('adminAnalytics.noExpenses')}</li>
+              <li className="text-slate-500">{t('adminAnalytics.noExpenses')}</li>
             ) : (
               data.periodFinance.expensesByCategory.map((row) => (
                 <li
@@ -292,13 +292,13 @@ export default function Analytics() {
                   className="flex justify-between gap-2 border-b border-slate-100 pb-2 tabular-nums last:border-0 dark:border-slate-800/80"
                 >
                   <span className="text-content-strong">{row.categoryName}</span>
-                  <span className="font-medium text-content ">{formatLocalizedAmount(row.total, i18n.language)}</span>
+                  <span className="font-medium text-content dark:text-slate-50">{formatLocalizedAmount(row.total, i18n.language)}</span>
                 </li>
               ))
             )}
           </ul>
           <div className="mt-3 flex justify-between gap-2 border-t border-line pt-3 tabular-nums ">
-            <span className="text-sm font-semibold text-content ">{t('adminAnalytics.totalExpenses')}</span>
+            <span className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.totalExpenses')}</span>
             <span className="text-lg font-semibold text-rose-700 dark:text-rose-400">
               {formatLocalizedAmount(data.periodFinance.totalExpenses, i18n.language)}
             </span>
@@ -306,13 +306,13 @@ export default function Analytics() {
         </Card>
 
         <Card className="min-w-0 p-5">
-          <h2 className="text-sm font-semibold text-content ">{t('adminAnalytics.profit')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{t('adminAnalytics.profitHint', { period: periodLabel })}</p>
+          <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.profit')}</h2>
+          <p className="mt-1 text-xs text-slate-500">{t('adminAnalytics.profitHint', { period: periodLabel })}</p>
           <p
             className={
               data.periodFinance.netProfit < 0
                 ? 'mt-6 text-3xl font-semibold tabular-nums text-rose-600 dark:text-rose-400'
-                : 'mt-6 text-3xl font-semibold tabular-nums text-content '
+                : 'mt-6 text-3xl font-semibold tabular-nums text-content dark:text-slate-50'
             }
           >
             {formatLocalizedAmount(data.periodFinance.netProfit, i18n.language)}
@@ -331,7 +331,7 @@ export default function Analytics() {
       </div>
 
       <Card className="min-w-0 p-5">
-        <h2 className="mb-4 text-sm font-semibold text-content ">
+        <h2 className="mb-4 text-sm font-semibold text-content dark:text-slate-50">
           {t('adminAnalytics.monthlyChartTitle')}{' '}
           {data.fromDate && data.toDate
             ? t('adminAnalytics.monthlyChartRange', {
@@ -398,11 +398,11 @@ export default function Analytics() {
       <p className="text-sm text-content">{t('adminAnalytics.sourceNote')}</p>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="min-w-0 p-5">
-          <h2 id="analytics-stylist-performance" className="mb-3 text-sm font-semibold text-content ">{t('adminAnalytics.stylistPerformance')}</h2>
+          <h2 id="analytics-stylist-performance" className="mb-3 text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.stylistPerformance')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby="analytics-stylist-performance" className="app-table w-full border-collapse">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-slate-500 ">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.stylist')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
@@ -412,7 +412,7 @@ export default function Analytics() {
               <tbody>
                 {data.stylistPerformance.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-content-muted">
+                    <td colSpan={4} className="py-4 text-slate-500">
                       {t('adminAnalytics.noData')}
                     </td>
                   </tr>
@@ -439,11 +439,11 @@ export default function Analytics() {
         </Card>
 
         <Card className="min-w-0 p-5">
-          <h2 id="analytics-top-services" className="mb-3 text-sm font-semibold text-content ">{t('adminAnalytics.topServices')}</h2>
+          <h2 id="analytics-top-services" className="mb-3 text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.topServices')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby="analytics-top-services" className="app-table w-full border-collapse">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-slate-500 ">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.service')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
                   <th scope="col" className="py-2 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
@@ -452,7 +452,7 @@ export default function Analytics() {
               <tbody>
                 {data.topServices.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="py-4 text-content-muted">
+                    <td colSpan={3} className="py-4 text-slate-500">
                       {t('adminAnalytics.noData')}
                     </td>
                   </tr>

@@ -108,7 +108,7 @@ export function IncomeEntryFiltersBar({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-content-muted ">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             {t('finance.incomeList.resultCount', { resultCount, totalCount })}
           </span>
           {isFiltered ? (

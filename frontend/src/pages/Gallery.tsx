@@ -287,7 +287,7 @@ export default function Gallery() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content ">{t('nav.gallery')}</h1>
+        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.gallery')}</h1>
         <Button type="button" onClick={() => openCatForm()}>
           <Plus className="mr-2 h-4 w-4" />
           {t('gallery.admin.newCategory')}
@@ -321,7 +321,7 @@ export default function Gallery() {
                       aria-pressed={selectedCatId === c.id}
                       className="min-w-0 flex-1 cursor-pointer rounded text-left"
                     >
-                      <span className="block truncate font-semibold text-content ">
+                      <span className="block truncate font-semibold text-content dark:text-slate-50">
                         {c.name}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">
@@ -473,7 +473,7 @@ export default function Gallery() {
             <section className="space-y-4 rounded-xl border border-line p-4">
               <div>
                 <h3 className="font-semibold text-content">{t('gallery.admin.nonClientSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-content-muted">
+                <p className="mt-1 text-xs leading-5 text-slate-600">
                   {t('gallery.admin.nonClientSectionGuidance')}
                 </p>
               </div>
@@ -519,7 +519,7 @@ export default function Gallery() {
             <section className="space-y-4 rounded-xl border border-line p-4">
               <div>
                 <h3 className="font-semibold text-content">{t('gallery.admin.consentedSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-content-muted">
+                <p className="mt-1 text-xs leading-5 text-slate-600">
                   {t('gallery.admin.consentedSectionGuidance')}
                 </p>
               </div>

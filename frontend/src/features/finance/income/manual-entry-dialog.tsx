@@ -121,7 +121,7 @@ export function ManualEntryDialog({
             <>
               <span
                 id="manual-client-selected-label"
-                className="text-sm font-medium text-content-strong "
+                className="text-sm font-medium text-content-strong dark:text-slate-200"
               >
                 {t('finance.manualEntry.client')}
               </span>
@@ -182,15 +182,15 @@ export function ManualEntryDialog({
           />
           <div className="mt-1 grid gap-1 rounded-md bg-surface-muted p-2 text-xs dark:bg-slate-900">
             <div className="flex justify-between">
-              <span className="text-content-muted">{t('finance.manualEntry.servicePrice')}</span>
+              <span className="text-slate-500">{t('finance.manualEntry.servicePrice')}</span>
               <span className="tabular-nums">{formatAmount(f.servicePrice)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-content-muted">{t('finance.summary.tips')}</span>
+              <span className="text-slate-500">{t('finance.summary.tips')}</span>
               <span className="tabular-nums">{formatAmount(f.tipAmount)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-content-muted">{t('finance.manualEntry.unpaid')}</span>
+              <span className="text-slate-500">{t('finance.manualEntry.unpaid')}</span>
               <span
                 className={`tabular-nums ${f.debtAmount > 0 ? 'text-warn-foreground' : ''}`}
               >
@@ -223,7 +223,7 @@ export function ManualEntryDialog({
               </Button>
             </div>
             {!f.canCreateDebt ? (
-              <p className="text-xs text-content-muted">
+              <p className="text-xs text-slate-500">
                 {t('finance.manualEntry.debtRequiresClientStylist')}
               </p>
             ) : null}
