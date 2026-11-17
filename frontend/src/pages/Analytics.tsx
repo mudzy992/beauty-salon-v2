@@ -96,9 +96,9 @@ const getPresetParams = (preset: PeriodPreset, customFrom?: string, customTo?: s
 
 const StatCard = ({ title, value, hint }: { title: string; value: string; hint?: string }) => (
   <Card className="min-w-0 p-5">
-    <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{title}</p>
+    <p className="text-xs font-medium uppercase tracking-wide text-content-strong">{title}</p>
     <p className="mt-2 text-3xl font-semibold text-content dark:text-slate-50">{value}</p>
-    {hint ? <p className="mt-2 text-sm text-content-muted">{hint}</p> : null}
+    {hint ? <p className="mt-2 text-sm text-content-strong">{hint}</p> : null}
   </Card>
 )
 
@@ -249,14 +249,14 @@ export default function Analytics() {
         )}
       </div>
 
-      {loading ? <div role="status" className="flex justify-center p-10 text-content-muted"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
+      {loading ? <div role="status" className="flex justify-center p-10 text-content-strong"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
       {loadError && !loading ? <div role="alert" className="space-y-3"><p>{t('adminAnalytics.loadFailed')}</p><Button type="button" variant="outline" onClick={() => load(lastParams.current)}>{t('common.retry')}</Button></div> : null}
       {data && !loading ? <>
       <p className="text-sm text-content">{t('adminAnalytics.financePeriodNote')}</p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="min-w-0 p-5">
           <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.revenue')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{periodLabel}</p>
+          <p className="mt-1 text-xs text-content-strong">{periodLabel}</p>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between gap-2 tabular-nums">
               <dt className="text-content-strong">{t('adminAnalytics.servicesTotal')}</dt>
@@ -281,10 +281,10 @@ export default function Analytics() {
 
         <Card className="min-w-0 p-5">
           <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.expenses')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{periodLabel}</p>
+          <p className="mt-1 text-xs text-content-strong">{periodLabel}</p>
           <ul className="mt-4 max-h-40 space-y-2 overflow-y-auto text-sm">
             {data.periodFinance.expensesByCategory.length === 0 ? (
-              <li className="text-content-muted">{t('adminAnalytics.noExpenses')}</li>
+              <li className="text-content-strong">{t('adminAnalytics.noExpenses')}</li>
             ) : (
               data.periodFinance.expensesByCategory.map((row) => (
                 <li
@@ -307,7 +307,7 @@ export default function Analytics() {
 
         <Card className="min-w-0 p-5">
           <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('adminAnalytics.profit')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{t('adminAnalytics.profitHint', { period: periodLabel })}</p>
+          <p className="mt-1 text-xs text-content-strong">{t('adminAnalytics.profitHint', { period: periodLabel })}</p>
           <p
             className={
               data.periodFinance.netProfit < 0
@@ -363,14 +363,14 @@ export default function Analytics() {
 
         {/* 1.1.1: ista informacija dostupna i kao tabela, ne samo kao graf */}
         <details className="mt-4">
-          <summary className="cursor-pointer text-sm text-content-muted hover:text-content">
+          <summary className="cursor-pointer text-sm text-content-strong hover:text-content">
             {t('adminAnalytics.showDataTable')}
           </summary>
           <div className="app-table-wrap mt-3">
             <table className="app-table data-table w-full border-collapse">
               <caption className="sr-only">{t('adminAnalytics.chartTableCaption')}</caption>
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted">
+                <tr className="border-b border-line text-left text-xs uppercase text-content-strong">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.month')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.revenue')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.expenses')}</th>
@@ -402,7 +402,7 @@ export default function Analytics() {
           <div className="app-table-wrap">
             <table aria-labelledby="analytics-stylist-performance" className="app-table w-full border-collapse">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.stylist')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
@@ -412,7 +412,7 @@ export default function Analytics() {
               <tbody>
                 {data.stylistPerformance.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-content-muted">
+                    <td colSpan={4} className="py-4 text-content-strong">
                       {t('adminAnalytics.noData')}
                     </td>
                   </tr>
@@ -443,7 +443,7 @@ export default function Analytics() {
           <div className="app-table-wrap">
             <table aria-labelledby="analytics-top-services" className="app-table w-full border-collapse">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.service')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.count')}</th>
                   <th scope="col" className="py-2 text-right font-medium">{t('adminAnalytics.revenueKm')}</th>
@@ -452,7 +452,7 @@ export default function Analytics() {
               <tbody>
                 {data.topServices.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="py-4 text-content-muted">
+                    <td colSpan={3} className="py-4 text-content-strong">
                       {t('adminAnalytics.noData')}
                     </td>
                   </tr>

@@ -98,7 +98,7 @@ export function LoyaltyProgramSettings() {
     setExcluded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  if (loading) return <p className="text-sm text-content-muted">{t('loyaltyAdmin.settings.loading')}</p>
+  if (loading) return <p className="text-sm text-content-strong">{t('loyaltyAdmin.settings.loading')}</p>
 
   return (
     <Card className="mb-6 p-6 space-y-4">

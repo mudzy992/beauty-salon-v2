@@ -87,18 +87,18 @@ export default function Debtors({ embedded = false }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div>
           {embedded ? (
-            <p className="text-sm text-content-muted ">{t('debtors.description')}</p>
+            <p className="text-sm text-content-strong ">{t('debtors.description')}</p>
           ) : (
             <>
               <h1 className="text-lg font-semibold text-content dark:text-slate-50">
                 {t('debtors.title')}
               </h1>
-              <p className="text-sm text-content-muted ">{t('debtors.description')}</p>
+              <p className="text-sm text-content-strong ">{t('debtors.description')}</p>
             </>
           )}
         </div>
         <div className="text-right">
-          <div className="text-xs text-content-muted">{t('common.total')}</div>
+          <div className="text-xs text-content-strong">{t('common.total')}</div>
           <div className="text-lg font-semibold text-content dark:text-slate-50">
             {query.isLoading || query.isError ? '—' : formatLocalizedAmount(total, i18n.language)}
           </div>
@@ -119,11 +119,11 @@ export default function Debtors({ embedded = false }: Props) {
 
       <Card className="p-4">
         {query.isLoading ? (
-          <div role="status" className="text-sm text-content-muted">{t('common.loading')}</div>
+          <div role="status" className="text-sm text-content-strong">{t('common.loading')}</div>
         ) : query.isError ? (
           <ErrorState onRetry={() => void query.refetch()} />
         ) : rows.length === 0 ? (
-          <div className="text-sm text-content-muted">{t('debtors.noOpenDebts')}</div>
+          <div className="text-sm text-content-strong">{t('debtors.noOpenDebts')}</div>
         ) : (
           <ul className="grid gap-2">
             {rows.map((d) => {
@@ -147,11 +147,11 @@ export default function Debtors({ embedded = false }: Props) {
                     <div className="truncate font-semibold text-content dark:text-slate-50">
                       {clientName}
                     </div>
-                    <div className="mt-0.5 text-xs text-content-muted ">
+                    <div className="mt-0.5 text-xs text-content-strong ">
                       <span className="font-semibold">{t('debtors.stylist')}:</span> {stylistName}
                       {d.service?.name ? ` · ${d.service.name}` : ''}
                     </div>
-                    <div className="mt-0.5 text-xs text-content-muted">
+                    <div className="mt-0.5 text-xs text-content-strong">
                       {reference} · {formatDate(d.createdAt)}
                     </div>
                   </div>
@@ -179,7 +179,7 @@ export default function Debtors({ embedded = false }: Props) {
             >
               {t('common.previous')}
             </Button>
-            <span className="text-sm text-content-muted ">
+            <span className="text-sm text-content-strong ">
               {currentPage + 1} / {totalPages}
             </span>
             <Button

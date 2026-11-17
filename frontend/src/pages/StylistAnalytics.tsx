@@ -27,7 +27,7 @@ interface StylistAnalyticsData {
 
 const StatCard = ({ title, value }: { title: string; value: string }) => (
   <Card className="min-w-0 p-5">
-    <p className="text-xs font-medium uppercase tracking-wide text-content-muted">{title}</p>
+    <p className="text-xs font-medium uppercase tracking-wide text-content-strong">{title}</p>
     <p className="mt-2 text-3xl font-semibold text-content dark:text-slate-50">{value}</p>
   </Card>
 )
@@ -110,7 +110,7 @@ export default function StylistAnalytics() {
           </RouterLink>
         </Button>
         <h1 className="text-xl font-semibold">{t('adminAnalytics.tabs.stylists')}</h1>
-        <p className="text-sm text-content-muted">{t('stylistAnalytics.selectStylist')}</p>
+        <p className="text-sm text-content-strong">{t('stylistAnalytics.selectStylist')}</p>
       </div>
     )
   }
@@ -153,19 +153,19 @@ export default function StylistAnalytics() {
           )}
         </Button>
         {data && data.stylist.id === stylistId && (data.fromDate || data.toDate) ? (
-          <p className="pb-1 text-sm text-content-muted md:self-center">
+          <p className="pb-1 text-sm text-content-strong md:self-center">
             {t('stylistAnalytics.period', { from: formatDate(data.fromDate), to: formatDate(data.toDate) })}
           </p>
         ) : null}
       </div>
 
       {invalidRange ? <p role="alert" className="text-sm text-content">{t('stylistAnalytics.invalidRange')}</p> : null}
-      {loading ? <div role="status" className="flex justify-center p-10 text-content-muted"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
+      {loading ? <div role="status" className="flex justify-center p-10 text-content-strong"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
       {error && !loading ? <div role="alert" className="space-y-3"><p>{t('stylistAnalytics.loadFailed')}</p><Button type="button" variant="outline" onClick={() => load(lastParams.current)}>{t('common.retry')}</Button></div> : null}
       {data && data.stylist.id === stylistId && !loading ? <>
       <div>
         <h1 className="text-xl font-semibold text-content dark:text-slate-50">{data.stylist.name}</h1>
-        {data.stylist.user?.email ? <p className="text-sm text-content-muted">{data.stylist.user.email}</p> : null}
+        {data.stylist.user?.email ? <p className="text-sm text-content-strong">{data.stylist.user.email}</p> : null}
       </div>
 
       <p className="text-sm text-content">{t('stylistAnalytics.sourceNote')}</p>
@@ -181,7 +181,7 @@ export default function StylistAnalytics() {
           <div className="app-table-wrap">
             <table aria-labelledby={topServicesLabelId} className="app-table w-full border-collapse">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
                   <th scope="col" className="py-2 pr-3 text-right font-medium">{t('stylistAnalytics.count')}</th>
                   <th scope="col" className="py-2 text-right font-medium">{t('stylistAnalytics.revenue')}</th>
@@ -190,7 +190,7 @@ export default function StylistAnalytics() {
               <tbody>
                 {data.topServices.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="py-4 text-content-muted">
+                    <td colSpan={3} className="py-4 text-content-strong">
                       {t('common.noData')}
                     </td>
                   </tr>
@@ -213,7 +213,7 @@ export default function StylistAnalytics() {
           <div className="app-table-wrap">
             <table aria-labelledby={recentEntriesLabelId} className="app-table w-full border-collapse">
               <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
                   <th scope="col" className="py-2 pr-3 font-medium">{t('common.date')}</th>
                   <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
                   <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.client')}</th>
@@ -223,7 +223,7 @@ export default function StylistAnalytics() {
               <tbody>
                 {data.recentEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-content-muted">
+                    <td colSpan={4} className="py-4 text-content-strong">
                       {t('common.noData')}
                     </td>
                   </tr>

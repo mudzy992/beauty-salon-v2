@@ -49,7 +49,7 @@ export const OutboxEventsTable = ({ events, onReplay }: Props) => {
       render: (event) => (
         <span className="font-mono text-xs">
           <span className="block whitespace-nowrap">{event.eventType}</span>
-          <span className="block whitespace-nowrap text-content-muted">
+          <span className="block whitespace-nowrap text-content-strong">
             #{event.id.slice(0, 8)}
           </span>
         </span>
@@ -83,7 +83,7 @@ export const OutboxEventsTable = ({ events, onReplay }: Props) => {
     {
       key: 'lastError',
       headerKey: 'dashboard.outbox.lastError',
-      className: 'max-w-xs text-xs text-content-muted',
+      className: 'max-w-xs text-xs text-content-strong',
       render: (event) => event.lastError ?? t('dashboard.outbox.noError'),
     },
     {

@@ -43,7 +43,7 @@ export const FilterBar = ({
     >
       <div className="flex flex-wrap items-end gap-3">{children}</div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p role="status" aria-live="polite" className="text-xs text-content-muted">
+        <p role="status" aria-live="polite" className="text-xs text-content-strong">
           {resultSummary}
         </p>
         <div className="flex items-center gap-2">

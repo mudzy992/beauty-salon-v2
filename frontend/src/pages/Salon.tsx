@@ -298,7 +298,7 @@ export default function Salon() {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-content-muted">
+      <div className="flex justify-center p-10 text-content-strong">
         <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
       </div>
     )
@@ -309,7 +309,7 @@ export default function Salon() {
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.salon')}</h1>
-          <p className="mt-1 text-sm text-content-muted ">{t('salon.notConfigured')}</p>
+          <p className="mt-1 text-sm text-content-strong ">{t('salon.notConfigured')}</p>
         </div>
 
         <Card>
@@ -470,7 +470,7 @@ export default function Salon() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.salon')}</h1>
-          <p className="mt-1 text-sm text-content-muted ">{t('salon.subtitle')}</p>
+          <p className="mt-1 text-sm text-content-strong ">{t('salon.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {holidaysSummary.map((h) => (
@@ -591,7 +591,7 @@ export default function Salon() {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-content dark:text-slate-50">{t('salon.holidays')}</p>
-                  <p className="text-xs text-content-muted">{t('salon.holidaysDescription')}</p>
+                  <p className="text-xs text-content-strong">{t('salon.holidaysDescription')}</p>
                 </div>
                 <Button type="button" onClick={() => openHolidayForm()}>
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -600,7 +600,7 @@ export default function Salon() {
               </div>
 
               {holidays.length === 0 ? (
-                <p className="text-sm text-content-muted">{t('salon.noHolidays')}</p>
+                <p className="text-sm text-content-strong">{t('salon.noHolidays')}</p>
               ) : (
                 <div className="app-table-wrap rounded-md border border-line ">
                   <DataTable
@@ -640,7 +640,7 @@ export default function Salon() {
             <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3 ">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-content dark:text-slate-50">{t('salon.holidayForm.sendPush')}</p>
-                <p className="text-xs text-content-muted">{t('salon.holidayForm.sendPushHint')}</p>
+                <p className="text-xs text-content-strong">{t('salon.holidayForm.sendPushHint')}</p>
               </div>
               <Switch
                 aria-label={t('salon.holidayForm.sendPush')}

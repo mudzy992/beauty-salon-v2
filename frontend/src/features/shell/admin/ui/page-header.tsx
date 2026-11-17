@@ -28,7 +28,7 @@ export const PageHeader = ({ title, description, actions, className }: PageHeade
     <div className="min-w-0">
       <h1 className="text-2xl font-semibold text-content">{title}</h1>
       {description ? (
-        <p className="mt-1 max-w-prose text-sm text-content-muted">{description}</p>
+        <p className="mt-1 max-w-prose text-sm text-content-strong">{description}</p>
       ) : null}
     </div>
     {actions ? (

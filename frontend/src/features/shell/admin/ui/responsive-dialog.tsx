@@ -44,7 +44,7 @@ export function ResponsiveDialog({
               {title}
             </DialogTitle>
             {description ? (
-              <DialogDescription className="mt-1 text-xs text-content-muted ">
+              <DialogDescription className="mt-1 text-xs text-content-strong ">
                 {description}
               </DialogDescription>
             ) : null}

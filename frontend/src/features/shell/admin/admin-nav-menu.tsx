@@ -80,8 +80,8 @@ export const AdminNav = ({
             data-admin-nav-group
             className={
               compact
-                ? 'px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-content-muted'
-                : 'px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-content-muted'
+                ? 'px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-content-strong'
+                : 'px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-content-strong'
             }
           >
             {t(group.labelKey)}

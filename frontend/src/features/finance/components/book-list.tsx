@@ -59,7 +59,7 @@ export function BookList({
                 </span>
                 <BookLockBadge isLocked={row.isLocked} />
               </div>
-              <div className="mt-1 text-xs text-content-muted">
+              <div className="mt-1 text-xs text-content-strong">
                 {primaryLabel}:{' '}
                 {formatLocalizedAmount(row.primaryAmount, i18n.language)}
                 {secondaryLabel !== undefined &&

@@ -87,7 +87,7 @@ export function ExpenseFiltersBar({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="flex items-center gap-2 text-xs text-content-muted ">
+        <label className="flex items-center gap-2 text-xs text-content-strong ">
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-input-border"
@@ -99,7 +99,7 @@ export function ExpenseFiltersBar({
           {t('finance.expenseList.onlyWithAttachments')}
         </label>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-content-muted ">
+          <span className="text-xs text-content-strong ">
             {t('finance.expenseList.resultCount', { resultCount, totalCount })}
           </span>
           {isFiltered ? (

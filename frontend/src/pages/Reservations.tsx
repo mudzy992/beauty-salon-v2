@@ -335,7 +335,7 @@ export default function Reservations() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div role="status" className="flex justify-center p-10 text-content-muted">
+          <div role="status" className="flex justify-center p-10 text-content-strong">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
             <span className="sr-only">{t('common.loading')}</span>
           </div>
@@ -352,7 +352,7 @@ export default function Reservations() {
           <>
             <div className="grid grid-cols-1 gap-3 p-3 lg:hidden">
               {items.length === 0 ? (
-                <p className="p-3 text-sm text-content-muted">{t('common.noData')}</p>
+                <p className="p-3 text-sm text-content-strong">{t('common.noData')}</p>
               ) : (
                 items.map((r) => (
                   <button
@@ -364,7 +364,7 @@ export default function Reservations() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-medium text-content">{String(r.reservationDate).slice(0, 10)}</p>
-                        <p className="text-sm text-content-muted">
+                        <p className="text-sm text-content-strong">
                           {r.startTime} - {r.endTime}
                         </p>
                       </div>
@@ -374,12 +374,12 @@ export default function Reservations() {
                       />
                     </div>
                     <p className="mt-2 text-sm text-content">{serviceSummary(r)}</p>
-                    <p className="text-sm text-content-muted">{getClientName(r.client)}</p>
+                    <p className="text-sm text-content-strong">{getClientName(r.client)}</p>
                     <div className="mt-2 flex items-start justify-between gap-3 text-sm">
                       <span>{t('reservations.adminList.priceLoyalty')}</span>
                       {priceBlock(r)}
                     </div>
-                    <p className="mt-1 text-sm text-content-muted">
+                    <p className="mt-1 text-sm text-content-strong">
                       {t('reservations.adminList.stylist')}: {r.confirmedStylist ? getListStylistName(r.confirmedStylist) : '-'}
                     </p>
                   </button>
@@ -391,7 +391,7 @@ export default function Reservations() {
               <table className="app-table w-full border-collapse">
                 <caption className="sr-only">{t('nav.reservations')}</caption>
                 <thead>
-                  <tr className="border-b border-line text-left text-xs uppercase text-content-muted">
+                  <tr className="border-b border-line text-left text-xs uppercase text-content-strong">
                     <th scope="col" className="p-3 font-medium">{t('reservations.adminList.date')}</th>
                     <th scope="col" className="p-3 font-medium">{t('reservations.adminList.time')}</th>
                     <th scope="col" className="p-3 font-medium">{t('reservations.adminList.client')}</th>
@@ -405,7 +405,7 @@ export default function Reservations() {
                 <tbody>
                   {items.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-6 text-content-muted">
+                      <td colSpan={8} className="p-6 text-content-strong">
                         {t('common.noData')}
                       </td>
                     </tr>
@@ -472,12 +472,12 @@ export default function Reservations() {
           aria-label={t('table.pagination')}
           className="mt-4 flex flex-wrap items-center justify-between gap-3"
         >
-          <p className="text-sm text-content-muted">{t('reservations.adminList.total', { total })}</p>
+          <p className="text-sm text-content-strong">{t('reservations.adminList.total', { total })}</p>
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
               {t('reservations.adminList.previous')}
             </Button>
-            <span role="status" aria-live="polite" className="text-sm text-content-muted tabular-nums">
+            <span role="status" aria-live="polite" className="text-sm text-content-strong tabular-nums">
               {page + 1} / {totalPages}
             </span>
             <Button
@@ -512,35 +512,35 @@ export default function Reservations() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.date')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.date')}</p>
                   <p className="font-medium text-content">{String(detail.reservationDate).slice(0, 10)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.time')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.time')}</p>
                   <p className="font-medium text-content">
                     {detail.startTime} – {detail.endTime}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.created')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.created')}</p>
                   <p className="font-medium text-content">{formatLocalizedDateTime(detail.createdAt, i18n.language)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.client')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.client')}</p>
                   <p className="font-medium text-content">{getClientName(detail.client)}</p>
-                  {detail.client?.phone ? <p className="mt-1 text-sm text-content-muted">{t('reservations.adminDetail.phone')}: {detail.client.phone}</p> : null}
+                  {detail.client?.phone ? <p className="mt-1 text-sm text-content-strong">{t('reservations.adminDetail.phone')}: {detail.client.phone}</p> : null}
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.confirmedStylist')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.confirmedStylist')}</p>
                   <p className="font-medium text-content">{getListStylistName(detail.confirmedStylist)}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-content-muted">{t('reservations.adminDetail.service')}</p>
+                <p className="text-xs text-content-strong">{t('reservations.adminDetail.service')}</p>
                 {detail.items && detail.items.length > 0 ? (
                   <div className="mt-2 space-y-2">
                     {[...detail.items]
@@ -548,7 +548,7 @@ export default function Reservations() {
                       .map((it) => (
                         <div key={it.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-muted p-2">
                           <p className="font-medium text-content">{it.service?.name ?? '-'}</p>
-                          <p className="text-sm text-content-muted">
+                          <p className="text-sm text-content-strong">
                             {Number(it.service?.durationMinutes ?? 0)} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(Number(it.service?.price ?? 0), i18n.language)}
                           </p>
                         </div>
@@ -564,7 +564,7 @@ export default function Reservations() {
                   <>
                     <p className="font-medium text-content">{detail.service?.name ?? '-'}</p>
                     {detail.service ? (
-                      <p className="mt-1 text-sm text-content-muted">
+                      <p className="mt-1 text-sm text-content-strong">
                         {detail.service.durationMinutes} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(Number(detail.service.price), i18n.language)}
                       </p>
                     ) : null}
@@ -574,14 +574,14 @@ export default function Reservations() {
 
               {detail.clientNotes ? (
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.clientNotes')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.clientNotes')}</p>
                   <p className="mt-1 whitespace-pre-wrap text-content">{detail.clientNotes}</p>
                 </div>
               ) : null}
 
               {detail.cancelReason ? (
                 <div>
-                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.cancellationReason')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.adminDetail.cancellationReason')}</p>
                   <p className="mt-1 whitespace-pre-wrap text-bad-foreground">{detail.cancelReason}</p>
                 </div>
               ) : null}
@@ -607,7 +607,7 @@ export default function Reservations() {
                         >
                           {t(`reservations.adminDetail.responseStatuses.${sr.status}`, { defaultValue: sr.status })}
                         </Badge>
-                        {sr.rejectionReason ? <p className="text-xs text-content-muted">{sr.rejectionReason}</p> : null}
+                        {sr.rejectionReason ? <p className="text-xs text-content-strong">{sr.rejectionReason}</p> : null}
                       </div>
                     ))}
                   </div>
@@ -619,7 +619,7 @@ export default function Reservations() {
                   <p className="text-sm font-medium text-content">
                     {t('reservations.adminDetail.dailyLogTitle')}
                   </p>
-                  <p className="mt-1 text-xs text-content-muted">
+                  <p className="mt-1 text-xs text-content-strong">
                     {t('reservations.adminDetail.dailyLogHelp')}
                   </p>
                   <div className="mt-3 flex justify-end">
@@ -635,7 +635,7 @@ export default function Reservations() {
                   <p className="text-sm font-medium text-content">
                     {t('reservations.adminDetail.confirmAttendanceTitle')}
                   </p>
-                  <p className="mt-1 text-xs text-content-muted">
+                  <p className="mt-1 text-xs text-content-strong">
                     {t('reservations.adminDetail.confirmAttendanceHelp')}
                   </p>
                   <div className="mt-3 flex justify-end">
@@ -657,7 +657,7 @@ export default function Reservations() {
                       imalo samo placeholder, koji nestaje čim korisnik počne kucati).
                       useId() + aria-labelledby/aria-describedby, bez vizuelne promjene. */}
                   <p id={cancelTitleId} className="text-sm font-medium text-content">{t('reservations.adminDetail.cancelTitle')}</p>
-                  <p id={cancelHelpId} className="mt-1 text-xs text-content-muted">{t('reservations.adminDetail.cancelHelp')}</p>
+                  <p id={cancelHelpId} className="mt-1 text-xs text-content-strong">{t('reservations.adminDetail.cancelHelp')}</p>
                   <div className="mt-3 space-y-2">
                     <Textarea
                       aria-labelledby={cancelTitleId}

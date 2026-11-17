@@ -50,10 +50,10 @@ export function HistoryPanel({
                     ? t(ACTION_KEYS[event.action])
                     : event.action}
                 </Badge>
-                <span className="text-content-muted">
+                <span className="text-content-strong">
                   {formatLocalizedDateTime(event.createdAt, i18n.language)}
                 </span>
-                <span className="text-content-muted">
+                <span className="text-content-strong">
                   {event.createdBy?.username ?? t('finance.history.system')}
                 </span>
               </div>

@@ -526,7 +526,7 @@ export const ReservationScheduler = (props: Props) => {
       <div className="border-b border-line p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-content-muted" aria-hidden="true" />
+            <CalendarDays className="h-5 w-5 text-content-strong" aria-hidden="true" />
             <div className="font-semibold text-content">
               {t('reservations.calendar.toolbar.title')}
             </div>
@@ -592,7 +592,7 @@ export const ReservationScheduler = (props: Props) => {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-content-muted">
+          <div className="flex items-center gap-2 text-sm text-content-strong">
             <Filter className="h-4 w-4" aria-hidden="true" />
             <span>{t('reservations.calendar.toolbar.stylists')}</span>
             <div className="flex flex-wrap gap-2">
@@ -626,7 +626,7 @@ export const ReservationScheduler = (props: Props) => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-xs text-content-muted">
+          <div className="flex flex-wrap gap-2 text-xs text-content-strong">
             {[
               { status: 'CONFIRMED', label: t('reservations.statuses.CONFIRMED') },
               { status: 'PENDING', label: t('reservations.statuses.PENDING') },
@@ -727,14 +727,14 @@ export const ReservationScheduler = (props: Props) => {
                 : activeReservation?.service?.name ?? t('reservations.calendar.details.appointment')}
             </DialogTitle>
             {drawerMode === 'create' ? (
-              <DialogDescription className="mb-4 text-xs text-content-muted">
+              <DialogDescription className="mb-4 text-xs text-content-strong">
                 {t('reservations.calendar.create.subtitle')}
               </DialogDescription>
             ) : null}
             {drawerMode === 'details' && activeReservation ? (
               <div className="space-y-4">
               <div>
-                <p className="text-xs text-content-muted">{t('reservations.calendar.details.status')}</p>
+                <p className="text-xs text-content-strong">{t('reservations.calendar.details.status')}</p>
                 <p className="mt-1 font-semibold text-content">
                   {t(reservationStatusTranslationKey(activeReservation.status, activeReservation.cancelReason), {
                     defaultValue: getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason),
@@ -744,7 +744,7 @@ export const ReservationScheduler = (props: Props) => {
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="rounded-lg border border-line p-3">
-                  <p className="text-xs text-content-muted">{t('reservations.calendar.details.appointment')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.calendar.details.appointment')}</p>
                   <p className="mt-1 font-semibold text-content">
                     {String(activeReservation.reservationDate).slice(0, 10)} • {activeReservation.startTime}–{activeReservation.endTime}
                   </p>
@@ -758,7 +758,7 @@ export const ReservationScheduler = (props: Props) => {
                             className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-muted p-2"
                           >
                             <p className="text-sm font-medium text-content">{it.service?.name ?? '-'}</p>
-                            <p className="text-xs text-content-muted">
+                            <p className="text-xs text-content-strong">
                               {Number(it.service?.durationMinutes ?? 0)} min |{' '}
                               {formatLocalizedAmount(Number(it.service?.price ?? 0), i18n.language)}
                             </p>
@@ -776,22 +776,22 @@ export const ReservationScheduler = (props: Props) => {
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-1 text-sm text-content-muted">{activeReservation.service?.name ?? '-'}</p>
+                    <p className="mt-1 text-sm text-content-strong">{activeReservation.service?.name ?? '-'}</p>
                   )}
-                  <p className="text-sm text-content-muted">
+                  <p className="text-sm text-content-strong">
                     {t('reservations.calendar.details.client')}:{' '}
                     {[activeReservation.client?.firstName, activeReservation.client?.lastName].filter(Boolean).join(' ').trim() ||
                       activeReservation.client?.username ||
                       '-'}
                   </p>
-                  <p className="text-sm text-content-muted">
+                  <p className="text-sm text-content-strong">
                     {t('reservations.calendar.details.stylist')}: {activeReservation.confirmedStylist ? stylistName(activeReservation.confirmedStylist, t('reservations.calendar.eventFallbacks.stylist')) : t('reservations.calendar.details.unconfirmed')}
                   </p>
                 </div>
 
                 {activeReservation.clientNotes ? (
                   <div className="rounded-lg border border-line p-3">
-                    <p className="text-xs text-content-muted">{t('reservations.calendar.details.clientNotes')}</p>
+                    <p className="text-xs text-content-strong">{t('reservations.calendar.details.clientNotes')}</p>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-content">
                       {activeReservation.clientNotes}
                     </p>
@@ -809,7 +809,7 @@ export const ReservationScheduler = (props: Props) => {
 
                 <div className="rounded-lg border border-line p-3">
                   <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.editAppointment')}</p>
-                  <p className="mt-1 text-xs text-content-muted">
+                  <p className="mt-1 text-xs text-content-strong">
                     {activeReservation.status === 'AWAITING_DAILY_LOG'
                       ? t('reservations.calendar.details.dailyLogMoveHelp')
                       : t('reservations.calendar.details.editHelp')}
@@ -888,7 +888,7 @@ export const ReservationScheduler = (props: Props) => {
                 {activeReservation.status === 'AWAITING_DAILY_LOG' ? (
                   <div className="rounded-lg border border-line bg-warn p-3">
                     <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.dailyLogTitle')}</p>
-                    <p className="mt-1 text-xs text-content-muted">
+                    <p className="mt-1 text-xs text-content-strong">
                       {t('reservations.calendar.details.dailyLogHelp')}
                     </p>
                     <Button type="button" variant="outline" className="mt-3" asChild>
@@ -900,7 +900,7 @@ export const ReservationScheduler = (props: Props) => {
                 {canAdminConfirmAttendance(activeReservation) ? (
                   <div className="rounded-lg border border-line p-3">
                     <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.confirmAttendanceTitle')}</p>
-                    <p className="mt-1 text-xs text-content-muted">{t('reservations.calendar.details.confirmAttendanceHelp')}</p>
+                    <p className="mt-1 text-xs text-content-strong">{t('reservations.calendar.details.confirmAttendanceHelp')}</p>
                     <div className="mt-3 flex justify-end">
                       <Button
                         type="button"
@@ -931,7 +931,7 @@ export const ReservationScheduler = (props: Props) => {
                 {canAdminCancelReservation(activeReservation.status) ? (
                   <div className="rounded-lg border border-line p-3">
                     <p id="res-details-cancel-title" className="text-sm font-semibold text-content">{t('reservations.calendar.details.cancelTitle')}</p>
-                    <p className="mt-1 text-xs text-content-muted">{t('reservations.calendar.details.cancelHelp')}</p>
+                    <p className="mt-1 text-xs text-content-strong">{t('reservations.calendar.details.cancelHelp')}</p>
                     <div className="mt-3 space-y-2">
                       <Textarea
                         aria-labelledby="res-details-cancel-title"
@@ -1035,7 +1035,7 @@ export const ReservationScheduler = (props: Props) => {
                           onClick={() => setCreateDraft((p) => ({ ...p, stylistProfileId: stylist.id }))}
                         >
                           <div className="font-medium text-content">{label}</div>
-                          <div className="text-xs text-content-muted">{stylist.id}</div>
+                          <div className="text-xs text-content-strong">{stylist.id}</div>
                         </button>
                       )
                     })}
@@ -1051,7 +1051,7 @@ export const ReservationScheduler = (props: Props) => {
                   value={createDraft.clientSearch}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, clientSearch: e.target.value, clientId: '' }))}
                 />
-                {clientsLoading ? <p className="text-xs text-content-muted">{t('reservations.calendar.create.loadingClients')}</p> : null}
+                {clientsLoading ? <p className="text-xs text-content-strong">{t('reservations.calendar.create.loadingClients')}</p> : null}
                 {createDraft.clientId ? (
                   <p className="text-xs text-ok-foreground">
                     {t('reservations.calendar.create.selectedClient')}: <span className="font-semibold">{createDraft.clientId}</span>
@@ -1090,7 +1090,7 @@ export const ReservationScheduler = (props: Props) => {
                         }
                         >
                           <div className="font-medium text-content">{label}</div>
-                          <div className="text-xs text-content-muted">{c.id}</div>
+                          <div className="text-xs text-content-strong">{c.id}</div>
                         </button>
                       )
                     })}
@@ -1101,10 +1101,10 @@ export const ReservationScheduler = (props: Props) => {
               <div className="space-y-2">
                 <Label htmlFor="res-create-service">{t('reservations.calendar.create.service')}</Label>
                 {!createDraft.clientId ? (
-                  <p className="text-xs text-content-muted">{t('reservations.calendar.create.serviceGenderHint')}</p>
+                  <p className="text-xs text-content-strong">{t('reservations.calendar.create.serviceGenderHint')}</p>
                 ) : null}
                 <div ref={serviceDropdownRef} className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-strong" />
                   <Input
                     id="res-create-service"
                     className="pl-9"
@@ -1184,7 +1184,7 @@ export const ReservationScheduler = (props: Props) => {
                               {isServiceSelected(svc.id) ? <Check className="h-4 w-4 text-ok-foreground" /> : null}
                               {svc.name}
                             </span>
-                            <span className="text-content-muted">
+                            <span className="text-content-strong">
                               {formatLocalizedAmount(Number(svc.price ?? 0), i18n.language)}
                             </span>
                           </div>
@@ -1203,7 +1203,7 @@ export const ReservationScheduler = (props: Props) => {
                       >
                         <div className="min-w-0">
                           <div className="font-semibold text-content">{s.name}</div>
-                          <div className="text-xs text-content-muted">
+                          <div className="text-xs text-content-strong">
                             {formatLocalizedAmount(Number(s.price ?? 0), i18n.language)}
                           </div>
                         </div>

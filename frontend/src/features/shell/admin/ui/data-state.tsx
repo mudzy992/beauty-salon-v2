@@ -43,12 +43,12 @@ export function EmptyState({
 }) {
   return (
     <div data-admin-state="empty" className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line px-6 py-10 text-center">
-      <Inbox className="h-8 w-8 text-content-muted" aria-hidden="true" />
+      <Inbox className="h-8 w-8 text-content-strong" aria-hidden="true" />
       <p className="text-sm font-medium text-content">
         {title}
       </p>
       {description ? (
-        <p className="max-w-sm text-xs text-content-muted">
+        <p className="max-w-sm text-xs text-content-strong">
           {description}
         </p>
       ) : null}

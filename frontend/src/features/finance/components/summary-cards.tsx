@@ -24,7 +24,7 @@ export function SummaryCards({ items }: { items: SummaryItem[] }) {
           key={item.label}
           className="rounded-lg border border-line bg-surface p-3"
         >
-          <div className="text-xs text-content-muted">
+          <div className="text-xs text-content-strong">
             {item.label}
           </div>
           <div
@@ -35,7 +35,7 @@ export function SummaryCards({ items }: { items: SummaryItem[] }) {
             {formatLocalizedAmount(item.value, i18n.language)}
           </div>
           {item.hint ? (
-            <div className="mt-0.5 text-xs text-content-muted">{item.hint}</div>
+            <div className="mt-0.5 text-xs text-content-strong">{item.hint}</div>
           ) : null}
         </div>
       ))}

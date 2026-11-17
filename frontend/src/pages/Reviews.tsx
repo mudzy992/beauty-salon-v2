@@ -136,7 +136,7 @@ export default function Reviews() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-content-muted">
+          <div className="flex justify-center p-10 text-content-strong">
             <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
           </div>
         ) : (
@@ -144,7 +144,7 @@ export default function Reviews() {
             <table className="app-table data-table w-full border-collapse">
                                 <caption className="sr-only">{t('reviews.tableCaption')}</caption>
                   <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
+                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
                   <th scope="col" className="p-3 font-medium">{t('reviews.client')}</th>
                   <th scope="col" className="p-3 font-medium">{t('reviews.service')}</th>
                   <th scope="col" className="p-3 font-medium">{t('reviews.stylist')}</th>
@@ -159,7 +159,7 @@ export default function Reviews() {
               <tbody>
                 {reviews.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-6 text-content-muted">
+                    <td colSpan={9} className="p-6 text-content-strong">
                       {t('common.noData')}
                     </td>
                   </tr>
@@ -246,48 +246,48 @@ export default function Reviews() {
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.client')}</p>
+                  <p className="text-xs text-content-strong">{t('reviews.client')}</p>
                   <p className="font-medium text-content dark:text-slate-50">{getUserName(detail.user)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.service')}</p>
+                  <p className="text-xs text-content-strong">{t('reviews.service')}</p>
                   <p className="font-medium text-content dark:text-slate-50">{detail.service?.name ?? '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.stylist')}</p>
+                  <p className="text-xs text-content-strong">{t('reviews.stylist')}</p>
                   <p className="font-medium text-content dark:text-slate-50">{getUserName(detail.stylist?.user)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.serviceRating')}</p>
+                  <p className="text-xs text-content-strong">{t('reviews.serviceRating')}</p>
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <Stars count={detail.serviceRating} />
                     <span className="font-semibold text-content dark:text-slate-50">{formatLocalizedNumber(detail.serviceRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.stylistRating')}</p>
+                  <p className="text-xs text-content-strong">{t('reviews.stylistRating')}</p>
                   {detail.stylistRating ? (
                     <div className="mt-1 flex items-center justify-between gap-3">
                       <Stars count={detail.stylistRating} />
                       <span className="font-semibold text-content dark:text-slate-50">{formatLocalizedNumber(detail.stylistRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
                     </div>
                   ) : (
-                    <p className="mt-1 text-content-muted">{t('reviews.notRated')}</p>
+                    <p className="mt-1 text-content-strong">{t('reviews.notRated')}</p>
                   )}
                 </div>
               </div>
 
               {detail.comment ? (
                 <div>
-                  <p className="text-xs text-content-muted">{t('reviews.comment')}</p>
+                  <p className="text-xs text-content-strong">{t('reviews.comment')}</p>
                   <p className="mt-1 whitespace-pre-wrap text-content dark:text-slate-50">{detail.comment}</p>
                 </div>
               ) : null}
 
-              <p className="text-xs text-content-muted">{t('common.date')}: {detailDate ?? '-'}</p>
+              <p className="text-xs text-content-strong">{t('common.date')}: {detailDate ?? '-'}</p>
             </div>
           ) : null}
 

@@ -118,7 +118,7 @@ export const AdminLayout = () => {
                         {user?.username ?? t('shell.adminName')}
                       </div>
                       {user?.email ? (
-                        <div className="truncate text-xs text-content-muted">{user.email}</div>
+                        <div className="truncate text-xs text-content-strong">{user.email}</div>
                       ) : null}
                     </div>
                   </div>
@@ -157,12 +157,12 @@ export const AdminLayout = () => {
             <Link to="/admin" className="flex min-w-0 items-center gap-2">
               <AdminBrand {...brand} />
             </Link>
-            <div className="hidden truncate text-sm text-content-muted md:block">{currentLabel}</div>
+            <div className="hidden truncate text-sm text-content-strong md:block">{currentLabel}</div>
           </div>
           {/* WCAG 3.2.6 — pomoć je na istom mjestu na svakom admin ekranu. */}
           <Link
             to="/kontakt"
-            className="flex min-h-target min-w-target items-center justify-center rounded-md text-content-muted hover:bg-surface-muted hover:text-content"
+            className="flex min-h-target min-w-target items-center justify-center rounded-md text-content-strong hover:bg-surface-muted hover:text-content"
           >
             <HelpCircle aria-hidden className="h-5 w-5" />
             <span className="sr-only">{t('shell.help')}</span>

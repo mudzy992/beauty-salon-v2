@@ -79,9 +79,9 @@ export function ExpenseTable({
         return (
           <>
             <div className="font-medium text-content dark:text-slate-50">{expense.title}</div>
-            {notes ? <div className="mt-0.5 text-xs text-content-muted">{notes}</div> : null}
+            {notes ? <div className="mt-0.5 text-xs text-content-strong">{notes}</div> : null}
             {detailLabels.length > 0 ? (
-              <ul className="mt-1 space-y-0.5 text-xs text-content-muted ">
+              <ul className="mt-1 space-y-0.5 text-xs text-content-strong ">
                 {detailLabels.slice(0, PREVIEW_LIMIT).map((label) => (
                   <li key={label} className="truncate" title={label}>
                     {label}

@@ -214,13 +214,13 @@ export default function Loyalty() {
         <div className="p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('loyaltyAdmin.accounts')}</h2>
-            {loadingAccounts ? <p className="text-xs text-content-muted">{t('loyaltyAdmin.loading')}</p> : null}
+            {loadingAccounts ? <p className="text-xs text-content-strong">{t('loyaltyAdmin.loading')}</p> : null}
           </div>
 
           {loadingAccounts ? (
-            <div className="py-10 text-center text-sm text-content-muted">{t('loyaltyAdmin.loading')}</div>
+            <div className="py-10 text-center text-sm text-content-strong">{t('loyaltyAdmin.loading')}</div>
           ) : accounts.length === 0 ? (
-            <p className="text-sm text-content-muted">
+            <p className="text-sm text-content-strong">
               {t('loyaltyAdmin.noAccounts')}
             </p>
           ) : (
@@ -242,7 +242,7 @@ export default function Loyalty() {
             <DialogTitle>{t('loyaltyAdmin.redeemDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-content-muted ">{redeemTitle}</p>
+            <p className="text-sm text-content-strong ">{redeemTitle}</p>
             <div className="space-y-2">
               <Label htmlFor="redeem-points">{t('loyaltyAdmin.pointsToRedeem')}</Label>
               <Input
@@ -286,7 +286,7 @@ export default function Loyalty() {
             <DialogTitle>{t('loyaltyAdmin.adjustDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-content-muted ">{adjustTitle}</p>
+            <p className="text-sm text-content-strong ">{adjustTitle}</p>
             <div className="space-y-2">
               <Label htmlFor="adjust-delta">{t('loyaltyAdmin.pointsChange')}</Label>
               <Input

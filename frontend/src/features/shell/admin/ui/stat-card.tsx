@@ -26,7 +26,7 @@ const trendIcon = { up: ArrowUp, down: ArrowDown, flat: Minus } as const
 const trendClass = {
   up: 'text-ok-foreground',
   down: 'text-bad-foreground',
-  flat: 'text-content-muted',
+  flat: 'text-content-strong',
 } as const
 
 const toneContainer: Record<StatTone, string> = {

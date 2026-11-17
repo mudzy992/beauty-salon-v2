@@ -49,7 +49,7 @@ export const DashboardOutboxDiagnostics = () => {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-content">{t('dashboard.outbox.title')}</h2>
-          <p className="mt-1 text-xs text-content-muted">{t('dashboard.outbox.description')}</p>
+          <p className="mt-1 text-xs text-content-strong">{t('dashboard.outbox.description')}</p>
         </div>
         <Button type="button" variant="outline" size="sm" disabled={loading} onClick={refresh}>
           {loading ? t('dashboard.outbox.refreshing') : t('dashboard.outbox.refresh')}
@@ -76,7 +76,7 @@ export const DashboardOutboxDiagnostics = () => {
       </div>
 
       {loading && !diagnostics ? (
-        <p role="status" className="text-sm text-content-muted">
+        <p role="status" className="text-sm text-content-strong">
           {t('common.loading')}
         </p>
       ) : null}
@@ -92,7 +92,7 @@ export const DashboardOutboxDiagnostics = () => {
             }))}
           />
 
-          <p className="text-xs text-content-muted">
+          <p className="text-xs text-content-strong">
             {t('dashboard.outbox.asOf', {
               time: formatLocalizedDateTime(diagnostics.generatedAt, i18n.language),
             })}

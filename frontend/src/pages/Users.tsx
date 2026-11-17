@@ -959,7 +959,7 @@ export default function Users() {
           </Avatar>
           <div className="min-w-0">
             <p className="truncate font-medium text-content dark:text-slate-50">{u.username}</p>
-            <p className="text-sm text-content-muted ">{getUserDisplayName(u)}</p>
+            <p className="text-sm text-content-strong ">{getUserDisplayName(u)}</p>
           </div>
         </div>
         <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
@@ -1031,7 +1031,7 @@ export default function Users() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.users')}</h1>
-          <p className="mt-1 text-sm text-content-muted ">{t('users.subtitle')}</p>
+          <p className="mt-1 text-sm text-content-strong ">{t('users.subtitle')}</p>
         </div>
 
         <Button type="button" ref={createTriggerRef} onClick={() => setCreateOpen(true)}>
@@ -1124,7 +1124,7 @@ export default function Users() {
             </>
           ) : null}
 
-          <span className="text-sm text-content-muted ">
+          <span className="text-sm text-content-strong ">
             {page + 1} / {totalPages}
           </span>
 
@@ -1166,7 +1166,7 @@ export default function Users() {
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-content-muted ">
+              <p className="text-sm text-content-strong ">
                 {t('users.stylistRemoval.stylist', { username: removeStylistUser?.username ?? '' })}
               </p>
 

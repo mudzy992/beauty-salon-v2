@@ -26,7 +26,7 @@ export const DashboardFinanceStats = ({ stats, failedSources }: Props) => {
     <section data-dashboard-finance className="space-y-3">
       <div>
         <h2 className="text-sm font-semibold text-content">{t('dashboard.financeThisMonth')}</h2>
-        <p className="text-xs text-content-muted">{t('dashboard.incomeSummary')}</p>
+        <p className="text-xs text-content-strong">{t('dashboard.incomeSummary')}</p>
       </div>
       <StatGrid
         label={t('dashboard.financeThisMonth')}

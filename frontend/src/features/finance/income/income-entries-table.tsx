@@ -123,7 +123,7 @@ export function IncomeEntriesTable({
       headerKey: 'finance.incomeList.columns.tips',
       sortKey: 'tipAmount',
       align: 'right',
-      className: 'tabular-nums text-content-muted',
+      className: 'tabular-nums text-content-strong',
       render: (row) =>
         row.tipAmount > 0 ? formatLocalizedAmount(row.tipAmount, i18n.language) : '—',
     },
@@ -163,7 +163,7 @@ export function IncomeEntriesTable({
             </Button>
           </div>
         ) : (
-          <span className="text-xs text-content-muted">
+          <span className="text-xs text-content-strong">
             —
             <span className="sr-only">{t('finance.incomeList.noActions')}</span>
           </span>

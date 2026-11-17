@@ -20,7 +20,7 @@ export const FormSection = ({ title, description, children, className }: FormSec
   <fieldset className={cn('rounded-lg border border-line bg-surface p-4', className)}>
     <legend className="px-1 text-sm font-semibold text-content">{title}</legend>
     {description ? (
-      <p className="mb-3 max-w-prose text-xs text-content-muted">{description}</p>
+      <p className="mb-3 max-w-prose text-xs text-content-strong">{description}</p>
     ) : null}
     <div className="space-y-4">{children}</div>
   </fieldset>

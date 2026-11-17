@@ -121,7 +121,7 @@ export function ExpenseCategoriesTab() {
             <CardTitle className="text-base">
               {t('finance.expenseCategories.title')}
             </CardTitle>
-            <p className="mt-1 text-xs text-content-muted">
+            <p className="mt-1 text-xs text-content-strong">
               {t('finance.expenseCategories.subtitle')}
             </p>
           </div>
@@ -196,11 +196,11 @@ export function ExpenseCategoriesTab() {
                           )}
                         </div>
                         {category.description ? (
-                          <p className="mt-1 text-xs text-content-muted">
+                          <p className="mt-1 text-xs text-content-strong">
                             {category.description}
                           </p>
                         ) : null}
-                        <p className="mt-2 text-xs text-content-muted">
+                        <p className="mt-2 text-xs text-content-strong">
                           {fields.length === 0
                             ? t('finance.expenseCategories.noFieldsHint')
                             : fields

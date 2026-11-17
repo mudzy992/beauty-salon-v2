@@ -44,13 +44,13 @@ export const TablePagination = ({
         className,
       )}
     >
-      <p role="status" aria-live="polite" className="text-xs text-content-muted">
+      <p role="status" aria-live="polite" className="text-xs text-content-strong">
         {total === 0
           ? t('table.showingAll', { count: 0 })
           : t('table.showingRange', { from, to, total })}
       </p>
       <div className="flex items-center gap-2">
-        <span className="text-xs tabular-nums text-content-muted">
+        <span className="text-xs tabular-nums text-content-strong">
           {t('table.pageOf', { current: page, total: totalPages })}
         </span>
         <Button

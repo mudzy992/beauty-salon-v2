@@ -772,7 +772,7 @@ export default function EmailSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-content-muted">
+      <div className="flex items-center gap-2 text-content-strong">
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
         {t('common.loading')}
       </div>
@@ -785,7 +785,7 @@ export default function EmailSettings() {
   return (
     <div>
       <h1 className="mb-2 text-2xl font-semibold text-content dark:text-slate-50">{t('emailSettings.title')}</h1>
-      <p className="mb-6 text-content-muted ">
+      <p className="mb-6 text-content-strong ">
         {t('emailSettings.description')}
       </p>
 
@@ -865,7 +865,7 @@ export default function EmailSettings() {
                     placeholder={hasPasswordConfigured ? t('emailSettings.smtp.passwordSavedPlaceholder') : ''}
                   />
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <p className="text-xs text-content-muted">
+                    <p className="text-xs text-content-strong">
                       {hasPasswordConfigured
                         ? t('emailSettings.smtp.passwordSavedHint')
                         : t('emailSettings.smtp.passwordEntryHint')}
@@ -946,7 +946,7 @@ export default function EmailSettings() {
               </div>
 
               {!isCustomLike ? (
-                <p className="text-sm text-content-muted">
+                <p className="text-sm text-content-strong">
                   {t('emailSettings.smtp.providerCredentialsHint', { provider: provider === 'google' ? 'Google' : 'Office 365' })}
                 </p>
               ) : null}
@@ -1235,7 +1235,7 @@ export default function EmailSettings() {
                         />
                       </div>
                     </div>
-                    <p className="text-xs text-content-muted">
+                    <p className="text-xs text-content-strong">
                       {t('emailSettings.campaigns.verifiedConsentOnly')}
                     </p>
 
@@ -1278,11 +1278,11 @@ export default function EmailSettings() {
                           </p>
                         ) : null}
                         {audienceSummary.total === 0 ? (
-                          <p className="text-sm text-content-muted ">
+                          <p className="text-sm text-content-strong ">
                             {t('emailSettings.campaigns.audienceEmpty')}
                           </p>
                         ) : (
-                          <p className="text-sm text-content-muted ">
+                          <p className="text-sm text-content-strong ">
                             {t('emailSettings.campaigns.sampleFirstTen', {
                               names: audienceSummary.sample.map((item) => item.username).join(', ') || '-',
                             })}
@@ -1311,7 +1311,7 @@ export default function EmailSettings() {
                               {t(`emailSettings.campaigns.jobStatuses.${campaignJob.status}`, { defaultValue: campaignJob.status })}
                             </Badge>
                           </div>
-                          <p className="text-sm text-content-muted ">
+                          <p className="text-sm text-content-strong ">
                             {t('emailSettings.campaigns.counts', {
                               pending: formatLocalizedNumber(counts.pending, i18n.language),
                               processing: formatLocalizedNumber(counts.processing, i18n.language),
@@ -1339,7 +1339,7 @@ export default function EmailSettings() {
                           {failedRecipients.length > 0 ? (
                             <div className="space-y-1">
                               <p className="text-sm font-medium">{t('emailSettings.campaigns.recipientListHeading')}</p>
-                              <ul className="space-y-1 text-sm text-content-muted ">
+                              <ul className="space-y-1 text-sm text-content-strong ">
                                 {failedRecipients.map((recipient) => (
                                   <li key={recipient.id} className="flex justify-between gap-3">
                                     <span>{recipient.username}</span>
@@ -1367,7 +1367,7 @@ export default function EmailSettings() {
                       )
                     })() : null}
 
-                    <p className="text-xs text-content-muted">
+                    <p className="text-xs text-content-strong">
                       {t('emailSettings.campaigns.dynamicVariables')}{' '}
                       {'{{firstName}}'} {'{{lastName}}'} {'{{username}}'} {'{{email}}'} {'{{appUrl}}'}
                     </p>
@@ -1384,7 +1384,7 @@ export default function EmailSettings() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-content-muted">
+                <p className="text-sm text-content-strong">
                   {t('emailSettings.campaigns.noTemplates', {
                     action: t('emailSettings.campaigns.newTemplate'),
                   })}

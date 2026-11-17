@@ -84,7 +84,7 @@ export function BookPeriodPicker({
         {openLabel}
       </Button>
       {isPending ? (
-        <p role="status" aria-live="polite" className="text-xs text-content-muted">
+        <p role="status" aria-live="polite" className="text-xs text-content-strong">
           {t('finance.states.loading')}
         </p>
       ) : null}

@@ -304,7 +304,7 @@ export function ExpenseBookDetail({
         </CardHeader>
         <CardContent className="grid gap-3">
           {categoriesQuery.isLoading ? (
-            <p role="status" className="text-xs text-content-muted">
+            <p role="status" className="text-xs text-content-strong">
               {t('finance.states.loading')}
             </p>
           ) : null}
