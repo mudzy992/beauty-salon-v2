@@ -42,7 +42,7 @@ export function IntegrityPanel({
   const { t, i18n } = useTranslation()
   if (isLoading) {
     return (
-      <div role="status" className="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      <div role="status" className="h-16 animate-pulse rounded-lg bg-surface-muted dark:bg-slate-800" />
     )
   }
   if (isError || !report) {

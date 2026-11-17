@@ -39,19 +39,19 @@ export function ResponsiveDialog({
           side="right"
           className="flex h-full w-full max-w-full flex-col gap-0 p-0"
         >
-          <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-            <DialogTitle className="text-base font-semibold text-slate-900 dark:text-slate-50">
+          <div className="border-b border-line px-4 py-3 ">
+            <DialogTitle className="text-base font-semibold text-content ">
               {title}
             </DialogTitle>
             {description ? (
-              <DialogDescription className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <DialogDescription className="mt-1 text-xs text-content-muted ">
                 {description}
               </DialogDescription>
             ) : null}
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
           {footer ? (
-            <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+            <div className="border-t border-line px-4 py-3 ">
               {footer}
             </div>
           ) : null}

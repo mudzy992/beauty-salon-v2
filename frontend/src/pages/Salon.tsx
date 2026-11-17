@@ -298,7 +298,7 @@ export default function Salon() {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-slate-500">
+      <div className="flex justify-center p-10 text-content-muted">
         <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
       </div>
     )
@@ -308,8 +308,8 @@ export default function Salon() {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.salon')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('salon.notConfigured')}</p>
+          <h1 className="text-2xl font-semibold text-content ">{t('nav.salon')}</h1>
+          <p className="mt-1 text-sm text-content-muted ">{t('salon.notConfigured')}</p>
         </div>
 
         <Card>
@@ -351,7 +351,7 @@ export default function Salon() {
     {
       key: 'day',
       headerKey: 'salon.workingHoursTable.day',
-      className: 'p-3 font-medium text-slate-900 dark:text-slate-50',
+      className: 'p-3 font-medium text-content ',
       render: (wh) => formatWeekday(wh.dayOfWeek, i18n.language),
     },
     {
@@ -408,7 +408,7 @@ export default function Salon() {
     {
       key: 'name',
       headerKey: 'salon.holidayTable.name',
-      className: 'p-3 font-medium text-slate-900 dark:text-slate-50',
+      className: 'p-3 font-medium text-content ',
       render: (h) => h.name,
     },
     {
@@ -469,8 +469,8 @@ export default function Salon() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.salon')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('salon.subtitle')}</p>
+          <h1 className="text-2xl font-semibold text-content ">{t('nav.salon')}</h1>
+          <p className="mt-1 text-sm text-content-muted ">{t('salon.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {holidaysSummary.map((h) => (
@@ -570,7 +570,7 @@ export default function Salon() {
             </TabsContent>
 
             <TabsContent value="hours" className="mt-4">
-              <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
+              <div className="app-table-wrap rounded-md border border-line ">
                 <DataTable
                   caption={t('salon.workingHoursCaption')}
                   columns={workingHoursColumns}
@@ -590,8 +590,8 @@ export default function Salon() {
             <TabsContent value="holidays" className="mt-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('salon.holidays')}</p>
-                  <p className="text-xs text-slate-500">{t('salon.holidaysDescription')}</p>
+                  <p className="text-sm font-medium text-content ">{t('salon.holidays')}</p>
+                  <p className="text-xs text-content-muted">{t('salon.holidaysDescription')}</p>
                 </div>
                 <Button type="button" onClick={() => openHolidayForm()}>
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -600,9 +600,9 @@ export default function Salon() {
               </div>
 
               {holidays.length === 0 ? (
-                <p className="text-sm text-slate-500">{t('salon.noHolidays')}</p>
+                <p className="text-sm text-content-muted">{t('salon.noHolidays')}</p>
               ) : (
-                <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
+                <div className="app-table-wrap rounded-md border border-line ">
                   <DataTable
                     caption={t('salon.holidaysCaption')}
                     columns={holidayColumns}
@@ -637,10 +637,10 @@ export default function Salon() {
               <Label htmlFor="salon-holiday-form-message">{t('salon.holidayForm.message')}</Label>
               <Textarea id="salon-holiday-form-message" rows={3} value={holForm.message} onChange={(e) => setHolForm((p) => ({ ...p, message: e.target.value }))} />
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3 ">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('salon.holidayForm.sendPush')}</p>
-                <p className="text-xs text-slate-500">{t('salon.holidayForm.sendPushHint')}</p>
+                <p className="text-sm font-medium text-content ">{t('salon.holidayForm.sendPush')}</p>
+                <p className="text-xs text-content-muted">{t('salon.holidayForm.sendPushHint')}</p>
               </div>
               <Switch
                 aria-label={t('salon.holidayForm.sendPush')}

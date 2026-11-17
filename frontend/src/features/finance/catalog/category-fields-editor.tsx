@@ -116,7 +116,7 @@ export function CategoryFieldsEditor({
               : 'finance.expenseCategories.rowColumns',
           )}
         </h3>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-content-muted">
           {t(
             isFixed
               ? 'finance.expenseCategories.fixedFieldsHint'
@@ -130,7 +130,7 @@ export function CategoryFieldsEditor({
           {savedFields.map((field) => (
             <li
               key={field.id}
-              className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-2 py-1.5 text-sm dark:border-slate-800"
+              className="flex items-center justify-between gap-2 rounded-md border border-line px-2 py-1.5 text-sm "
             >
               <span className="flex flex-wrap items-center gap-2">
                 {field.fieldName}

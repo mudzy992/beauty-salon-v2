@@ -754,7 +754,7 @@ export default function Users() {
             <span
               key={roleName}
               data-users-role-chip
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+              className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-1 text-[11px] text-content-strong   "
             >
               <Badge variant={getRoleBadgeVariant(roleName)} className="rounded-full px-2 py-0.5 text-[10px]">
                 {getRoleLabel(roleName)}
@@ -772,7 +772,7 @@ export default function Users() {
               {canRemoveRole(roleName) ? (
                 <button
                   type="button"
-                  className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold-ring dark:hover:bg-slate-800"
+                  className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold-ring dark:hover:bg-slate-800"
                   aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName), username: u.username })}
                   onClick={(event) => {
                     if (roleName === 'STYLIST') removalTriggerRef.current = event.currentTarget
@@ -825,7 +825,7 @@ export default function Users() {
       headerKey: 'users.username',
       className: 'p-3',
       render: (u) => (
-        <span className="font-medium text-slate-900 dark:text-slate-50">{u.username}</span>
+        <span className="font-medium text-content ">{u.username}</span>
       ),
     },
     {
@@ -958,8 +958,8 @@ export default function Users() {
             <AvatarFallback>{initials(u.firstName, u.lastName, u.username)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="truncate font-medium text-slate-900 dark:text-slate-50">{u.username}</p>
-            <p className="text-sm text-slate-600 dark:text-slate-300">{getUserDisplayName(u)}</p>
+            <p className="truncate font-medium text-content ">{u.username}</p>
+            <p className="text-sm text-content-muted ">{getUserDisplayName(u)}</p>
           </div>
         </div>
         <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
@@ -970,11 +970,11 @@ export default function Users() {
       <div className="mt-3 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">{t('users.email')}</span>
-          <span className="truncate text-slate-900 dark:text-slate-50">{u.email ?? '-'}</span>
+          <span className="truncate text-content ">{u.email ?? '-'}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">{t('users.phone')}</span>
-          <span className="truncate text-slate-900 dark:text-slate-50">{u.phone ?? '-'}</span>
+          <span className="truncate text-content ">{u.phone ?? '-'}</span>
         </div>
         <div className="space-y-2">
           <p className="text-muted-foreground">{t('users.roles')}</p>
@@ -1030,8 +1030,8 @@ export default function Users() {
     <div data-admin-users>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.users')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('users.subtitle')}</p>
+          <h1 className="text-2xl font-semibold text-content ">{t('nav.users')}</h1>
+          <p className="mt-1 text-sm text-content-muted ">{t('users.subtitle')}</p>
         </div>
 
         <Button type="button" ref={createTriggerRef} onClick={() => setCreateOpen(true)}>
@@ -1124,7 +1124,7 @@ export default function Users() {
             </>
           ) : null}
 
-          <span className="text-sm text-slate-600 dark:text-slate-300">
+          <span className="text-sm text-content-muted ">
             {page + 1} / {totalPages}
           </span>
 
@@ -1166,7 +1166,7 @@ export default function Users() {
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-content-muted ">
                 {t('users.stylistRemoval.stylist', { username: removeStylistUser?.username ?? '' })}
               </p>
 
@@ -1179,7 +1179,7 @@ export default function Users() {
                   <div className="space-y-2">
                     <Label htmlFor="users-financial-transfer-target">{t('users.stylistRemoval.financialTarget')}</Label>
                     <select id="users-financial-transfer-target" aria-required="true"
-                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+                      className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring   "
                       value={financialTarget}
                       onChange={(e) => { setFinancialTarget(e.target.value); setFinancialConfirmed(false) }}>
                       <option value="">{t('users.stylistRemoval.chooseTarget')}</option>
@@ -1213,8 +1213,8 @@ export default function Users() {
                 const opts = getTargetOptions()
                 const mode = removalModes[row.key]
                 return (
-                  <fieldset key={row.key} className="rounded-md border border-slate-200 p-4 dark:border-slate-800">
-                    <legend className="px-1 font-medium text-slate-900 dark:text-slate-50">{row.label}</legend>
+                  <fieldset key={row.key} className="rounded-md border border-line p-4 ">
+                    <legend className="px-1 font-medium text-content ">{row.label}</legend>
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <Badge variant="secondary">{row.count}</Badge>
                     </div>
@@ -1246,7 +1246,7 @@ export default function Users() {
                       <div className="mt-3 space-y-2">
                         <Label htmlFor={`users-stylist-removal-target-${row.key}`}>{t('users.stylistRemoval.target')}</Label>
                         <select id={`users-stylist-removal-target-${row.key}`}
-                          className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+                          className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2    dark:focus-visible:ring-offset-slate-950"
                           value={(removalTargets as any)[row.key] ?? ''}
                           onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
                         >
@@ -1272,12 +1272,12 @@ export default function Users() {
               })}
 
               {removalSummary.length > 0 ? (
-                <div className="rounded-md border border-slate-200 p-4 dark:border-slate-800">
-                  <p className="mb-2 font-medium text-slate-900 dark:text-slate-50">{t('users.stylistRemoval.summary')}</p>
+                <div className="rounded-md border border-line p-4 ">
+                  <p className="mb-2 font-medium text-content ">{t('users.stylistRemoval.summary')}</p>
                   <div className="space-y-1 text-sm">
                     {removalSummary.map((r) => (
                       <div key={r.label} className="flex items-center justify-between gap-3">
-                        <span className="text-slate-700 dark:text-slate-200">
+                        <span className="text-content-strong ">
                           {r.label} ({r.count})
                         </span>
                         <span className={r.mode === 'DELETE' ? 'font-medium text-rose-700 dark:text-rose-300' : 'font-medium text-blue-700 dark:text-blue-300'}>
@@ -1411,7 +1411,7 @@ export default function Users() {
                 {editUser && getUserRoles(editUser).includes('CLIENT') ? <span className="ml-1 text-rose-600">*</span> : null}
               </Label>
               <select id="users-gender" aria-required={Boolean(editUser && getUserRoles(editUser).includes('CLIENT'))}
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+                className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2    dark:focus-visible:ring-offset-slate-950"
                 value={formData.gender}
                 onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value as any }))}
               >
@@ -1421,9 +1421,9 @@ export default function Users() {
               </select>
             </div>
 
-            <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800 md:col-span-2">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3  md:col-span-2">
               <div className="space-y-0.5">
-                <p id="users-active-label" className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('users.form.active')}</p>
+                <p id="users-active-label" className="text-sm font-medium text-content ">{t('users.form.active')}</p>
                 <p className="text-xs text-muted-foreground">{t('users.form.inactiveHint')}</p>
               </div>
               <Switch aria-labelledby="users-active-label" checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
@@ -1464,16 +1464,16 @@ export default function Users() {
                     {(clientDebtsQuery.data ?? []).map((d) => (
                       <div
                         key={d.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface p-3 text-sm  "
                       >
                         <div className="min-w-0">
-                          <div className="font-medium text-slate-900 dark:text-slate-50">
+                          <div className="font-medium text-content ">
                             {formatLocalizedAmount(d.amount, i18n.language)}
                             {d.service?.name ? <span className="ml-2 text-xs text-muted-foreground">• {d.service.name}</span> : null}
                           </div>
-                          {d.note ? <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{d.note}</div> : null}
+                          {d.note ? <div className="mt-1 text-xs text-muted-foreground ">{d.note}</div> : null}
                           {d.createdBy?.username ? (
-                            <div className="mt-1 text-xs text-muted-foreground dark:text-slate-400">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
+                            <div className="mt-1 text-xs text-muted-foreground ">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
                           ) : null}
                         </div>
                         <Button
@@ -1580,7 +1580,7 @@ export default function Users() {
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="users-create-gender">{t('users.gender.label')}</Label>
               <select id="users-create-gender" aria-required="true"
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+                className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2    dark:focus-visible:ring-offset-slate-950"
                 value={createData.gender}
                 onChange={(e) => setCreateData((p) => ({ ...p, gender: e.target.value as any }))}
               >
@@ -1622,13 +1622,13 @@ export default function Users() {
             <DialogTitle>{t('users.credentials.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+            <div className="rounded-md border border-line p-3 ">
               <p className="text-xs text-muted-foreground">{t('users.credentials.username')}</p>
-              <p className="font-semibold text-slate-900 dark:text-slate-50">{createdCredentials?.username}</p>
+              <p className="font-semibold text-content ">{createdCredentials?.username}</p>
             </div>
-            <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+            <div className="rounded-md border border-line p-3 ">
               <p className="text-xs text-muted-foreground">{t('users.credentials.initialPassword')}</p>
-              <p className="font-semibold text-slate-900 dark:text-slate-50">{createdCredentials?.initialPassword}</p>
+              <p className="font-semibold text-content ">{createdCredentials?.initialPassword}</p>
             </div>
             <p className="text-sm text-amber-700 dark:text-amber-300">
               {t('users.credentials.instructions')}

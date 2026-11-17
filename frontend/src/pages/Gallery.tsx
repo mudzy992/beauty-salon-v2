@@ -287,7 +287,7 @@ export default function Gallery() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.gallery')}</h1>
+        <h1 className="text-2xl font-semibold text-content ">{t('nav.gallery')}</h1>
         <Button type="button" onClick={() => openCatForm()}>
           <Plus className="mr-2 h-4 w-4" />
           {t('gallery.admin.newCategory')}
@@ -321,7 +321,7 @@ export default function Gallery() {
                       aria-pressed={selectedCatId === c.id}
                       className="min-w-0 flex-1 cursor-pointer rounded text-left"
                     >
-                      <span className="block truncate font-semibold text-slate-900 dark:text-slate-50">
+                      <span className="block truncate font-semibold text-content ">
                         {c.name}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">
@@ -389,8 +389,8 @@ export default function Gallery() {
                         ? getUploadUrl(img.upload?.pathMedium || img.upload?.pathThumb || img.upload?.pathOriginal)
                         : undefined
                     return (
-                      <div key={img.id} className="group overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-                        <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-900/40">
+                      <div key={img.id} className="group overflow-hidden rounded-lg border border-line ">
+                        <div className="relative aspect-[4/3] bg-surface-muted dark:bg-slate-900/40">
                           <MediaImage src={src} alt={img.title ?? t('gallery.admin.galleryImageAlt')} className="h-full w-full object-cover" />
                           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
                             <div className="min-w-0">
@@ -435,7 +435,7 @@ export default function Gallery() {
               <Label htmlFor="gallery-category-sort-order">{t('gallery.admin.sortOrder')}</Label>
               <Input id="gallery-category-sort-order" className="mt-1" type="number" min={0} value={catForm.sortOrder} onChange={(e) => setCatForm({ ...catForm, sortOrder: Number(e.target.value) || 0 })} />
             </div>
-            <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
+            <label className="flex items-start gap-3 rounded-lg border border-line p-3 text-sm text-content-strong">
               <input
                 type="checkbox"
                 checked={catForm.autoPublishConsentedPairs}
@@ -470,10 +470,10 @@ export default function Gallery() {
             <DialogTitle>{t('gallery.admin.addImageTitle')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-5 md:grid-cols-2">
-            <section className="space-y-4 rounded-xl border border-slate-200 p-4">
+            <section className="space-y-4 rounded-xl border border-line p-4">
               <div>
-                <h3 className="font-semibold text-slate-900">{t('gallery.admin.nonClientSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
+                <h3 className="font-semibold text-content">{t('gallery.admin.nonClientSectionTitle')}</h3>
+                <p className="mt-1 text-xs leading-5 text-content-muted">
                   {t('gallery.admin.nonClientSectionGuidance')}
                 </p>
               </div>
@@ -484,7 +484,7 @@ export default function Gallery() {
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   onChange={(event) => setManualFile(event.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                  className="block w-full text-sm text-content-strong file:mr-3 file:rounded-md file:border-0 file:bg-surface-muted file:px-3 file:py-2 file:text-sm file:font-medium"
                 />
               </div>
               <div className="space-y-2">
@@ -496,7 +496,7 @@ export default function Gallery() {
                   maxLength={200}
                 />
               </div>
-              <label className="flex items-start gap-2 text-xs leading-5 text-slate-700">
+              <label className="flex items-start gap-2 text-xs leading-5 text-content-strong">
                 <input
                   type="checkbox"
                   checked={nonClientConfirmed}
@@ -516,10 +516,10 @@ export default function Gallery() {
               </Button>
             </section>
 
-            <section className="space-y-4 rounded-xl border border-slate-200 p-4">
+            <section className="space-y-4 rounded-xl border border-line p-4">
               <div>
-                <h3 className="font-semibold text-slate-900">{t('gallery.admin.consentedSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
+                <h3 className="font-semibold text-content">{t('gallery.admin.consentedSectionTitle')}</h3>
+                <p className="mt-1 text-xs leading-5 text-content-muted">
                   {t('gallery.admin.consentedSectionGuidance')}
                 </p>
               </div>
@@ -534,7 +534,7 @@ export default function Gallery() {
                   {eligibleImages.map((image) => (
                     <label
                       key={image.imageId}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-2 hover:bg-slate-50"
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-line p-2 hover:bg-surface-muted"
                     >
                       <input
                         type="radio"
@@ -548,7 +548,7 @@ export default function Gallery() {
                         alt=""
                         className="h-14 w-14 rounded-md object-cover"
                       />
-                      <span className="min-w-0 text-xs text-slate-700">
+                      <span className="min-w-0 text-xs text-content-strong">
                         <span className="block font-semibold">{image.isBefore ? t('gallery.admin.before') : t('gallery.admin.after')} · {image.serviceName}</span>
                         <span className="block text-muted-foreground">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), getIntlLocale(i18n.language), { dateStyle: 'medium' })}</span>
                       </span>

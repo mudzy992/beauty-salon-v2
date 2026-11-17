@@ -118,7 +118,7 @@ export default function ServiceWorkGallery() {
 
   if (loadingService) {
     return (
-      <div className="flex justify-center py-14 text-slate-500">
+      <div className="flex justify-center py-14 text-content-muted">
         <>
           <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           <span className="sr-only">{t('admin.serviceWorkGallery.loadingService')}</span>
@@ -131,10 +131,10 @@ export default function ServiceWorkGallery() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <h1 className="text-2xl font-semibold text-content ">
             {t('admin.serviceWorkGallery.title')}
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-muted ">
             {service ? service.name : t('admin.serviceWorkGallery.serviceFallback')}
           </p>
           {service ? (
@@ -170,12 +170,12 @@ export default function ServiceWorkGallery() {
       ) : null}
 
       {loadingPairs && items.length === 0 ? (
-        <div className="flex justify-center py-14 text-slate-500">
+        <div className="flex justify-center py-14 text-content-muted">
           <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           <span className="sr-only">{t('admin.serviceWorkGallery.loadingPairs')}</span>
         </div>
       ) : items.length === 0 ? (
-        <div className="py-10 text-sm text-center text-slate-500">
+        <div className="py-10 text-sm text-center text-content-muted">
           {pairsLoadError ? (
             <div role="alert">
               <p>{t('admin.serviceWorkGallery.pairsLoadFailed')}</p>
@@ -208,14 +208,14 @@ export default function ServiceWorkGallery() {
           <div ref={sentinelRef} className="h-4 mt-8" />
           {pairsLoadError ? (
             <div className="py-4 text-center" role="alert">
-              <p className="text-sm text-slate-600">{t('admin.serviceWorkGallery.pairsLoadFailed')}</p>
+              <p className="text-sm text-content-muted">{t('admin.serviceWorkGallery.pairsLoadFailed')}</p>
               <Button variant="outline" className="mt-3" onClick={() => void loadPage(offset, true)}>
                 {t('admin.serviceWorkGallery.retry')}
               </Button>
             </div>
           ) : null}
           {loadingMore ? (
-            <div className="flex justify-center py-8 text-slate-500">
+            <div className="flex justify-center py-8 text-content-muted">
               <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
             </div>
           ) : null}

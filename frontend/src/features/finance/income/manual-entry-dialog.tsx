@@ -21,7 +21,7 @@ type ManualEntryDialogProps = {
   onSubmit: (payload: ManualEntryPayload) => void
 }
 
-// 1.4.11: okvir <select> mora imati 3:1 prema podlozi; border-slate-200
+// 1.4.11: okvir <select> mora imati 3:1 prema podlozi; border-line
 // (#E2E8F0) je 1.23:1. input-border -> --control-border = 4.24:1.
 const selectClass =
   'h-9 w-full rounded-md border border-input-border bg-surface px-2 text-sm'
@@ -121,14 +121,14 @@ export function ManualEntryDialog({
             <>
               <span
                 id="manual-client-selected-label"
-                className="text-sm font-medium text-slate-700 dark:text-slate-200"
+                className="text-sm font-medium text-content-strong "
               >
                 {t('finance.manualEntry.client')}
               </span>
               <div
                 role="group"
                 aria-labelledby="manual-client-selected-label"
-                className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 dark:border-slate-800"
+                className="flex items-center justify-between rounded-md border border-line px-3 py-2 "
               >
                 <span className="text-sm">{getPersonName(f.selectedClient)}</span>
                 <Button
@@ -151,12 +151,12 @@ export function ManualEntryDialog({
                 placeholder={t('finance.manualEntry.searchClient')}
               />
               {f.clientResults.length > 0 ? (
-                <ul className="max-h-40 overflow-y-auto rounded-md border border-slate-200 dark:border-slate-800">
+                <ul className="max-h-40 overflow-y-auto rounded-md border border-line ">
                   {f.clientResults.map((client) => (
                     <li key={client.id}>
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-900"
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted dark:hover:bg-slate-900"
                         onClick={() => f.selectClient(client)}
                       >
                         {getPersonName(client)}
@@ -180,17 +180,17 @@ export function ManualEntryDialog({
             value={f.form.paidAmount}
             onChange={(event) => f.update({ paidAmount: event.target.value })}
           />
-          <div className="mt-1 grid gap-1 rounded-md bg-slate-50 p-2 text-xs dark:bg-slate-900">
+          <div className="mt-1 grid gap-1 rounded-md bg-surface-muted p-2 text-xs dark:bg-slate-900">
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('finance.manualEntry.servicePrice')}</span>
+              <span className="text-content-muted">{t('finance.manualEntry.servicePrice')}</span>
               <span className="tabular-nums">{formatAmount(f.servicePrice)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('finance.summary.tips')}</span>
+              <span className="text-content-muted">{t('finance.summary.tips')}</span>
               <span className="tabular-nums">{formatAmount(f.tipAmount)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('finance.manualEntry.unpaid')}</span>
+              <span className="text-content-muted">{t('finance.manualEntry.unpaid')}</span>
               <span
                 className={`tabular-nums ${f.debtAmount > 0 ? 'text-warn-foreground' : ''}`}
               >
@@ -223,7 +223,7 @@ export function ManualEntryDialog({
               </Button>
             </div>
             {!f.canCreateDebt ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-content-muted">
                 {t('finance.manualEntry.debtRequiresClientStylist')}
               </p>
             ) : null}

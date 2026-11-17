@@ -204,7 +204,7 @@ export default function Notifications() {
     {
       key: 'type',
       headerKey: 'notifications.notificationType',
-      className: 'p-3 font-medium text-slate-800 dark:text-slate-100',
+      className: 'p-3 font-medium text-content ',
       render: (type) => getNotificationTypeLabel(type),
     },
     {
@@ -249,7 +249,7 @@ export default function Notifications() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.notifications')}</h1>
+        <h1 className="text-2xl font-semibold text-content ">{t('nav.notifications')}</h1>
         <Button asChild variant="outline" size="icon" aria-label={t('nav.emailSettings')} title={t('nav.emailSettings')}>
           <RouterLink to="/admin/email-settings">
             <Bell className="h-4 w-4" />
@@ -265,7 +265,7 @@ export default function Notifications() {
 
         <TabsContent value="list" className="mt-4">
           <div className="mb-4 flex max-w-xs items-center justify-between gap-3">
-            <span className="text-sm text-slate-700 dark:text-slate-200" id="unread-only-label">
+            <span className="text-sm text-content-strong " id="unread-only-label">
               {t('notifications.unreadOnly')}
             </span>
             <Switch
@@ -276,11 +276,11 @@ export default function Notifications() {
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-8 text-slate-500">
+            <div className="flex justify-center py-8 text-content-muted">
               <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
             </div>
           ) : notifications.length === 0 ? (
-            <p className="text-sm text-slate-500">{t('common.noData')}</p>
+            <p className="text-sm text-content-muted">{t('common.noData')}</p>
           ) : (
             <div className="space-y-2">
               {notifications.map((n) => (
@@ -295,7 +295,7 @@ export default function Notifications() {
                   <div className="flex justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{n.title}</p>
+                        <p className="text-sm font-bold text-content ">{n.title}</p>
                         <Badge variant={channelBadgeVariant(n.channel)} className="text-[10px]">
                           {getChannelLabel(n.channel)}
                         </Badge>
@@ -303,8 +303,8 @@ export default function Notifications() {
                           {getNotificationTypeLabel(n.type)}
                         </Badge>
                       </div>
-                      <p className="text-sm text-slate-700 dark:text-slate-200">{n.body}</p>
-                      <p className="mt-1 text-xs text-slate-500">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
+                      <p className="text-sm text-content-strong ">{n.body}</p>
+                      <p className="mt-1 text-xs text-content-muted">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
                     </div>
                     {!n.isRead ? (
                       <Button
@@ -326,20 +326,20 @@ export default function Notifications() {
         </TabsContent>
 
         <TabsContent value="prefs" className="mt-4">
-          <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mb-4 text-sm text-content-muted ">
             {t('notifications.preferencesDescription')}
           </p>
           <Card className="mb-4 p-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl space-y-1">
-                <h2 className="font-semibold text-slate-900 dark:text-slate-50">
+                <h2 className="font-semibold text-content ">
                   {t('notifications.campaignConsent.title')}
                 </h2>
-                <p className="text-sm text-slate-600 dark:text-slate-300">
+                <p className="text-sm text-content-muted ">
                   {t('notifications.campaignConsent.description')}
                 </p>
                 {campaignConsent ? (
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <p className="text-sm font-medium text-content-strong ">
                     {campaignConsent.optedIn
                       ? t('notifications.campaignConsent.enabled')
                       : t('notifications.campaignConsent.disabled')}
@@ -347,7 +347,7 @@ export default function Notifications() {
                 ) : null}
               </div>
               {campaignConsentLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-slate-500" aria-label={t('common.loading')} />
+                <Loader2 className="h-5 w-5 animate-spin text-content-muted" aria-label={t('common.loading')} />
               ) : campaignConsentLoadFailed ? (
                 <Button type="button" variant="outline" onClick={loadCampaignConsent}>
                   {t('notifications.campaignConsent.retryLoad')}
@@ -368,7 +368,7 @@ export default function Notifications() {
             ) : null}
           </Card>
           {prefLoading ? (
-            <div className="flex justify-center py-8 text-slate-500">
+            <div className="flex justify-center py-8 text-content-muted">
               <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
             </div>
           ) : (

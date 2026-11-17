@@ -155,7 +155,7 @@ export function CategoryWizardDialog({
             <Label htmlFor="wiz-fixed">
               {t('finance.expenseCategories.fixedItems')}
             </Label>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-content-muted">
               {t('finance.expenseCategories.fixedItemsHint')}
             </p>
           </div>
@@ -172,7 +172,7 @@ export function CategoryWizardDialog({
             <Label htmlFor="wiz-att">
               {t('finance.expenseCategories.attachmentPerItem')}
             </Label>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-content-muted">
               {t('finance.expenseCategories.attachmentPerItemHint')}
             </p>
           </div>

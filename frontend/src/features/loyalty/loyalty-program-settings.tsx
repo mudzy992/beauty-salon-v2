@@ -98,7 +98,7 @@ export function LoyaltyProgramSettings() {
     setExcluded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  if (loading) return <p className="text-sm text-slate-500">{t('loyaltyAdmin.settings.loading')}</p>
+  if (loading) return <p className="text-sm text-content-muted">{t('loyaltyAdmin.settings.loading')}</p>
 
   return (
     <Card className="mb-6 p-6 space-y-4">
@@ -138,7 +138,7 @@ export function LoyaltyProgramSettings() {
       </div>
       <div>
         <Label>{t('loyaltyAdmin.settings.excludedServices')}</Label>
-        <div className="mt-2 max-h-40 space-y-1 overflow-auto rounded-md border border-slate-200 p-2 text-sm dark:border-slate-800">
+        <div className="mt-2 max-h-40 space-y-1 overflow-auto rounded-md border border-line p-2 text-sm ">
           {services.map((s) => (
             <label key={s.id} className="flex items-center gap-2">
               <input type="checkbox" checked={excluded.includes(s.id)} onChange={() => toggleExcluded(s.id)} />

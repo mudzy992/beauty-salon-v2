@@ -145,7 +145,7 @@ export default function Blog() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.blog')}</h1>
+        <h1 className="text-2xl font-semibold text-content ">{t('nav.blog')}</h1>
         <Button type="button" onClick={() => void openForm()}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('blog.newPost')}
@@ -153,11 +153,11 @@ export default function Blog() {
       </div>
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-slate-500">
+          <div className="flex justify-center p-10 text-content-muted">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </div>
         ) : loadError ? (
-          <div role="alert" className="p-8 text-center text-slate-600">
+          <div role="alert" className="p-8 text-center text-content-muted">
             <p>{t('blog.admin.loadFailed')}</p>
             <Button type="button" variant="outline" className="mt-3" onClick={loadData}>
               {t('common.retry')}

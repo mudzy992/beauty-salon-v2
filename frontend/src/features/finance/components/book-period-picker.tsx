@@ -18,7 +18,7 @@ type BookPeriodPickerProps = {
   isPending?: boolean
 }
 
-// 1.4.11: okvir form kontrole mora imati 3:1 prema podlozi. `border-slate-200`
+// 1.4.11: okvir form kontrole mora imati 3:1 prema podlozi. `border-line`
 // (#E2E8F0) je 1.23:1 na bijeloj -> FAIL. `input-border` se unutar .admin-shell
 // prebacuje na --control-border (#767B86) = 4.24:1 -> PASS.
 const selectClass =

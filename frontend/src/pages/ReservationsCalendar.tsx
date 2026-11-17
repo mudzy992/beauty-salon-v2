@@ -175,15 +175,15 @@ export default function ReservationsCalendar() {
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50 dark:bg-slate-950" data-aurum-calendar>
+    <div className="min-h-dvh bg-surface-muted " data-aurum-calendar>
       <SkipLink targetId="calendar-main" />
       <div className="flex min-h-dvh w-full flex-col p-3 sm:p-4">
         <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold text-slate-900 dark:text-slate-50">
+            <h1 className="truncate text-base font-semibold text-content ">
               {t('reservations.calendar.title')}
             </h1>
-            <p className="mt-0.5 hidden text-xs text-slate-600 dark:text-slate-300 sm:block">
+            <p className="mt-0.5 hidden text-xs text-content-muted  sm:block">
               {t('reservations.calendar.workspace')}
             </p>
           </div>
@@ -206,9 +206,9 @@ export default function ReservationsCalendar() {
           </Button>
         </header>
 
-        <main id="calendar-main" tabIndex={-1} data-admin-calendar-main className="min-h-[28rem] flex-1 rounded-xl border border-slate-200 bg-white shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring dark:border-slate-800 dark:bg-slate-950">
+        <main id="calendar-main" tabIndex={-1} data-admin-calendar-main className="min-h-[28rem] flex-1 rounded-xl border border-line bg-surface shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring  ">
           {loading ? (
-            <div role="status" aria-live="polite" className="flex h-full items-center justify-center text-slate-500">
+            <div role="status" aria-live="polite" className="flex h-full items-center justify-center text-content-muted">
               <span className="sr-only">{t('common.loading')}</span>
               <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>

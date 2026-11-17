@@ -269,7 +269,7 @@ export function IncomeBookDetail({
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+          <h2 className="text-lg font-semibold text-content ">
             {period}
           </h2>
           <BookLockBadge isLocked={isLocked} />

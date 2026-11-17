@@ -30,8 +30,8 @@ export function ExpenseAttachmentFields({
     <div className="grid gap-2">
       <Label htmlFor="expense-files">{t('finance.expenseForm.attachments')}</Label>
       {existing.length > 0 ? (
-        <div className="rounded-md border border-slate-200 p-2 dark:border-slate-800">
-          <p className="mb-1 text-xs font-medium text-slate-500">
+        <div className="rounded-md border border-line p-2 ">
+          <p className="mb-1 text-xs font-medium text-content-muted">
             {t('finance.expenseForm.existingAttachments')}
           </p>
           <ExpenseAttachmentsList attachments={existing} />
@@ -42,7 +42,7 @@ export function ExpenseAttachmentFields({
         id="expense-files"
         type="file"
         multiple
-        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm dark:text-slate-300 dark:file:bg-slate-800"
+        className="block w-full text-sm text-content-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-muted file:px-3 file:py-2 file:text-sm  dark:file:bg-slate-800"
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
           onFiles(event.target.files)
         }
@@ -52,7 +52,7 @@ export function ExpenseAttachmentFields({
           {pending.map((upload) => (
             <li
               key={upload.id}
-              className="flex items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-xs dark:border-slate-800"
+              className="flex items-center justify-between rounded-md border border-line px-2 py-1 text-xs "
             >
               <span className="inline-flex items-center gap-1 truncate">
                 <Paperclip className="h-3 w-3" aria-hidden="true" />

@@ -143,8 +143,8 @@ export const AdminUserMenu = ({
               <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div data-admin-user-name className="truncate text-sm font-semibold text-slate-900">{username ?? t('shell.adminName')}</div>
-              {email ? <div data-admin-user-email className="truncate text-xs text-slate-500">{email}</div> : null}
+              <div data-admin-user-name className="truncate text-sm font-semibold text-content">{username ?? t('shell.adminName')}</div>
+              {email ? <div data-admin-user-email className="truncate text-xs text-content-muted">{email}</div> : null}
             </div>
           </div>
           <DropdownMenuSeparator className="my-3" />

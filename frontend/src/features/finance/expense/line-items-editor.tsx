@@ -79,7 +79,7 @@ export function LineItemsEditor({
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-slate-500">{t('finance.expenseForm.noLineItemsHint')}</p>
+        <p className="text-xs text-content-muted">{t('finance.expenseForm.noLineItemsHint')}</p>
       ) : (
         <ul className="grid gap-2">
           {items.map((item, index) => {
@@ -89,7 +89,7 @@ export function LineItemsEditor({
             return (
               <li
                 key={index}
-                className="grid gap-2 rounded-md border border-slate-200 p-2 dark:border-slate-800"
+                className="grid gap-2 rounded-md border border-line p-2 "
               >
                 <div className="flex flex-wrap items-end gap-2">
                   {fields.map((field) => (
@@ -124,15 +124,15 @@ export function LineItemsEditor({
                     <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
                   </Button>
                 </div>
-                <div className="flex justify-between text-xs text-slate-500">
+                <div className="flex justify-between text-xs text-content-muted">
                   <span>{t('finance.expenseForm.lineTotal')}</span>
-                  <span className="tabular-nums font-medium text-slate-800 dark:text-slate-100">
+                  <span className="tabular-nums font-medium text-content ">
                     {formatLocalizedAmount(computeLineTotal(fields, item.values), i18n.language)}
                   </span>
                 </div>
                 {requiresPerItem ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-slate-500">{t('finance.expenseForm.attachment')}:</span>
+                    <span className="text-xs text-content-muted">{t('finance.expenseForm.attachment')}:</span>
                     {pending ? (
                       <>
                         <Badge variant="secondary">{pending.name}</Badge>
@@ -171,8 +171,8 @@ export function LineItemsEditor({
       )}
 
       {items.length > 0 ? (
-        <div className="flex justify-between rounded-md bg-slate-50 px-3 py-2 text-sm dark:bg-slate-900">
-          <span className="text-slate-500">{t('finance.expenseForm.lineItemsTotal')}</span>
+        <div className="flex justify-between rounded-md bg-surface-muted px-3 py-2 text-sm dark:bg-slate-900">
+          <span className="text-content-muted">{t('finance.expenseForm.lineItemsTotal')}</span>
           <span className="font-semibold tabular-nums">
             {formatLocalizedAmount(sumLineItems(items, fields), i18n.language)}
           </span>

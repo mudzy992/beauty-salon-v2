@@ -122,9 +122,9 @@ const SmallStatCard = ({
   className?: string
 }) => (
   <Card className={cn('p-4', className)}>
-    <p className="text-xs text-slate-500">{title}</p>
-    <p className="mt-1 text-2xl font-semibold text-slate-900 [overflow-wrap:anywhere] dark:text-slate-50">{value}</p>
-    {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+    <p className="text-xs text-content-muted">{title}</p>
+    <p className="mt-1 text-2xl font-semibold text-content [overflow-wrap:anywhere] ">{value}</p>
+    {hint ? <p className="mt-1 text-xs text-content-muted">{hint}</p> : null}
   </Card>
 )
 
@@ -138,7 +138,7 @@ const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => {
       {Array.from({ length: max }, (_, i) => (
         <Star
           key={i}
-          className={cn('h-3.5 w-3.5', i < rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-700')}
+          className={cn('h-3.5 w-3.5', i < rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-content-strong')}
           aria-hidden="true"
         />
       ))}
@@ -313,7 +313,7 @@ export default function ClientAnalytics() {
               {t('clientAnalyticsPage.fullPeriod')}
             </Button>
             {analytics && (analytics.fromDate || analytics.toDate) ? (
-              <p className="pb-1 text-sm text-slate-500 md:self-center">
+              <p className="pb-1 text-sm text-content-muted md:self-center">
                 {t('clientAnalyticsPage.showingPeriod', { from: formatDateOnly(analytics.fromDate), to: formatDateOnly(analytics.toDate) })}
               </p>
             ) : null}
@@ -322,7 +322,7 @@ export default function ClientAnalytics() {
           {dateFrom && dateTo && dateFrom > dateTo ? <p role="alert" className="text-sm text-content">{t('adminAnalytics.invalidRange')}</p> : null}
 
       {loading ? (
-        <div role="status" className="flex justify-center py-10 text-slate-500">
+        <div role="status" className="flex justify-center py-10 text-content-muted">
           <span className="sr-only">{t('clientAnalyticsPage.loading')}</span>
           <Loader2 className="h-10 w-10 animate-spin motion-reduce:animate-none" aria-hidden="true" />
         </div>
@@ -341,10 +341,10 @@ export default function ClientAnalytics() {
           <Card className="p-5">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{getUserName(analytics.user)}</h2>
-                <p className="text-sm text-slate-500">{analytics.user.email}</p>
+                <h2 className="text-lg font-semibold text-content ">{getUserName(analytics.user)}</h2>
+                <p className="text-sm text-content-muted">{analytics.user.email}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-slate-500">{t('clientAnalyticsPage.phone')}: {analytics.user.phone ?? '-'}</p>
+                  <p className="text-sm text-content-muted">{t('clientAnalyticsPage.phone')}: {analytics.user.phone ?? '-'}</p>
                   <Badge variant={analytics.user.isActive ? 'success' : 'danger'} className="text-[10px]">
                     {analytics.user.isActive ? t('clientAnalyticsPage.active') : t('clientAnalyticsPage.inactive')}
                   </Badge>
@@ -411,12 +411,12 @@ export default function ClientAnalytics() {
             {analytics.stats.totalReservations > 0 ? (
               <Card className="p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('clientAnalyticsPage.stats.completionRate')}</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                  <p className="text-sm font-semibold text-content ">{t('clientAnalyticsPage.stats.completionRate')}</p>
+                  <p className="text-sm font-semibold text-content ">
                     {Math.round((analytics.stats.completedReservations / analytics.stats.totalReservations) * 100)}%
                   </p>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
+                <div className="h-2 w-full overflow-hidden rounded-md bg-surface-muted dark:bg-slate-800">
                   <div
                     className="h-full rounded-md bg-ok-foreground"
                     style={{ width: `${(analytics.stats.completedReservations / analytics.stats.totalReservations) * 100}%` }}
@@ -428,12 +428,12 @@ export default function ClientAnalytics() {
 
           {analytics.topServices.length > 0 ? (
             <Card className="p-5">
-              <p className="mb-3 font-semibold text-slate-900 dark:text-slate-50">{t('clientAnalyticsPage.topServices')}</p>
+              <p className="mb-3 font-semibold text-content ">{t('clientAnalyticsPage.topServices')}</p>
               <div className="app-table-wrap">
                 <table className="app-table data-table w-full border-collapse">
                   <caption className="sr-only">{t('clientAnalyticsPage.servicesCaption')}</caption>
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                    <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
                       <th scope="col" className="py-2 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
                       <th scope="col" className="py-2 pr-3 text-right font-medium">{t('clientAnalyticsPage.visitCount')}</th>
                       <th scope="col" className="py-2 text-right font-medium">{t('clientAnalyticsPage.total')} (KM)</th>
@@ -467,7 +467,7 @@ export default function ClientAnalytics() {
                   <table className="app-table data-table w-full border-collapse">
                     <caption className="sr-only">{t('clientAnalyticsPage.reservationsCaption')}</caption>
                     <thead>
-                      <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                      <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
                         <th scope="col" className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
                         <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.time')}</th>
                         <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
@@ -480,7 +480,7 @@ export default function ClientAnalytics() {
                     <tbody>
                       {analytics.reservations.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-6 text-slate-500">
+                          <td colSpan={7} className="px-4 py-6 text-content-muted">
                             {t('common.noData')}
                           </td>
                         </tr>
@@ -488,7 +488,7 @@ export default function ClientAnalytics() {
                         analytics.reservations.map((r) => (
                           <tr
                             key={r.id}
-                            className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                            className="cursor-pointer border-b border-slate-100 hover:bg-surface-muted dark:border-slate-800/80 dark:hover:bg-slate-900/40"
                             // 4.1.2: red je bio fokusabilan (tabIndex + onKeyDown) ali bez
                             // role koja kaže da je aktivabilan — AT najavi samo "red". Pristupačni
                             // put je dugme "Detalji" u zadnjoj koloni, isto kao u Reservations.tsx
@@ -531,7 +531,7 @@ export default function ClientAnalytics() {
                   <table className="app-table data-table w-full border-collapse">
                     <caption className="sr-only">{t('clientAnalyticsPage.manualEntriesCaption')}</caption>
                     <thead>
-                      <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                      <tr className="border-b border-line text-left text-xs uppercase text-content-muted ">
                         <th scope="col" className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
                         <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
                         <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
@@ -544,7 +544,7 @@ export default function ClientAnalytics() {
                     <tbody>
                       {analytics.manualEntries.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-6 text-slate-500">
+                          <td colSpan={7} className="px-4 py-6 text-content-muted">
                             {t('common.noData')}
                           </td>
                         </tr>
@@ -562,7 +562,7 @@ export default function ClientAnalytics() {
                               </Badge>
                             </td>
                             <td data-label={t('clientAnalyticsPage.note')} className="max-w-xs py-3 pr-4">
-                              <p className="truncate text-xs text-slate-600 dark:text-slate-300">{e.notes ?? '-'}</p>
+                              <p className="truncate text-xs text-content-muted ">{e.notes ?? '-'}</p>
                             </td>
                           </tr>
                         ))
@@ -575,7 +575,7 @@ export default function ClientAnalytics() {
 
             <TabsContent value="reviews" className="mt-4">
               {analytics.reviews.length === 0 ? (
-                <p className="text-sm text-slate-500">{t('common.noData')}</p>
+                <p className="text-sm text-content-muted">{t('common.noData')}</p>
               ) : (
                 <div className="space-y-3">
                   {analytics.reviews.map((r) => (
@@ -601,7 +601,7 @@ export default function ClientAnalytics() {
                               aria-label={t('clientAnalyticsPage.reviewDetailsAction', {
                                 service: r.service?.name ?? '-',
                               })}
-                              className="cursor-pointer rounded text-left font-medium text-slate-900 after:absolute after:inset-0 after:content-[''] dark:text-slate-50"
+                              className="cursor-pointer rounded text-left font-medium text-content after:absolute after:inset-0 after:content-[''] "
                             >
                               {r.service?.name ?? '-'}
                             </button>
@@ -610,17 +610,17 @@ export default function ClientAnalytics() {
                             </Badge>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-xs text-slate-500">{t('clientAnalyticsPage.service')}:</p>
+                            <p className="text-xs text-content-muted">{t('clientAnalyticsPage.service')}:</p>
                             <StarRating rating={r.serviceRating} />
                             {r.stylistRating != null ? (
                               <>
-                                <p className="ml-2 text-xs text-slate-500">{t('clientAnalyticsPage.stylist')}:</p>
+                                <p className="ml-2 text-xs text-content-muted">{t('clientAnalyticsPage.stylist')}:</p>
                                 <StarRating rating={r.stylistRating} />
                               </>
                             ) : null}
                           </div>
                           {r.comment ? (
-                            <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{r.comment}</p>
+                            <p className="mt-2 line-clamp-2 text-sm text-content-muted ">{r.comment}</p>
                           ) : null}
                         </div>
                         <p className="shrink-0 text-xs text-content-muted">{formatInstantDate(r.createdAt)}</p>
@@ -634,14 +634,14 @@ export default function ClientAnalytics() {
             <TabsContent value="debts" className="mt-4">
               <Card className="p-4">
                 {debtsLoading ? (
-                  <p className="text-sm text-slate-500">{t('clientAnalyticsPage.loading')}</p>
+                  <p className="text-sm text-content-muted">{t('clientAnalyticsPage.loading')}</p>
                 ) : debtsError ? (
                   <div role="alert" className="space-y-3">
                     <p>{t('clientAnalyticsPage.debtsLoadError')}</p>
                     <Button type="button" variant="outline" onClick={() => setRetryVersion(value => value + 1)}>{t('common.retry')}</Button>
                   </div>
                 ) : clientDebts.length === 0 ? (
-                  <p className="text-sm text-slate-500">{t('common.noData')}</p>
+                  <p className="text-sm text-content-muted">{t('common.noData')}</p>
                 ) : (
                   <div className="grid gap-2">
                     {clientDebts.map((d) => {
@@ -659,16 +659,16 @@ export default function ClientAnalytics() {
                       return (
                         <div
                           key={d.id}
-                          className="rounded-md border border-slate-200 dark:border-slate-800 p-3 flex items-start justify-between gap-3"
+                          className="rounded-md border border-line  p-3 flex items-start justify-between gap-3"
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                            <p className="text-sm font-semibold text-content ">
                               {d.service?.name ?? t('clientAnalyticsPage.debt')} · {formatLocalizedAmount(d.amount, i18n.language)}
                             </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-300">
+                            <p className="text-xs text-content-muted ">
                               <span className="font-semibold">{t('clientAnalyticsPage.stylist')}:</span> {stylistName} · {ref}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{formatInstantDate(d.createdAt)}</p>
+                            <p className="text-xs text-content-muted mt-0.5">{formatInstantDate(d.createdAt)}</p>
                           </div>
                           <Badge variant={d.status === 'OPEN' ? 'warning' : 'success'} className="text-[10px]">
                             {d.status === 'OPEN' ? t('clientAnalyticsPage.open') : t('clientAnalyticsPage.closed')}
@@ -703,49 +703,49 @@ export default function ClientAnalytics() {
               </DialogHeader>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.date')}</p>
-                  <p className="font-semibold text-slate-900 dark:text-slate-50">{formatDateOnly(detailReservation.reservationDate)}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.date')}</p>
+                  <p className="font-semibold text-content ">{formatDateOnly(detailReservation.reservationDate)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.time')}</p>
-                  <p className="font-semibold text-slate-900 dark:text-slate-50">
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.time')}</p>
+                  <p className="font-semibold text-content ">
                     {detailReservation.startTime} - {detailReservation.endTime}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.service')}</p>
-                  <p className="text-slate-800 dark:text-slate-100">{detailReservation.service?.name ?? '-'}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.service')}</p>
+                  <p className="text-content ">{detailReservation.service?.name ?? '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.price')}</p>
-                  <p className="text-slate-800 dark:text-slate-100">{formatLocalizedAmount(Number(detailReservation.service?.price ?? 0), i18n.language)}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.price')}</p>
+                  <p className="text-content ">{formatLocalizedAmount(Number(detailReservation.service?.price ?? 0), i18n.language)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.stylist')}</p>
-                  <p className="text-slate-800 dark:text-slate-100">{getStylistName(detailReservation.confirmedStylist)}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.stylist')}</p>
+                  <p className="text-content ">{getStylistName(detailReservation.confirmedStylist)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.status')}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.status')}</p>
                   <Badge variant={statusBadgeVariant[detailReservation.status] ?? 'secondary'} className="text-[10px]">
                     {getReservationStatusLabel(detailReservation.status)}
                   </Badge>
                 </div>
                 {detailReservation.clientNotes ? (
                   <div className="md:col-span-2">
-                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.clientNotes')}</p>
-                    <p className="text-slate-800 dark:text-slate-100">{detailReservation.clientNotes}</p>
+                    <p className="text-xs text-content-muted">{t('clientAnalyticsPage.clientNotes')}</p>
+                    <p className="text-content ">{detailReservation.clientNotes}</p>
                   </div>
                 ) : null}
                 {detailReservation.cancelReason ? (
                   <div className="md:col-span-2">
-                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.cancellationReason')}</p>
+                    <p className="text-xs text-content-muted">{t('clientAnalyticsPage.cancellationReason')}</p>
                     <p className="text-rose-600">{detailReservation.cancelReason}</p>
                   </div>
                 ) : null}
                 {detailReservation.cancelledAt ? (
                   <div>
-                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.cancelled')}</p>
-                    <p className="text-slate-800 dark:text-slate-100">
+                    <p className="text-xs text-content-muted">{t('clientAnalyticsPage.cancelled')}</p>
+                    <p className="text-content ">
                       {formatInstantDate(detailReservation.cancelledAt)}
                     </p>
                   </div>
@@ -761,45 +761,45 @@ export default function ClientAnalytics() {
               </DialogHeader>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.service')}</p>
-                  <p className="font-semibold text-slate-900 dark:text-slate-50">{detailReview.service?.name ?? '-'}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.service')}</p>
+                  <p className="font-semibold text-content ">{detailReview.service?.name ?? '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.stylist')}</p>
-                  <p className="text-slate-800 dark:text-slate-100">{getStylistName(detailReview.stylist)}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.stylist')}</p>
+                  <p className="text-content ">{getStylistName(detailReview.stylist)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.serviceRating')}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.serviceRating')}</p>
                   <div className="flex items-center gap-2">
                     <StarRating rating={detailReview.serviceRating} />
-                    <p className="text-sm text-slate-700 dark:text-slate-200">{formatLocalizedNumber(detailReview.serviceRating, i18n.language)}/5</p>
+                    <p className="text-sm text-content-strong ">{formatLocalizedNumber(detailReview.serviceRating, i18n.language)}/5</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.stylistRating')}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.stylistRating')}</p>
                   {detailReview.stylistRating != null ? (
                     <div className="flex items-center gap-2">
                       <StarRating rating={detailReview.stylistRating} />
-                      <p className="text-sm text-slate-700 dark:text-slate-200">{formatLocalizedNumber(detailReview.stylistRating, i18n.language)}/5</p>
+                      <p className="text-sm text-content-strong ">{formatLocalizedNumber(detailReview.stylistRating, i18n.language)}/5</p>
                     </div>
                   ) : (
-                    <p className="text-slate-800 dark:text-slate-100">-</p>
+                    <p className="text-content ">-</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.status')}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.status')}</p>
                   <Badge variant={detailReview.isApproved ? 'success' : 'warning'} className="text-[10px]">
                     {detailReview.isApproved ? t('clientAnalyticsPage.approved') : t('clientAnalyticsPage.pending')}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.date')}</p>
-                  <p className="text-slate-800 dark:text-slate-100">{formatInstantDate(detailReview.createdAt)}</p>
+                  <p className="text-xs text-content-muted">{t('clientAnalyticsPage.date')}</p>
+                  <p className="text-content ">{formatInstantDate(detailReview.createdAt)}</p>
                 </div>
                 {detailReview.comment ? (
                   <div className="md:col-span-2">
-                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.comment')}</p>
-                    <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
+                    <p className="text-xs text-content-muted">{t('clientAnalyticsPage.comment')}</p>
+                    <div className="rounded-md bg-surface-muted p-3 text-sm text-content dark:bg-slate-900/40 ">
                       {detailReview.comment}
                     </div>
                   </div>

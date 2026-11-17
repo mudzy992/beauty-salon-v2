@@ -29,7 +29,7 @@ export function ExpenseFiltersBar({
     onChange({ ...filters, ...patch })
 
   return (
-    <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+    <div className="grid gap-3 rounded-lg border border-line p-3 ">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1">
           <Label htmlFor="expense-search" className="text-xs">
@@ -87,7 +87,7 @@ export function ExpenseFiltersBar({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+        <label className="flex items-center gap-2 text-xs text-content-muted ">
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-input-border"
@@ -99,7 +99,7 @@ export function ExpenseFiltersBar({
           {t('finance.expenseList.onlyWithAttachments')}
         </label>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-content-muted ">
             {t('finance.expenseList.resultCount', { resultCount, totalCount })}
           </span>
           {isFiltered ? (

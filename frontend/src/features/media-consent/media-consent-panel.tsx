@@ -157,14 +157,14 @@ export function MediaConsentPanel() {
             <h2 className="text-lg font-semibold text-slate-950">
               {t('mediaConsent.title')}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-content-muted">
               {t('mediaConsent.intro')}
             </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="flex items-center gap-2 text-sm text-content-muted">
             <Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}
           </div>
         ) : null}
@@ -174,23 +174,23 @@ export function MediaConsentPanel() {
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
               {payload.consentText}
             </div>
-            <p className="text-sm font-semibold text-slate-800">
+            <p className="text-sm font-semibold text-content">
               {t('mediaConsent.pendingHeading')}
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               {payload.pending.map((item) => (
                 <div
                   key={item.imageId}
-                  className="overflow-hidden rounded-xl border border-slate-200"
+                  className="overflow-hidden rounded-xl border border-line"
                 >
                   {previews[item.imageId] ? (
                     <MediaImage
                       src={previews[item.imageId]}
                       alt={labelFor(item)}
-                      className="aspect-[4/3] w-full bg-slate-100 object-cover"
+                      className="aspect-[4/3] w-full bg-surface-muted object-cover"
                     />
                   ) : (
-                    <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-slate-600">
+                    <div className="flex aspect-[4/3] items-center justify-center bg-surface-muted text-content-muted">
                       <ImageOff
                         className="h-6 w-6"
                         aria-label={t('mediaConsent.previewUnavailable')}
@@ -199,15 +199,15 @@ export function MediaConsentPanel() {
                   )}
                   <div className="space-y-3 p-4">
                     <div>
-                      <p className="font-semibold text-slate-900">
+                      <p className="font-semibold text-content">
                         {labelFor(item)}
                       </p>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-content-muted">
                         {item.serviceName} ·{' '}
                         {formatDateOnlyLocale(item.serviceDate.slice(0, 10), locale)}
                       </p>
                     </div>
-                    <label className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-slate-700">
+                    <label className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-content-strong">
                       <input
                         type="checkbox"
                         checked={Boolean(accepted[item.imageId])}
@@ -244,7 +244,7 @@ export function MediaConsentPanel() {
 
         {!loading && payload?.active.length ? (
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-slate-800">
+            <p className="text-sm font-semibold text-content">
               {t('mediaConsent.activeHeading')}
             </p>
             <div className="grid gap-3">
@@ -260,7 +260,7 @@ export function MediaConsentPanel() {
                       className="h-20 w-20 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-surface-muted text-content-muted">
                       <ImageOff
                         className="h-5 w-5"
                         aria-label={t('mediaConsent.previewUnavailable')}
@@ -268,10 +268,10 @@ export function MediaConsentPanel() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium text-content">
                       {labelFor(item)} · {item.serviceName}
                     </p>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-content-muted">
                       {formatDateOnlyLocale(item.serviceDate.slice(0, 10), locale)}
                       {item.consentedAt
                         ? ` · ${t('mediaConsent.consentedAt', { date: formatInstantDateLocale(item.consentedAt, locale) })}`
@@ -288,7 +288,7 @@ export function MediaConsentPanel() {
                         })}
                       </p>
                     ) : (
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-content-muted">
                         {t('mediaConsent.notPublished')}
                       </p>
                     )}
@@ -314,17 +314,17 @@ export function MediaConsentPanel() {
         payload &&
         payload.pending.length === 0 &&
         payload.active.length === 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-content-muted">
             {t('mediaConsent.nonePending')}
           </p>
         ) : null}
 
         {message ? (
-          <p role="status" className="text-sm text-slate-700">
+          <p role="status" className="text-sm text-content-strong">
             {message}
           </p>
         ) : null}
-        <p className="text-xs leading-5 text-slate-500">
+        <p className="text-xs leading-5 text-content-muted">
           {t('mediaConsent.privacyNote')}
         </p>
         <ConfirmDialog

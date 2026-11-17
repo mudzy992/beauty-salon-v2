@@ -39,7 +39,7 @@ export function IncomeEntryFiltersBar({
     onChange({ ...filters, ...patch })
 
   return (
-    <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+    <div className="grid gap-3 rounded-lg border border-line p-3 ">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1">
           <Label htmlFor="income-search" className="text-xs">
@@ -108,7 +108,7 @@ export function IncomeEntryFiltersBar({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-content-muted ">
             {t('finance.incomeList.resultCount', { resultCount, totalCount })}
           </span>
           {isFiltered ? (
