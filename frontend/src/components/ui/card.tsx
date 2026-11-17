@@ -6,10 +6,10 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      data-default-card-border={/(?:^|\s)(?:[\w-]+:)*!?border-(?!collapse|separate|spacing)[^\s]+/.test(className ?? '') ? undefined : ''}
-      data-default-card-surface={/(?:^|\s)(?:[\w-]+:)*!?bg-(?!clip-|origin-)[^\s]+/.test(className ?? '') ? undefined : ''}
+      data-default-card-border={/(?:^|\s)(?:[\w-]+:)*!?border-(?!collapse|separate|spacing|line|control-border|input-border)[^\s]+/.test(className ?? '') ? undefined : ''}
+      data-default-card-surface={/(?:^|\s)(?:[\w-]+:)*!?bg-(?!clip-|origin-|surface|surface-muted|surface-sunken|foreground|background)[^\s]+/.test(className ?? '') ? undefined : ''}
       className={cn(
-        'rounded-lg border border-slate-200 bg-white text-slate-950 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50',
+        'rounded-lg border border-line bg-surface text-content shadow-sm',
         className,
       )}
       {...props}
@@ -48,7 +48,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-slate-500 dark:text-slate-400', className)}
+    className={cn('text-sm text-content-muted', className)}
     {...props}
   />
 ))

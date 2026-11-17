@@ -154,8 +154,9 @@ const scan = () => {
 
 test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u allowlisti', () => {
   const { found, scanned, skippedDark } = scan()
-  // sweep ne smije tiho proći na praznom skupu
-  assert.ok(scanned >= 800, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  // sweep ne smije tiho proći na praznom skupu; prag je re-baziran nakon Faze A
+  // (tokenizacija djeljenih primitiva legitimo smanjuje broj raw `slate-*` tekstualnih klasa)
+  assert.ok(scanned >= 750, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
   assert.ok(skippedDark >= 100, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 
   const missing = [...found.keys()].filter((k) => !ALLOWLIST[k])

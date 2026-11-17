@@ -43,6 +43,8 @@ export default {
           'rose-text': 'var(--brand-primary-text, #632238)',
           'rose-ring': 'var(--brand-primary-ring, #632238)',
         },
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         /* Semantički sloj za dashboard (faza 0). Mapiran na CSS varijable iz globals.css. */
         surface: {
           DEFAULT: 'hsl(var(--surface))',
