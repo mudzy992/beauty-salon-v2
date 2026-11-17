@@ -770,9 +770,10 @@ export default function Users() {
                 </button>
               ) : null}
               {canRemoveRole(roleName) ? (
-                <button
+                <Button
                   type="button"
-                  className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-surface-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-gold-ring dark:hover:bg-slate-800"
+                  variant="ghost"
+                  className="ml-1 h-6 w-6"
                   aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName), username: u.username })}
                   onClick={(event) => {
                     if (roleName === 'STYLIST') removalTriggerRef.current = event.currentTarget
@@ -780,7 +781,7 @@ export default function Users() {
                   }}
                 >
                   <X className="h-3 w-3" aria-hidden="true" />
-                </button>
+                </Button>
               ) : null}
             </span>
           )
