@@ -31,6 +31,7 @@ import {
 import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
+import { Select } from '../components/ui/select'
 import { Card } from '../components/ui/card'
 import {
   Dialog,
@@ -120,8 +121,6 @@ interface ServiceDeletionImpact {
 type ServiceMutationAction = 'DELETE_LINKED_RECORDS' | 'MERGE'
 type ModalMode = 'category' | 'subcategory' | 'service'
 
-const selectClass =
-  'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950'
 
 export default function Services() {
   const { t, i18n } = useTranslation()
@@ -975,8 +974,8 @@ export default function Services() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <Label htmlFor="services-gender">{t('services.gender')}</Label>
-                  <select id="services-gender"
-                    className={`${selectClass} mt-1`}
+                  <Select id="services-gender"
+                    className="mt-1"
                     value={svcForm.gender}
                     onChange={(e: ChangeEvent<HTMLSelectElement>) =>
                       setSvcForm({
@@ -987,7 +986,7 @@ export default function Services() {
                   >
                     <option value="FEMALE">{t('users.gender.female')}</option>
                     <option value="MALE">{t('users.gender.male')}</option>
-                  </select>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="services-services-sort-order-3">{t('services.sortOrder')}</Label>
@@ -1124,9 +1123,9 @@ export default function Services() {
                   <Label htmlFor="service-merge-target">
                     {t('services.deletion.targetService')}
                   </Label>
-                  <select
+                  <Select
                     id="service-merge-target"
-                    className={`${selectClass} mt-1`}
+                    className="mt-1"
                     value={deletionTargetId}
                     onChange={(event) => {
                       const targetId = event.target.value
@@ -1144,7 +1143,7 @@ export default function Services() {
                         {service.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               ) : null}
 

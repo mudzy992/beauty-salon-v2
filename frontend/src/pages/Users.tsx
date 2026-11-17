@@ -32,6 +32,7 @@ import { Alert, AlertDescription } from '../components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
+import { Select } from '../components/ui/select'
 import { Card } from '../components/ui/card'
 import { ConfirmDialog } from '../features/finance/components/confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
@@ -1179,15 +1180,15 @@ export default function Users() {
                   })}</p>
                   <div className="space-y-2">
                     <Label htmlFor="users-financial-transfer-target">{t('users.stylistRemoval.financialTarget')}</Label>
-                    <select id="users-financial-transfer-target" aria-required="true"
-                      className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring   dark:text-slate-50"
+                    <Select id="users-financial-transfer-target" aria-required="true"
+                      
                       value={financialTarget}
                       onChange={(e) => { setFinancialTarget(e.target.value); setFinancialConfirmed(false) }}>
                       <option value="">{t('users.stylistRemoval.chooseTarget')}</option>
                       {getTargetOptions().map((option) => (
                         <option key={option.id} value={option.id} disabled={option.isPending}>{option.label}{option.isPending ? ` ${t('users.stylistRemoval.pendingOption')}` : ''}</option>
                       ))}
-                    </select>
+                    </Select>
                     {!getTargetOptions().some(option => !option.isPending) ? (
                       <p className="text-sm text-muted-foreground">{t('users.stylistRemoval.noFinancialTarget')}</p>
                     ) : null}
@@ -1246,8 +1247,8 @@ export default function Users() {
                     {mode === 'TRANSFER' ? (
                       <div className="mt-3 space-y-2">
                         <Label htmlFor={`users-stylist-removal-target-${row.key}`}>{t('users.stylistRemoval.target')}</Label>
-                        <select id={`users-stylist-removal-target-${row.key}`}
-                          className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+                        <Select id={`users-stylist-removal-target-${row.key}`}
+                          
                           value={(removalTargets as any)[row.key] ?? ''}
                           onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
                         >
@@ -1258,7 +1259,7 @@ export default function Users() {
                               {o.isPending ? ` ${t('users.stylistRemoval.pendingOption')}` : ''}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                         {opts.some((o) => o.isPending) ? (
                           <p className="text-xs text-amber-700 dark:text-amber-300">
                             {t('users.stylistRemoval.pendingWarning')}
@@ -1411,15 +1412,15 @@ export default function Users() {
                 {t('users.gender.label')}
                 {editUser && getUserRoles(editUser).includes('CLIENT') ? <span className="ml-1 text-rose-600">*</span> : null}
               </Label>
-              <select id="users-gender" aria-required={Boolean(editUser && getUserRoles(editUser).includes('CLIENT'))}
-                className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+              <Select id="users-gender" aria-required={Boolean(editUser && getUserRoles(editUser).includes('CLIENT'))}
+                
                 value={formData.gender}
                 onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value as any }))}
               >
                 <option value="">{t('users.gender.choose')}</option>
                 <option value="FEMALE">{t('users.gender.female')}</option>
                 <option value="MALE">{t('users.gender.male')}</option>
-              </select>
+              </Select>
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3  md:col-span-2">
@@ -1580,15 +1581,15 @@ export default function Users() {
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="users-create-gender">{t('users.gender.label')}</Label>
-              <select id="users-create-gender" aria-required="true"
-                className="flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+              <Select id="users-create-gender" aria-required="true"
+                
                 value={createData.gender}
                 onChange={(e) => setCreateData((p) => ({ ...p, gender: e.target.value as any }))}
               >
                 <option value="">{t('users.gender.choose')}</option>
                 <option value="FEMALE">{t('users.gender.female')}</option>
                 <option value="MALE">{t('users.gender.male')}</option>
-              </select>
+              </Select>
             </div>
 
           </div>
