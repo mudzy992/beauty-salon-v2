@@ -65,7 +65,6 @@ const contrast = (fg, bg = '#ffffff') => {
 
 /** Svaki unos mora imati razlog; ključ je `<fajl>::<klasa>`. */
 const ALLOWLIST = {
-  'components/ui/badge.tsx::slate-50': 'nebijela pozadina: bg-slate-900 (≈17:1)',
   'features/finance/catalog/category-fields-editor.tsx::rose-500': 'ikona (Trash2), 1.4.11 prag 3:1 — 3.67:1',
   'features/finance/expense/expense-table.tsx::rose-500': 'ikona (Trash2) aria-hidden, 3.67:1 ≥ 3:1',
   'features/finance/expense/line-items-editor.tsx::rose-500': 'ikona (Trash2) aria-hidden, 3.67:1 ≥ 3:1',
@@ -74,7 +73,6 @@ const ALLOWLIST = {
   'features/finance/income/integrity-panel.tsx::emerald-600': 'ikona aria-hidden, 3.77:1 ≥ 3:1',
   'features/settings/settings-module-page.tsx::slate-400': 'ikona (Search) aria-hidden',
   'features/shell/admin/ui/data-state.tsx::rose-500': 'ikona (AlertCircle) aria-hidden, 3.67:1 ≥ 3:1',
-  'features/shell/admin/ui/data-state.tsx::slate-400': 'ikona (Inbox) aria-hidden',
   'pages/ClientAnalytics.tsx::amber-400': 'ikona zvijezde (fill) aria-hidden, ima tekstualnu alternativu',
   'pages/ClientAnalytics.tsx::slate-200': 'neoznačena zvijezda, dekorativna',
   'pages/Login.tsx::slate-200': 'tekst na bg-gradient-to-t from-black/80 preko slike',

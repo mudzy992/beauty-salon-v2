@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'border border-transparent bg-slate-900 text-white shadow-sm shadow-slate-900/10 hover:bg-slate-800 focus-visible:ring-slate-400 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950',
+          'border border-transparent bg-surface-inverse text-on-surface-inverse shadow-sm hover:opacity-90 focus-visible:ring-focus-ring focus-visible:ring-offset-surface',
         secondary:
           'border border-line bg-surface-muted text-content shadow-sm hover:bg-surface-sunken focus-visible:ring-focus-ring focus-visible:ring-offset-surface',
         outline:

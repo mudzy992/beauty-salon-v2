@@ -45,6 +45,8 @@ export default {
         },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        'surface-inverse': 'hsl(var(--surface-inverse))',
+        'on-surface-inverse': 'hsl(var(--on-surface-inverse))',
         /* Semantički sloj za dashboard (faza 0). Mapiran na CSS varijable iz globals.css. */
         surface: {
           DEFAULT: 'hsl(var(--surface))',

@@ -22,7 +22,7 @@ export function TableSkeleton({
               <div
                 key={colIndex}
                 data-admin-skeleton-cell
-                className="h-9 flex-1 animate-pulse rounded-md motion-reduce:animate-none bg-slate-100 dark:bg-slate-800"
+                className="h-9 flex-1 animate-pulse rounded-md motion-reduce:animate-none bg-surface-muted"
               />
             ))}
           </div>
@@ -42,13 +42,13 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div data-admin-state="empty" className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 px-6 py-10 text-center dark:border-slate-800">
-      <Inbox className="h-8 w-8 text-slate-400" aria-hidden="true" />
-      <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+    <div data-admin-state="empty" className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-line px-6 py-10 text-center">
+      <Inbox className="h-8 w-8 text-content-muted" aria-hidden="true" />
+      <p className="text-sm font-medium text-content">
         {title}
       </p>
       {description ? (
-        <p className="max-w-sm text-xs text-slate-500 dark:text-slate-400">
+        <p className="max-w-sm text-xs text-content-muted">
           {description}
         </p>
       ) : null}
