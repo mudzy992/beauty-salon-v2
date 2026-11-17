@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Select } from '../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedDateTime, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
 import { Check, Eye, Loader2, Star, Trash2 } from 'lucide-react'
@@ -122,7 +123,7 @@ export default function Reviews() {
         {/* 1.3.1/3.3.2/4.1.2: filter nije imao NI vidljivu NI programsku labelu —
             AT ga je imenovao tek po izabranoj opciji. Vidljiva labela bi bila
             dizajnerska promjena, pa je dodata programska. */}
-        <select
+        <Select
           aria-label={t('reviews.filterLabel')}
           className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
           value={filter}
@@ -131,7 +132,7 @@ export default function Reviews() {
           <option value="all">{t('reviews.allReviews')}</option>
           <option value="pending">{t('reviews.pending')}</option>
           <option value="approved">{t('reviews.approved')}</option>
-        </select>
+        </Select>
       </div>
 
       <Card className="overflow-hidden">

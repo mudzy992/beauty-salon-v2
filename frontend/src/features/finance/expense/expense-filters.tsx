@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
@@ -46,7 +47,7 @@ export function ExpenseFiltersBar({
           <Label htmlFor="expense-category" className="text-xs">
             {t('finance.filters.category')}
           </Label>
-          <select
+          <Select
             id="expense-category"
             className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={filters.categoryId}
@@ -58,7 +59,7 @@ export function ExpenseFiltersBar({
                 {category.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="grid gap-1">
           <Label htmlFor="expense-min" className="text-xs">

@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import { Select } from '../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 
@@ -669,7 +670,7 @@ export default function Profile() {
                 {(profile?.roles ?? []).includes('CLIENT') ? (
                   <div className="space-y-2">
                     <Label htmlFor="gender">{t('users.gender.label')}</Label>
-                    <select
+                    <Select
                       id="gender"
                       value={gender}
                       onChange={(event) =>
@@ -680,7 +681,7 @@ export default function Profile() {
                       <option value="">{t('users.gender.choose')}</option>
                       <option value="FEMALE">{t('users.gender.female')}</option>
                       <option value="MALE">{t('users.gender.male')}</option>
-                    </select>
+                    </Select>
                   </div>
                 ) : null}
 

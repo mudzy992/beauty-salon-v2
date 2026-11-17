@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -232,7 +233,7 @@ export function CategoryFieldsEditor({
           <Label htmlFor={fieldTypeId} className="text-xs">
             {t('finance.expenseCategories.fieldType')}
           </Label>
-          <select
+          <Select
             id={fieldTypeId}
             className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={fieldType}
@@ -245,14 +246,14 @@ export function CategoryFieldsEditor({
                 {t(FIELD_TYPE_KEYS[type])}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         {!isFixed ? (
           <div className="grid gap-1">
             <Label htmlFor={lineRoleId} className="text-xs">
               {t('finance.expenseCategories.lineRole')}
             </Label>
-            <select
+            <Select
               id={lineRoleId}
               className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
               value={lineRole}
@@ -263,7 +264,7 @@ export function CategoryFieldsEditor({
                   {t(ROLE_KEYS[role])}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         ) : (
           <div className="grid gap-1">

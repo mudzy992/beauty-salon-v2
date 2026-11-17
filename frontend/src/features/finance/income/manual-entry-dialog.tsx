@@ -1,4 +1,5 @@
 import { Check, Loader2, X } from 'lucide-react'
+import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
@@ -76,7 +77,7 @@ export function ManualEntryDialog({
           </div>
           <div className="grid gap-1">
             <Label htmlFor="manual-stylist">{t('finance.manualEntry.stylist')}</Label>
-            <select
+            <Select
               id="manual-stylist"
               className={selectClass}
               value={f.form.stylistProfileId}
@@ -90,13 +91,13 @@ export function ManualEntryDialog({
                   {getPersonName(stylist.user)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 
         <div className="grid gap-1">
           <Label htmlFor="manual-service">{t('finance.manualEntry.service')}</Label>
-          <select
+          <Select
             id="manual-service"
             className={selectClass}
             value={f.form.serviceId}
@@ -113,7 +114,7 @@ export function ManualEntryDialog({
                 {service.name} · {formatAmount(service.price ?? 0)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="grid gap-1">

@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react'
+import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
@@ -72,7 +73,7 @@ export const ReservationFilters = ({
       </div>
       <div className="space-y-2">
         <Label htmlFor="res-status">{t('reservations.listFilters.status')}</Label>
-        <select
+        <Select
           id="res-status"
           className="flex h-10 w-full rounded-md border border-input-border bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2"
           value={statusFilter}
@@ -83,7 +84,7 @@ export const ReservationFilters = ({
               {s.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="res-client">{t('reservations.listFilters.clientName')}</Label>

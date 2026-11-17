@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Select } from '../../../components/ui/select'
 import { formatMonthName } from '../../../i18n/locale-utils.mjs'
 
 import { Button } from '../../../components/ui/button'
@@ -44,7 +45,7 @@ export function BookPeriodPicker({
         <Label htmlFor="period-month" className="text-xs">
           {t('finance.book.month')}
         </Label>
-        <select
+        <Select
           id="period-month"
           className={selectClass}
           value={month}
@@ -60,13 +61,13 @@ export function BookPeriodPicker({
               </option>
             )
           })}
-        </select>
+        </Select>
       </div>
       <div className="grid gap-1">
         <Label htmlFor="period-year" className="text-xs">
           {t('finance.book.year')}
         </Label>
-        <select
+        <Select
           id="period-year"
           className={selectClass}
           value={year}
@@ -78,7 +79,7 @@ export function BookPeriodPicker({
               {value}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <Button onClick={onOpen} disabled={isPending || isFuture} aria-busy={isPending}>
         {openLabel}

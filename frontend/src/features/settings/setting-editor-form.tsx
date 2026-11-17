@@ -1,4 +1,5 @@
 import { useEffect, useId, useState, type ChangeEvent } from 'react'
+import { Select } from '../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { Check, Loader2, Pencil, Upload, X } from 'lucide-react'
 import api from '../../api/client'
@@ -148,7 +149,7 @@ export function SettingEditorForm({
             className="min-h-28 rounded-xl bg-white"
           />
         ) : def.type === 'select' ? (
-          <select
+          <Select
             id={inputId}
             className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
             value={value}
@@ -159,7 +160,7 @@ export function SettingEditorForm({
             {(def.options ?? []).map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
-          </select>
+          </Select>
         ) : def.type === 'color' ? (
           <div className="flex flex-wrap items-center gap-3">
             <Input

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Select } from '../components/ui/select'
 import { Loader2, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
@@ -801,7 +802,7 @@ export default function EmailSettings() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="email-smtp-provider">{t('emailSettings.smtp.provider')}</Label>
-                <select id="email-smtp-provider"
+                <Select id="email-smtp-provider"
                   className={`${selectClass} mt-1`}
                   value={provider}
                   onChange={(event) => handleProviderChange(event.target.value as ProviderType)}
@@ -811,7 +812,7 @@ export default function EmailSettings() {
                       {t(`emailSettings.providers.${item.id}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1030,7 +1031,7 @@ export default function EmailSettings() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <Label htmlFor="email-templates-existing-template-type">{t('emailSettings.templates.selectorLabel')}</Label>
-                  <select id="email-templates-existing-template-type"
+                  <Select id="email-templates-existing-template-type"
                     className={`${selectClass} mt-1`}
                     value={existingTemplateType}
                     onChange={(event) => setExistingTemplateType(event.target.value as ExistingTemplateType)}
@@ -1040,7 +1041,7 @@ export default function EmailSettings() {
                         {t(`emailSettings.templates.types.${item.id}`)}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 <Badge variant="brand" className="w-fit px-3 py-2">
                   {t('emailSettings.templates.premiumDesignActive')}
@@ -1102,7 +1103,7 @@ export default function EmailSettings() {
                   {/* 3.3.2/4.1.2: oba select-a su bila bez i jedne labele — AT ih je
                       imenovao tek po izabranoj opciji. Vidljive labele ovdje nema (red je
                       dugme + dva select-a), pa idu programske. */}
-                  <select
+                  <Select
                     aria-label={t('emailSettings.campaigns.templatePicker')}
                     className={`${selectClass} sm:w-[320px]`}
                     value={selectedCampaignId}
@@ -1113,8 +1114,8 @@ export default function EmailSettings() {
                         {item.name}
                       </option>
                     ))}
-                  </select>
-                  <select
+                  </Select>
+                  <Select
                     aria-label={t('emailSettings.campaigns.modePicker')}
                     className={`${selectClass} sm:w-[220px]`}
                     value={campaignMode}
@@ -1122,7 +1123,7 @@ export default function EmailSettings() {
                   >
                     <option value="builder">{t('emailSettings.campaigns.builderMode')}</option>
                     <option value="html">{t('emailSettings.campaigns.htmlMode')}</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
 

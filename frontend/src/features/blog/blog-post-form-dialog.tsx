@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react'
+import { Select } from '../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
@@ -114,7 +115,7 @@ export function BlogPostFormDialog({
           <div className="space-y-2">
             <Label htmlFor="blog-language">{t('blog.admin.language')}</Label>
             <p className="text-xs text-slate-500">{t('blog.admin.languageHelp')}</p>
-            <select
+            <Select
               id="blog-language"
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
               value={form.language}
@@ -125,7 +126,7 @@ export function BlogPostFormDialog({
                   {t(`shell.languageNames.${code}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="blog-content">{t('blog.content')}</Label>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Select } from '../components/ui/select'
 import {
   Bar,
   CartesianGrid,
@@ -195,7 +196,7 @@ export default function Analytics() {
           <Label htmlFor="analytics-period" className="text-sm">
             {t('adminAnalytics.period')}
           </Label>
-          <select
+          <Select
             id="analytics-period"
             data-default-admin-field=""
             value={period}
@@ -210,7 +211,7 @@ export default function Analytics() {
             <option value="thisMonth">{t('adminAnalytics.thisMonth')}</option>
             <option value="lastMonth">{t('adminAnalytics.lastMonth')}</option>
             <option value="custom">{t('adminAnalytics.customRange')}</option>
-          </select>
+          </Select>
         </div>
 
         {period === 'custom' ? (

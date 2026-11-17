@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
@@ -121,7 +122,7 @@ export function ExpenseDialog({
         ) : null}
         <div className="grid gap-1">
           <Label htmlFor="expense-cat">{t('finance.expenseForm.category')}</Label>
-          <select
+          <Select
             id="expense-cat"
             className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={f.form.categoryId}
@@ -137,7 +138,7 @@ export function ExpenseDialog({
                   {c.isFixed ? ` (${t('finance.expenseForm.fixed')})` : ''}
                 </option>
               ))}
-          </select>
+          </Select>
         </div>
 
         <div className="grid gap-1">

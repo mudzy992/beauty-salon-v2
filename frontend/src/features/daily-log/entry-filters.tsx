@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Select } from '../../components/ui/select'
 
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -85,7 +86,7 @@ export const DailyLogEntryFilters = ({
         <Label htmlFor="daily-log-stylist" className="mb-1 block text-xs text-content-muted">
           {t('dailyLog.list.stylist')}
         </Label>
-        <select
+        <Select
           id="daily-log-stylist"
           value={stylistFilter}
           onChange={(e) => onStylistFilterChange(e.target.value)}
@@ -97,7 +98,7 @@ export const DailyLogEntryFilters = ({
               {getStylistName(s)}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="flex items-center gap-2 pb-1">
         <Switch

@@ -1,4 +1,5 @@
 import { FieldError, fieldErrorProps } from '../forms/field-error'
+import { Select } from '../../components/ui/select'
 import { DAILY_LOG_FIELD } from './field-ids'
 import { useState } from 'react'
 import { Check, Loader2, Search } from 'lucide-react'
@@ -126,7 +127,7 @@ export const DailyLogEntryFormFields = ({
   return <div className="space-y-4">
     <div>
       <Label htmlFor="dailylog-stylist">{t('dailyLog.form.stylist')}</Label>
-      <select
+      <Select
         id="dailylog-stylist"
         {...fieldErrorProps(DAILY_LOG_FIELD.stylist, fieldErrors[DAILY_LOG_FIELD.stylist])}
         required
@@ -140,7 +141,7 @@ export const DailyLogEntryFormFields = ({
             {getStylistName(s)}
           </option>
         ))}
-      </select>
+      </Select>
       <FieldError fieldId={DAILY_LOG_FIELD.stylist} message={fieldErrors[DAILY_LOG_FIELD.stylist]} />
     </div>
     <div>
@@ -337,7 +338,7 @@ export const DailyLogEntryFormFields = ({
     {editId ? (
       <div>
         <Label htmlFor="dailylog-status">{t('dailyLog.form.status')}</Label>
-        <select
+        <Select
           id="dailylog-status"
           value={form.status}
           onChange={(e) =>
@@ -347,7 +348,7 @@ export const DailyLogEntryFormFields = ({
         >
           <option value="PENDING">{t('dailyLog.form.pending')}</option>
           <option value="COMPLETED">{t('dailyLog.form.completed')}</option>
-        </select>
+        </Select>
         {form.status === 'PENDING' ? (
           <p className="mt-1 text-xs text-warn-foreground">
             {t('dailyLog.form.pendingWarning')}
