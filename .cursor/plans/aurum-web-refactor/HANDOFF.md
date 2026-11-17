@@ -206,3 +206,37 @@ Dodatno: ponovljeni `gh run watch` pozivi su privremeno iscrpili GitHub API rate
 **Nije dirano:** auth tokovi, guardovi, error mapping, `autocomplete`, OTP paste, busy/stale zaštite, token cleanup, `PublicFeatureGate`, `app/router.tsx`, `otp-input.tsx`, `/backend`, `/mobile`, `ci.yml`, lokalni fajlovi. Nijedan test nije oslabljen ni izmijenjen.
 
 **Otvoreno za S6:** **O3** (hoće li se koristiti dopušteno grupisanje navigacije Q10 i gdje `ThemeSwitcher` u fullscreen kalendaru) i **O4** (smije li se `window.confirm` u adminu zamijeniti `ConfirmDialog`-om). Oba se postavljaju na ovom STOP-u. Sve rendered/manualne provjere Aurum stanja (M1–M7) ostaju 🟡 do S11.
+
+---
+
+## 13. Nastavak: standardizacija admin dashboarda (post-audit, 2026-11-16)
+
+**Kontekst:** Nakon S5 STOP-a, urađen je audit admin dashboarda i vizuelni pregled (vlasnik).
+Rezultat: analytics popravke (kontrast / chart / grupisana navigacija) su **ZAVRŠENE i CI zeleno
+5/5** (HEAD `921db1b`, run `43853267180`). **Pravi audit-cilj — standardizacija svih admin
+komponenti preko djеljenih, token-driven komponenti s varijantama — NIJE implementiran**; urađeno
+je samo istraživanje + specifikacija (Faza A). Grana je u čistom CI-zelenom stanju.
+
+**Autoritativni handoff za ovaj nastavak:** **`23_admin-dashboard-standardization-handoff.md`**
+(samodostatan: referencira izvorne dokumente, definiše fazu, daje tabelarnu specifikaciju Faze A i
+redoslijed B→C→D). Novoj sesiji to je startna tačka — ne počinjati iz nule.
+
+**Dogovoreni redoslijed (odobrio vlasnik):** `tokenize_first` — prvo tokenizovati djеljene
+primitive (Card/Button/Badge/Input/Alert/Tabs/Dialog) preko semantičkih CSS varijabli, pa migrirati
+stranice. Svi semantički tokeni su definisani za **obje** skinu (Classic `:root`/`.dark` = slate
+vrijednosti, Aurum = smeđe/brand), pa je zamjena `bg-white dark:bg-slate-950` → `bg-surface
+text-content border-line` **no-op za Classic, fix za Aurum**.
+
+**Faza A — šta je tačno sljedeće:**
+1. Primijeniti tabelu u `23_…md` (tokenizovati 7 primitiva + neutralne Button/Badge varijante;
+   "uvijek tamne" pillove `bg-slate-900` ostaviti kako jest — nemaju mode-invariant token).
+2. Lokalno: `npm run test:render-smoke`, `npm run lint`, `npm run typecheck:e2e`, `npm run build`;
+   push → CI mora biti 5/5.
+3. Faza B (tokenizirati `default` Button/Badge pillove preko novog `--surface-inverse` tokena;
+   zatvoriti rupe u komponentama) → Faza C (migrirati admin stranice s raw Tailwind-a na djеljene
+   komponente; cilj 903→~0 raw `slate-*` i 54→0 raw `<button>`) → Faza D (obrisati redundantne
+   `[data-skin="aurum"]` patch CSS).
+4. **Vizuelna provjera od vlasnika** — ne proglašavati gotovim bez nje.
+
+**Nije dirati:** `frontend/src/features/dashboard/aurum-stat-grid.tsx` (untracked WIP), `/backend`,
+`/mobile`, `ci.yml`, `package-lock.json`. Automatski axe NE dokazuje vizuelnu standardizaciju.
