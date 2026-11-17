@@ -16,7 +16,7 @@ const buttonVariants = cva(
         outline:
           'border border-line bg-surface text-content shadow-sm hover:bg-surface-muted focus-visible:ring-focus-ring focus-visible:ring-offset-surface',
         ghost:
-          'border border-transparent text-content-muted hover:bg-surface-muted hover:text-content focus-visible:ring-focus-ring focus-visible:ring-offset-surface',
+          'border border-transparent text-content-strong hover:bg-surface-muted hover:text-content focus-visible:ring-focus-ring focus-visible:ring-offset-surface',
         onDark:
           'border border-white/20 bg-white text-slate-900 shadow-sm hover:bg-white/92 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40',
         onDarkOutline:

@@ -13,7 +13,7 @@ export const TabsList = React.forwardRef<
     data-admin-tabs-list
     ref={ref}
     className={cn(
-      'inline-flex h-10 items-center justify-center rounded-md bg-surface-muted p-1 text-content-muted',
+      'inline-flex h-10 items-center justify-center rounded-md bg-surface-muted p-1 text-content-strong',
       className,
     )}
     {...props}
