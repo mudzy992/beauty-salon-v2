@@ -148,10 +148,13 @@ test('1.3.1/3.3.2: par „maks. konekcija / maks. poruka" je grupa s po jednim i
 })
 
 test('3.3.2/4.1.2: oba campaign select-a imaju programsku labelu', () => {
+  // 2026-11-17 (Faza C (7/) follow-up): raw `<select>` -> djeljena `<Select>` komponenta.
+  // Garancija je zadržana: `Select` prosljeđuje `aria-label` preko …props na native
+  // `<select>`, pa i dalje ima programsko ime. Samo je asertirani tag kapitalizovan.
   for (const key of ['templatePicker', 'modePicker']) {
     assert.match(
       email,
-      new RegExp(`<select\\s+aria-label=\\{t\\('emailSettings\\.campaigns\\.${key}'\\)\\}`),
+      new RegExp(`<Select\\s+aria-label=\\{t\\('emailSettings\\.campaigns\\.${key}'\\)\\}`),
       `select ${key} je bez labele AT imenovao tek po izabranoj opciji`,
     )
   }

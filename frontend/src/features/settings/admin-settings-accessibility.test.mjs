@@ -36,7 +36,10 @@ test('settings form controls are associated with localized labels', () => {
     assert.ok(form.includes(type), `Expected settings control branch for ${type}`)
   }
   assert.match(form, /<Textarea\s+id=\{inputId\}/)
-  assert.match(form, /<select\s+id=\{inputId\}/)
+  // 2026-11-17 (Faza C (7/) follow-up): raw `<select>` -> djeljena `<Select>` komponenta.
+  // Garancija je zadržana: `Select` renderuje native `<select id={selectId}>` i prosljeđuje
+  // `id` direktno na njega, pa je `htmlFor`/`id` veza i dalje prisutna u renderovanom DOM-u.
+  assert.match(form, /<Select\s+id=\{inputId\}/)
   assert.match(form, /<Input\s+id=\{inputId\}\s+type="number"/)
   assert.match(form, /<Input\s+id=\{inputId\}\s+type="url"/)
   assert.match(form, /<Input\s+id=\{inputId\}\s+type=\{def\.type === 'email' \? 'email' : 'text'\}/)

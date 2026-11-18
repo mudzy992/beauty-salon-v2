@@ -298,9 +298,11 @@ test('3.3.2: razlog otkazivanja ima aria-labelledby + aria-describedby', () => {
 
 test('4.1.2: filter recenzija ima programsku labelu', () => {
   const src = readFileSync(new URL('../pages/Reviews.tsx', import.meta.url), 'utf8')
+  // 2026-11-17 (Faza C (7/) follow-up): raw `<select>` -> djeljena `<Select>` komponenta.
+  // Garancija zadržana: `Select` prosljeđuje `aria-label` na native `<select>`.
   assert.match(
     src,
-    /<select\s+aria-label=\{t\('reviews\.filterLabel'\)\}/,
+    /<Select\s+aria-label=\{t\('reviews\.filterLabel'\)\}/,
     'filter je AT imenovao tek po izabranoj opciji',
   )
   for (const loc of ['bs', 'en']) {
