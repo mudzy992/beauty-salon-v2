@@ -859,8 +859,7 @@
 [data-skin="aurum"] [data-aurum-page] [class*="border-rose-"],
 [data-skin="aurum"] [data-aurum-page] [class*="border-orange-"],
 [data-skin="aurum"] [data-aurum-page] [class*="border-purple-"],
-[data-skin="aurum"] [data-aurum-page] [class*="border-emerald-"],
-[data-skin="aurum"] [data-aurum-page] [class*="border-blue-"] {
+[data-skin="aurum"] [data-aurum-page] [class*="border-emerald-"] {
   border-color: hsl(var(--line));
 }
 [data-skin="aurum"] [data-aurum-page] [class*="text-rose-"],
@@ -1516,11 +1515,6 @@
   background-color: hsl(var(--surface));
   border-color: hsl(var(--line));
 }
-[data-skin="aurum"] [data-stylist-shell] :is(button, a)[class~="bg-slate-900"] {
-  background-color: hsl(var(--text));
-  border-color: hsl(var(--text));
-  color: hsl(var(--surface));
-}
 [data-skin="aurum"] [data-aurum-lightbox] button {
   color: hsl(var(--text));
   border-color: hsl(var(--line));
@@ -1548,15 +1542,6 @@
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
 }
-[data-skin="aurum"] [data-aurum-page="reserve"] button[class][class~="shadow-slate-900/5"] {
-  background: hsl(var(--surface));
-  border-color: hsl(var(--line));
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] [data-aurum-page="reserve"] button[class][class~="shadow-slate-900/5"]:hover {
-  background: hsl(var(--surface-muted));
-}
-
 [data-skin="aurum"] [data-aurum-page="reserve"] #loyalty-discount-percent {
   color: hsl(var(--text));
   background-color: hsl(var(--surface));
@@ -1577,15 +1562,9 @@
 }
 
 /* Article actions use paired foreground and surface tokens, including hover. */
-[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class][class~="shadow-slate-900/5"] {
-  background: hsl(var(--surface));
-  border-color: hsl(var(--line));
-  color: hsl(var(--text));
-}
 [data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class~="border-transparent"][class~="text-slate-600"] {
   color: hsl(var(--text));
 }
-[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class][class~="shadow-slate-900/5"]:hover,
 [data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class~="border-transparent"][class~="text-slate-600"]:hover {
   background: hsl(var(--surface-muted));
   color: hsl(var(--text));
@@ -1803,14 +1782,6 @@
 [data-skin="aurum"] [data-aurum-page="contact"] [data-aurum-contact-card="info"] .space-y-4 > div > div {
   color: hsl(var(--text-muted-strong));
 }
-[data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(button, a[href])[class][class~="shadow-slate-900/5"] {
-  background: hsl(var(--surface));
-  border-color: hsl(var(--line));
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(button, a[href])[class][class~="shadow-slate-900/5"]:hover {
-  background: hsl(var(--surface-muted));
-}
 [data-skin="aurum"] [data-aurum-page="contact"] :is(input, textarea)[class] {
   background: hsl(var(--surface));
   color: hsl(var(--text));
@@ -1938,8 +1909,7 @@
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="brand"] {
   background-color: hsl(var(--surface-muted)); border-color: hsl(var(--line)); color: hsl(var(--text));
 }
-[data-skin="aurum"] [data-users-dialog] :is(input, select, textarea)[data-default-admin-field],
-[data-skin="aurum"] [data-users-dialog] select[class~="bg-white"] {
+[data-skin="aurum"] [data-users-dialog] :is(input, select, textarea)[data-default-admin-field] {
   background-color: hsl(var(--surface)); border-color: hsl(var(--control-border)); color: hsl(var(--text));
 }
 [data-skin="aurum"] [data-users-dialog] [class~="text-amber-700"] { color: hsl(var(--warn-fg)); }
@@ -1948,12 +1918,6 @@
 [data-skin="aurum"] [data-admin-users] [data-users-role-chip] [class~="text-amber-700"] { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] {
   background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--bad-fg));
-}
-[data-skin="aurum"] [data-users-dialog] button[class~="bg-slate-900"] {
-  background-color: hsl(var(--surface)); border-color: hsl(var(--control-border)); color: hsl(var(--text));
-}
-[data-skin="aurum"] [data-users-dialog] button[class~="bg-slate-900"]:hover:not(:disabled) {
-  background-color: hsl(var(--surface-muted));
 }
 /* The error icon/border carry severity; readable copy uses the existing text token. */
 [data-skin="aurum"] [data-admin-users] [data-admin-state="error"] p { color: hsl(var(--text)); }
@@ -1981,7 +1945,7 @@
 [data-skin="aurum"] [data-admin-users] :is(svg.text-teal-600, svg.text-blue-600) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] svg.text-rose-600 { color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
-[data-skin="aurum"] [data-users-dialog] :is(.text-muted-foreground, .text-slate-500) { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] [data-users-dialog] .text-slate-500 { color: hsl(var(--text-muted-strong)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-emerald-50"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] div[class~="bg-white"] { background: hsl(var(--surface)); border-color: hsl(var(--line)); }
