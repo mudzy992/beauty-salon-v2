@@ -34,8 +34,10 @@ const css = read(join(HERE, '..', '..', '..', '..', 'index.css'))
  * migracija ga je tiho skinula. Sada je to default i ne može se izgubiti po fajlu.
  */
 
-const HEAD_ROW = 'border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800'
-const BODY_ROW = 'border-b border-slate-100 dark:border-slate-800/80'
+// 2026-11-18: tokenizovano (border-line / text-content-strong). `text-content-strong`
+// je AAA-validan u sva tri skin-a (Classic 7.28:1, Aurum ~13:1) — slate-500 nije bio.
+const HEAD_ROW = 'border-b border-line text-left text-xs uppercase text-content-strong'
+const BODY_ROW = 'border-b border-line'
 
 test('uzglavlje i redovi nose zajedničke klase kao default komponente', () => {
   assert.ok(
@@ -49,7 +51,7 @@ test('uzglavlje i redovi nose zajedničke klase kao default komponente', () => {
 
   // Pozitivna kontrola: obrazac zaista hvata odstupanje. Da je uzglavlje vraćeno
   // na varijantu bez uppercase-a, asertacija iznad bi pala.
-  const varijanta = '<tr className="border-b border-slate-200 text-left dark:border-slate-800">'
+  const varijanta = '<tr className="border-b border-line text-left text-xs text-content-strong">'
   assert.ok(!varijanta.includes(HEAD_ROW), 'kontrola: varijanta bez uppercase NE prolazi')
 })
 
@@ -62,8 +64,8 @@ test('font-medium na <th> garantuje CSS, ne utility klasa (ispravka 2026-11-09)'
   // Prava garancija je ovo CSS pravilo — i ona se asertuje ovdje.
   assert.match(
     css,
-    /table\.app-table th \{\s*@apply font-medium text-slate-500;\s*\}/,
-    'index.css mora zadržati font-medium + text-slate-500 na app-table th',
+    /table\.app-table th \{\s*@apply font-medium text-content-strong;\s*\}/,
+    'index.css mora zadržati font-medium + text-content-strong na app-table th',
   )
   // DataTable uvijek renderuje `app-table`, pa pravilo uvijek važi.
   assert.match(dataTable, /cn\('app-table data-table w-full'/)
@@ -78,7 +80,7 @@ test('font-medium na <th> garantuje CSS, ne utility klasa (ispravka 2026-11-09)'
 
   // Pozitivna kontrola: da se CSS pravilo obriše, asertacija iznad pada.
   assert.ok(
-    !'table.app-table th { @apply text-slate-500; }'.match(/font-medium/),
+    !'table.app-table th { @apply text-content-strong; }'.match(/font-medium/),
     'kontrola: pravilo bez font-medium NE prolazi',
   )
 })

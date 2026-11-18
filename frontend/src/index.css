@@ -14,7 +14,7 @@
     @apply px-2 py-1.5 align-middle;
   }
   table.app-table th {
-    @apply font-medium text-slate-500;
+    @apply font-medium text-content-strong;
   }
 
   /* Ispod 640px tabela postaje lista kartica. `data-label` na svakoj ćeliji

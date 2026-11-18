@@ -120,8 +120,10 @@ export function DataTable<T>({
               tabela: `text-xs uppercase text-slate-500` ima 5 (Loyalty, Salon x2,
               Services, Users), nema 3 (expense, income, Notifications). Uzglavlje je
               dominantni obrazac, pa je ovdje default — vlasnik je potvrdio da je
-              konzistentnost na dashboardima obavezna, pa se lokalne varijante ne čuvaju. */}
-          <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+              konzistentnost na dashboardima obavezna, pa se lokalne varijante ne čuvaju.
+              2026-11-18: slate tokeni tokenizovani (border-line / text-content-strong);
+              text-content-strong je AAA-validan u sva tri skin-a. */}
+          <tr className="border-b border-line text-left text-xs uppercase text-content-strong">
             {columns.map((column) => {
               // `sort` je opciono. Prijašnje `sort?.key === column.sortKey` dalo bi
               // `undefined === undefined` → true za kolonu bez `sortKey`, pa bi
@@ -136,8 +138,8 @@ export function DataTable<T>({
                   aria-sort={
                     !column.sortKey ? undefined : direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'
                   }
-                  /* `font-medium` i `text-slate-500` na <th> NE trebaju ovdje: garantuje ih
-                     `src/index.css` → `table.app-table th { @apply font-medium text-slate-500; }`
+                  /* `font-medium` i `text-content-strong` na <th> NE trebaju ovdje: garantuje ih
+                     `src/index.css` → `table.app-table th { @apply font-medium text-content-strong; }`
                      sa specifičnošću (0,1,2), koja pobjeđuje svaku utility klasu (0,1,0).
                      Dodati ih ovdje bilo bi suvišno — asertovano u data-table-consistency. */
                   className={cn(alignClass[column.align ?? 'left'], column.className)}
@@ -176,7 +178,7 @@ export function DataTable<T>({
                   : undefined
               }
               className={cn(
-                'border-b border-slate-100 dark:border-slate-800/80',
+                'border-b border-line',
                 onRowClick ? 'cursor-pointer hover:bg-surface-muted' : undefined,
                 rowClassName?.(row),
               )}
