@@ -1792,13 +1792,13 @@
 
 /* User-management roles/statuses keep their meanings with palette-backed pairs. */
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="success"] {
-  background-color: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--ok-fg));
+  background-color: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg));
 }
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="warning"] {
-  background-color: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg)); color: hsl(var(--warn-fg));
+  background-color: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg));
 }
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="danger"] {
-  background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--bad-fg));
+  background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg));
 }
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="secondary"],
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="brand"] {
@@ -1807,13 +1807,8 @@
 [data-skin="aurum"] [data-users-dialog] :is(input, select, textarea)[data-default-admin-field] {
   background-color: hsl(var(--surface)); border-color: hsl(var(--control-border)); color: hsl(var(--text));
 }
-[data-skin="aurum"] [data-users-dialog] [class~="text-amber-700"] { color: hsl(var(--warn-fg)); }
-[data-skin="aurum"] [data-users-dialog] :is([class~="text-rose-600"], [class~="text-rose-700"]) { color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-users-dialog] :is([class~="text-blue-600"], [class~="text-blue-700"]) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] [data-users-role-chip] [class~="text-amber-700"] { color: hsl(var(--text)); }
-[data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] {
-  background-color: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--bad-fg));
-}
 /* The error icon/border carry severity; readable copy uses the existing text token. */
 [data-skin="aurum"] [data-admin-users] [data-admin-state="error"] p { color: hsl(var(--text)); }
 
@@ -1824,7 +1819,7 @@
 [data-skin="aurum"] [data-dashboard-recent] a.text-brand-gold-text {
   color: hsl(var(--text));
 }
-[data-skin="aurum"] [data-dashboard-outbox] :is(.text-content-muted, table.app-table th) {
+[data-skin="aurum"] [data-dashboard-outbox] table.app-table th {
   color: hsl(var(--text-muted-strong));
 }
 [data-skin="aurum"][data-mode] [data-dashboard-replay-confirm] {
