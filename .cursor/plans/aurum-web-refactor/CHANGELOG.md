@@ -432,7 +432,7 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Testovi: `text-contrast-allowlist` ratcheti (scanned ≥278, bg+text parovi ≥33) i `public-a11y-axe-findings` (skip-link test sada traži `bg-surface`).
 - Lokalno: build PASS (291.2 KiB / 300), svih 204 `test:*` paketa 0 grešaka, diff-check čist. Datum mjerenja: 2026-11-18. CI se prati.
 
-### Faza C (18/) — javni portal i auth/onboarding tokenizacija `TBD`
+### Faza C (18/) — javni portal i auth/onboarding tokenizacija `75e6927`
 - Owner (kroz ask_user): „Može nastavi dalje“ tretirano kao potvrda **javnog opsega**.
 - Tokenizirano (Classic i Aurum jednako): `pages/public/*` (PublicHome, PublicReserve, PublicReservationView, PublicBlogList/Post, PublicContact, PublicGallery, PublicServiceDetail, PublicServices, PublicSatisfiedClients, MyReservations, MyReservationDetail, CampaignUnsubscribe), auth/onboarding (`Login`, `Register`, `NotFound`, `ResetPassword`, `ForceChangePassword`, `OnboardingGender`, `OnboardingEmail`) — oko 210 sirovih slate/zinc/gray/white/black paleta-klasa prevedeno na `surface*`/`content*`/`line`/`surface-inverse`/`on-surface-inverse` tokene; placeholder mape, Search ikonice, kalendar, `data-reserve-*` selektori.
 - Zadržano namjerno: dekorativne prazne zvijezdice (ClientAnalytics `slate-200`, Reviews `slate-300`), app-logo/button(hero/red) konstantne podloge, BeforeAfterSlider knob/white overlay, `Gallery` hover overlay `bg-white/10` (tamni thumbnails), PublicServices/PublicServiceDetail tekstualni hel bojeni crtež (`#49332d`/`#e6dcd3`/`#fcfaf7` — topli editorial dizajn; NE paleta-klase), konstantni crni hero/overlay gradienti.
