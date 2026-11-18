@@ -466,3 +466,29 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 
 - Hotfix #3 (na osnovu CI `44330264164` na `b6abe23` — prvi put čitljiva anotacija!): padovi `BLOG_POST_light_*_comments-populated` (`.text-content-muted.text-sm`, 14px, 6.38:1), `BLOG_LIST_light_*` (`[data-blog-card-content] .text-content-muted.mb-3.gap-2`, 14px, 6.38:1), `CONTACT_light_*_hours-error` (`.h3` 12px uppercase, 6.38:1) — sve light Aurum na bijeloj, isti `--text-muted` razlog. Prebačeno na `text-content-strong`: blog comments (hint/empty/date), blog list (date row/noData), contact (5× h3 sekcije). Dekorativne `aria-hidden` ikonice ostaju muted. Test `public-contact-accessibility` ažuriran (očekuje novi token). Ostali javno-scope AAA setovi (home/services/detail/gallery/reserve/satisfied-clients) — clean na CI `44330264164` razini: sve do blog posta je zeleno.
 - CI workflow: `ci.yml` failure annotacija sada ispisje ✘ redove + NEPRAZNE violations liste (`"violations":[]` se ne matcha), uz `tail -n 40` (bez šuma koji je odsjekao baš redak s greškom u `44325979327`/`44330264164`).
+
+### FAZA D (5/) — CI ZELEN na `8ca83be` (run `44332455709`, a11y job `134900190529`) 2026-11-18
+- Oba hotfix poraženja (#1: `PublicReserve` `.text-xs text-content-muted` → strong; #2: calendar weekday `.uppercase.py-1` + noResults/`text-sm` → strong; međukorak #3: blog post `.text-content-muted.text-sm` \& comments hint/empty/date, blog list date row/noData, contact 5× h3 12px uppercase → `text-content-strong`) — sve light Aurum na #ffffff, 6.38:1 < 7:1 (AAA), isti `--text-muted` razlog. Vizualni efekat: isti tekst, samo tamniji.
+- `public-contact-accessibility.test.mjs` ažuriran (h3 očekuje `text-content-strong`).
+- CI: `ci.yml` failure annotation sada ispisje ✘ + neprazne violations liste (`"violations":[]` se ne matcha) + `tail -n 40` (prije: `head -160` s `spec.ts:N` šablonom matchirao SVAKI red — odsjekao je baš redak s greškom u `44325979327`/`44330264164`; dijagnostika je sada `✘ 70/71/74/75`-jasna).
+- REZULTATI OVOG PASEA — `git diff c5267fa..HEAD`:
+  - `.github/workflows/ci.yml` — a11y dijagnostika (CI infra, ne app kod)
+  - `frontend/src/styles/globals.css` — obrisani svi preostali javni Aurum patch selektori (~121 linija): S3 slate grane (`text-slate-9/8/7/6/5`, `bg-slate`, `border-slate`), S4 `[class*=bg-slate-900] [data-aurum-progress] .bg-slate-900/200`, `[role=dialog] slate` ×3, hero `.text-slate-200` ×2, onboarding `bg-slate-2`, auth-banner `text-slate-2`, homepage AAA `.text-slate-600`/footer `.text-slate-500/600` `[class~]`, `home-transformations .text-slate-500/600`, `hover:bg-slate-100`, `reserve` + blog-post article-actions + aurum-comment + `data-blog-card-content` + contact/satisfied-clients slate grane, `[data-admin-users] .text-slate-900`, users-dialog slate grane (amber/rose/ok ostaju).
+  - `BeforeAfterSlider.tsx` — chevron `text-slate-700` → `text-content-strong`.
+  - `PublicReserve.tsx` — svih 12 sitnih `text-xs/sm text-content-muted` → `text-content-strong`; ostala samo 3 `aria-hidden` ikone.
+  - `public-blog-comments.tsx` / `PublicBlogList.tsx` / `PublicContact.tsx` — sitan muted tekst → strong (AAA).
+- OTVORENO ZA VLASNIKA PRIJE ZATVARANJA FAZE D (5/): (1) vizualna potvrda javnih stranica na Aurumu (posebno `/rezervacija`, `/blog`, `/blog/:slug`, `/kontakt` — tamniji sitan tekst); (2) status-AMBER grane S3 pravila: zadržati sirov status amber (preporuka: semantika boja je bit statusa) ili ravnati po Aurumu; (3) odluka o `--text-muted` tokenu (light 6.38:1 i dark 6.78:1 na surface-muted — oba ispod 7:1 za AAA) — pending, vlasnik odlučuje, ne dirati samostalno.
+
+
+### Faza D (5/) — odluke vlasnika primijenjene (2026-11-18)
+- **Vizualna potvrda nakon Faze D (5/):** izgled Aurum javnih stranica POTVRĐEN od vlasnika.
+- **Status-AMBER grane S3 pravila: ALIGN — zadržati** (amber grane ostaju ravne po Aurum tokenima: `text-amber-* → --text-muted`, `bg-amber-* → --surface-sunken`, `border-amber-* → --line`); amber kao status semantik se NE renderuje sirovo u Aurumu. Bez izmjena u kodu — postojeće mapiranje ostaje.
+- **Aurum light `--text-muted`: darkenan na AAA (7:1)** — vlasnik: „darken light --text-muted u AAA“.
+  - Anketno mjerenje (HSL 35.294°/18.889% konstantno, samo L): L=27.0% → vs white **9.06**, vs surface-sunken **8.41**, vs surface-muted **7.31** — AAA na SVIM Aurum light podlogama (ranije L=35.294% → 6.39/5.93/5.15).
+  - `globals.css`: `--aurum-muted` `#6B5D49` → **`#524738`** (NEJRA §10); semantički `--muted-foreground` / `--text-muted` / `--neutral-fg` `35.294 18.889% 35.294%` → **`35.294 18.889% 27.000%`** (hs l izvedeno, ±1 kanal poklapanje s hexom — verifikovano lokalno).
+  - `docs/design/NEJRA – beauty salon · Referentni dokument.html` — §10 `light.muted:'#6B5D49'` → `'#524738'` (SSOT sync test: PASS, 8/8).
+  - Tamni Aurum `--text-muted` (#B7A98F / 6.78:1 na surface-muted) — **NE mijenjan** (vlasnik nije odobrio); ostaje kao poznata warning stavka.
+  - `scripts/check_ui_contrast.py --strict`: **140/140 PASS** (aurum light text-muted/surface = 9.05, surface-muted = 7.30; NEJRA §10 muted/page = 8.41).
+  - Referentni-prijedlog-v2/v3.html i aurum-novi-identitet-koncept.html zadržani kao istorijski koncept (nisu §10 SSOT).
+  - Očekivani efekat na a11y anotacije: light Aurum sitni `text-content-muted` tekst sada AAA — očekuje se smanjenje warning čvorova; finalni dokaz = CI a11y job.
+- Build PASS (290.6 KiB / 300), 204× test:* 0 grešaka, SSOT 8/8.

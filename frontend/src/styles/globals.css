@@ -141,7 +141,7 @@
     --aurum-page: #FAF6EF;
     --aurum-surface: #FFFFFF;
     --aurum-text: #1F1810;
-    --aurum-muted: #6B5D49;
+    --aurum-muted: #524738; /* AAA 9.06:1 / page (#FAF6EF) — darkenano iz NEJRA §10 po vlasnikovoj odluci 2026-11-18 (AAA 1.4.6); ranije #6B5D49 = 6.38:1 */
     --aurum-brand: #7A5A12;
     --aurum-onbrand: #FFF8E8;
     --aurum-accent: #9B3D4F;
@@ -164,7 +164,7 @@
     --surface-inverse: 32.000 31.915% 9.216%;
     --on-surface-inverse: 37.143 51.220% 91.961%;
     --muted: 40.000 45.763% 88.431%;
-    --muted-foreground: 35.294 18.889% 35.294%;
+    --muted-foreground: 35.294 18.889% 27.000%; /* izvedeno iz --aurum-muted #524738 */
     --accent: 40.000 45.763% 88.431%;
     --accent-foreground: 32.000 31.915% 9.216%;
     --destructive: 3.221 71.292% 40.980%;
@@ -176,7 +176,7 @@
     --surface-muted: 40.000 45.763% 88.431%;
     --surface-sunken: 38.182 52.381% 95.882%;
     --text: 32.000 31.915% 9.216%;
-    --text-muted: 35.294 18.889% 35.294%;
+    --text-muted: 35.294 18.889% 27.000%;
     --text-muted-strong: 32.000 31.915% 9.216%;
     --line: 38.049 17.155% 46.863%;
     --control-border: 38.049 17.155% 46.863%;
@@ -193,7 +193,7 @@
     --bad-bg: 0.000 0.000% 100.000%;
     --info-fg: 32.000 31.915% 9.216%;
     --info-bg: 40.000 45.763% 88.431%;
-    --neutral-fg: 35.294 18.889% 35.294%;
+    --neutral-fg: 35.294 18.889% 27.000%;
     --neutral-bg: 40.000 45.763% 88.431%;
     /* Raw brand/ring tokeni (tačan hex). */
     --brand-primary: #7A5A12;
