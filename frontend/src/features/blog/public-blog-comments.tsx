@@ -70,7 +70,7 @@ export function PublicBlogComments({
             aria-describedby="public-blog-comment-hint"
             className="resize-y"
           />
-          <p id="public-blog-comment-hint" className="mt-1 text-xs text-content-muted">
+          <p id="public-blog-comment-hint" className="mt-1 text-xs text-content-strong">
             {t('public.blogComments.hint')}
           </p>
           <Button
@@ -105,7 +105,7 @@ export function PublicBlogComments({
           </Button>
         </div>
       ) : comments.length === 0 ? (
-        <div className="italic text-content-muted">{t('public.blogComments.empty')}</div>
+        <div className="italic text-content-strong">{t('public.blogComments.empty')}</div>
       ) : (
         <div className="space-y-6">
           {comments.map((c) => (
@@ -114,7 +114,7 @@ export function PublicBlogComments({
                 <div className="font-semibold text-content">
                   {c.user.firstName} {c.user.lastName}
                 </div>
-                <div className="text-sm text-content-muted">
+                <div className="text-sm text-content-strong">
                   {new Intl.DateTimeFormat(i18n.language, {
                     dateStyle: 'medium',
                     timeStyle: 'short',

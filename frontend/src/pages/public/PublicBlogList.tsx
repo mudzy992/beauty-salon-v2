@@ -140,7 +140,7 @@ export default function PublicBlogList() {
                   </button>
                 </div>
               ) : (
-                <div className="text-lg text-content-muted">{t('common.noData')}</div>
+                <div className="text-lg text-content-strong">{t('common.noData')}</div>
               )}
             </div>
           )
@@ -166,7 +166,7 @@ export default function PublicBlogList() {
                       </div>
                       <div data-blog-card-content className="p-6">
                         {isAurum && index === 0 ? <div data-blog-featured>{t('public.blogList.featured')}</div> : null}
-                        <div className="flex items-center gap-2 text-content-muted text-sm mb-3">
+                        <div className="flex items-center gap-2 text-content-strong text-sm mb-3">
                           <Calendar className="h-4 w-4" aria-hidden="true" />
                           <div>
                             {p.publishedAt

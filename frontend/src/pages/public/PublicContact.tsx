@@ -193,7 +193,7 @@ export default function PublicContact() {
                   </h2>
                   <div className="space-y-4 text-content-strong">
                     <div>
-                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-strong uppercase tracking-wide">
                         {t('public.contact.address')}
                       </h3>
                       <div>
@@ -201,7 +201,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-strong uppercase tracking-wide">
                         {t('public.contact.phone')}
                       </h3>
                       <div>
@@ -209,7 +209,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-strong uppercase tracking-wide">
                         {t('public.contact.email')}
                       </h3>
                       <div>
@@ -217,7 +217,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-strong uppercase tracking-wide">
                         {t('public.contact.hours')}
                       </h3>
                       <div className="whitespace-pre-line">
@@ -245,7 +245,7 @@ export default function PublicContact() {
                     </div>
                     {facebook || instagram || tiktok ? (
                       <div>
-                        <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
+                        <h3 className="text-xs font-medium text-content-strong uppercase tracking-wide">
                           {t('public.contact.social')}
                         </h3>
                         <div className="mt-2 flex flex-wrap gap-2">

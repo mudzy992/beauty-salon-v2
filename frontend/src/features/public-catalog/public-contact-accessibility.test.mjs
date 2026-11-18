@@ -8,7 +8,7 @@ test('public contact sections use semantic headings', () => {
   assert.match(source, /<h2 className="text-lg font-semibold tracking-tight text-content mb-6">\s*\{t\('public\.contact\.formTitle'\)\}\s*<\/h2>/)
   assert.match(source, /<h2 className="text-base font-semibold tracking-tight text-content mb-4">\s*\{t\('public\.contact\.info'\)\}\s*<\/h2>/)
   for (const section of ['address', 'phone', 'email', 'hours', 'social']) {
-    assert.match(source, new RegExp(`<h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">\\s*\\{t\\('public\\.contact\\.${section}'\\)\\}\\s*<\\/h3>`))
+    assert.match(source, new RegExp(`<h3 className="text-xs font-medium text-content-strong uppercase tracking-wide">\\s*\\{t\\('public\\.contact\\.${section}'\\)\\}\\s*<\\/h3>`))
   }
 })
 
