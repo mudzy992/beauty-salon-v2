@@ -514,4 +514,10 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Nav/portal nalaz: nijedan `[data-aurum-page]` selektor nije u admin opsegu (Aurum-page je isključivo javni + profile/onboarding scope) — admin audit ga nije dirao.
 - Namjerne ne-primjene: `.admin-shell [data-default-admin-field]` vs identična `[data-users-dialog]` varijanta NE spajati — dialog portali idu van `.admin-shell`. Analytics hub text overrides (`text-content-muted`/`text-rose-*`/`text-emerald-700`…) živi (AnalyticsHub.tsx). Users.tsx teal/blue svg akcije (922/932) → `--text` (živo), rose Trash2 (943) → `--bad-fg` (živo).
 - Lokalno: build PASS (290.6 KiB / 300, bez promjene budgeta), diff-check PASS, contrast strict 140/140 PASS.
-- Čeka: full `test:*` sweep (background, rezultat dolje u CI/naknadnom zapisu), commit, push, CI, vlasnički vizualni check admin stranica (posebno `/admin/users` badges/dijalozi).
+- Gatesi prije commita: full `test:*` sweep (204/204 paketa PASS), build PASS (290.6 KiB / 300), diff-check PASS, contrast strict 140/140 PASS.
+
+### Faza E (1/) — ZATVORENO (2026-11-18): CI `44382663785` (`c9bbe0f`) = ALL GREEN (5/5)
+- Jobs: Rendered a11y (axe) na izolovanoj CI bazi ✓, Repository hygiene and static reports ✓, Mobile TypeScript ✓, Backend build and tests ✓, Frontend typecheck and production build ✓. (`gh run view --json conclusion,jobs` verifikovano — exit-status watch ne maskira, ali se status uvijek potvrđuje ovim pogledom.)
+- Owner visual check (preview na :5173): **OK — sve izgleda isto** (admin badges/dijalozi `/admin/users`, dashboard `/admin`, analitika) — bez regresija nakon delete/simplify operacija.
+- Neto: globals.css −9/+4 linija; uklonjena su isključivo cascade-shadow pravila i mrtvi selector arm; ponašanje Aurum admina nepromijenjeno (dokazni mimik proof polazi od Users.tsx/outbox/DataTable runtime co-occurrence).
+- Napomena za naredne batcheve Faze E: preostalih ~180 admin linija patcha je ZIVA (svaki selektor ima runtime korisnika); dalje „uprošćivanje“ mora ići kroz refactor markupa (npr. portal dialog ↔ `.admin-shell` uvek scaped override), ne touring-shadow brisanjem. Otvorene stavke (1.4.6 8×, 1.4.3 incomplete 15, 2.5.3 incomplete 22, dark `--text-muted`, `features/** bg-white`, Button adopcija) ostaju netahnute.
