@@ -1511,10 +1511,6 @@
   text-decoration: line-through;
   color: hsl(var(--text-muted-strong));
 }
-[data-skin="aurum"] [data-stylist-shell] [class~="dark:bg-slate-950"] {
-  background-color: hsl(var(--surface));
-  border-color: hsl(var(--line));
-}
 [data-skin="aurum"] [data-aurum-lightbox] button {
   color: hsl(var(--text));
   border-color: hsl(var(--line));
@@ -1768,11 +1764,6 @@
   background-color: hsl(var(--surface-muted));
   color: hsl(var(--text));
 }
-[data-skin="aurum"][data-mode] [data-aurum-overlay-surface] :is(input, textarea, select)[class~="dark:bg-slate-950"] {
-  background-color: hsl(var(--surface));
-  color: hsl(var(--text));
-  border-color: hsl(var(--control-border));
-}
 
 /* Contact and client transformations: readable secondary copy and outline
    actions on the actual Aurum surfaces in both modes. */
@@ -1891,7 +1882,7 @@
   border-color: hsl(var(--line));
   color: hsl(var(--text));
 }
-[data-skin="aurum"] [data-admin-users] :is(.text-slate-900, .text-slate-600) {
+[data-skin="aurum"] [data-admin-users] .text-slate-900 {
   color: hsl(var(--text-muted-strong));
 }
 
@@ -1944,8 +1935,7 @@
 /* Scoped user-management surfaces and action icons, preserving Classic. */
 [data-skin="aurum"] [data-admin-users] :is(svg.text-teal-600, svg.text-blue-600) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] svg.text-rose-600 { color: hsl(var(--bad-fg)); }
-[data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
-[data-skin="aurum"] [data-users-dialog] .text-slate-500 { color: hsl(var(--text-muted-strong)); }
+[data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-emerald-50"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] div[class~="bg-white"] { background: hsl(var(--surface)); border-color: hsl(var(--line)); }
@@ -1955,7 +1945,7 @@
 
 /* Analytics: retain the approved Aurum palette but use its stronger paired text
    token on small copy and controls, including tables on card surfaces. */
-[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-slate-500, .text-content-muted, .text-emerald-700, .text-rose-700, .text-rose-600, .text-brand-gold-text, .text-brand-rose-text) {
+[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-content-muted, .text-emerald-700, .text-rose-700, .text-rose-600, .text-brand-gold-text, .text-brand-rose-text) {
   color: hsl(var(--text-muted-strong));
 }
 [data-skin="aurum"] .admin-shell [data-analytics-hub] table.app-table th {
@@ -1989,11 +1979,10 @@
 }
 
 /* Client analytics dialogs render in a portal, outside the hub scope. */
-[data-skin="aurum"] [data-client-analytics-dialog] :is(.text-slate-500, .text-slate-600, .text-slate-700, .text-rose-600) {
+[data-skin="aurum"] [data-client-analytics-dialog] .text-rose-600 {
   color: hsl(var(--text-muted-strong));
 }
 [data-skin="aurum"] [data-client-analytics-dialog] [data-ui-badge] { color: hsl(var(--text)); background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
-[data-skin="aurum"] [data-client-analytics-dialog] div[class~="bg-slate-50"] { background: hsl(var(--surface-muted)); color: hsl(var(--text)); }
 /* Analytics status labels keep semantic surfaces, with the approved strong text
    token so their small copy stays legible in both Aurum modes. */
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge] { color: hsl(var(--text-muted-strong)); }
@@ -2004,9 +1993,3 @@
 /* Analytics still contains older slate utilities. Pair them with the approved
    Aurum foreground and border tokens rather than letting dark-mode utilities
    reintroduce blue/grey text or outlines. Status labels keep semantic surfaces. */
-[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-slate-600, .text-slate-700, .text-slate-900) {
-  color: hsl(var(--text-muted-strong));
-}
-[data-skin="aurum"] .admin-shell [data-analytics-hub] .border-slate-200 {
-  border-color: hsl(var(--line));
-}
