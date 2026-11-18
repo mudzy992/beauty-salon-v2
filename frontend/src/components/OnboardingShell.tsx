@@ -91,7 +91,7 @@ export default function OnboardingShell({
   const AccentDeco = deco?.accent
 
   return (
-    <div data-aurum-page="onboarding" data-aurum-auth-page className="min-h-screen bg-slate-50 py-10 md:py-14 px-4 relative overflow-hidden">
+    <div data-aurum-page="onboarding" data-aurum-auth-page className="min-h-screen bg-surface-sunken py-10 md:py-14 px-4 relative overflow-hidden">
       {deco ? (
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           {MainDeco ? (
@@ -123,11 +123,11 @@ export default function OnboardingShell({
                 {Array.from({ length: totalSteps }, (_, i) => (
                   <div
                     key={i}
-                    className={i < step ? 'h-2.5 w-2.5 rounded-full bg-brand-gold-ring' : 'h-2.5 w-2.5 rounded-full bg-slate-200 opacity-70'}
+                    className={i < step ? 'h-2.5 w-2.5 rounded-full bg-brand-gold-ring' : 'h-2.5 w-2.5 rounded-full bg-surface-muted opacity-70'}
                   />
                 ))}
               </div>
-              <div className="ml-auto text-sm text-slate-600 font-semibold">
+              <div className="ml-auto text-sm text-content-strong font-semibold">
                 {step}/{totalSteps}
               </div>
             </div>
@@ -139,19 +139,19 @@ export default function OnboardingShell({
                 </div>
               ) : null}
               <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold leading-tight text-slate-900">
+                <h1 className="text-2xl md:text-3xl font-extrabold leading-tight text-content">
                   {title}
                 </h1>
-                <div className="mt-2 text-slate-600 text-base leading-relaxed">
+                <div className="mt-2 text-content-strong text-base leading-relaxed">
                   {subtitle}
                 </div>
               </div>
             </div>
 
             {tip ? (
-              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4" data-aurum-auth-tip>
+              <div className="flex items-start gap-3 rounded-2xl border border-line bg-surface-sunken p-4" data-aurum-auth-tip>
                 <FiInfo aria-hidden="true" className="h-5 w-5 text-brand-gold-text mt-0.5" />
-                <div className="text-sm leading-relaxed text-slate-700">{tip}</div>
+                <div className="text-sm leading-relaxed text-content-strong">{tip}</div>
               </div>
             ) : null}
 

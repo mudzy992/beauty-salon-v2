@@ -16,7 +16,7 @@ const badgeVariants = cva(
         success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
         warning: 'border-amber-200 bg-amber-50 text-amber-800',
         danger: 'border-rose-200 bg-rose-50 text-rose-800',
-        brand: 'border-brand-champagne bg-brand-champagne/20 text-slate-900',
+        brand: 'border-brand-champagne bg-brand-champagne/20 text-content',
         /* Semantičke status varijante za dashboard (faza 0). Postojeće iznad se ne
            diraju jer ih koristi javni sajt. Kontrasti su u check_ui_contrast.py:
            info 7.13:1, neutral 8.23:1 (light). */

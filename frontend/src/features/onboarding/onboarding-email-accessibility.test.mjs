@@ -6,7 +6,8 @@ const page = readFileSync(new URL('../../pages/onboarding/OnboardingEmail.tsx', 
 const shell = readFileSync(new URL('../../components/OnboardingShell.tsx', import.meta.url), 'utf8')
 
 test('shared onboarding shell exposes the page title as a heading and hides decoration', () => {
-  assert.match(shell, /<h1 className="text-2xl md:text-3xl font-extrabold leading-tight text-slate-900">\s*\{title\}\s*<\/h1>/)
+  // 2026-11-18: shell h1 tokenizovan (components/ui standardizacija) — garancija ostaje.
+  assert.match(shell, /<h1 className="text-2xl md:text-3xl font-extrabold leading-tight text-content">\s*\{title\}\s*<\/h1>/)
   assert.match(shell, /<HeaderIcon aria-hidden="true"/)
   assert.match(shell, /<MainDeco\s+aria-hidden="true"/)
   assert.match(shell, /<AccentDeco\s+aria-hidden="true"/)

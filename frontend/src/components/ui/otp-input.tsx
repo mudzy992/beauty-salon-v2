@@ -69,7 +69,7 @@ export const OtpInput = ({
             if (e.key === 'ArrowLeft' && i > 0) inputsRef.current[i - 1]?.focus()
             if (e.key === 'ArrowRight' && i < length - 1) inputsRef.current[i + 1]?.focus()
           }}
-          className="h-11 w-10 rounded-md border border-input-border bg-white text-center text-base font-semibold text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:bg-slate-950 dark:text-slate-50"
+          className="h-11 w-10 rounded-md border border-input-border bg-surface text-center text-base font-semibold text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2"
           aria-label={`${t('common.digit')} ${i + 1}`}
         />
       ))}

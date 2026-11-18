@@ -11,8 +11,8 @@ export default function StylistRoute({ children }: { children: ReactNode }) {
 
   if (!isReady) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-sm text-slate-600">{t('common.loading')}</div>
+      <div className="min-h-screen bg-surface-sunken flex items-center justify-center">
+        <div className="text-sm text-content-strong">{t('common.loading')}</div>
       </div>
     )
   }

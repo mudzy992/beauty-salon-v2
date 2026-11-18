@@ -75,7 +75,7 @@ export function BeforeAfterSlider({
       aria-valuenow={Math.round(position)}
       aria-valuetext={t('public.beforeAfter.positionValue', { position: Math.round(position) })}
       tabIndex={0}
-      className="relative w-full overflow-hidden rounded-2xl bg-slate-100 cursor-col-resize select-none ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
+      className="relative w-full overflow-hidden rounded-2xl bg-surface-muted cursor-col-resize select-none ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       onMouseDown={onMouseDown}
       onTouchMove={onTouchMove}
       onTouchStart={(e) => e.touches[0] && handleMove(e.touches[0].clientX)}
@@ -130,7 +130,7 @@ export function BeforeAfterSlider({
         style={{ left: `${position}%` }}
       >
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="h-10 w-10 rounded-full bg-white/95 shadow-soft ring-1 ring-slate-900/10 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-full bg-white/95 shadow-soft ring-1 ring-line flex items-center justify-center">
             <ChevronsLeftRight className="h-4 w-4 text-slate-700" />
           </div>
         </div>
