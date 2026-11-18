@@ -210,7 +210,7 @@ const ServiceAutocomplete = ({
               <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                 <div className="max-h-[280px] overflow-auto">
                   {filtered.length === 0 ? (
-                    <div className="p-3 text-sm text-content-muted">{t('public.reserve.noResults')}</div>
+                    <div className="p-3 text-sm text-content-strong">{t('public.reserve.noResults')}</div>
                   ) : (
                     filtered.map((s) => (
                       <button
@@ -270,7 +270,7 @@ const ServiceAutocomplete = ({
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
           <div className="max-h-[280px] overflow-auto">
             {filtered.length === 0 ? (
-              <div className="p-3 text-sm text-content-muted">{t('public.reserve.noResults')}</div>
+              <div className="p-3 text-sm text-content-strong">{t('public.reserve.noResults')}</div>
             ) : (
               filtered.map((s) => (
                 <button
@@ -422,7 +422,7 @@ const ReservationCalendar = ({
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekdays.map((d) => (
-          <div key={d} className="text-center py-1 text-xs font-semibold text-content-muted uppercase">
+          <div key={d} className="text-center py-1 text-xs font-semibold text-content-strong uppercase">
             {d}
           </div>
         ))}
@@ -912,7 +912,7 @@ export default function PublicReserve() {
                   <fieldset className="min-w-0 space-y-2 border-0 p-0">
                     <legend className="text-content-strong font-semibold">
                       {t('public.reserve.selectTime')}{' '}
-                      <span className="font-normal text-content-muted text-sm ml-2">
+                      <span className="font-normal text-content-strong text-sm ml-2">
                         (
                         {formatDateOnlyLocale(selectedDate, locale, {
                           weekday: 'long',
