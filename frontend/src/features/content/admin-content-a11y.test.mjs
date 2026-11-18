@@ -20,6 +20,8 @@ const css = read('../../index.css')
 // 1.1.1: Stars renderuje 5 aria-hidden ikona; u tabeli NIJE bilo brojčanog
 //        ekvivalenta, pa su ćelije ocjena za čitač ekrana bile prazne.
 // 1.3.1/1.4.10: 2 tabele, 15 <th>, 0 scope, 0 caption, 0 data-label.
+// 2026-11-18 (Faza C): blog-posts-table.tsx migrirana na <DataTable> — scope i
+//   caption garantuje komponenta; testovi ispod asertuju novi ugovor.
 // ---------------------------------------------------------------------------
 
 const ALL = { 'Reviews.tsx': reviews, 'Gallery.tsx': gallery, 'Blog.tsx': blog,
@@ -87,31 +89,40 @@ test('SEO sekcija je fieldset/legend, ne div s naslovom (1.3.1)', () => {
     'naslov grupe ne smije ostati običan <p>')
 })
 
-test('obje tabele imaju scope i caption (1.3.1)', () => {
-  let thTotal = 0
-  let capTotal = 0
-  for (const [name, src] of [['Reviews.tsx', reviews], ['blog-posts-table.tsx', postsTable]]) {
-    const ths = src.match(/<th\b[^>]*>/g) || []
-    thTotal += ths.length
-    assert.deepEqual(ths.filter((h) => !/scope="col"/.test(h)), [], `${name}: <th> bez scope`)
-    capTotal += (src.match(/<caption className="sr-only">\{t\('[^']+'\)\}<\/caption>/g) || []).length
-  }
-  assert.equal(thTotal, 15, 'ukupno 15 <th> u modulu')
-  assert.equal(capTotal, 2, '2 tabele -> 2 <caption>')
+test('Reviews: scope i caption (1.3.1) — blog tabela ide kroz DataTable', () => {
+  const ths = reviews.match(/<th\b[^>]*>/g) || []
+  assert.equal(ths.length, 9, 'Reviews.tsx: 9 <th>')
+  assert.deepEqual(ths.filter((h) => !/scope="col"/.test(h)), [], 'Reviews: <th> bez scope')
+  const captions = reviews.match(/<caption className="sr-only">\{t\('[^']+'\)\}<\/caption>/g) || []
+  assert.equal(captions.length, 1, 'Reviews: 1 <caption>')
+  // 2026-11-18 (Faza C): blog-posts-table.tsx migrirana na <DataTable> — scope="col"
+  // i sr-only <caption> (iz caption propa) garantuje komponenta, pa sirovog
+  // <th>/<caption> u fajlu više NEMA; asertuje se baš to da se stari obrazac
+  // ne vrati. Card mode (1.4.10) i data-label prelaze na DataTable ugovor.
+  assert.equal((postsTable.match(/<th\b/g) || []).length, 0, 'blog-posts-table: raw <th> ne smije ostati')
+  assert.equal((postsTable.match(/<table\b/g) || []).length, 0, 'blog-posts-table: raw <table> ne smije ostati')
+  assert.match(postsTable, /<DataTable\b/, 'blog-posts-table: mora koristiti <DataTable>')
+  assert.match(postsTable, /caption=\{t\('blog\.admin\.tableCaption'\)\}/, 'blog-posts-table: caption prop')
 })
 
-test('obje tabele opt-in u card mode (1.4.10)', () => {
-  for (const [name, src] of [['Reviews.tsx', reviews], ['blog-posts-table.tsx', postsTable]]) {
-    for (const t of src.match(/<table className="[^"]*"/g) || []) {
-      assert.match(t, /data-table/, `${name}: tabela bez data-table klase`)
-    }
-    const tds = src.match(/<td\b[^>]*>/g) || []
-    const span = tds.filter((t) => /colSpan=/.test(t))
-    const labelled = tds.filter((t) => /data-label=\{t\(/.test(t))
-    assert.equal(labelled.length + span.length, tds.length,
-      `${name}: <td> bez data-label (${tds.length} ukupno, ${labelled.length} label, ${span.length} colSpan)`)
-    assert.equal(tds.filter((t) => /data-label="/.test(t)).length, 0,
-      `${name}: data-label ne smije biti hardkodovan literal`)
+test('tabele opt-in u card mode (1.4.10)', () => {
+  // Reviews.tsx ostaje raw tabela: data-table klasa + data-label/colSpan na <td>.
+  for (const t of reviews.match(/<table className="[^"]*"/g) || []) {
+    assert.match(t, /data-table/, 'Reviews.tsx: tabela bez data-table klase')
+  }
+  const tds = reviews.match(/<td\b[^>]*>/g) || []
+  const span = tds.filter((t) => /colSpan=/.test(t))
+  const labelled = tds.filter((t) => /data-label=\{t\(/.test(t))
+  assert.equal(labelled.length + span.length, tds.length,
+    `Reviews.tsx: <td> bez data-label (${tds.length} ukupno, ${labelled.length} label, ${span.length} colSpan)`)
+  assert.equal(tds.filter((t) => /data-label="/.test(t)).length, 0,
+    'Reviews.tsx: data-label ne smije biti hardkodovan literal')
+  // blog-posts-table.tsx (2026-11-18): card mode za DataTable garantuje index.css
+  // (`.data-table` u @media max-width) + data-label iz headerKey-a u samoj komponenti
+  // (asertovano u data-table-consistency i ovdje kroz import + headerKey kolone).
+  assert.match(postsTable, /import \{ DataTable, type DataTableColumn \} from '\.\.\/shell\/admin\/ui\/data-table'/)
+  for (const key of ['blog.title', 'blog.admin.slug', 'blog.admin.status', 'blog.admin.publishDate', 'blog.admin.created', 'blog.admin.actions']) {
+    assert.match(postsTable, new RegExp(`headerKey: '${key.replace(/\./g, '\\.')}'`), `blog-posts-table: nedostaje kolona ${key}`)
   }
   assert.match(css, /table\.data-table tbody td::before/)
 })

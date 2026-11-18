@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
+import { DataTable, type DataTableColumn } from '../shell/admin/ui/data-table'
+import { EmptyState } from '../shell/admin/ui/data-state'
 import type { BlogPost } from './types'
 
 type Props = {
@@ -16,71 +18,78 @@ type Props = {
 export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete }: Props) {
   const { t, i18n } = useTranslation()
 
+  const formatDate = (value: string) =>
+    new Intl.DateTimeFormat(i18n.language).format(new Date(value))
+
+  const columns: DataTableColumn<BlogPost>[] = [
+    {
+      key: 'title',
+      headerKey: 'blog.title',
+      render: (post) => <span className="font-medium text-content">{post.title}</span>,
+    },
+    {
+      key: 'slug',
+      headerKey: 'blog.admin.slug',
+      render: (post) => <span className="text-content-strong">{post.slug}</span>,
+    },
+    {
+      key: 'status',
+      headerKey: 'blog.admin.status',
+      render: (post) => (
+        <Badge variant={post.isPublished ? 'success' : 'secondary'}>
+          {post.isPublished ? t('blog.published') : t('blog.draft')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'publishDate',
+      headerKey: 'blog.admin.publishDate',
+      render: (post) => (post.publishedAt ? formatDate(post.publishedAt) : '-'),
+    },
+    {
+      key: 'created',
+      headerKey: 'blog.admin.created',
+      render: (post) => formatDate(post.createdAt),
+    },
+    {
+      key: 'actions',
+      headerKey: 'blog.admin.actions',
+      align: 'right',
+      render: (post) => (
+        <div className="flex justify-end gap-1">
+          <div className="relative">
+            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('blog.admin.comments')} onClick={() => onComments(post.id, post.title)}>
+              <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
+            </Button>
+            {Number(post.commentsTotalCount ?? 0) > 0 ? (
+              <span
+                className={[
+                  'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] leading-[18px] text-center text-white',
+                  Number(post.commentsPendingCount ?? 0) > 0 ? 'bg-rose-600' : 'bg-emerald-600',
+                ].join(' ')}
+              >
+                {post.commentsTotalCount}
+              </span>
+            ) : null}
+          </div>
+          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.edit')} onClick={() => onEdit(post.id)}>
+            <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.delete')} onClick={() => onDelete(post.id)}>
+            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
   return (
-    <div className="app-table-wrap">
-      <table className="app-table data-table w-full border-collapse">
-                  <caption className="sr-only">{t('blog.admin.tableCaption')}</caption>
-          <thead>
-          <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-            <th scope="col" className="p-3 font-medium">{t('blog.title')}</th>
-            <th scope="col" className="p-3 font-medium">{t('blog.admin.slug')}</th>
-            <th scope="col" className="p-3 font-medium">{t('blog.admin.status')}</th>
-            <th scope="col" className="p-3 font-medium">{t('blog.admin.publishDate')}</th>
-            <th scope="col" className="p-3 font-medium">{t('blog.admin.created')}</th>
-            <th scope="col" className="p-3 text-right font-medium">{t('blog.admin.actions')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {posts.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="p-6 text-slate-500">{emptyLabel}</td>
-            </tr>
-          ) : (
-            posts.map((p) => (
-              <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                <td data-label={t('blog.title')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{p.title}</td>
-                <td data-label={t('blog.admin.slug')} className="p-3 text-slate-500">{p.slug}</td>
-                <td data-label={t('blog.admin.status')} className="p-3">
-                  <Badge variant={p.isPublished ? 'success' : 'secondary'}>
-                    {p.isPublished ? t('blog.published') : t('blog.draft')}
-                  </Badge>
-                </td>
-                <td data-label={t('blog.admin.publishDate')} className="p-3">
-                  {p.publishedAt ? new Intl.DateTimeFormat(i18n.language).format(new Date(p.publishedAt)) : '-'}
-                </td>
-                <td data-label={t('blog.admin.created')} className="p-3">
-                  {new Intl.DateTimeFormat(i18n.language).format(new Date(p.createdAt))}
-                </td>
-                <td data-label={t('blog.admin.actions')} className="p-3 text-right">
-                  <div className="flex justify-end gap-1">
-                    <div className="relative">
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('blog.admin.comments')} onClick={() => onComments(p.id, p.title)}>
-                        <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
-                      </Button>
-                      {Number(p.commentsTotalCount ?? 0) > 0 ? (
-                        <span
-                          className={[
-                            'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] leading-[18px] text-center text-white',
-                            Number(p.commentsPendingCount ?? 0) > 0 ? 'bg-rose-600' : 'bg-emerald-600',
-                          ].join(' ')}
-                        >
-                          {p.commentsTotalCount}
-                        </span>
-                      ) : null}
-                    </div>
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.edit')} onClick={() => onEdit(p.id)}>
-                      <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
-                    </Button>
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.delete')} onClick={() => onDelete(p.id)}>
-                      <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      caption={t('blog.admin.tableCaption')}
+      columns={columns}
+      rows={posts}
+      rowKey={(post) => post.id}
+      empty={<EmptyState title={emptyLabel} />}
+    />
   )
 }
