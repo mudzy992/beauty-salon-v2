@@ -104,15 +104,15 @@ export const PublicLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-sm text-slate-600">{t('common.loading')}</div>
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="text-sm text-content-strong">{t('common.loading')}</div>
       </div>
     )
   }
 
   if (maintenanceOn) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+      <div className="min-h-screen bg-surface flex items-center justify-center px-4">
         <div className="w-full max-w-md text-center space-y-4">
           <div className="flex justify-end">
             <LanguageSwitcher />
@@ -139,13 +139,13 @@ export const PublicLayout = () => {
               />
             </div>
           )}
-          <div className="text-lg font-medium text-slate-900">
+          <div className="text-lg font-medium text-content">
             {t('shell.maintenanceTitle')}
           </div>
-          <div className="text-slate-600 whitespace-pre-wrap">
+          <div className="text-content-strong whitespace-pre-wrap">
             {maintenanceMessage}
           </div>
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-content-muted">
             {t('shell.maintenanceAdminHint', { path: '/admin' })}
           </div>
         </div>
@@ -154,11 +154,11 @@ export const PublicLayout = () => {
   }
 
   return (
-    <div data-public-shell className="min-h-screen bg-white flex flex-col">
+    <div data-public-shell className="min-h-screen bg-surface flex flex-col">
       {/* WCAG 2.4.1 Bypass blocks — javni layout dosad NIJE imao skip-link (imao ga je samo
           admin/stylist shell), pa je prvi Tab išao na logo. axe: 2.4.1. */}
       <SkipLink />
-      <header data-aurum-shell="header" className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
+      <header data-aurum-shell="header" className="sticky top-0 z-50 border-b border-line/60 bg-surface/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/70">
         {/* WCAG 1.4.10 Reflow — red se MORA moći prelomiti. Bez `flex-wrap` (i `min-w-0`
             na nav-u) flex-stavka se ne skuplja ispod širine svog sadržaja, pa pri 200%
             veličine teksta red probija kontejner: izmjereno **755px** horizontalnog skrola
@@ -193,8 +193,8 @@ export const PublicLayout = () => {
                 aria-current={item.isActive ? 'page' : undefined}
                 className={
                   item.isActive
-                    ? 'px-3 py-2 text-sm font-medium text-slate-900 rounded-full bg-slate-100/90'
-                    : 'px-3 py-2 text-sm text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-50 transition-colors'
+                    ? 'px-3 py-2 text-sm font-medium text-content rounded-full bg-surface-muted/90'
+                    : 'px-3 py-2 text-sm text-content-strong hover:text-content rounded-full hover:bg-surface-muted transition-colors'
                 }
               >
                 {t(item.labelKey)}
@@ -295,7 +295,7 @@ export const PublicLayout = () => {
               aria-controls="public-mobile-navigation"
               variant="outline"
               size="icon"
-              className="lg:hidden bg-white/80"
+              className="lg:hidden bg-surface/80"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="h-5 w-5" />
@@ -341,8 +341,8 @@ export const PublicLayout = () => {
                       aria-current={item.isActive ? 'page' : undefined}
                       className={
                         item.isActive
-                          ? 'rounded-xl px-3 py-2.5 text-[15px] font-medium text-slate-900 bg-slate-100'
-                          : 'rounded-xl px-3 py-2.5 text-[15px] text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                          ? 'rounded-xl px-3 py-2.5 text-[15px] font-medium text-content bg-surface-muted'
+                          : 'rounded-xl px-3 py-2.5 text-[15px] text-content-strong hover:bg-surface-muted hover:text-content'
                       }
                     >
                       {t(item.labelKey)}
@@ -350,7 +350,7 @@ export const PublicLayout = () => {
                   ))}
                 </div>
 
-                <div className="mt-auto pt-3 border-t border-slate-200/80 grid gap-1">
+                <div className="mt-auto pt-3 border-t border-line/80 grid gap-1">
                   {user ? (
                     <>
                       <Button asChild className="w-full" size="sm" variant="outline">
@@ -417,7 +417,7 @@ export const PublicLayout = () => {
         <Outlet />
       </main>
 
-      <footer data-aurum-shell="footer" className="mt-auto border-t border-slate-200/80 bg-slate-50/80">
+      <footer data-aurum-shell="footer" className="mt-auto border-t border-line/80 bg-surface-sunken/80">
         <div className="mx-auto max-w-6xl px-4 py-10 flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           <div className="text-center md:text-left">
             {hasLogo ? (
@@ -431,15 +431,15 @@ export const PublicLayout = () => {
                 />
               </div>
             ) : (
-              <div className="text-sm font-semibold text-slate-900">{appTitle}</div>
+              <div className="text-sm font-semibold text-content">{appTitle}</div>
             )}
             {getSetting('public_footer_text', '') ? (
-              <div className="mt-2 text-sm text-slate-600 max-w-md leading-relaxed">
+              <div className="mt-2 text-sm text-content-strong max-w-md leading-relaxed">
                 {getSetting('public_footer_text', '')}
               </div>
             ) : null}
           </div>
-          <div className="text-sm text-slate-600 text-center md:text-left space-y-1.5">
+          <div className="text-sm text-content-strong text-center md:text-left space-y-1.5">
             {getSetting('public_contact_address', '') ? (
               <div>{getSetting('public_contact_address', '')}</div>
             ) : null}
@@ -456,7 +456,7 @@ export const PublicLayout = () => {
                     href={facebook}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-xs text-slate-700 hover:bg-white"
+                    className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1.5 text-xs text-content-strong hover:bg-surface"
                   >
                     <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
                     Facebook
@@ -467,7 +467,7 @@ export const PublicLayout = () => {
                     href={instagram}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-xs text-slate-700 hover:bg-white"
+                    className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1.5 text-xs text-content-strong hover:bg-surface"
                   >
                     <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
                     Instagram
@@ -478,7 +478,7 @@ export const PublicLayout = () => {
                     href={tiktok}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-xs text-slate-700 hover:bg-white"
+                    className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1.5 text-xs text-content-strong hover:bg-surface"
                   >
                     <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
                     TikTok
@@ -488,8 +488,8 @@ export const PublicLayout = () => {
             ) : null}
           </div>
         </div>
-        <div className="border-t border-slate-200/80 bg-white/60">
-          <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-slate-500 text-center">
+        <div className="border-t border-line/80 bg-surface/60">
+          <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-content-muted text-center">
             © {new Date().getFullYear()} {appTitle}. {t('public.footer.rights')}
           </div>
         </div>

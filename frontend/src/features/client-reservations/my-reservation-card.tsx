@@ -52,11 +52,11 @@ export const MyReservationCard = ({
   const showCancel = canClientCancel(r.status)
 
   return (
-    <Card className="rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
+    <Card className="rounded-2xl border-line/80 shadow-soft" data-aurum-surface>
       <CardContent className="p-5 space-y-4">
         <button
           type="button"
-          className="w-full text-left space-y-4 rounded-xl transition hover:bg-slate-50/80 -m-2 p-2"
+          className="w-full text-left space-y-4 rounded-xl transition hover:bg-surface-sunken/80 -m-2 p-2"
           onClick={() => onOpenDetail(r)}
           aria-label={t('public.myReservations.openDetailsNamed', {
             service: servicesLabel,
@@ -65,25 +65,25 @@ export const MyReservationCard = ({
         >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <p className="font-semibold text-slate-950">
+            <p className="font-semibold text-content">
               {servicesLabel}
             </p>
             {r.publicReferenceCode ? (
-              <p className="text-xs text-slate-500 mt-0.5">{r.publicReferenceCode}</p>
+              <p className="text-xs text-content-muted mt-0.5">{r.publicReferenceCode}</p>
             ) : null}
           </div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+          <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-content-strong">
             {statusKey ? t(statusKey) : r.status}
           </span>
         </div>
 
-        <div className="grid gap-1.5 text-sm text-slate-700">
+        <div className="grid gap-1.5 text-sm text-content-strong">
           <p>
             <time dateTime={r.reservationDate.slice(0, 10)}>{formatReservationDate(r.reservationDate, locale)}</time> · {r.startTime} – {r.endTime}
           </p>
-          {stylist ? <p className="text-slate-500">{t('public.myReservations.stylistLabel', { name: stylist })}</p> : null}
+          {stylist ? <p className="text-content-muted">{t('public.myReservations.stylistLabel', { name: stylist })}</p> : null}
           {r.clientNotes ? (
-            <p className="text-slate-500 line-clamp-2">{r.clientNotes}</p>
+            <p className="text-content-muted line-clamp-2">{r.clientNotes}</p>
           ) : null}
         </div>
         </button>
@@ -153,7 +153,7 @@ export const MyReservationCard = ({
           ) : null}
         </div>
         {showConfirm ? (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-content-muted">
             {t('public.myReservations.attendanceReminder', {
               hours: getAttendanceConfirmHours(r),
             })}

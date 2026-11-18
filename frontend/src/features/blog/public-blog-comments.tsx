@@ -50,9 +50,9 @@ export function PublicBlogComments({
 
   return (
     <>
-      <div data-aurum-comments-rule className="my-10 h-px bg-slate-200" />
-      <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950" data-aurum-comments>
-        <MessageCircle className="h-5 w-5 text-slate-500" aria-hidden />
+      <div data-aurum-comments-rule className="my-10 h-px bg-line" />
+      <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-content" data-aurum-comments>
+        <MessageCircle className="h-5 w-5 text-content-muted" aria-hidden />
         {t('public.blogComments.title')} {total > 0 && `(${total})`}
       </h2>
       {user ? (
@@ -87,7 +87,7 @@ export function PublicBlogComments({
           ) : null}
         </fieldset>
       ) : (
-        <div className="py-4 text-slate-600">
+        <div className="py-4 text-content-strong">
           <Button asChild variant="outline" size="sm">
             <Link to="/login" state={{ from: `/blog/${slug}` }}>
               {t('public.blogComments.login')}
@@ -96,38 +96,38 @@ export function PublicBlogComments({
         </div>
       )}
       {loading ? (
-        <div role="status" aria-live="polite" data-aurum-skeleton className="py-8 text-center text-slate-600">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" data-aurum-skeleton className="py-8 text-center text-content-strong">{t('common.loading')}</div>
       ) : loadError && comments.length === 0 ? (
-        <div role="alert" className="text-slate-600">
+        <div role="alert" className="text-content-strong">
           <p>{t('public.blogComments.loadFailed')}</p>
           <Button variant="outline" className="mt-3" onClick={onRetryComments}>
             {t('common.retry')}
           </Button>
         </div>
       ) : comments.length === 0 ? (
-        <div className="italic text-slate-500">{t('public.blogComments.empty')}</div>
+        <div className="italic text-content-muted">{t('public.blogComments.empty')}</div>
       ) : (
         <div className="space-y-6">
           {comments.map((c) => (
-            <div data-aurum-comment key={c.id} className="border-b border-slate-100 py-4 last:border-b-0">
+            <div data-aurum-comment key={c.id} className="border-b border-line py-4 last:border-b-0">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <div className="font-semibold text-slate-800">
+                <div className="font-semibold text-content">
                   {c.user.firstName} {c.user.lastName}
                 </div>
-                <div className="text-sm text-slate-500">
+                <div className="text-sm text-content-muted">
                   {new Intl.DateTimeFormat(i18n.language, {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   }).format(new Date(c.createdAt))}
                 </div>
               </div>
-              <div className="whitespace-pre-wrap break-words text-slate-700">{c.content}</div>
+              <div className="whitespace-pre-wrap break-words text-content-strong">{c.content}</div>
             </div>
           ))}
         </div>
       )}
       {loadError && comments.length > 0 ? (
-        <div role="alert" className="mt-6 text-slate-600">
+        <div role="alert" className="mt-6 text-content-strong">
           <p>{t('public.blogComments.loadFailed')}</p>
           <Button variant="outline" className="mt-3" onClick={onRetryComments}>
             {t('common.retry')}

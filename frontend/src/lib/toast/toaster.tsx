@@ -8,12 +8,12 @@ export const AppToaster = () => {
       closeButton
       toastOptions={{
         classNames: {
-          toast: 'bg-white text-black border border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-800',
+          toast: 'bg-surface text-content border border-line',
           title: 'text-sm font-medium',
-          description: 'text-sm text-slate-600 dark:text-slate-300',
+          description: 'text-sm text-content-strong',
           actionButton:
-            'rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800',
-          cancelButton: 'bg-slate-100 text-black hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700',
+            'rounded-full bg-surface-inverse px-4 py-2 text-sm font-medium text-on-surface-inverse hover:bg-surface-inverse/90',
+          cancelButton: 'bg-surface-muted text-content hover:bg-surface-muted/80',
         },
       }}
     />

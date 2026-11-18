@@ -29,20 +29,20 @@ const MarqueeThumbColumn = ({ items, resolveBefore, resolveAfter, onSelect }: {
     return <div className="hidden lg:block w-[min(100%,11rem)] shrink-0" aria-hidden />
   }
   return (
-    <div className="hidden lg:flex flex-col gap-3 w-[min(100%,11rem)] shrink-0 overflow-y-auto rounded-2xl bg-slate-50/50 p-2" style={{ maxHeight: 'min(520px, 62vh)' }}>
+    <div className="hidden lg:flex flex-col gap-3 w-[min(100%,11rem)] shrink-0 overflow-y-auto rounded-2xl bg-surface-sunken/50 p-2" style={{ maxHeight: 'min(520px, 62vh)' }}>
       {items.map((row) => (
         <button
           key={row.pair.id}
           type="button"
           onClick={() => onSelect(row.index)}
           aria-label={labelWithVisibleText(t('public.beforeAfter.selectTransformationAria'), `${t('public.beforeAfter.comparisonLabels')} ${row.index + 1}`)}
-          className="w-full shrink-0 overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-900/[0.06] transition hover:shadow-md hover:ring-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
+          className="w-full shrink-0 overflow-hidden rounded-xl bg-surface text-left shadow-sm ring-1 ring-content/10 transition hover:shadow-md hover:ring-content/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         >
-          <div className="grid grid-cols-2 gap-px bg-slate-200">
+          <div className="grid grid-cols-2 gap-px bg-surface-muted">
             <MediaImage src={resolveBefore(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
             <MediaImage src={resolveAfter(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
           </div>
-          <div className="px-2 py-1.5 text-center text-xs font-medium text-slate-500">{t('public.beforeAfter.comparisonLabels')}</div>
+          <div className="px-2 py-1.5 text-center text-xs font-medium text-content-muted">{t('public.beforeAfter.comparisonLabels')}</div>
         </button>
       ))}
     </div>
@@ -93,7 +93,7 @@ export const BeforeAfterSpotlight = ({
 
   if (loading) {
     return (
-      <div role="status" aria-live="polite" className="py-12 text-center text-slate-600">
+      <div role="status" aria-live="polite" className="py-12 text-center text-content-strong">
         {loadingLabel ?? t('public.beforeAfter.loading')}
       </div>
     )
@@ -101,7 +101,7 @@ export const BeforeAfterSpotlight = ({
 
   if (!selectedPair) {
     return (
-      <div className="py-12 text-center text-slate-500">
+      <div className="py-12 text-center text-content-muted">
         {emptyLabel ?? t('public.beforeAfter.empty')}
       </div>
     )
@@ -118,7 +118,7 @@ export const BeforeAfterSpotlight = ({
         />
 
         <div className="w-full max-w-md mx-auto lg:mx-0 lg:max-w-lg lg:flex-1 lg:min-w-0 flex justify-center">
-          <div className="w-full rounded-2xl border border-slate-200/80 bg-white p-2 sm:p-3 shadow-soft">
+          <div className="w-full rounded-2xl border border-line/80 bg-surface p-2 sm:p-3 shadow-soft">
             <AnimatePresence mode="wait">
               <MotionDiv
                 key={selectedPair.id}
@@ -154,7 +154,7 @@ export const BeforeAfterSpotlight = ({
       <div className="lg:hidden mt-6 -mx-4 px-4">
         {sideEntries.length > 0 ? (
           <>
-            <p className="text-xs font-medium text-slate-500 mb-3 px-1">
+            <p className="text-xs font-medium text-content-muted mb-3 px-1">
               {t('public.beforeAfter.selectTransformation')}
             </p>
             <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:thin]">
@@ -163,10 +163,10 @@ export const BeforeAfterSpotlight = ({
                   key={pair.id}
                   type="button"
                   onClick={() => setSelectedPairIndex(index)}
-                  className="snap-center shrink-0 w-[42vw] max-w-[200px] overflow-hidden rounded-xl border border-slate-200/90 bg-white text-left shadow-sm"
+                  className="snap-center shrink-0 w-[42vw] max-w-[200px] overflow-hidden rounded-xl border border-line/90 bg-surface text-left shadow-sm"
                   aria-label={`${t('public.beforeAfter.selectTransformationAria')} ${index + 1}`}
                 >
-                  <div className="grid grid-cols-2 gap-px bg-slate-200">
+                  <div className="grid grid-cols-2 gap-px bg-surface-muted">
                     <MediaImage
                       src={resolveBefore(pair)}
                       alt=""

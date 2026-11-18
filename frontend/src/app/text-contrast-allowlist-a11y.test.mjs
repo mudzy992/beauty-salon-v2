@@ -156,9 +156,9 @@ test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u
   const { found, scanned, skippedDark } = scan()
   // sweep ne smije tiho proći na praznom skupu. Pragovi su RATCHET-ovi — sed
   // tokenizuju i svjetle i dark: paleta-klase, pa se pragovi spuštaju u korak
-  // (smjer je uvijek dolje; mjerenje 2026-11-18 poslije standardizacije dijeljenih
-  // komponenti: scanned=293, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
-  assert.ok(scanned >= 290, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  // (smjer je uvijek dolje; mjerenje 2026-11-18 poslije C (17/) — javni shell/blog/
+  // client-reservations tokenizovani: scanned=279, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
+  assert.ok(scanned >= 278, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
   // 2026-11-18 (komponente standardizovane): skippedDark = 48
   assert.ok(skippedDark >= 45, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 
@@ -239,10 +239,9 @@ test('1.4.3/1.4.11: tekst i pozadina na istom elementu imaju >= 4.5:1', () => {
       }
     })
   }
-  // 49 parova izmjereno 2026-11-09; 34 poslije standardizacije dijeljenih
-  // komponenti (2026-11-18) — interaktivne površine više nisu bg+text parovi palete;
+  // 49 parova izmjereno 2026-11-09; 33 poslije C (17/) (2026-11-18);
   // donja granica sprječava tiho prolazenje na praznom skupu.
-  assert.ok(checked >= 34, `sweep je obuhvatio samo ${checked} bg+text parova`)
+  assert.ok(checked >= 33, `sweep je obuhvatio samo ${checked} bg+text parova`)
   assert.deepEqual(bad, [], `tekst/pozadina ispod 4.5:1 na istom elementu:\n${bad.join('\n')}`)
 })
 
