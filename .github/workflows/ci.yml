@@ -999,7 +999,11 @@ jobs:
             # ~4 KB — stare varijante bi odsijecale baš redak s greškom pa je suite pao
             # bez vidljivog uzroka (run `44325979327`). `Error|Timed out|violation` su tu
             # kao rezervna mreža ako gore navedeni obrasci ne daju ništa.
-            msg=$(grep -aE '✘|spec\.ts:[0-9]+:[0-9]+|"violations":( )?\[\{|Error|Timed out|\((critical|serious)\)' "$RUNNER_TEMP/axe.log" | tail -n 150 | tr '\n' ' ' | tr -d '\r')
+            # ✘ (naziv pada) + NEPRAZNE violations liste (`"violations":[]` ne matcha) +
+            # završni 'N failed/passed' sažetak. BEZ spec.ts/Error obrasca — svaki red
+            # matchirao je jednom cijelom linijom testa, a 'Error' hvatao i
+            # '[WebServer] read ECONNRESET' šum pa je head/tail odsijecao baš redak s greškom.
+            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|"violations":( )?\[\{|Timed out' "$RUNNER_TEMP/axe.log" | tail -n 40 | tr '\n' ' ' | tr -d '\r')
             if [ -z "$msg" ]; then
               msg=$(tail -c 2000 "$RUNNER_TEMP/axe.log" | tr '\n' ' ' | tr -d '\r')
             fi
