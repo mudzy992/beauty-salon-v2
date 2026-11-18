@@ -492,3 +492,11 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
   - Referentni-prijedlog-v2/v3.html i aurum-novi-identitet-koncept.html zadržani kao istorijski koncept (nisu §10 SSOT).
   - Očekivani efekat na a11y anotacije: light Aurum sitni `text-content-muted` tekst sada AAA — očekuje se smanjenje warning čvorova; finalni dokaz = CI a11y job.
 - Build PASS (290.6 KiB / 300), 204× test:* 0 grešaka, SSOT 8/8.
+
+### Faza D (5/) — ZATVORENO (2026-11-18): CI `44353945386` (`eb84cf8`) = ALL GREEN (5/5)
+- a11y job: `violations 8` (prije 22) u 1.4.6 redu; sve born sas nokty efekat `--text-muted` darkening. Preostalih 8 warning čvorova: `/admin/settings` i `/stylist/*` — `.text-brand-rose-text` / `.bg-nav-active` — #7A5A12 na #EFE6D4 (5.13:1) — brand-on-brand-soft, van vlasnikove odluke (nije `--text-muted`); warning-level, NE blokira CI, držati kao poznatu stavku — gumbna odluka potrebna prije ikakvog mijenjanja brand tokena.
+- NEJRA §10 i globals sinkroni (SSOT 8/8), `check_ui_contrast.py --strict` = 140/140 PASS, a11y job `10m27s` — kompletan rendered proof.
+- Otkriveno i poboljšano u toku: `ci.yml` failure-annotation je maskirao failing test (head/spec.ts pattern matchirao svaki red; ~4133 B truncation) — sad ispisje ✘ + neprazne violations liste + tail -n 40; dokazno dijagnostički pomak u `44330264164` (imenovani failing testovi: blog-post 70/71, blog-list 74/75, contact h3).
+- Master state: commit-ova ove faze — `b5b8e97` (Faza D 5/ deletion), `a8ef27c` (CHANGELOG ispr.), `01ce8ce` (hotfix #2 rezervacija weekday+text-sm; #1 `b5b8e97` uključuje search), `8ca83be` (hotfix #3 blog/kontakt + CI dijagnostika), `eb84cf8` (--text-muted AAA + SSOT), + ovaj (zatvaranje).
+- OTVORENO (vlasnik, van CI-kritičnog): dark Aurum `--text-muted` (6.78:1 na surface-muted) — NE odobreno, ostaje; 8× brand-on-nav-active 1.4.6 (5.13:1) — novi known-issue; `features/**` bg-white opseg; Button strukturna adopcija (~50 repo-wide); administrativna 1.4.3 incomplete 15; 2.5.3 incomplete 22; orphaned komentar-analityka na kraju globals.css (zadržati kao dokumentaciju), NE dodirivati bez posebnog batch-a.
+- Javni vizualni check: vlasnik potvrdio prije token darkening-a; nakon darkening-a sitni muted tekst je tek neznatno tamniji — vlasnički recheck preporučen ali nije preduvjet za CI; Faza D (5/) se smatra zatvorenom s ovim pushom.
