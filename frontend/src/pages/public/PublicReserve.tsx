@@ -201,7 +201,7 @@ const ServiceAutocomplete = ({
                 className="pl-9"
               />
               {loading ? (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-content-muted">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-content-strong">
                   {t('common.loading')}
                 </div>
               ) : null}
@@ -223,7 +223,7 @@ const ServiceAutocomplete = ({
                           <div>
                             <div className="text-sm font-semibold text-content">{s.name}</div>
                             {s.subcategory?.category ? (
-                              <div className="text-xs text-content-muted">
+                              <div className="text-xs text-content-strong">
                                 {s.subcategory.category.name} → {s.subcategory.name}
                               </div>
                             ) : null}
@@ -261,7 +261,7 @@ const ServiceAutocomplete = ({
           className="pl-9"
         />
         {loading ? (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-content-muted">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-content-strong">
             {t('common.loading')}
           </div>
         ) : null}
@@ -287,7 +287,7 @@ const ServiceAutocomplete = ({
                         {s.name}
                       </div>
                       {s.subcategory?.category ? (
-                        <div className="text-xs text-content-muted">
+                        <div className="text-xs text-content-strong">
                           {s.subcategory.category.name} → {s.subcategory.name}
                         </div>
                       ) : null}
@@ -998,7 +998,7 @@ export default function PublicReserve() {
                               <div className="text-sm font-semibold">
                                 {slot.startTime}
                               </div>
-                              <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-content-muted'}>
+                              <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-content-strong'}>
                                 {isHeld
                                   ? t('public.reserve.holdSoon')
                                   : t('public.reserve.stylistsAvailable', {
@@ -1114,7 +1114,7 @@ export default function PublicReserve() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <div className="text-xs text-content-muted">{t('public.reserve.service')}</div>
+                        <div className="text-xs text-content-strong">{t('public.reserve.service')}</div>
                         <div className="font-semibold">
                           {selectedServices.length === 1
                             ? selectedServices[0]!.name
@@ -1122,7 +1122,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-content-muted">{t('public.reserve.duration')}</div>
+                        <div className="text-xs text-content-strong">{t('public.reserve.duration')}</div>
                         <div className="font-semibold">
                           {t('public.reserve.durationMinutes', {
                             minutes: selectedServices.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0),
@@ -1130,7 +1130,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-content-muted">{t('public.reserve.date')}</div>
+                        <div className="text-xs text-content-strong">{t('public.reserve.date')}</div>
                         <div className="font-semibold">
                           {formatDateOnlyLocale(selectedDate, locale, {
                             weekday: 'long',
@@ -1141,7 +1141,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-content-muted">{t('public.reserve.timeSlot')}</div>
+                        <div className="text-xs text-content-strong">{t('public.reserve.timeSlot')}</div>
                         <div className="font-semibold">
                           {selectedSlot.start} - {selectedSlot.end}
                         </div>

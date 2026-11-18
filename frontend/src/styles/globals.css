@@ -491,23 +491,6 @@
   color: hsl(var(--text));
 }
 
-/* Legacy white surfaces and slate text must follow the active Aurum mode. */
-[data-skin="aurum"] [data-aurum-page="home"].bg-white,
-[data-skin="aurum"] [data-aurum-page="home"] .bg-white {
-  background-color: hsl(var(--surface));
-}
-[data-skin="aurum"] [data-aurum-shell="footer"] [class~="bg-white/60"] {
-  background-color: hsl(var(--surface));
-}
-[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-900"],
-[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-700"] {
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-600"],
-[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-500"] {
-  color: hsl(var(--text-muted));
-}
-
 /* Serifni naslovi samo u Aurumu (NEJRA §02/§11). */
 [data-skin="aurum"] [data-aurum-page] h1,
 [data-skin="aurum"] [data-aurum-page] h2,
@@ -554,8 +537,7 @@
 @media (prefers-reduced-motion: reduce) {
   [data-skin="aurum"] [data-aurum-hero]::after { animation: none; }
 }
-[data-skin="aurum"] [data-aurum-hero] .text-white,
-[data-skin="aurum"] [data-aurum-hero] .text-slate-200 {
+[data-skin="aurum"] [data-aurum-hero] .text-white {
   color: var(--nejra-hero-text);
 }
 [data-skin="aurum"] [data-aurum-hero] .text-brand-champagne {
@@ -675,23 +657,13 @@
    semantičkih tokena i --nejra-hero-* (S2, NEJRA §10). Nema novih animacija:
    globalni prefers-reduced-motion i MotionConfig reducedMotion="user" već važe. */
 
-/* Legacy `text-slate-*` / `bg-slate-*` u S3 rutama prelaze na tokene. Bez ovoga
-   bi `text-slate-950` u aurum-dark pao na ~1.1:1 naspram `surface`. */
-[data-skin="aurum"] [data-aurum-page] [class*="text-slate-9"],
-[data-skin="aurum"] [data-aurum-page] [class*="text-slate-8"],
-[data-skin="aurum"] [data-aurum-page] [class*="text-slate-7"] {
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] [data-aurum-page] [class*="text-slate-6"],
-[data-skin="aurum"] [data-aurum-page] [class*="text-slate-5"],
+/* Status-amber klasurile ostaju sirove (design-system status API) — samo grana. */
 [data-skin="aurum"] [data-aurum-page] [class*="text-amber-"] {
   color: hsl(var(--text-muted));
 }
-[data-skin="aurum"] [data-aurum-page] [class*="bg-slate-"],
 [data-skin="aurum"] [data-aurum-page] [class*="bg-amber-"] {
   background-color: hsl(var(--surface-sunken));
 }
-[data-skin="aurum"] [data-aurum-page] [class*="border-slate-"],
 [data-skin="aurum"] [data-aurum-page] [class*="border-amber-"] {
   border-color: hsl(var(--line));
 }
@@ -847,8 +819,9 @@
   background-color: transparent;
 }
 
-/* S3 sweep pokriva slate/amber; S4 tok ima i rose/orange/purple/emerald/blue
-   panele (greške, loyalty, slotovi, statusi). Svi prelaze na iste tokene. */
+/* S3 status-amber grana ostaje sirova (status API); slate grana je obrisana
+   (tokenizovani javni markup). S4 tok ornamentiše rose/orange/purple/emerald/blue
+   panele (greške, loyalty, slotovi, statusi) na iste tokene. */
 [data-skin="aurum"] [data-aurum-page] [class*="bg-rose-"],
 [data-skin="aurum"] [data-aurum-page] [class*="bg-orange-"],
 [data-skin="aurum"] [data-aurum-page] [class*="bg-purple-"],
@@ -871,13 +844,8 @@
 }
 
 /* Odabrani dan/termin i primarni Button: par --primary/--primary-foreground
-   (izmjeren u check_ui_contrast.py), umjesto tvrdog slate-900/white. Stanje
-   i dalje nosi aria-pressed; ovdje se mijenja SAMO boja. */
-[data-skin="aurum"] [data-aurum-page] :is(button, a[href])[class*="bg-slate-900"] {
-  background-color: hsl(var(--primary));
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
+   (izmjeren u check_ui_contrast.py). Stanje i dalje nosi aria-pressed;
+   ovdje se mijenja SAMO boja. */
 [data-skin="aurum"] [data-aurum-page] [aria-pressed="true"] {
   background-color: hsl(var(--primary));
   border-color: hsl(var(--primary));
@@ -894,15 +862,6 @@
 
 /* Indikator koraka 1–4: brojčana semantika je u aria-valuetext, tačkice su
    aria-hidden. Aktivna/neaktivna tačka koristi iste tokene kao odabrani dan. */
-[data-skin="aurum"] [data-aurum-progress] [class*="bg-slate-900"] {
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
-[data-skin="aurum"] [data-aurum-progress] [class*="bg-slate-200"] {
-  background-color: hsl(var(--surface-muted));
-  border-color: hsl(var(--line));
-}
-
 /* Hero javnih tokova i najave: tekst uvijek u semantičkom --text. */
 [data-skin="aurum"] [data-aurum-page-hero] h1,
 [data-skin="aurum"] [data-aurum-page-hero] p,
@@ -926,15 +885,6 @@
 [data-skin="aurum"] [role="dialog"] {
   background-color: hsl(var(--surface));
   border-color: hsl(var(--line));
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] [role="dialog"] [class*="bg-slate-"] {
-  background-color: hsl(var(--surface-muted));
-}
-[data-skin="aurum"] [role="dialog"] [class*="border-slate-"] {
-  border-color: hsl(var(--line));
-}
-[data-skin="aurum"] [role="dialog"] [class*="text-slate-"] {
   color: hsl(var(--text));
 }
 [data-skin="aurum"] [role="dialog"] :is(button, a[href], input, textarea, select):focus-visible {
@@ -1004,15 +954,8 @@
 [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-banner] > [class*="bg-gradient"] {
   background-image: linear-gradient(to top, var(--nejra-hero-page), transparent);
 }
-[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-banner] [class*="text-slate-2"] {
-  color: var(--nejra-hero-text);
-}
 
 /* OnboardingShell: tačkice koraka, savjet i jedna zlatna primarna akcija. */
-[data-skin="aurum"] [data-aurum-auth-page] [data-aurum-progress] [class*="bg-slate-2"] {
-  background-color: hsl(var(--surface-muted));
-  border: 1px solid var(--aurum-border);
-}
 [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-progress] [class*="bg-brand-gold-ring"] {
   background-color: var(--aurum-brand);
 }
@@ -1125,11 +1068,6 @@
   font-size: clamp(2.75rem, 5.8vw, 5.5rem);
   line-height: 1.04;
   overflow-wrap: anywhere;
-}
-[data-skin="aurum"] [data-home-hero-content] .text-slate-200 {
-  margin-left: 0;
-  margin-right: 0;
-  max-width: 35rem;
 }
 [data-skin="aurum"] [data-home-hero-actions] { justify-content: flex-start; }
 [data-skin="aurum"] [data-home-highlights] {
@@ -1267,7 +1205,6 @@
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] h1 { max-width: 12ch; font-size: clamp(3rem, 5.8vw, 6.3rem); font-weight: 400; letter-spacing: -.045em; }
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] h1 span { font-weight: 400; font-style: italic; }
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] .text-brand-champagne { color: var(--nejra-hero-gold); }
-[data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] .text-slate-200 { color: var(--nejra-hero-text); }
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] > div > div:first-child { display: flex; align-items: center; gap: 1rem; }
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] > div > div:first-child::before { content: ""; width: 2.5rem; height: 1px; background: var(--nejra-hero-gold); flex: none; }
 @keyframes aurum-campaign-reveal { from { opacity: .6; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
@@ -1293,11 +1230,8 @@
 
 /* Homepage AAA audit: use existing strong text/surface pairs, without changing
    the palette. Hero has its own separately measured dark/gold composition. */
-[data-skin="aurum"] [data-home-about] :is(.text-brand-gold-text, .text-slate-600),
-[data-skin="aurum"] [data-home-review] .text-slate-600,
-[data-skin="aurum"] [data-home-discover] :is(.text-content-muted, p),
-[data-skin="aurum"] [data-home-cta] .text-slate-600,
-[data-skin="aurum"] [data-aurum-shell="footer"] .text-slate-500 {
+[data-skin="aurum"] [data-home-about] .text-brand-gold-text,
+[data-skin="aurum"] [data-home-discover] :is(.text-content-muted, p) {
   color: hsl(var(--text-muted-strong));
 }
 [data-skin="aurum"] [data-aurum-page="home"] :is([data-home-about], [data-home-review], [data-home-cta]) :is(a, button)[class*="inline-flex"] {
@@ -1305,13 +1239,9 @@
   border-color: hsl(var(--text));
   color: hsl(var(--surface));
 }
-[data-skin="aurum"] [data-aurum-shell="header"] button[class*="hover:bg-slate-100"] {
-  color: hsl(var(--text));
-}
 
 /* Populated homepage: strong semantic text on transformation and review surfaces. */
-[data-skin="aurum"] [data-aurum-page="home"] [data-home-transformations] :is([class*="text-slate-500"], [class*="text-slate-600"], a),
-[data-skin="aurum"] [data-aurum-page="home"] [data-home-review] [class*="text-slate-500"] {
+[data-skin="aurum"] [data-aurum-page="home"] [data-home-transformations] a {
   color: hsl(var(--text-muted-strong));
 }
 
@@ -1484,9 +1414,6 @@
 [data-skin="aurum"] [data-aurum-page="service-detail"] > section:first-of-type > div[aria-hidden="true"] {
   display: none;
 }
-[data-skin="aurum"] [data-aurum-shell="footer"] [class~="text-slate-600"] {
-  color: hsl(var(--text-muted-strong));
-}
 
 /* Reported visual defects: keep legacy surfaces in the active Aurum palette. */
 [data-skin="aurum"] [data-public-shell] { background: hsl(var(--surface-sunken)); }
@@ -1497,9 +1424,6 @@
 [data-skin="aurum"] [data-aurum-page="reserve"] :is([data-reserve-selected-item], [data-reserve-total], [data-reserve-duration], [data-reserve-calendar]) {
   background: hsl(var(--surface));
   border-color: hsl(var(--line));
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] [data-aurum-page="reserve"] :is([data-reserve-selected-item], [data-reserve-total], [data-reserve-calendar]) :is(.text-slate-900, .text-slate-700, .text-slate-600, .text-slate-500) {
   color: hsl(var(--text));
 }
 [data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-calendar] button[aria-pressed="false"] {
@@ -1521,9 +1445,6 @@
 }
 
 /* Booking: AAA-strength copy on its actual surfaces, including selected slots. */
-[data-skin="aurum"] [data-aurum-page="reserve"] :is(.text-slate-500, .text-slate-600) {
-  color: hsl(var(--text-muted-strong));
-}
 [data-skin="aurum"] [data-aurum-page="reserve"] button[data-reserve-slot][aria-pressed="true"] {
   background: hsl(var(--text));
   border-color: hsl(var(--text));
@@ -1558,22 +1479,12 @@
 }
 
 /* Article actions use paired foreground and surface tokens, including hover. */
-[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class~="border-transparent"][class~="text-slate-600"] {
-  color: hsl(var(--text));
-}
-[data-skin="aurum"] [data-aurum-page="blog-post"] :is(button, a[href])[class~="border-transparent"][class~="text-slate-600"]:hover {
-  background: hsl(var(--surface-muted));
-  color: hsl(var(--text));
-}
 [data-skin="aurum"] [data-aurum-page="blog-post"] [data-article-hero-caption] {
   background: #18130e;
   color: #fff8e8;
 }
 [data-skin="aurum"] [data-aurum-page="blog-post"] [data-article-hero-caption] .text-white\/85 {
   color: #fff8e8;
-}
-[data-skin="aurum"] [data-aurum-page="blog-post"] [data-aurum-comment] .text-slate-500 {
-  color: hsl(var(--text-muted-strong));
 }
 
 /* Blend all four edges into the approved solid homepage copy surface. */
@@ -1629,7 +1540,6 @@
   line-height: 1.16;
   overflow-wrap: anywhere;
 }
-[data-skin="aurum"] [data-blog-card-content] :is(.text-slate-500, .text-slate-600) { color: hsl(var(--text-muted-strong)); }
 [data-skin="aurum"] [data-blog-read-more] { color: hsl(var(--text)); text-decoration: underline; text-underline-offset: .3em; }
 [data-skin="aurum"] [data-blog-card] > a:hover [data-blog-read-more] { text-decoration-thickness: 2px; }
 @media (min-width: 768px) {
@@ -1767,9 +1677,6 @@
 
 /* Contact and client transformations: readable secondary copy and outline
    actions on the actual Aurum surfaces in both modes. */
-[data-skin="aurum"] :is([data-aurum-page="contact"], [data-aurum-page="satisfied-clients"]) :is(.text-slate-500, .text-slate-600) {
-  color: hsl(var(--text-muted-strong));
-}
 [data-skin="aurum"] [data-aurum-page="contact"] [data-aurum-contact-card="info"] .space-y-4 > div > div {
   color: hsl(var(--text-muted-strong));
 }
@@ -1882,9 +1789,6 @@
   border-color: hsl(var(--line));
   color: hsl(var(--text));
 }
-[data-skin="aurum"] [data-admin-users] .text-slate-900 {
-  color: hsl(var(--text-muted-strong));
-}
 
 /* User-management roles/statuses keep their meanings with palette-backed pairs. */
 [data-skin="aurum"] :is([data-admin-users], [data-users-dialog]) [data-ui-badge="success"] {
@@ -1935,7 +1839,7 @@
 /* Scoped user-management surfaces and action icons, preserving Classic. */
 [data-skin="aurum"] [data-admin-users] :is(svg.text-teal-600, svg.text-blue-600) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] svg.text-rose-600 { color: hsl(var(--bad-fg)); }
-[data-skin="aurum"] [data-users-dialog] :is(.text-slate-900, .text-slate-700, .text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-users-dialog] :is(.text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-emerald-50"] { background: hsl(var(--ok-bg)); border-color: hsl(var(--ok-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] [class~="bg-rose-50"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); color: hsl(var(--text)); }
 [data-skin="aurum"] [data-users-dialog] div[class~="bg-white"] { background: hsl(var(--surface)); border-color: hsl(var(--line)); }
@@ -1990,6 +1894,3 @@
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge="warning"] { background: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg)); }
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge="danger"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-analytics-hub] :is([data-ui-badge="secondary"], [data-ui-badge="brand"]) { background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
-/* Analytics still contains older slate utilities. Pair them with the approved
-   Aurum foreground and border tokens rather than letting dark-mode utilities
-   reintroduce blue/grey text or outlines. Status labels keep semantic surfaces. */

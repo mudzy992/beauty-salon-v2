@@ -131,7 +131,7 @@ export function BeforeAfterSlider({
       >
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
           <div className="h-10 w-10 rounded-full bg-white/95 shadow-soft ring-1 ring-line flex items-center justify-center">
-            <ChevronsLeftRight className="h-4 w-4 text-slate-700" />
+            <ChevronsLeftRight className="h-4 w-4 text-content-strong" />
           </div>
         </div>
       </div>
