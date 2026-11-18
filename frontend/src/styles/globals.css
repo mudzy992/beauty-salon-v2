@@ -1989,7 +1989,7 @@
 }
 
 /* Client analytics dialogs render in a portal, outside the hub scope. */
-[data-skin="aurum"] [data-client-analytics-dialog] :is(.text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800, .text-rose-600) {
+[data-skin="aurum"] [data-client-analytics-dialog] :is(.text-slate-500, .text-slate-600, .text-slate-700, .text-rose-600) {
   color: hsl(var(--text-muted-strong));
 }
 [data-skin="aurum"] [data-client-analytics-dialog] [data-ui-badge] { color: hsl(var(--text)); background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
@@ -2004,9 +2004,9 @@
 /* Analytics still contains older slate utilities. Pair them with the approved
    Aurum foreground and border tokens rather than letting dark-mode utilities
    reintroduce blue/grey text or outlines. Status labels keep semantic surfaces. */
-[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900) {
+[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.text-slate-600, .text-slate-700, .text-slate-900) {
   color: hsl(var(--text-muted-strong));
 }
-[data-skin="aurum"] .admin-shell [data-analytics-hub] :is(.border-slate-100, .border-slate-200) {
+[data-skin="aurum"] .admin-shell [data-analytics-hub] .border-slate-200 {
   border-color: hsl(var(--line));
 }
