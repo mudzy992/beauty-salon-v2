@@ -993,9 +993,13 @@ jobs:
               tail -n 80 "$RUNNER_TEMP/axe.log"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            # `(critical)`/`(serious)` su ID-ovi axe pravila iz asertacije u specovima —
-            # bez njih znamo samo BROJ prekršaja, ne i koje pravilo, pa se ne daju popraviti.
-            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|Error|Timed out|violation|\((critical|serious)\)' "$RUNNER_TEMP/axe.log" | head -160 | tr '\n' ' ' | tr -d '\r')
+            # Prioritet: linije s ✘ (naziv pada) i stanja s NEPRAZNIM violations listama
+            # (čiste linije imaju prazin `"violations":[]`, koje ne matchaju obrazac
+            # `"violations":\[\{`). `tail` umjesto `head` jer GitHub odsijeca poruku oko
+            # ~4 KB — stare varijante bi odsijecale baš redak s greškom pa je suite pao
+            # bez vidljivog uzroka (run `44325979327`). `Error|Timed out|violation` su tu
+            # kao rezervna mreža ako gore navedeni obrasci ne daju ništa.
+            msg=$(grep -aE '✘|spec\.ts:[0-9]+:[0-9]+|"violations":( )?\[\{|Error|Timed out|\((critical|serious)\)' "$RUNNER_TEMP/axe.log" | tail -n 150 | tr '\n' ' ' | tr -d '\r')
             if [ -z "$msg" ]; then
               msg=$(tail -c 2000 "$RUNNER_TEMP/axe.log" | tr '\n' ' ' | tr -d '\r')
             fi
