@@ -440,3 +440,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Testovi aktualizirani: `text-contrast-allowlist` ratcheti (scanned ≥125, bg+text parovi ≥24, allowlista 29→17 — stale javni unosi obrisani), `public-a11y-axe-findings` (mapTitle kontejner sada traži `bg-surface-muted` + `text-content-strong`, doesNotMatch `text-content-muted`), `public-contact/public-home/login/registration/onboarding-email/gender/service-detail-recovery` accessibility testovi — slate→token.
 - **Javni Aurum patch CSS ostaje LIVE** — brisanje (Faza D finale) ide tek nakon kompletiranja javne faze s navedenim verifikationima; ovaj batch ne briše ništa iz `globals.css`.
 - Lokalno: build PASS (291.0 KiB / 300), svih 204 `test:*` paketa 0 grešaka, diff-check čist. Datum mjerenja: 2026-11-18. CI se prati.
+
+### Faza C (18.1/) — AAA hotfix poslije C (18/): javni linkovi ispod 7:1 u Aurum svijetlom
+- CI 44317621050 (Rendered a11y) pao na `color-contrast-enhanced` (job je odmah dijagnosticiran preko check-run annotacija; log sa blob storea nije dostižan): 5 čvorova na kućnoj stranici (Aurum light) — footer `©` (`.py-4`, 6.18), kicker `.tracking-wide` (5.93), before-after comparison labels (6.38), featured review meta + date (6.38). Svi `text-content-muted` (#6b5d49) — Aurum svijetli `--text-muted` ne dostiže AAA 7:1.
+- Popravka (AAA-strength copy obrazac): tih 5 čvorova (+ 6 kao backstop: before-after empty/select-transformation, `home-discover` kicker) → `text-content-strong`. Decoration watermark `text-content-muted/[0.22]` ostaje (22% prozirnosti, aria-hidden).
+- Napomena za vlasnika: admin 1.4.6 čvorovi (blog th, daily-log values, 47 ukupno) su isti uzrok (`--text-muted` 6.18–6.38 u Aurum light) — to su warning-level zapisi postojeći i prije Faze C; odluke o dizajnu tokena jesu vlasničke, pa NE menjam `--text-muted` bez tvoje potvrde.
+- Lokalno: build PASS (291.0 KiB / 300). CI se ponovo prati.

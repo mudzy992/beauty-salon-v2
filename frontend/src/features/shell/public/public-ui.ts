@@ -6,7 +6,7 @@ export const publicPage = {
 } as const
 
 export const publicHeader = {
-  kicker: 'text-xs font-medium text-content-muted tracking-wide',
+  kicker: 'text-xs font-medium text-content-strong tracking-wide',
   title: 'text-3xl sm:text-4xl font-semibold tracking-tight text-content',
   subtitle: 'text-base sm:text-lg text-content-strong leading-relaxed',
 } as const

@@ -335,7 +335,7 @@ export default function PublicHome() {
               <div className="max-w-2xl mx-auto">
                 <Card className="border-line/80 shadow-soft rounded-2xl">
                   <CardContent className="p-6 sm:p-8">
-                    <div className="text-xs font-medium text-content-muted">
+                    <div className="text-xs font-medium text-content-strong">
                       {t('public.home.featuredReviewLabel')}
                     </div>
                     <div className="mt-2 text-lg font-semibold tracking-tight text-content">
@@ -345,7 +345,7 @@ export default function PublicHome() {
                       {featuredReview.comment ?? ''}
                     </div>
                     {featuredReview.user ? (
-                      <div className="mt-4 flex items-center gap-3 text-sm text-content-muted">
+                      <div className="mt-4 flex items-center gap-3 text-sm text-content-strong">
                         {featuredReview.user.avatar ? (
                           <Avatar className="h-9 w-9">
                             <AvatarImage
@@ -374,7 +374,7 @@ export default function PublicHome() {
         <section data-home-discover className="py-16 sm:py-20">
           <div className="mx-auto max-w-6xl px-4">
             <div className="home-discover-heading">
-              <div className="text-content-muted text-sm uppercase tracking-widest">{t('public.home.discoverKicker')}</div>
+              <div className="text-content-strong text-sm uppercase tracking-widest">{t('public.home.discoverKicker')}</div>
               <h2>{t('public.home.discoverTitle')}</h2>
             </div>
             <div className="home-discover-grid">

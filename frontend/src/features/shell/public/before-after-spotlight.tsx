@@ -42,7 +42,7 @@ const MarqueeThumbColumn = ({ items, resolveBefore, resolveAfter, onSelect }: {
             <MediaImage src={resolveBefore(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
             <MediaImage src={resolveAfter(row.pair)} alt="" className="h-20 w-full object-cover" height={THUMB_ROW_H} />
           </div>
-          <div className="px-2 py-1.5 text-center text-xs font-medium text-content-muted">{t('public.beforeAfter.comparisonLabels')}</div>
+          <div className="px-2 py-1.5 text-center text-xs font-medium text-content-strong">{t('public.beforeAfter.comparisonLabels')}</div>
         </button>
       ))}
     </div>
@@ -101,7 +101,7 @@ export const BeforeAfterSpotlight = ({
 
   if (!selectedPair) {
     return (
-      <div className="py-12 text-center text-content-muted">
+      <div className="py-12 text-center text-content-strong">
         {emptyLabel ?? t('public.beforeAfter.empty')}
       </div>
     )
@@ -154,7 +154,7 @@ export const BeforeAfterSpotlight = ({
       <div className="lg:hidden mt-6 -mx-4 px-4">
         {sideEntries.length > 0 ? (
           <>
-            <p className="text-xs font-medium text-content-muted mb-3 px-1">
+            <p className="text-xs font-medium text-content-strong mb-3 px-1">
               {t('public.beforeAfter.selectTransformation')}
             </p>
             <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:thin]">

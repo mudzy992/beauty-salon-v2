@@ -489,7 +489,7 @@ export const PublicLayout = () => {
           </div>
         </div>
         <div className="border-t border-line/80 bg-surface/60">
-          <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-content-muted text-center">
+          <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-content-strong text-center">
             © {new Date().getFullYear()} {appTitle}. {t('public.footer.rights')}
           </div>
         </div>
