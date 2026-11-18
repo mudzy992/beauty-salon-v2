@@ -85,7 +85,12 @@ const sweep = () => {
 
 test('konzistentnost/rezerva: nijedna paleta-klasa bez dark: varijante ne pada ispod 4.5:1 na tamnoj', () => {
   const rows = sweep()
-  assert.ok(rows.length >= 100, `ocekivano >=100 paleta-klasa, nadeno ${rows.length}`)
+  // 2026-11-18 (Faza C, tokenize_first): prag je RATCHET, ne cilj. Masa paleta-klasa
+  // se uklanja/tokenizuje fazno (903 → ~0), pa se i prag spušta u korak s migracijom —
+  // inače bi čuvar pao baš kad projekat napreduje. Smjer je uvijek: prag pada kako
+  // tokenizacija odmiče. Sentinel ostaje sasvim dovoljan kao dokaz da sweep stvarno
+  // vidi kod (0 bi prošao prozoro kroz prazan rezultat).
+  assert.ok(rows.length >= 60, `ocekivano >=60 paleta-klasa (ratchet, bio 100), nadeno ${rows.length}`)
 
   const offenders = rows
     .filter((r) => !r.hasDarkVariant && r.onDark < 4.5)

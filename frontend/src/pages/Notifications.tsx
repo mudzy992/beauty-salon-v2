@@ -249,7 +249,7 @@ export default function Notifications() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.notifications')}</h1>
+        <h1 className="text-2xl font-semibold text-content">{t('nav.notifications')}</h1>
         <Button asChild variant="outline" size="icon" aria-label={t('nav.emailSettings')} title={t('nav.emailSettings')}>
           <RouterLink to="/admin/email-settings">
             <Bell className="h-4 w-4" />
@@ -295,7 +295,7 @@ export default function Notifications() {
                   <div className="flex justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-content dark:text-slate-50">{n.title}</p>
+                        <p className="text-sm font-bold text-content">{n.title}</p>
                         <Badge variant={channelBadgeVariant(n.channel)} className="text-[10px]">
                           {getChannelLabel(n.channel)}
                         </Badge>
@@ -332,7 +332,7 @@ export default function Notifications() {
           <Card className="mb-4 p-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-2xl space-y-1">
-                <h2 className="font-semibold text-content dark:text-slate-50">
+                <h2 className="font-semibold text-content">
                   {t('notifications.campaignConsent.title')}
                 </h2>
                 <p className="text-sm text-content-strong ">

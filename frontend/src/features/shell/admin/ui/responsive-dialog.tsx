@@ -40,7 +40,7 @@ export function ResponsiveDialog({
           className="flex h-full w-full max-w-full flex-col gap-0 p-0"
         >
           <div className="border-b border-line px-4 py-3 ">
-            <DialogTitle className="text-base font-semibold text-content dark:text-slate-50">
+            <DialogTitle className="text-base font-semibold text-content">
               {title}
             </DialogTitle>
             {description ? (

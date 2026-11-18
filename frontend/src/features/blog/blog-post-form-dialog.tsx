@@ -135,7 +135,7 @@ export function BlogPostFormDialog({
           </div>
           <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
             <div className="space-y-0.5">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('blog.published')}</p>
+              <p className="text-sm font-medium text-content">{t('blog.published')}</p>
               <p className="text-xs text-slate-500">{t('blog.admin.publishedHint')}</p>
             </div>
             <Switch aria-label={t('blog.published')} checked={form.isPublished} onCheckedChange={(isPublished) => onChange({ isPublished })} />

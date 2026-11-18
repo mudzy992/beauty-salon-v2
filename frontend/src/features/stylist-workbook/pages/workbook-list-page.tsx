@@ -74,7 +74,7 @@ export const WorkbookListPage = () => {
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistWorkbook.noProfile')}</p>
+        <p className="text-content font-semibold">{t('stylistWorkbook.noProfile')}</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
           {t('stylistWorkbook.profileNotFound')}
         </p>
@@ -86,7 +86,7 @@ export const WorkbookListPage = () => {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <h1 className="text-2xl font-semibold text-content">
             {t('stylistWorkbook.title')}
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -141,7 +141,7 @@ export const WorkbookListPage = () => {
         </Card>
       ) : sections.length === 0 ? (
         <Card className="p-6">
-          <p className="text-slate-900 dark:text-slate-50 font-semibold">
+          <p className="text-content font-semibold">
             {t('stylistWorkbook.noEntries')}
           </p>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -175,7 +175,7 @@ export const WorkbookListPage = () => {
                       <Card className="p-4 hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate">
+                            <div className="text-base font-semibold text-content truncate">
                               {item.publicReferenceCode ??
                                 getServicesLabel(item, t('stylistWorkbook.serviceFallback'))}
                             </div>

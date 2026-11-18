@@ -154,7 +154,7 @@ export const WorkbookReschedulePreviewPage = () => {
     <div className="max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <h1 className="text-2xl font-semibold text-content">
             {t('stylistWorkbook.reschedule.title')}
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -224,7 +224,7 @@ export const WorkbookReschedulePreviewPage = () => {
 
           <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              <p className="text-sm font-semibold text-content">
                 {t('stylistWorkbook.reschedule.includeFutureBreaks')}
               </p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -270,7 +270,7 @@ export const WorkbookReschedulePreviewPage = () => {
 
       {!hasChanges ? (
         <Card className="mt-4 p-5">
-          <p className="text-base font-semibold text-slate-900 dark:text-slate-50">
+          <p className="text-base font-semibold text-content">
             {t('stylistWorkbook.reschedule.noChanges')}
           </p>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
@@ -300,7 +300,7 @@ export const WorkbookReschedulePreviewPage = () => {
         <div className="mt-4 space-y-3">
           {items.map((it) => (
             <Card key={it.id} className="p-5">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              <p className="text-sm font-semibold text-content">
                 {it.serviceName || t('stylistWorkbook.serviceFallback')} {it.clientName ? `· ${it.clientName}` : ''}
               </p>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">

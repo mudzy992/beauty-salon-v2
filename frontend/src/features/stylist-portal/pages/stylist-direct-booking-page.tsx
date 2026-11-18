@@ -198,7 +198,7 @@ export const StylistDirectBookingPage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.directBooking.title')}</h1>
+          <h1 className="text-lg font-semibold text-content">{t('stylistPortal.directBooking.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {t('stylistPortal.directBooking.description')}
           </p>
@@ -265,7 +265,7 @@ export const StylistDirectBookingPage = () => {
                     }
                     onClick={() => handleSelectClient(client)}
                   >
-                    <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
+                    <div className="font-medium text-content">{label}</div>
                     <div className="text-xs text-content-muted">
                       {client.gender === 'MALE'
                         ? t('stylistPortal.directBooking.male')
@@ -315,7 +315,7 @@ export const StylistDirectBookingPage = () => {
                   }
                   onClick={() => toggleServiceId(service.id)}
                 >
-                  <div className="font-medium text-slate-900 dark:text-slate-50">{service.name}</div>
+                  <div className="font-medium text-content">{service.name}</div>
                   <div className="text-xs text-content-muted">{formatLocalizedAmount(Number(service.price ?? 0), locale)}</div>
                 </button>
               ))}

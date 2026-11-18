@@ -145,7 +145,7 @@ export default function Blog() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.blog')}</h1>
+        <h1 className="text-2xl font-semibold text-content">{t('nav.blog')}</h1>
         <Button type="button" onClick={() => void openForm()}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('blog.newPost')}

@@ -97,12 +97,12 @@ export const StylistDebtsPage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.debts.title')}</h1>
+          <h1 className="text-lg font-semibold text-content">{t('stylistPortal.debts.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.description')}</p>
         </div>
         <div className="text-right">
           <div className="text-xs text-content-muted">{t('stylistPortal.debts.total')}</div>
-          <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">{formatMoney(total, locale)}</div>
+          <div className="text-lg font-semibold text-content">{formatMoney(total, locale)}</div>
         </div>
       </div>
 
@@ -140,7 +140,7 @@ export const StylistDebtsPage = () => {
               return (
                 <div key={d.id} className="rounded-md border border-slate-200 dark:border-slate-800 p-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-900 dark:text-slate-50 truncate">{clientName}</div>
+                    <div className="font-semibold text-content truncate">{clientName}</div>
                     <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                       {d.service?.name ? `${d.service.name} · ` : ''}
                       {ref}
@@ -148,7 +148,7 @@ export const StylistDebtsPage = () => {
                     <div className="text-xs text-content-muted mt-0.5">{formatDateOnly(d.createdAt, locale)}</div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="font-semibold tabular-nums text-slate-900 dark:text-slate-50">{formatMoney(d.amount, locale)}</div>
+                    <div className="font-semibold tabular-nums text-content">{formatMoney(d.amount, locale)}</div>
                     <Button type="button" size="sm" className="mt-2" onClick={() => openRepay(d.id)}>
                       {t('stylistPortal.debts.repayDebt')}
                     </Button>

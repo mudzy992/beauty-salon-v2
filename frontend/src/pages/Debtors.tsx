@@ -90,7 +90,7 @@ export default function Debtors({ embedded = false }: Props) {
             <p className="text-sm text-content-strong ">{t('debtors.description')}</p>
           ) : (
             <>
-              <h1 className="text-lg font-semibold text-content dark:text-slate-50">
+              <h1 className="text-lg font-semibold text-content">
                 {t('debtors.title')}
               </h1>
               <p className="text-sm text-content-strong ">{t('debtors.description')}</p>
@@ -99,7 +99,7 @@ export default function Debtors({ embedded = false }: Props) {
         </div>
         <div className="text-right">
           <div className="text-xs text-content-strong">{t('common.total')}</div>
-          <div className="text-lg font-semibold text-content dark:text-slate-50">
+          <div className="text-lg font-semibold text-content">
             {query.isLoading || query.isError ? '—' : formatLocalizedAmount(total, i18n.language)}
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function Debtors({ embedded = false }: Props) {
                   className="flex items-start justify-between gap-3 rounded-md border border-line p-3"
                 >
                   <div className="min-w-0">
-                    <div className="truncate font-semibold text-content dark:text-slate-50">
+                    <div className="truncate font-semibold text-content">
                       {clientName}
                     </div>
                     <div className="mt-0.5 text-xs text-content-strong ">
@@ -156,7 +156,7 @@ export default function Debtors({ embedded = false }: Props) {
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="font-semibold tabular-nums text-content dark:text-slate-50">
+                    <div className="font-semibold tabular-nums text-content">
                       {formatLocalizedAmount(Number(d.amount), i18n.language)}
                     </div>
                   </div>

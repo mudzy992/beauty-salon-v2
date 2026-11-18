@@ -180,7 +180,7 @@ export default function ReservationsCalendar() {
       <div className="flex min-h-dvh w-full flex-col p-3 sm:p-4">
         <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold text-content dark:text-slate-50">
+            <h1 className="truncate text-base font-semibold text-content">
               {t('reservations.calendar.title')}
             </h1>
             <p className="mt-0.5 hidden text-xs text-content-strong  sm:block">

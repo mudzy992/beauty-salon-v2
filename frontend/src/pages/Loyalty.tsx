@@ -151,7 +151,7 @@ export default function Loyalty() {
     {
       key: 'user',
       headerKey: 'loyaltyAdmin.user',
-      className: 'p-3 font-medium text-content dark:text-slate-50',
+      className: 'p-3 font-medium text-content',
       render: (a) => userName(a.user),
     },
     { key: 'email', headerKey: 'loyaltyAdmin.email', className: 'p-3', render: (a) => a.user.email },
@@ -213,7 +213,7 @@ export default function Loyalty() {
       <Card>
         <div className="p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-content dark:text-slate-50">{t('loyaltyAdmin.accounts')}</h2>
+            <h2 className="text-sm font-semibold text-content">{t('loyaltyAdmin.accounts')}</h2>
             {loadingAccounts ? <p className="text-xs text-content-strong">{t('loyaltyAdmin.loading')}</p> : null}
           </div>
 

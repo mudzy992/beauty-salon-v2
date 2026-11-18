@@ -598,7 +598,7 @@ export default function Services() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">
+        <h1 className="text-2xl font-semibold text-content">
           {t('nav.services')}
         </h1>
         <Button type="button" onClick={() => openCategoryForm()}>
@@ -1109,7 +1109,7 @@ export default function Services() {
                   onClick={() => selectDeletionAction('MERGE')}
                   className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'MERGE' ? 'border-brand-gold-ring bg-amber-50 dark:bg-amber-950/20' : 'border-line dark:border-slate-700'}`}
                 >
-                  <span className="block text-sm font-semibold text-content dark:text-slate-50">
+                  <span className="block text-sm font-semibold text-content">
                     {t('services.deletion.mergeMode')}
                   </span>
                   <span className="mt-1 block text-xs leading-5 text-content-strong ">
@@ -1189,7 +1189,7 @@ export default function Services() {
                 >
                   <h3
                     id="service-deletion-impact-title"
-                    className="text-sm font-semibold text-content dark:text-slate-50"
+                    className="text-sm font-semibold text-content"
                   >
                     {t('services.deletion.impactTitle')}
                   </h3>

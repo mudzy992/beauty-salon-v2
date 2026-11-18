@@ -85,7 +85,7 @@ export const StylistReservationDetailPage = () => {
   if (error && !reservation && !isUnavailable) {
     return (
       <Card className="p-6" role="alert">
-        <p className="text-slate-900 dark:text-slate-50">{t('common.error')}</p>
+        <p className="text-content">{t('common.error')}</p>
         <div className="mt-3 flex gap-2">
           <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
             {t('common.retry')}
@@ -101,7 +101,7 @@ export const StylistReservationDetailPage = () => {
   if (!reservation) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistPortal.reservationDetail.notFound')}</p>
+        <p className="text-content font-semibold">{t('stylistPortal.reservationDetail.notFound')}</p>
         <div className="mt-3">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             {t('common.back')}

@@ -78,7 +78,7 @@ export function ExpenseTable({
         )
         return (
           <>
-            <div className="font-medium text-content dark:text-slate-50">{expense.title}</div>
+            <div className="font-medium text-content">{expense.title}</div>
             {notes ? <div className="mt-0.5 text-xs text-content-strong">{notes}</div> : null}
             {detailLabels.length > 0 ? (
               <ul className="mt-1 space-y-0.5 text-xs text-content-strong ">

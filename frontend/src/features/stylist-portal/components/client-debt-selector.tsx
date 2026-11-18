@@ -38,7 +38,7 @@ export const ClientDebtSelector = ({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+      <p className="text-sm font-semibold text-content">
         {t('stylistPortal.reservationDialogs.complete.debtsTitle')}
       </p>
       {isLoading ? (
@@ -68,7 +68,7 @@ export const ClientDebtSelector = ({
                     : 'w-full rounded-md border border-slate-200 px-3 py-2 text-left hover:bg-slate-50/60 dark:border-slate-800 dark:hover:bg-slate-900/30'
                 }
               >
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                <p className="text-sm font-semibold text-content">
                   {debt.service?.name ?? t('stylistPortal.reservationDialogs.complete.serviceFallback')} ·{' '}
                   {formatLocalizedAmount(debt.amount, i18n.language)}
                 </p>

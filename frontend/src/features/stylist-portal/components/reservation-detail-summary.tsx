@@ -33,7 +33,7 @@ export const ReservationDetailSummary = ({
     <>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+          <h1 className="text-lg font-semibold text-content">
             {t('stylistPortal.reservationDetail.title')}
           </h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -50,7 +50,7 @@ export const ReservationDetailSummary = ({
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-semibold text-slate-900 dark:text-slate-50">
+            <p className="truncate font-semibold text-content">
               {reservation.service?.name ?? t('stylistPortal.reservationDetail.serviceFallback')}
             </p>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">

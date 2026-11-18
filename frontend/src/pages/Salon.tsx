@@ -308,7 +308,7 @@ export default function Salon() {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.salon')}</h1>
+          <h1 className="text-2xl font-semibold text-content">{t('nav.salon')}</h1>
           <p className="mt-1 text-sm text-content-strong ">{t('salon.notConfigured')}</p>
         </div>
 
@@ -351,7 +351,7 @@ export default function Salon() {
     {
       key: 'day',
       headerKey: 'salon.workingHoursTable.day',
-      className: 'p-3 font-medium text-content dark:text-slate-50',
+      className: 'p-3 font-medium text-content',
       render: (wh) => formatWeekday(wh.dayOfWeek, i18n.language),
     },
     {
@@ -408,7 +408,7 @@ export default function Salon() {
     {
       key: 'name',
       headerKey: 'salon.holidayTable.name',
-      className: 'p-3 font-medium text-content dark:text-slate-50',
+      className: 'p-3 font-medium text-content',
       render: (h) => h.name,
     },
     {
@@ -469,7 +469,7 @@ export default function Salon() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.salon')}</h1>
+          <h1 className="text-2xl font-semibold text-content">{t('nav.salon')}</h1>
           <p className="mt-1 text-sm text-content-strong ">{t('salon.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -590,7 +590,7 @@ export default function Salon() {
             <TabsContent value="holidays" className="mt-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-content dark:text-slate-50">{t('salon.holidays')}</p>
+                  <p className="text-sm font-medium text-content">{t('salon.holidays')}</p>
                   <p className="text-xs text-content-strong">{t('salon.holidaysDescription')}</p>
                 </div>
                 <Button type="button" onClick={() => openHolidayForm()}>
@@ -639,7 +639,7 @@ export default function Salon() {
             </div>
             <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3 ">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-content dark:text-slate-50">{t('salon.holidayForm.sendPush')}</p>
+                <p className="text-sm font-medium text-content">{t('salon.holidayForm.sendPush')}</p>
                 <p className="text-xs text-content-strong">{t('salon.holidayForm.sendPushHint')}</p>
               </div>
               <Switch

@@ -295,7 +295,7 @@ export const WorkbookNewEntryForm = ({
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistWorkbook.newEntry.noProfile')}</p>
+        <p className="text-content font-semibold">{t('stylistWorkbook.newEntry.noProfile')}</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistWorkbook.newEntry.profileNotFound')}</p>
         <Button
           type="button"
@@ -316,7 +316,7 @@ export const WorkbookNewEntryForm = ({
     <div className={mode === 'page' ? 'max-w-2xl' : ''}>
       {mode === 'page' ? (
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.title')}</h1>
+          <h1 className="text-2xl font-semibold text-content">{t('stylistWorkbook.newEntry.title')}</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {t('stylistWorkbook.newEntry.pageDescription')}
           </p>
@@ -421,7 +421,7 @@ export const WorkbookNewEntryForm = ({
                   className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
                 >
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
+                    <div className="font-semibold text-content">{s.name}</div>
                     <div className="text-xs text-content-muted">{formatKm(Number(s.price), locale)}</div>
                   </div>
                   <Button
@@ -459,7 +459,7 @@ export const WorkbookNewEntryForm = ({
               {t('stylistWorkbook.newEntry.serviceTotal', { amount: formatKm(basePrice, locale) })}
               {loyaltyPercent > 0 ? ` · ${t('stylistWorkbook.newEntry.loyaltyDiscount', { percent: formatLocalizedNumber(loyaltyPercent, locale, { maximumFractionDigits: 0 }), amount: formatKm(loyaltyDiscountAmount, locale) })}` : ''}
             </div>
-            <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
+            <div className="mt-1 text-sm font-semibold text-content">
               {t('stylistWorkbook.newEntry.amountDue', { amount: formatKm(chargeAmount, locale) })}
             </div>
           </div>
@@ -473,7 +473,7 @@ export const WorkbookNewEntryForm = ({
         <Card className="p-4" role="group" aria-labelledby={loyaltyLabelId}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p id={loyaltyLabelId} className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.loyalty')}</p>
+              <p id={loyaltyLabelId} className="text-sm font-semibold text-content">{t('stylistWorkbook.newEntry.loyalty')}</p>
               <p role="status" aria-live="polite" className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 {loadingLoyalty
                   ? t('common.loading')
@@ -650,7 +650,7 @@ export const WorkbookNewEntryDrawer = ({
       <DrawerContent side="right" className="flex flex-col">
         <div className="h-full overflow-y-auto p-5">
           <div className="mb-3">
-            <DialogTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+            <DialogTitle className="text-sm font-semibold text-content">
               {t('stylistWorkbook.newEntry.title')}
             </DialogTitle>
             <DialogDescription className="text-xs text-content-muted">

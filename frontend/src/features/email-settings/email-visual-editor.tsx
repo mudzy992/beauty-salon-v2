@@ -94,7 +94,7 @@ export function EmailVisualEditor({
   return (
     <section className="space-y-4" aria-labelledby={headingId}>
       <div>
-        <h3 id={headingId} className="text-lg font-semibold text-slate-950 dark:text-slate-50">
+        <h3 id={headingId} className="text-lg font-semibold text-content">
           {t('emailSettings.templates.visualEditorHeading')}
         </h3>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -232,7 +232,7 @@ export function EmailVisualEditor({
 
         <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
           <div>
-            <h4 className="font-semibold text-slate-900 dark:text-slate-50">
+            <h4 className="font-semibold text-content">
               {t('emailSettings.templates.previewHeading')}
             </h4>
             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">

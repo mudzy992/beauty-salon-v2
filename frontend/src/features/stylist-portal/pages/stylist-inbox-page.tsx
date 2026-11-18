@@ -63,7 +63,7 @@ export const StylistInboxPage = () => {
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistPortal.inbox.noProfile')}</p>
+        <p className="text-content font-semibold">{t('stylistPortal.inbox.noProfile')}</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.inbox.profileNotFound')}</p>
       </Card>
     )
@@ -153,7 +153,7 @@ export const StylistInboxPage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.inbox.title')}</h1>
+          <h1 className="text-lg font-semibold text-content">{t('stylistPortal.inbox.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {t('stylistPortal.inbox.description')}
           </p>
@@ -186,7 +186,7 @@ export const StylistInboxPage = () => {
 
       {empty ? (
         <Card className="p-6">
-          <p className="font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.inbox.noRequests')}</p>
+          <p className="font-semibold text-content">{t('stylistPortal.inbox.noRequests')}</p>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {t('stylistPortal.inbox.noRequestsDescription')}
           </p>
@@ -223,7 +223,7 @@ export const StylistInboxPage = () => {
             <Card key={r.id} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900 dark:text-slate-50 truncate">
+                  <p className="font-semibold text-content truncate">
                     {r.service?.name ?? t('stylistWorkbook.serviceFallback')}
                   </p>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">

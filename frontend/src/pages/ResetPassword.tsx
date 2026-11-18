@@ -97,7 +97,7 @@ export default function ResetPassword() {
       <Card className="w-full max-w-lg space-y-6 p-6 sm:p-8" data-aurum-auth-card data-aurum-surface>
         <AuthCardHeader />
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          <h1 className="text-2xl font-semibold text-content">
             {t('auth.resetPassword.title')}
           </h1>
           <p

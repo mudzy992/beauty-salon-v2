@@ -49,7 +49,7 @@ export function FixedFieldsEditor({
               className="rounded-md border border-line p-3 "
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium text-content dark:text-slate-50">
+                <span className="font-medium text-content">
                   {field.fieldName}
                 </span>
                 <div className="flex items-center gap-2">

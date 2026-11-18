@@ -63,7 +63,7 @@ export const ReservationDetailActions = ({
   if (!hasAnyAction) {
     return (
       <Card className="space-y-2 p-4">
-        <p className="font-semibold text-slate-900 dark:text-slate-50">
+        <p className="font-semibold text-content">
           {t('stylistPortal.reservationDetail.actionsUnavailable')}
         </p>
         <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -85,7 +85,7 @@ export const ReservationDetailActions = ({
 
   return (
     <Card className="space-y-3 p-4">
-      <p className="font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.reservationDetail.actions')}</p>
+      <p className="font-semibold text-content">{t('stylistPortal.reservationDetail.actions')}</p>
       {canStaffConfirm ? (
         <Button
           type="button"

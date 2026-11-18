@@ -168,7 +168,7 @@ export function ExpenseCategoriesTab() {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-content dark:text-slate-50">
+                          <span className="font-medium text-content">
                             {category.name}
                           </span>
                           {!category.isActive ? (

@@ -145,7 +145,7 @@ export const WorkbookDetailPage = () => {
   if (!entry) {
     return (
       <Card className="p-6" role={entryError && !entryNotFound ? 'alert' : undefined}>
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">
+        <p className="text-content font-semibold">
           {entryError && !entryNotFound
             ? t('stylistWorkbook.detail.loadFailed')
             : t('stylistWorkbook.detail.notFound')}
@@ -168,7 +168,7 @@ export const WorkbookDetailPage = () => {
     <div className="max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50 truncate">
+          <h1 className="text-2xl font-semibold text-content truncate">
             {entry.publicReferenceCode ?? entry.id.slice(0, 8).toUpperCase()}
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -204,7 +204,7 @@ export const WorkbookDetailPage = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-3 w-full">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              <p className="text-sm font-semibold text-content">
                 {t('stylistWorkbook.detail.services')}
               </p>
               <ul className="mt-1 space-y-1">
@@ -226,7 +226,7 @@ export const WorkbookDetailPage = () => {
             </div>
             {(entry.debtPaymentEntries?.length ?? 0) > 0 ? (
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                <p className="text-sm font-semibold text-content">
                   {t('stylistWorkbook.detail.debtPayments')}
                 </p>
                 <ul className="mt-1 space-y-1">
@@ -251,7 +251,7 @@ export const WorkbookDetailPage = () => {
             ) : null}
             <div className="text-sm text-slate-600 dark:text-slate-300">
               {t('stylistWorkbook.detail.client')}
-              <span className="font-medium text-slate-900 dark:text-slate-50">
+              <span className="font-medium text-content">
                 {entry.client
                   ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') ||
                     entry.client.user?.username ||
@@ -261,7 +261,7 @@ export const WorkbookDetailPage = () => {
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-300">
               {t('stylistWorkbook.detail.totalCollected')}
-              <span className="font-semibold text-slate-900 dark:text-slate-50">
+              <span className="font-semibold text-content">
                 {formatKm(getCollectedTotal(entry), i18n.language)}
               </span>
               <span className="block text-xs mt-1">
@@ -283,7 +283,7 @@ export const WorkbookDetailPage = () => {
             {entry.notes ? (
               <div className="text-sm text-slate-600 dark:text-slate-300">
                 {t('stylistWorkbook.detail.notes')}:{' '}
-                <span className="text-slate-900 dark:text-slate-50">{entry.notes}</span>
+                <span className="text-content">{entry.notes}</span>
               </div>
             ) : null}
           </div>
@@ -321,7 +321,7 @@ export const WorkbookDetailPage = () => {
         <Card className="mt-4 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-base font-semibold text-slate-900 dark:text-slate-50">
+              <p className="text-base font-semibold text-content">
                 {t('stylistWorkbook.detail.beforeAfter')}
               </p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -332,7 +332,7 @@ export const WorkbookDetailPage = () => {
 
           {beforeImages.length > 0 ? (
             <div className="mt-4">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.detail.before')}</p>
+              <p className="text-sm font-semibold text-content">{t('stylistWorkbook.detail.before')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {beforeImages.map((img) => {
                   const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
@@ -352,7 +352,7 @@ export const WorkbookDetailPage = () => {
 
           {afterImages.length > 0 ? (
             <div className="mt-4">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.detail.after')}</p>
+              <p className="text-sm font-semibold text-content">{t('stylistWorkbook.detail.after')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {afterImages.map((img) => {
                   const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)

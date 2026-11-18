@@ -107,7 +107,7 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
   return (
     <div className="mt-6 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
       <div>
-        <p className="font-semibold text-slate-900 dark:text-slate-50">
+        <p className="font-semibold text-content">
           {t(DISPOSITION_PANEL_TITLE_KEY)}
         </p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">

@@ -287,7 +287,7 @@ export default function Gallery() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.gallery')}</h1>
+        <h1 className="text-2xl font-semibold text-content">{t('nav.gallery')}</h1>
         <Button type="button" onClick={() => openCatForm()}>
           <Plus className="mr-2 h-4 w-4" />
           {t('gallery.admin.newCategory')}
@@ -321,7 +321,7 @@ export default function Gallery() {
                       aria-pressed={selectedCatId === c.id}
                       className="min-w-0 flex-1 cursor-pointer rounded text-left"
                     >
-                      <span className="block truncate font-semibold text-content dark:text-slate-50">
+                      <span className="block truncate font-semibold text-content">
                         {c.name}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground">

@@ -26,7 +26,9 @@ test('settings load state is announced and failures offer a localized retry', ()
 
 test('settings header and content width match the shared admin page layout', () => {
   assert.match(settingsShell, /<div className="w-full space-y-6 pb-10">/)
-  assert.match(settingsShell, /<h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">/)
+  // 2026-11-18 (Faza C): slate parovi tokenizovani — osovine su identične
+  // (--text, --text-muted) kao u djeljenom Aurum `PageHeader` primitive-u.
+  assert.match(settingsShell, /<h1 className="text-2xl font-semibold text-content">/)
   assert.doesNotMatch(settingsShell, /max-w-6xl|bg-gradient-to-br|border border-\[#eadfd5\]/)
 })
 

@@ -70,7 +70,7 @@ export function BlogCommentsDialog({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                      <p className="text-sm font-semibold text-content">
                         {commentAuthor(c.user, t('blog.admin.unknownAuthor'))}
                       </p>
                       <Badge variant={c.isApproved ? 'success' : 'warning'}>
@@ -79,7 +79,7 @@ export function BlogCommentsDialog({
                           : t('blog.admin.commentPending')}
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-900 dark:text-slate-50">{c.content}</p>
+                    <p className="text-sm text-content">{c.content}</p>
                     <p className="mt-1 text-xs text-slate-500">
                       {new Intl.DateTimeFormat(i18n.language, {
                         dateStyle: 'medium',

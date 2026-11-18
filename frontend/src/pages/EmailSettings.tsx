@@ -781,11 +781,11 @@ export default function EmailSettings() {
   }
 
   const selectClass =
-    'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content   dark:text-slate-50'
+    'flex h-10 w-full rounded-md border border-line bg-surface px-3 text-sm text-content'
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold text-content dark:text-slate-50">{t('emailSettings.title')}</h1>
+      <h1 className="mb-2 text-2xl font-semibold text-content">{t('emailSettings.title')}</h1>
       <p className="mb-6 text-content-strong ">
         {t('emailSettings.description')}
       </p>
@@ -1201,7 +1201,7 @@ export default function EmailSettings() {
                   <Separator />
 
                   <div className="space-y-3">
-                    <p className="font-semibold text-content dark:text-slate-50">
+                    <p className="font-semibold text-content">
                       {t('emailSettings.campaigns.audienceHeading')}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1305,7 +1305,7 @@ export default function EmailSettings() {
                       return (
                         <Card className="space-y-3 p-4" aria-live="polite">
                           <div className="flex flex-wrap items-center justify-between gap-3">
-                            <h3 className="font-semibold text-content dark:text-slate-50">
+                            <h3 className="font-semibold text-content">
                               {t('emailSettings.campaigns.progressHeading')}
                             </h3>
                             <Badge variant={active ? 'brand' : 'outline'}>

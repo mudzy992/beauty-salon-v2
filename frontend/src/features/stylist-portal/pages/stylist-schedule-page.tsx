@@ -105,7 +105,7 @@ export const StylistSchedulePage = () => {
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistPortal.schedule.noProfile')}</p>
+        <p className="text-content font-semibold">{t('stylistPortal.schedule.noProfile')}</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.profileNotFound')}</p>
       </Card>
     )
@@ -117,7 +117,7 @@ export const StylistSchedulePage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.schedule.title')}</h1>
+          <h1 className="text-lg font-semibold text-content">{t('stylistPortal.schedule.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {t('stylistPortal.schedule.range', { from: formatDate(scheduleWindow.fromDate, locale), to: formatDate(scheduleWindow.toDate, locale) })}
           </p>
@@ -153,7 +153,7 @@ export const StylistSchedulePage = () => {
 
       {empty ? (
         <Card className="p-6">
-          <p className="font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.schedule.emptyTitle')}</p>
+          <p className="font-semibold text-content">{t('stylistPortal.schedule.emptyTitle')}</p>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.emptyDescription')}</p>
         </Card>
       ) : null}
@@ -172,7 +172,7 @@ export const StylistSchedulePage = () => {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <Link to={detailHref} className="block">
-                          <p className="font-semibold text-slate-900 dark:text-slate-50 truncate hover:underline underline-offset-4">
+                          <p className="font-semibold text-content truncate hover:underline underline-offset-4">
                             {r.service?.name ?? t('stylistWorkbook.serviceFallback')}
                           </p>
                         </Link>
