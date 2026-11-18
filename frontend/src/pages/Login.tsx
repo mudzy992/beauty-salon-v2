@@ -109,7 +109,7 @@ export default function Login() {
           <div className="text-4xl font-light mb-4">
             {getSetting('public_login_title', 'Beauty Salon Nejra')}
           </div>
-          <div className="text-lg text-slate-200 max-w-md">
+          <div className="text-lg text-on-surface-inverse max-w-md">
             {getSetting(
               'public_login_subtitle',
               t('auth.loginBannerSubtitle'),
@@ -118,7 +118,7 @@ export default function Login() {
         </div>
       </div>
 
-      <main className="flex items-center justify-center bg-slate-50 px-6 py-10">
+      <main className="flex items-center justify-center bg-surface-sunken px-6 py-10">
         <MotionDiv
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -129,12 +129,12 @@ export default function Login() {
             <Link to="/">{t('auth.backHome')}</Link>
           </Button>
 
-          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
+          <div className="bg-surface/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
             <AuthCardHeader />
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-content">
               {t('auth.login')}
             </h1>
-            <div className="text-slate-500 mt-2 mb-8">
+            <div className="text-content-muted mt-2 mb-8">
               {t('auth.loginPrompt')}
             </div>
 
@@ -176,11 +176,11 @@ export default function Login() {
               ) : null}
             </form>
 
-            <div className="mt-6 text-center text-slate-600">
+            <div className="mt-6 text-center text-content-strong">
               {t('auth.noAccount')}{' '}
               <Link
                 to="/register"
-                className="font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600"
+                className="font-semibold text-content underline underline-offset-4 hover:text-content-strong"
               >
                 {t('public.nav.register')}
               </Link>

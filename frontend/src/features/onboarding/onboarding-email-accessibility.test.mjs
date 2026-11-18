@@ -18,7 +18,7 @@ test('email and verification controls use labels, native forms, and a named OTP 
   assert.match(page, /<Label htmlFor="email">[\s\S]*?<Input[\s\S]*?id="email"[\s\S]*?type="email"[\s\S]*?autoComplete="email"[\s\S]*?required/)
   assert.match(page, /<form onSubmit=\{handleSaveAndSend\} aria-busy=\{loading\}/)
   assert.match(page, /<form onSubmit=\{handleVerify\} aria-busy=\{loading\}/)
-  assert.match(page, /<fieldset className="space-y-4">\s*<legend className="font-semibold text-slate-900">\s*\{t\('onboarding\.verificationCode'\)\}/)
+  assert.match(page, /<fieldset className="space-y-4">\s*<legend className="font-semibold text-content">\s*\{t\('onboarding\.verificationCode'\)\}/)
   assert.match(page, /<OtpInput value=\{code\} onChange=\{setCode\} disabled=\{loading\} \/>/)
   assert.match(page, /<Button type="submit" disabled=\{loading\}/)
   assert.match(page, /<Button\s+type="button"\s+variant="outline"[\s\S]*?onClick=\{handleResend\}/)

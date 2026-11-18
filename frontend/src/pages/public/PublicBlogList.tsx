@@ -83,7 +83,7 @@ export default function PublicBlogList() {
   const blogBg = getSetting('public_blog_bg', '')
 
   return (
-    <div data-aurum-page="blog-list" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="blog-list" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <div data-blog-list-hero data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
@@ -105,7 +105,7 @@ export default function PublicBlogList() {
         aria-busy={loading || loadingMore}
       >
         {loading ? (
-          <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-slate-600">
+          <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-content-strong">
             {t('public.blogList.loading')}
           </div>
         ) : posts.length === 0 ? (
@@ -129,18 +129,18 @@ export default function PublicBlogList() {
           ) : (
             <div className="py-12 text-center">
               {loadError ? (
-                <div role="alert" className="text-slate-600">
+                <div role="alert" className="text-content-strong">
                   <p>{t('public.blogList.loadFailed')}</p>
                   <button
                     type="button"
-                    className="mt-3 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                    className="mt-3 rounded-lg border border-line px-5 py-3 text-sm font-medium text-content-strong hover:bg-surface-sunken"
                     onClick={() => void loadPage(0, false)}
                   >
                     {t('public.blogList.retry')}
                   </button>
                 </div>
               ) : (
-                <div className="text-lg text-slate-500">{t('common.noData')}</div>
+                <div className="text-lg text-content-muted">{t('common.noData')}</div>
               )}
             </div>
           )
@@ -154,10 +154,10 @@ export default function PublicBlogList() {
                     variants={fadeUp}
                     data-aurum-surface
                     data-blog-card
-                    className="bg-white rounded-2xl overflow-hidden shadow-soft border border-slate-200/80 hover:shadow-md transition-shadow duration-300"
+                    className="bg-surface rounded-2xl overflow-hidden shadow-soft border border-line/80 hover:shadow-md transition-shadow duration-300"
                   >
                     <Link to={`/blog/${p.slug}`} className="block no-underline">
-                      <div data-blog-card-image className="h-[180px] bg-slate-200 relative overflow-hidden">
+                      <div data-blog-card-image className="h-[180px] bg-surface-muted relative overflow-hidden">
                         <MediaImage
                           src={p.heroImage ? getUploadUrl(p.heroImage) : ''}
                           alt=""
@@ -166,7 +166,7 @@ export default function PublicBlogList() {
                       </div>
                       <div data-blog-card-content className="p-6">
                         {isAurum && index === 0 ? <div data-blog-featured>{t('public.blogList.featured')}</div> : null}
-                        <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
+                        <div className="flex items-center gap-2 text-content-muted text-sm mb-3">
                           <Calendar className="h-4 w-4" aria-hidden="true" />
                           <div>
                             {p.publishedAt
@@ -177,16 +177,16 @@ export default function PublicBlogList() {
                         {/* WCAG 3.1.2: naslov i sažetak nose jezik članka, ne jezik stranice. */}
                         <h2
                           lang={blogPostLang(p)}
-                          className={`text-lg font-semibold text-slate-900 leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}
+                          className={`text-lg font-semibold text-content leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}
                         >
                           {p.title}
                         </h2>
                         {p.excerpt ? (
-                          <p lang={blogPostLang(p)} className="text-sm text-slate-600 mb-4 line-clamp-3">
+                          <p lang={blogPostLang(p)} className="text-sm text-content-strong mb-4 line-clamp-3">
                             {p.excerpt}
                           </p>
                         ) : null}
-                        <div data-blog-read-more className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
+                        <div data-blog-read-more className="inline-flex items-center gap-2 text-content font-medium text-sm">
                           {t('public.blogList.readMore')} <ArrowRight className="h-4 w-4" aria-hidden />
                         </div>
                       </div>
@@ -197,10 +197,10 @@ export default function PublicBlogList() {
             </MotionDiv>
             {loadError ? (
               <div className="mt-8 text-center" role="alert">
-                <p className="text-slate-600">{t('public.blogList.loadFailed')}</p>
+                <p className="text-content-strong">{t('public.blogList.loadFailed')}</p>
                 <button
                   type="button"
-                  className="mt-3 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                  className="mt-3 rounded-lg border border-line px-5 py-3 text-sm font-medium text-content-strong hover:bg-surface-sunken"
                   onClick={() => void loadPage(nextOffset, true)}
                 >
                   {t('public.blogList.retry')}
@@ -211,7 +211,7 @@ export default function PublicBlogList() {
               <div className="mt-10 text-center">
                 <button
                   type="button"
-                  className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                  className="rounded-lg border border-line px-5 py-3 text-sm font-medium text-content-strong hover:bg-surface-sunken disabled:opacity-60"
                   disabled={loadingMore}
                   onClick={() => void loadPage(nextOffset, true)}
                 >

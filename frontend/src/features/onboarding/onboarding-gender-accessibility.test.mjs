@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../../pages/onboarding/OnboardingGender.tsx
 
 test('gender choices form a named group and expose their selected state', () => {
   assert.match(source, /<form onSubmit=\{handleContinue\} aria-busy=\{saving\}/)
-  assert.match(source, /<fieldset disabled=\{saving\} className="min-w-0 space-y-4">\s*<legend className="font-semibold text-slate-900">\s*\{t\('onboarding\.genderLabel'\)\}/)
+  assert.match(source, /<fieldset disabled=\{saving\} className="min-w-0 space-y-4">\s*<legend className="font-semibold text-content">\s*\{t\('onboarding\.genderLabel'\)\}/)
   assert.match(source, /variant=\{gender === 'MALE' \? 'default' : 'outline'\}\s+aria-pressed=\{gender === 'MALE'\}/)
   assert.match(source, /variant=\{gender === 'FEMALE' \? 'default' : 'outline'\}\s+aria-pressed=\{gender === 'FEMALE'\}/)
 })

@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../../pages/Register.tsx', import.meta.url)
 
 test('registration page exposes one primary heading and labels required credentials', () => {
   assert.equal([...source.matchAll(/<h1\b/g)].length, 1)
-  assert.match(source, /<h1 className="text-2xl font-semibold text-slate-900">\s*\{t\('auth\.registerTitle'\)\}\s*<\/h1>/)
+  assert.match(source, /<h1 className="text-2xl font-semibold text-content">\s*\{t\('auth\.registerTitle'\)\}\s*<\/h1>/)
   for (const id of ['firstName', 'lastName', 'email', 'username', 'password']) {
     assert.match(source, new RegExp(`<Label htmlFor="${id}">[\\s\\S]*?<Input[\\s\\S]*?id="${id}"[\\s\\S]*?required`))
   }

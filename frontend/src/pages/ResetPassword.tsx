@@ -93,7 +93,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <main data-aurum-page="reset-password" data-aurum-auth-page className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
+    <main data-aurum-page="reset-password" data-aurum-auth-page className="flex min-h-screen items-center justify-center bg-surface-sunken px-4 py-10 dark:bg-surface-inverse">
       <Card className="w-full max-w-lg space-y-6 p-6 sm:p-8" data-aurum-auth-card data-aurum-surface>
         <AuthCardHeader />
         <div className="space-y-2 text-center">
@@ -101,7 +101,7 @@ export default function ResetPassword() {
             {t('auth.resetPassword.title')}
           </h1>
           <p
-            className="text-sm text-slate-600 dark:text-slate-300"
+            className="text-sm text-content-strong dark:text-content-muted"
             role={completed ? 'status' : undefined}
             aria-live={completed ? 'polite' : undefined}
           >

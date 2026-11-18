@@ -124,7 +124,7 @@ export default function PublicGallery() {
   const galleryBg = getSetting('public_gallery_bg', '')
 
   return (
-    <div data-aurum-page="gallery" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="gallery" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <div data-aurum-page-hero className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
@@ -146,7 +146,7 @@ export default function PublicGallery() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-slate-600">{t('public.gallery.loading')}</div>
+          <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-content-strong">{t('public.gallery.loading')}</div>
         ) : (
           <div>
             {categoryLoadError ? (
@@ -185,10 +185,10 @@ export default function PublicGallery() {
             !sortedCategories.some((category) => category.autoPublishConsentedPairs) ? (
               <section className="mb-16">
                 <div className="mb-7 max-w-3xl">
-                  <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 border-b border-slate-200/80">
+                  <h2 className="text-xl font-semibold tracking-tight text-content pb-3 border-b border-line/80">
                     {t('public.gallery.beforeAfterTitle')}
                   </h2>
-                  <p className="mt-3 text-sm text-slate-600">
+                  <p className="mt-3 text-sm text-content-strong">
                     {t('public.gallery.consentDescription')}
                   </p>
                 </div>
@@ -204,7 +204,7 @@ export default function PublicGallery() {
                           alt={t('public.beforeAfter.comparisonLabels')}
                           ariaLabel={t('public.beforeAfter.sliderLabel')}
                         />
-                        <div className="mt-2 flex justify-between text-xs font-medium text-slate-500">
+                        <div className="mt-2 flex justify-between text-xs font-medium text-content-muted">
                           <span>{t('public.beforeAfter.before')}</span>
                           <span>{t('public.beforeAfter.after')}</span>
                         </div>
@@ -227,20 +227,20 @@ export default function PublicGallery() {
                   }
                 />
               ) : consentedPairs.length === 0 && !categoryLoadError && !pairsLoadError ? (
-                <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
+                <div className="text-center text-content-muted text-lg">{t('common.noData')}</div>
               ) : null
             ) : (
               <MotionDiv variants={stagger} initial="hidden" animate="visible">
                 {sortedCategories.map((cat) => (
                   <div key={cat.id} className="mb-16">
-                    <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 mb-8 border-b border-slate-200/80">
+                    <h2 className="text-xl font-semibold tracking-tight text-content pb-3 mb-8 border-b border-line/80">
                       <Images className="mr-2 inline h-5 w-5" aria-hidden="true" />
                       {cat.name}
                     </h2>
 
                     {cat.autoPublishConsentedPairs ? (
                       <div className="mb-8">
-                        <p className="mb-4 text-sm text-slate-600">
+                        <p className="mb-4 text-sm text-content-strong">
                           {t('public.gallery.automaticConsentDescription')}
                         </p>
                         {consentedPairs.length ? (
@@ -253,7 +253,7 @@ export default function PublicGallery() {
                                   alt={t('public.beforeAfter.comparisonLabels')}
                                   ariaLabel={t('public.beforeAfter.sliderLabel')}
                                 />
-                                <div className="mt-2 flex justify-between text-xs font-medium text-slate-500">
+                                <div className="mt-2 flex justify-between text-xs font-medium text-content-muted">
                                   <span>{t('public.beforeAfter.before')}</span>
                                   <span>{t('public.beforeAfter.after')}</span>
                                 </div>
@@ -261,7 +261,7 @@ export default function PublicGallery() {
                             ))}
                           </div>
                         ) : pairsLoadError ? null : (
-                          <p className="text-sm italic text-slate-500">
+                          <p className="text-sm italic text-content-muted">
                             {t('public.gallery.noConsentedPairs')}
                           </p>
                         )}
@@ -290,7 +290,7 @@ export default function PublicGallery() {
                                 type="button"
                                 variants={fadeScale}
                                 disabled={!originalUrl}
-                                className="group relative aspect-square w-full appearance-none overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 p-0 text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                                className="group relative aspect-square w-full appearance-none overflow-hidden rounded-2xl border border-line/80 bg-surface-muted p-0 text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                                 onClick={(event) => {
                                   if (originalUrl) {
                                     lightboxTriggerRef.current = event.currentTarget
@@ -313,7 +313,7 @@ export default function PublicGallery() {
                           })}
                       </div>
                     ) : cat.autoPublishConsentedPairs ? null : (
-                      <div className="text-slate-500 italic">{t('common.noData')}</div>
+                      <div className="text-content-muted italic">{t('common.noData')}</div>
                     )}
                   </div>
                 ))}

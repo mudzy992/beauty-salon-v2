@@ -55,11 +55,13 @@ test('1.4.3: placeholder mape nema tekst ispod 4.5:1 na svojoj pozadini', () => 
   const src = at('pages/public/PublicContact.tsx')
   const i = src.indexOf('mapTitle')
   assert.ok(i > 0, 'mapTitle nije naden')
-  // kontejner s bg-slate-200 koji nosi tekst mape
+  // kontejner sa placeholder mape koji nosi tekst — tokenizovano (C 18/):
+  // bg-surface-muted + text-content-strong (tokeni su tema-aware; axe mjerio
+  // 6.15:1 na izvornom parinu bg-slate-200/text-slate-600; slate-500 je bio 3.86:1).
   const block = src.slice(Math.max(0, i - 400), i + 200)
-  assert.match(block, /bg-slate-200/)
-  assert.match(block, /text-slate-600/, 'očekivano text-slate-600 (6.15:1 na #e2e8f0)')
-  assert.doesNotMatch(block, /text-slate-500/, 'slate-500 je 3.86:1 na bg-slate-200 (axe nalaz)')
+  assert.match(block, /bg-surface-muted/)
+  assert.match(block, /text-content-strong/)
+  assert.doesNotMatch(block, /text-content-muted/, 'muted tekst na muted površini bio bi ispod 4.5:1')
 })
 
 test('2.4.1: javni layout ima skip-link kao prvi element i cilj s tabIndex', () => {

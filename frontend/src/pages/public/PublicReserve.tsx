@@ -126,15 +126,15 @@ const ServiceAutocomplete = ({
   if (selected.length > 0) {
     const totalMinutes = selected.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0)
     return (
-      <div data-reserve-selected className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+      <div data-reserve-selected className="space-y-3 rounded-xl border border-line/80 bg-surface-sunken p-3">
         <div>
-          <div className="font-semibold text-slate-900">{t('public.reserve.selectedServices')}</div>
+          <div className="font-semibold text-content">{t('public.reserve.selectedServices')}</div>
           <div className="mt-2 space-y-2">
             {selected.map((s) => (
-              <div key={s.id} data-reserve-selected-item className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <div key={s.id} data-reserve-selected-item className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-900">{s.name}</div>
-                  <div className="mt-0.5 text-xs text-slate-600">{s.durationMinutes} min</div>
+                  <div className="truncate text-sm font-semibold text-content">{s.name}</div>
+                  <div className="mt-0.5 text-xs text-content-strong">{s.durationMinutes} min</div>
                 </div>
                 <Button
                   type="button"
@@ -149,9 +149,9 @@ const ServiceAutocomplete = ({
               </div>
             ))}
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-            <span data-reserve-total className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
-              <Clock className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-content-strong">
+            <span data-reserve-total className="inline-flex items-center gap-1 rounded-md border border-line bg-surface px-2 py-1">
+              <Clock className="h-3.5 w-3.5 text-content-muted" aria-hidden="true" />
               {t('public.reserve.totalDuration', { minutes: totalMinutes })}
             </span>
           </div>
@@ -187,7 +187,7 @@ const ServiceAutocomplete = ({
         {addingMore ? (
           <div ref={wrapperRef} className="relative">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-content-muted" aria-hidden="true" />
               <Input
                 id="public-service-search"
                 ref={inputRef}
@@ -201,34 +201,34 @@ const ServiceAutocomplete = ({
                 className="pl-9"
               />
               {loading ? (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-content-muted">
                   {t('common.loading')}
                 </div>
               ) : null}
             </div>
             {open && !loading && !loadError ? (
-              <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+              <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                 <div className="max-h-[280px] overflow-auto">
                   {filtered.length === 0 ? (
-                    <div className="p-3 text-sm text-slate-500">{t('public.reserve.noResults')}</div>
+                    <div className="p-3 text-sm text-content-muted">{t('public.reserve.noResults')}</div>
                   ) : (
                     filtered.map((s) => (
                       <button
                         key={s.id}
                         type="button"
-                        className="w-full text-left px-3 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                        className="w-full text-left px-3 py-3 hover:bg-surface-sunken border-b border-line last:border-b-0"
                         onClick={() => selectService(s)}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <div className="text-sm font-semibold text-slate-900">{s.name}</div>
+                            <div className="text-sm font-semibold text-content">{s.name}</div>
                             {s.subcategory?.category ? (
-                              <div className="text-xs text-slate-500">
+                              <div className="text-xs text-content-muted">
                                 {s.subcategory.category.name} → {s.subcategory.name}
                               </div>
                             ) : null}
                           </div>
-                          <span data-reserve-duration className="shrink-0 whitespace-nowrap text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
+                          <span data-reserve-duration className="shrink-0 whitespace-nowrap text-xs font-semibold rounded-full border border-line/80 bg-surface px-2 py-1 text-content-strong">
                             {s.durationMinutes} min
                           </span>
                         </div>
@@ -247,7 +247,7 @@ const ServiceAutocomplete = ({
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" aria-hidden="true" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-content-muted" aria-hidden="true" />
         <Input
           id="public-service-search"
           ref={inputRef}
@@ -261,38 +261,38 @@ const ServiceAutocomplete = ({
           className="pl-9"
         />
         {loading ? (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-content-muted">
             {t('common.loading')}
           </div>
         ) : null}
       </div>
       {open && !loading && !loadError ? (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
           <div className="max-h-[280px] overflow-auto">
             {filtered.length === 0 ? (
-              <div className="p-3 text-sm text-slate-500">{t('public.reserve.noResults')}</div>
+              <div className="p-3 text-sm text-content-muted">{t('public.reserve.noResults')}</div>
             ) : (
               filtered.map((s) => (
                 <button
                   key={s.id}
                   type="button"
-                  className="w-full text-left px-3 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                  className="w-full text-left px-3 py-3 hover:bg-surface-sunken border-b border-line last:border-b-0"
                   onClick={() => {
                     selectService(s)
                   }}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-sm font-semibold text-content">
                         {s.name}
                       </div>
                       {s.subcategory?.category ? (
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-content-muted">
                           {s.subcategory.category.name} → {s.subcategory.name}
                         </div>
                       ) : null}
                     </div>
-                    <span data-reserve-duration className="shrink-0 whitespace-nowrap text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
+                    <span data-reserve-duration className="shrink-0 whitespace-nowrap text-xs font-semibold rounded-full border border-line/80 bg-surface px-2 py-1 text-content-strong">
                       {s.durationMinutes} min
                     </span>
                   </div>
@@ -378,14 +378,14 @@ const ReservationCalendar = ({
 
   if (loading) {
     return (
-      <div role="status" aria-live="polite" className="h-[200px] flex items-center justify-center text-slate-600">
+      <div role="status" aria-live="polite" className="h-[200px] flex items-center justify-center text-content-strong">
         {t('common.loading')}
       </div>
     )
   }
 
   return (
-    <div data-reserve-calendar className="rounded-xl border border-slate-200 bg-white p-4">
+    <div data-reserve-calendar className="rounded-xl border border-line bg-surface p-4">
       <div className="flex items-center justify-between mb-4">
         <Button
           type="button"
@@ -401,7 +401,7 @@ const ReservationCalendar = ({
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
-        <div className="font-semibold text-slate-900">
+        <div className="font-semibold text-content">
           {monthLabel} {currentMonth.year}
         </div>
         <Button
@@ -422,7 +422,7 @@ const ReservationCalendar = ({
 
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekdays.map((d) => (
-          <div key={d} className="text-center py-1 text-xs font-semibold text-slate-500 uppercase">
+          <div key={d} className="text-center py-1 text-xs font-semibold text-content-muted uppercase">
             {d}
           </div>
         ))}
@@ -455,9 +455,9 @@ const ReservationCalendar = ({
               disabled={disabledCell}
               className={[
                 'h-10 w-full rounded-md text-sm transition',
-                isSelected ? 'bg-slate-900 text-white font-semibold' : 'bg-transparent text-slate-700',
-                !available ? 'cursor-not-allowed'  : 'hover:bg-slate-100',
-                isToday && !isSelected ? 'border-2 border-slate-300' : 'border border-transparent',
+                isSelected ? 'bg-surface-inverse text-white font-semibold' : 'bg-transparent text-content-strong',
+                !available ? 'cursor-not-allowed'  : 'hover:bg-surface-muted',
+                isToday && !isSelected ? 'border-2 border-line' : 'border border-transparent',
               ].join(' ')}
               onClick={() => onSelectDate(dateStr)}
             >
@@ -467,17 +467,17 @@ const ReservationCalendar = ({
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-4 text-xs text-slate-600">
+      <div className="mt-3 flex items-center justify-center gap-4 text-xs text-content-strong">
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+          <span className="h-2.5 w-2.5 rounded-full bg-surface-inverse" />
           {t('public.reserve.selected')}
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full border border-slate-300 bg-slate-200" />
+          <span className="h-2.5 w-2.5 rounded-full border border-line bg-surface-muted" />
           {t('public.reserve.available')}
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+          <span className="h-2.5 w-2.5 rounded-full bg-surface-muted" />
           {t('public.reserve.unavailable')}
         </div>
       </div>
@@ -779,7 +779,7 @@ export default function PublicReserve() {
   const bgUrl = getSetting('public_reserve_bg', '')
 
   return (
-    <div data-aurum-page="reserve" className={`min-h-screen pt-8 pb-20 relative bg-white ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="reserve" className={`min-h-screen pt-8 pb-20 relative bg-surface ${isAurum ? publicAurum.page : ''}`}>
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.04]"
         style={{ backgroundImage: cssBackgroundImage(bgUrl) }}
@@ -791,13 +791,13 @@ export default function PublicReserve() {
         transition={{ duration: 0.5 }}
         className="relative z-10 mx-auto max-w-2xl px-4"
       >
-        <Card className="rounded-2xl border border-slate-200/80 bg-white shadow-soft" data-aurum-surface>
+        <Card className="rounded-2xl border border-line/80 bg-surface shadow-soft" data-aurum-surface>
           <CardContent className="p-6 md:p-10">
             <div className="text-center">
-              <div className={`text-2xl font-semibold tracking-tight text-slate-950 ${isAurum ? publicAurum.heading : ''}`}>
+              <div className={`text-2xl font-semibold tracking-tight text-content ${isAurum ? publicAurum.heading : ''}`}>
                 {getSetting('public_reserve_title', t('public.reserve.bannerTitle'))}
               </div>
-              <div className="text-slate-600 mt-2">
+              <div className="text-content-strong mt-2">
                 {getSetting(
                   'public_reserve_subtitle',
                   t('public.reserve.bannerSubtitle'),
@@ -822,13 +822,13 @@ export default function PublicReserve() {
                   <div
                     className={[
                       'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition',
-                      step >= s ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600',
+                      step >= s ? 'bg-surface-inverse text-white' : 'bg-surface-muted text-content-strong',
                     ].join(' ')}
                   >
                     {step > s ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : s}
                   </div>
                   {s < 4 ? (
-                    <div className={step > s ? 'h-0.5 w-10 bg-slate-900' : 'h-0.5 w-10 bg-slate-200'} />
+                    <div className={step > s ? 'h-0.5 w-10 bg-surface-inverse' : 'h-0.5 w-10 bg-surface-muted'} />
                   ) : null}
                 </div>
               ))}
@@ -838,7 +838,7 @@ export default function PublicReserve() {
               <div className="space-y-2">
                 <Label
                   htmlFor="public-service-search"
-                  className="text-slate-700 font-semibold"
+                  className="text-content-strong font-semibold"
                 >
                   {t('public.reserve.selectService')}
                 </Label>
@@ -873,7 +873,7 @@ export default function PublicReserve() {
                 >
                   <div ref={dateSectionRef}>
                     <fieldset className="min-w-0 space-y-2 border-0 p-0">
-                      <legend className="text-slate-700 font-semibold">
+                      <legend className="text-content-strong font-semibold">
                         {t('public.reserve.selectDate')}
                       </legend>
                       {datesLoadError ? (
@@ -910,9 +910,9 @@ export default function PublicReserve() {
                   transition={{ duration: 0.3 }}
                 >
                   <fieldset className="min-w-0 space-y-2 border-0 p-0">
-                    <legend className="text-slate-700 font-semibold">
+                    <legend className="text-content-strong font-semibold">
                       {t('public.reserve.selectTime')}{' '}
-                      <span className="font-normal text-slate-500 text-sm ml-2">
+                      <span className="font-normal text-content-muted text-sm ml-2">
                         (
                         {formatDateOnlyLocale(selectedDate, locale, {
                           weekday: 'long',
@@ -937,7 +937,7 @@ export default function PublicReserve() {
                         </Button>
                       </div>
                     ) : loadingSlots ? (
-                      <div role="status" aria-live="polite" className="py-4 text-center text-slate-600">
+                      <div role="status" aria-live="polite" className="py-4 text-center text-content-strong">
                         {t('common.loading')}
                       </div>
                     ) : slots.length === 0 ? (
@@ -966,10 +966,10 @@ export default function PublicReserve() {
                               className={[
                                 'rounded-md border px-3 py-2 text-left transition',
                                 isSelected
-                                  ? 'border-slate-900 bg-slate-900 text-white'
+                                  ? 'border-surface-inverse bg-surface-inverse text-on-surface-inverse'
                                   : isHeld
                                     ? 'border-amber-200 bg-amber-50'
-                                    : 'border-slate-200 bg-white hover:bg-slate-50',
+                                    : 'border-line bg-surface hover:bg-surface-sunken',
                                 isDisabled ? 'opacity-70 cursor-not-allowed' : '',
                               ].join(' ')}
                               onClick={() => {
@@ -998,7 +998,7 @@ export default function PublicReserve() {
                               <div className="text-sm font-semibold">
                                 {slot.startTime}
                               </div>
-                              <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-slate-500'}>
+                              <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-content-muted'}>
                                 {isHeld
                                   ? t('public.reserve.holdSoon')
                                   : t('public.reserve.stylistsAvailable', {
@@ -1023,7 +1023,7 @@ export default function PublicReserve() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="reservation-notes"
-                      className="text-slate-700 font-semibold"
+                      className="text-content-strong font-semibold"
                     >
                       {t('public.reserve.notes')}
                     </Label>
@@ -1037,7 +1037,7 @@ export default function PublicReserve() {
                   </div>
 
                   {openDebtsTotal > 0 ? (
-                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-surface-sunken p-3">
                       <input
                         type="checkbox"
                         className="mt-1"
@@ -1045,8 +1045,8 @@ export default function PublicReserve() {
                         onChange={(e) => setPayDebtsIntent(e.target.checked)}
                       />
                       <span>
-                        <span className="block font-semibold text-slate-900">{t('public.reserve.payOutstanding')}</span>
-                        <span className="block text-sm text-slate-600">
+                        <span className="block font-semibold text-content">{t('public.reserve.payOutstanding')}</span>
+                        <span className="block text-sm text-content-strong">
                           {t('public.reserve.outstandingAmount', {
                             amount: formatLocalizedAmount(openDebtsTotal, i18n.language),
                           })}
@@ -1108,13 +1108,13 @@ export default function PublicReserve() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50 p-4">
-                    <div className="font-semibold text-slate-950 mb-2">
+                  <div className="mt-4 rounded-xl border border-line/80 bg-surface-sunken p-4">
+                    <div className="font-semibold text-content mb-2">
                       {t('public.reserve.bookingSummary')}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <div className="text-xs text-slate-500">{t('public.reserve.service')}</div>
+                        <div className="text-xs text-content-muted">{t('public.reserve.service')}</div>
                         <div className="font-semibold">
                           {selectedServices.length === 1
                             ? selectedServices[0]!.name
@@ -1122,7 +1122,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">{t('public.reserve.duration')}</div>
+                        <div className="text-xs text-content-muted">{t('public.reserve.duration')}</div>
                         <div className="font-semibold">
                           {t('public.reserve.durationMinutes', {
                             minutes: selectedServices.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0),
@@ -1130,7 +1130,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">{t('public.reserve.date')}</div>
+                        <div className="text-xs text-content-muted">{t('public.reserve.date')}</div>
                         <div className="font-semibold">
                           {formatDateOnlyLocale(selectedDate, locale, {
                             weekday: 'long',
@@ -1141,7 +1141,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">{t('public.reserve.timeSlot')}</div>
+                        <div className="text-xs text-content-muted">{t('public.reserve.timeSlot')}</div>
                         <div className="font-semibold">
                           {selectedSlot.start} - {selectedSlot.end}
                         </div>

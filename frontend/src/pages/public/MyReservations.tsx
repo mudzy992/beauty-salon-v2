@@ -118,7 +118,7 @@ export default function MyReservations() {
 
   const renderList = (list: Reservation[], empty: string) => {
     if (list.length === 0) {
-      return <p className="text-sm text-slate-500">{empty}</p>
+      return <p className="text-sm text-content-muted">{empty}</p>
     }
     return (
       <div className="grid gap-4">
@@ -160,7 +160,7 @@ export default function MyReservations() {
   }
 
   return (
-    <div data-aurum-page="my-reservations" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="my-reservations" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
           <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.myReservations.title')}</h1>
@@ -178,7 +178,7 @@ export default function MyReservations() {
         </div>
 
         {loading ? (
-          <p role="status" aria-live="polite" className="text-center text-slate-600">
+          <p role="status" aria-live="polite" className="text-center text-content-strong">
             {t('common.loading')}
           </p>
         ) : loadError ? (
@@ -191,13 +191,13 @@ export default function MyReservations() {
         ) : (
           <>
             <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-content">
                 {t('public.myReservations.upcoming')}
               </h2>
               {renderList(upcoming, t('public.myReservations.noUpcoming'))}
             </section>
             <section className="space-y-4">
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-content">
                 {t('public.myReservations.past')}
               </h2>
               {renderList(past, t('public.myReservations.noPast'))}

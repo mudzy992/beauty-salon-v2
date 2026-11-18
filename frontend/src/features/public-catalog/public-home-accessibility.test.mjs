@@ -10,9 +10,9 @@ test('public homepage exposes its configured hero title as the sole level-one he
 })
 
 test('homepage highlight and about titles are semantic section headings', () => {
-  assert.match(source, /<h2 className="text-lg font-semibold text-slate-900 mb-2">\s*\{item\.title\}\s*<\/h2>/)
-  assert.match(source, /<h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">\s*\{aboutTitle\}\s*<\/h2>/)
-  assert.match(source, /<h2 className="text-2xl font-semibold tracking-tight text-slate-950">\s*\{getSetting\('public_cta_title'/)
+  assert.match(source, /<h2 className="text-lg font-semibold text-content mb-2">\s*\{item\.title\}\s*<\/h2>/)
+  assert.match(source, /<h2 className="text-3xl md:text-4xl font-semibold text-content mt-2">\s*\{aboutTitle\}\s*<\/h2>/)
+  assert.match(source, /<h2 className="text-2xl font-semibold tracking-tight text-content">\s*\{getSetting\('public_cta_title'/)
 })
 
 test('decorative homepage highlight icons are hidden from assistive technology', () => {

@@ -256,7 +256,7 @@ export default function PublicServiceDetail() {
       <div
         role="status"
         aria-live="polite"
-        className="py-16 text-center text-slate-600"
+        className="py-16 text-center text-content-strong"
       >
         {t("public.serviceDetail.loading")}
       </div>
@@ -267,7 +267,7 @@ export default function PublicServiceDetail() {
     return (
       <div className="py-16">
         <div className="mx-auto max-w-4xl px-4 text-center" role="alert">
-          <p className="text-slate-600 mb-4">
+          <p className="text-content-strong mb-4">
             {t("public.serviceDetail.loadFailed")}
           </p>
           <Button variant="outline" onClick={() => void loadService()}>
@@ -296,10 +296,10 @@ export default function PublicServiceDetail() {
             />
           ) : (
             <>
-              <h1 className="text-2xl font-semibold text-slate-900 mb-2">
+              <h1 className="text-2xl font-semibold text-content mb-2">
                 {t("public.serviceDetail.notFound")}
               </h1>
-              <p className="text-slate-600 mb-6">
+              <p className="text-content-strong mb-6">
                 {t("public.serviceDetail.notFoundHint")}
               </p>
               <Button asChild variant="outline">
@@ -429,7 +429,7 @@ export default function PublicServiceDetail() {
                 ) : null}
                 <div className="mt-8 flex flex-wrap gap-3">
                   {showServicePrices ? (
-                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-surface/80 px-4 py-3 shadow-sm">
                       <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                         {t("public.serviceDetail.priceLabel")}
                       </span>
@@ -438,7 +438,7 @@ export default function PublicServiceDetail() {
                       </span>
                     </div>
                   ) : null}
-                  <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                  <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-surface/80 px-4 py-3 shadow-sm">
                     <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                       {t("public.serviceDetail.durationLabel")}
                     </span>
@@ -452,7 +452,7 @@ export default function PublicServiceDetail() {
                     </span>
                   </div>
                   {categoryName ? (
-                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-surface/80 px-4 py-3 shadow-sm">
                       <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                         {t("public.serviceDetail.categoryLabel")}
                       </span>
@@ -494,7 +494,7 @@ export default function PublicServiceDetail() {
                         phone: salonPhone,
                       })}
                       data-detail-contact
-                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-white/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-white break-all"
+                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-surface/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-surface break-all"
                     >
                       <Phone className="h-4 w-4" aria-hidden="true" />
                       {salonPhone}
@@ -507,7 +507,7 @@ export default function PublicServiceDetail() {
                         email: salonEmail,
                       })}
                       data-detail-contact
-                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-white/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-white break-all"
+                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-surface/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-surface break-all"
                     >
                       <Mail className="h-4 w-4" aria-hidden="true" />
                       {salonEmail}
@@ -556,13 +556,13 @@ export default function PublicServiceDetail() {
             <div
               role="status"
               aria-live="polite"
-              className="py-14 text-center text-slate-600"
+              className="py-14 text-center text-content-strong"
             >
               {t("public.serviceDetail.loadingGallery")}
             </div>
           ) : pairsLoadError && items.length === 0 ? (
             <div className="py-14 text-center" role="alert">
-              <p className="text-slate-600">
+              <p className="text-content-strong">
                 {t("public.serviceDetail.galleryLoadFailed")}
               </p>
               <Button
@@ -577,7 +577,7 @@ export default function PublicServiceDetail() {
             <div
               role="status"
               data-detail-empty-gallery
-              className="rounded-[1.5rem] border border-[#e8ddd3] bg-white px-6 py-14 text-center shadow-[0_16px_50px_-38px_rgba(70,46,35,0.4)] md:py-20"
+              className="rounded-[1.5rem] border border-[#e8ddd3] bg-surface px-6 py-14 text-center shadow-[0_16px_50px_-38px_rgba(70,46,35,0.4)] md:py-20"
             >
               <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
                 <Sparkles className="h-6 w-6" aria-hidden="true" />
@@ -619,7 +619,7 @@ export default function PublicServiceDetail() {
               />
               {pairsLoadError ? (
                 <div className="py-5 text-center" role="alert">
-                  <p className="text-slate-600">
+                  <p className="text-content-strong">
                     {t("public.serviceDetail.galleryLoadFailed")}
                   </p>
                   <Button
@@ -636,7 +636,7 @@ export default function PublicServiceDetail() {
                 <div
                   role="status"
                   aria-live="polite"
-                  className="py-8 text-center text-slate-600"
+                  className="py-8 text-center text-content-strong"
                 >
                   {t("public.serviceDetail.loadingGallery")}
                 </div>

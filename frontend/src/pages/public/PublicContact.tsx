@@ -98,7 +98,7 @@ export default function PublicContact() {
   }
 
   return (
-    <div data-aurum-page="contact" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="contact" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <Seo
         title={t('public.contact.seoTitle')}
         description={description}
@@ -134,13 +134,13 @@ export default function PublicContact() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card data-aurum-surface data-aurum-contact-card="form" className="rounded-2xl border-slate-200/80 shadow-soft">
+            <Card data-aurum-surface data-aurum-contact-card="form" className="rounded-2xl border-line/80 shadow-soft">
               <CardContent className="p-8">
-                <h2 className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
+                <h2 className="text-lg font-semibold tracking-tight text-content mb-6">
                   {t('public.contact.formTitle')}
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-5" aria-describedby="contact-mail-hint">
-                  <p id="contact-mail-hint" className="text-sm text-slate-600">{t('public.contact.mailHint')}</p>
+                  <p id="contact-mail-hint" className="text-sm text-content-strong">{t('public.contact.mailHint')}</p>
                   <div className="space-y-2">
                     <Label htmlFor="fullName">{t('public.contact.name')}</Label>
                     <Input
@@ -186,14 +186,14 @@ export default function PublicContact() {
             transition={{ duration: 0.5 }}
           >
             <div className="space-y-8">
-              <Card data-aurum-surface data-aurum-contact-card="info" className="rounded-2xl border-slate-200/80 shadow-soft">
+              <Card data-aurum-surface data-aurum-contact-card="info" className="rounded-2xl border-line/80 shadow-soft">
                 <CardContent className="p-8">
-                  <h2 className="text-base font-semibold tracking-tight text-slate-950 mb-4">
+                  <h2 className="text-base font-semibold tracking-tight text-content mb-4">
                     {t('public.contact.info')}
                   </h2>
-                  <div className="space-y-4 text-slate-600">
+                  <div className="space-y-4 text-content-strong">
                     <div>
-                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                         {t('public.contact.address')}
                       </h3>
                       <div>
@@ -201,7 +201,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                         {t('public.contact.phone')}
                       </h3>
                       <div>
@@ -209,7 +209,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                         {t('public.contact.email')}
                       </h3>
                       <div>
@@ -217,7 +217,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                         {t('public.contact.hours')}
                       </h3>
                       <div className="whitespace-pre-line">
@@ -245,24 +245,24 @@ export default function PublicContact() {
                     </div>
                     {facebook || instagram || tiktok ? (
                       <div>
-                        <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                        <h3 className="text-xs font-medium text-content-muted uppercase tracking-wide">
                           {t('public.contact.social')}
                         </h3>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {facebook ? (
-                            <a href={facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                            <a href={facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-content-strong hover:bg-surface-sunken">
                               <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
                               Facebook
                             </a>
                           ) : null}
                           {instagram ? (
-                            <a href={instagram} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                            <a href={instagram} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-content-strong hover:bg-surface-sunken">
                               <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
                               Instagram
                             </a>
                           ) : null}
                           {tiktok ? (
-                            <a href={tiktok} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                            <a href={tiktok} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm text-content-strong hover:bg-surface-sunken">
                               <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
                               TikTok
                             </a>
@@ -277,7 +277,7 @@ export default function PublicContact() {
               <div data-aurum-contact-card="access">
                 {isAurum ? <h2 className="sr-only">{t('public.contact.access')}</h2> : null}
               {getSetting('public_contact_map_embed', '') ? (
-                <div className="rounded-2xl overflow-hidden shadow-soft h-[300px] bg-white border border-slate-200/80">
+                <div className="rounded-2xl overflow-hidden shadow-soft h-[300px] bg-surface border border-line/80">
                   <iframe
                     src={getSetting('public_contact_map_embed', '')}
                     width="100%"
@@ -290,7 +290,7 @@ export default function PublicContact() {
                   />
                 </div>
               ) : (
-                <div className="rounded-2xl overflow-hidden shadow-sm h-[300px] bg-slate-200 flex items-center justify-center flex-col text-slate-600">
+                <div className="rounded-2xl overflow-hidden shadow-sm h-[300px] bg-surface-muted flex items-center justify-center flex-col text-content-strong">
                   <div className="font-semibold">{t('public.contact.mapTitle')}</div>
                   <div className="text-sm">{t('public.contact.mapLocation')}</div>
                 </div>

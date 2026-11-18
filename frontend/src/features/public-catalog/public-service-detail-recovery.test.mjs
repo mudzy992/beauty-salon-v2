@@ -53,7 +53,7 @@ test('service detail links use a single interactive anchor and the unavailable p
   assert.match(source, /<Button asChild variant="outline">\s*<Link to="\/usluge">/)
   assert.doesNotMatch(source, /<Link\s+to="\/usluge">\s*<Button/)
   assert.doesNotMatch(source, /<Link\s+to=\{`\/rezervacija\?serviceId=\$\{encodeURIComponent\(service\.id\)\}`\}\s*>\s*<Button/)
-  assert.match(source, /<h1 className="text-2xl font-semibold text-slate-900 mb-2">\s*\{t\("public\.serviceDetail\.notFound"\)\}\s*<\/h1>/)
+  assert.match(source, /<h1 className="text-2xl font-semibold text-content mb-2">\s*\{t\("public\.serviceDetail\.notFound"\)\}\s*<\/h1>/)
 })
 
 

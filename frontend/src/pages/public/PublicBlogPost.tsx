@@ -168,7 +168,7 @@ export default function PublicBlogPost() {
 
   if (loading) {
     return (
-      <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-slate-600">
+      <div role="status" aria-live="polite" data-aurum-skeleton className="py-20 text-center text-content-strong">
         {t('common.loading')}
       </div>
     )
@@ -181,7 +181,7 @@ export default function PublicBlogPost() {
         <div className="py-20 text-center text-lg">{t('public.blogPost.notFound')}</div>
       )
     ) : (
-      <div className="py-20 text-center text-lg text-slate-700">
+      <div className="py-20 text-center text-lg text-content-strong">
         {loadError ? (
           <div role="alert">
             <p>{t('public.blogPost.loadFailed')}</p>
@@ -224,7 +224,7 @@ export default function PublicBlogPost() {
   }
 
   return (
-    <div data-aurum-page="blog-post" className={`min-h-screen bg-white pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="blog-post" className={`min-h-screen bg-surface pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <Seo
         title={seo.title}
         description={seo.description}
@@ -243,7 +243,7 @@ export default function PublicBlogPost() {
             </span>
           </Link>
         </Button>
-        <div data-aurum-article-hero className="relative flex min-h-[220px] items-end overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-900 shadow-soft md:min-h-[300px]">
+        <div data-aurum-article-hero className="relative flex min-h-[220px] items-end overflow-hidden rounded-2xl border border-line/80 bg-surface-inverse shadow-soft md:min-h-[300px]">
           <MediaImage
             src={post.heroImage ? getUploadUrl(post.heroImage) : ''}
             alt=""
@@ -284,7 +284,7 @@ export default function PublicBlogPost() {
           <div
             lang={blogPostLang(post)}
             data-aurum-article
-            className="blog-content mb-14 text-lg leading-relaxed text-slate-700"
+            className="blog-content mb-14 text-lg leading-relaxed text-content-strong"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
           />
           <PublicBlogComments

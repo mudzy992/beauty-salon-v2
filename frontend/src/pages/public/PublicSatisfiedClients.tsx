@@ -89,7 +89,7 @@ export default function PublicSatisfiedClients() {
   }, [hasMore, loading, loadingMore, loadError, offset, loadPage])
 
   return (
-    <div data-aurum-page="satisfied-clients" className={`py-12 sm:py-16 bg-white min-h-[60vh] ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="satisfied-clients" className={`py-12 sm:py-16 bg-surface min-h-[60vh] ${isAurum ? publicAurum.page : ''}`}>
       <div className={publicPage.container}>
         <div className="max-w-2xl mb-10 md:mb-12">
           <div className={publicHeader.kicker}>{t('public.satisfiedClients.kicker')}</div>
@@ -100,7 +100,7 @@ export default function PublicSatisfiedClients() {
         </div>
 
         {loading && items.length === 0 ? (
-          <div role="status" aria-live="polite" data-aurum-skeleton className="py-16 text-center text-slate-600">
+          <div role="status" aria-live="polite" data-aurum-skeleton className="py-16 text-center text-content-strong">
             {t('public.satisfiedClients.loading')}
           </div>
         ) : items.length === 0 ? (
@@ -124,7 +124,7 @@ export default function PublicSatisfiedClients() {
           ) : (
             <div className="py-12 text-center">
               {loadError ? (
-                <div role="alert" className="text-slate-600">
+                <div role="alert" className="text-content-strong">
                   <p>{t('public.satisfiedClients.loadFailed')}</p>
                   <Button
                     variant="outline"
@@ -135,7 +135,7 @@ export default function PublicSatisfiedClients() {
                   </Button>
                 </div>
               ) : (
-                <p className="text-slate-500">{t('public.satisfiedClients.empty')}</p>
+                <p className="text-content-muted">{t('public.satisfiedClients.empty')}</p>
               )}
             </div>
           )
@@ -150,7 +150,7 @@ export default function PublicSatisfiedClients() {
                   transition={{ duration: 0.3 }}
                   className="snap-center shrink-0 w-[min(88vw,20rem)] md:shrink md:w-auto"
                 >
-                  <div data-aurum-satisfied-card className="rounded-2xl border border-slate-200/80 bg-white p-2 shadow-soft">
+                  <div data-aurum-satisfied-card className="rounded-2xl border border-line/80 bg-surface p-2 shadow-soft">
                     <BeforeAfterSlider
                       beforeSrc={getUploadUrl(
                         pair.before.pathMedium ??
@@ -171,7 +171,7 @@ export default function PublicSatisfiedClients() {
             </div>
             {loadError ? (
               <div className="py-4 text-center" role="alert">
-                <p className="text-slate-600">{t('public.satisfiedClients.loadFailed')}</p>
+                <p className="text-content-strong">{t('public.satisfiedClients.loadFailed')}</p>
                 <Button
                   variant="outline"
                   className="mt-3"

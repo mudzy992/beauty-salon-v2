@@ -149,7 +149,7 @@ export default function PublicHome() {
   const titleRest = titleLines.slice(1).join(' ')
 
   return (
-    <div data-aurum-page="home" className="bg-white">
+    <div data-aurum-page="home" className="bg-surface">
       <section data-aurum-hero className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         <div
           data-aurum-hero-image
@@ -179,7 +179,7 @@ export default function PublicHome() {
               </h1>
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
-              <div className="text-lg md:text-xl text-slate-200 mt-6 mb-10 max-w-2xl mx-auto">
+              <div className="text-lg md:text-xl text-on-surface-inverse mt-6 mb-10 max-w-2xl mx-auto">
                 {heroSubtitle}
               </div>
             </MotionDiv>
@@ -199,7 +199,7 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section data-home-highlights className="py-20 bg-slate-50/80">
+      <section data-home-highlights className="py-20 bg-surface-sunken/80">
         <div className="mx-auto max-w-6xl px-4">
           <MotionDiv
             initial="hidden"
@@ -215,13 +215,13 @@ export default function PublicHome() {
                   key={idx}
                   data-home-highlight
                   variants={fadeUp}
-                  className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all text-center border border-slate-200"
+                  className="bg-surface p-8 rounded-2xl shadow-sm hover:shadow-md transition-all text-center border border-line"
                 >
                   <Icon className="h-10 w-10 text-brand-gold-text mx-auto mb-4" aria-hidden="true" />
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                  <h2 className="text-lg font-semibold text-content mb-2">
                     {item.title}
                   </h2>
-                  <div className="text-slate-600">{item.text}</div>
+                  <div className="text-content-strong">{item.text}</div>
                 </MotionDiv>
               )
             })}
@@ -229,20 +229,20 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section id="onama" data-home-about className="py-24 bg-white">
+      <section id="onama" data-home-about className="py-24 bg-surface">
         <div className="mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <div data-home-about-image className="relative overflow-hidden rounded-2xl shadow-sm border border-slate-200 bg-slate-100">
+            <div data-home-about-image className="relative overflow-hidden rounded-2xl shadow-sm border border-line bg-surface-muted">
               <MediaImage src={resolveRemoteMediaUrl(aboutImage)} alt="" className="h-full w-full object-cover" />
             </div>
             <div>
               <div className="text-brand-gold-text font-semibold uppercase tracking-widest text-sm">
                 {t('public.home.aboutKicker')}
               </div>
-              <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">
+              <h2 className="text-3xl md:text-4xl font-semibold text-content mt-2">
                 {aboutTitle}
               </h2>
-              <div className="text-slate-600 mt-4 leading-relaxed max-w-xl">
+              <div className="text-content-strong mt-4 leading-relaxed max-w-xl">
                 {aboutText}
               </div>
               <div className="mt-8 flex gap-3 flex-wrap">
@@ -272,7 +272,7 @@ export default function PublicHome() {
             {reviewsOn ? (
             <Link
               to="/zadovoljni-klijenti"
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors shrink-0"
+              className="inline-flex items-center gap-2 text-sm font-medium text-content hover:text-content-strong transition-colors shrink-0"
             >
               {t('public.home.beforeAfterSeeAll')}
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -282,7 +282,7 @@ export default function PublicHome() {
 
           {beforeAfterLoadError ? (
             <div className="py-8 text-center" role="alert">
-              <p className="text-slate-600">{t('public.home.beforeAfterLoadFailed')}</p>
+              <p className="text-content-strong">{t('public.home.beforeAfterLoadFailed')}</p>
               <Button variant="outline" className="mt-3" onClick={() => void loadBeforeAfter()}>
                 {t('public.home.retry')}
               </Button>
@@ -309,19 +309,19 @@ export default function PublicHome() {
       )}
 
       {reviewsOn && (featuredReviewLoading || featuredReviewLoadError || featuredReview) ? (
-        <section aria-labelledby="homepage-featured-review-heading" data-home-review className="bg-white py-12 sm:py-16">
+        <section aria-labelledby="homepage-featured-review-heading" data-home-review className="bg-surface py-12 sm:py-16">
           <div className={`${publicPage.container}`}>
             <h2 id="homepage-featured-review-heading" className="sr-only">
               {t('public.home.featuredReviewLabel')}
             </h2>
             {featuredReviewLoading ? (
-              <div role="status" aria-live="polite" className="mb-6 text-center text-slate-600">
+              <div role="status" aria-live="polite" className="mb-6 text-center text-content-strong">
                 {t('common.loading')}
               </div>
             ) : null}
             {featuredReviewLoadError ? (
               <div className="mb-6 text-center" role="alert">
-                <p className="text-slate-600">{t('public.home.featuredReviewLoadFailed')}</p>
+                <p className="text-content-strong">{t('public.home.featuredReviewLoadFailed')}</p>
                 <Button
                   variant="outline"
                   className="mt-3"
@@ -333,19 +333,19 @@ export default function PublicHome() {
             ) : null}
             {featuredReview ? (
               <div className="max-w-2xl mx-auto">
-                <Card className="border-slate-200/80 shadow-soft rounded-2xl">
+                <Card className="border-line/80 shadow-soft rounded-2xl">
                   <CardContent className="p-6 sm:p-8">
-                    <div className="text-xs font-medium text-slate-500">
+                    <div className="text-xs font-medium text-content-muted">
                       {t('public.home.featuredReviewLabel')}
                     </div>
-                    <div className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
+                    <div className="mt-2 text-lg font-semibold tracking-tight text-content">
                       {featuredReview.service?.name ?? t('public.home.serviceFallback')}
                     </div>
-                    <div className="mt-3 text-slate-600 leading-relaxed whitespace-pre-wrap">
+                    <div className="mt-3 text-content-strong leading-relaxed whitespace-pre-wrap">
                       {featuredReview.comment ?? ''}
                     </div>
                     {featuredReview.user ? (
-                      <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
+                      <div className="mt-4 flex items-center gap-3 text-sm text-content-muted">
                         {featuredReview.user.avatar ? (
                           <Avatar className="h-9 w-9">
                             <AvatarImage
@@ -385,18 +385,18 @@ export default function PublicHome() {
         </section>
       )}
 
-      <section data-home-cta className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
+      <section data-home-cta className="relative overflow-hidden py-16 border-t border-line/80 bg-surface-sunken/80">
         <Calendar
-          className="pointer-events-none absolute -right-6 -bottom-10 h-44 w-44 text-slate-400/[0.22] sm:h-56 sm:w-56 sm:-right-10 sm:-bottom-14 md:h-64 md:w-64"
+          className="pointer-events-none absolute -right-6 -bottom-10 h-44 w-44 text-content-muted/[0.22] sm:h-56 sm:w-56 sm:-right-10 sm:-bottom-14 md:h-64 md:w-64"
           strokeWidth={1}
           aria-hidden
         />
         <div className="relative z-[1] mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="text-center md:text-left">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <h2 className="text-2xl font-semibold tracking-tight text-content">
               {getSetting('public_cta_title', t('public.home.ctaTitleFallback'))}
             </h2>
-            <div className="text-slate-600 mt-2 max-w-xl">
+            <div className="text-content-strong mt-2 max-w-xl">
               {getSetting('public_cta_subtitle', t('public.home.ctaSubtitleFallback'))}
             </div>
           </div>

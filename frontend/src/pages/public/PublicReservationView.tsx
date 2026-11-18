@@ -114,7 +114,7 @@ export default function PublicReservationView() {
     : null
 
   return (
-    <div data-aurum-page="reservation-view" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="reservation-view" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
           <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.reservationView.title')}</h1>
@@ -126,13 +126,13 @@ export default function PublicReservationView() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <p role="status" aria-live="polite" className="text-center text-slate-600">
+          <p role="status" aria-live="polite" className="text-center text-content-strong">
             {t('common.loading')}
           </p>
         ) : error ? (
-          <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
+          <Card className="mx-auto max-w-lg rounded-2xl border-line/80 shadow-soft" data-aurum-surface>
             <CardContent className="p-8 text-center space-y-4">
-              <p role="alert" className="text-slate-700">{t(`public.reservationView.${error}`)}</p>
+              <p role="alert" className="text-content-strong">{t(`public.reservationView.${error}`)}</p>
               {error === 'loadFailed' ? (
                 <Button type="button" variant="outline" className="rounded-full" onClick={() => void load()}>
                   {t('common.retry')}
@@ -144,44 +144,44 @@ export default function PublicReservationView() {
             </CardContent>
           </Card>
         ) : data ? (
-          <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
+          <Card className="mx-auto max-w-lg rounded-2xl border-line/80 shadow-soft" data-aurum-surface>
             <CardContent className="p-8 space-y-5">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <p className="text-xs font-medium uppercase tracking-wide text-content-muted">
                   {t('public.reservationView.referenceNumber')}
                 </p>
-                <p className="text-lg font-semibold text-slate-950 mt-1">
+                <p className="text-lg font-semibold text-content mt-1">
                   {data.publicReferenceCode}
                 </p>
               </div>
               <div className="grid gap-3 text-sm">
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">{t('public.reservationView.service')}</span>
-                  <span className="font-medium text-slate-900 text-right">{data.serviceName}</span>
+                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                  <span className="text-content-muted">{t('public.reservationView.service')}</span>
+                  <span className="font-medium text-content text-right">{data.serviceName}</span>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">{t('public.reservationView.date')}</span>
-                  <span className="font-medium text-slate-900"><time dateTime={data.reservationDate.slice(0, 10)}>{formatReservationDate(data.reservationDate, locale, {
+                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                  <span className="text-content-muted">{t('public.reservationView.date')}</span>
+                  <span className="font-medium text-content"><time dateTime={data.reservationDate.slice(0, 10)}>{formatReservationDate(data.reservationDate, locale, {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
                   })}</time></span>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">{t('public.reservationView.time')}</span>
-                  <span className="font-medium text-slate-900">
+                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                  <span className="text-content-muted">{t('public.reservationView.time')}</span>
+                  <span className="font-medium text-content">
                     {data.startTime} – {data.endTime}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
-                  <span className="text-slate-500">{t('public.reservationView.status')}</span>
-                  <span className="font-medium text-slate-900">{statusKey ? t(statusKey) : data.status}</span>
+                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                  <span className="text-content-muted">{t('public.reservationView.status')}</span>
+                  <span className="font-medium text-content">{statusKey ? t(statusKey) : data.status}</span>
                 </div>
                 {data.stylistName ? (
-                  <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
-                    <span className="text-slate-500">{t('public.reservationView.stylist')}</span>
-                    <span className="font-medium text-slate-900 text-right">{data.stylistName}</span>
+                  <div className="flex justify-between gap-4 border-b border-line pb-2">
+                    <span className="text-content-muted">{t('public.reservationView.stylist')}</span>
+                    <span className="font-medium text-content text-right">{data.stylistName}</span>
                   </div>
                 ) : null}
                 {data.rescheduleStatus === 'PENDING' &&
@@ -214,10 +214,10 @@ export default function PublicReservationView() {
                 ) : null}
                 {data.clientNotes ? (
                   <div>
-                    <p className="text-slate-500 text-xs font-medium uppercase tracking-wide">
+                    <p className="text-content-muted text-xs font-medium uppercase tracking-wide">
                       {t('public.reservationView.clientNotes')}
                     </p>
-                    <p className="mt-1 text-slate-800">{data.clientNotes}</p>
+                    <p className="mt-1 text-content-strong">{data.clientNotes}</p>
                   </div>
                 ) : null}
                 {data.cancelReason ? (

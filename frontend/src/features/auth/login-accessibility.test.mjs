@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../../pages/Login.tsx', import.meta.url), '
 
 test('login page exposes one semantic primary heading and associated credential labels', () => {
   assert.equal([...source.matchAll(/<h1\b/g)].length, 1)
-  assert.match(source, /<h1 className="text-2xl font-semibold text-slate-900">\s*\{t\('auth\.login'\)\}\s*<\/h1>/)
+  assert.match(source, /<h1 className="text-2xl font-semibold text-content">\s*\{t\('auth\.login'\)\}\s*<\/h1>/)
   assert.match(source, /<Label htmlFor="usernameOrEmail">[\s\S]*?<Input\s+id="usernameOrEmail"/)
   assert.match(source, /<Label htmlFor="password">[\s\S]*?<Input\s+id="password"/)
 })

@@ -230,7 +230,7 @@ export default function PublicServices() {
                       type="button"
                       aria-pressed={activeCategoryId === ALL_CATEGORIES}
                       onClick={() => setActiveCategoryId(ALL_CATEGORIES)}
-                      className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === ALL_CATEGORIES ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
+                      className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === ALL_CATEGORIES ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-surface text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
                     >
                       {t('public.servicesPage.allCategories')}
                     </button>
@@ -240,7 +240,7 @@ export default function PublicServices() {
                         type="button"
                         aria-pressed={activeCategoryId === category.id}
                         onClick={() => setActiveCategoryId(category.id)}
-                        className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === category.id ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
+                        className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === category.id ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-surface text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
                       >
                         {category.name}
                       </button>
@@ -258,7 +258,7 @@ export default function PublicServices() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1fr_0.92fr] lg:gap-14 lg:px-8 lg:pb-24 lg:pt-20">
           <div className="relative z-10 max-w-2xl">
             {salonIdentity ? (
-              <div data-service-identity className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d7c3b3] bg-white/70 px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#80624f] shadow-sm shadow-[#6a4b3c]/5">
+              <div data-service-identity className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d7c3b3] bg-surface/70 px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#80624f] shadow-sm shadow-[#6a4b3c]/5">
                 <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>{salonIdentity}</span>
               </div>
@@ -283,7 +283,7 @@ export default function PublicServices() {
               <Button
                 asChild
                 variant="outline"
-                className="h-12 border-[#d5c4b8] bg-white/60 px-6 text-[#49332d] hover:bg-white"
+                className="h-12 border-[#d5c4b8] bg-surface/60 px-6 text-[#49332d] hover:bg-surface"
               >
                 <Link to="/rezervacija">{editorial('hero_book_cta') || t('public.servicesPage.bookAppointment')}</Link>
               </Button>
@@ -327,7 +327,7 @@ export default function PublicServices() {
                 </div>
               </div>
             </div>
-            <div data-aurum-service-count className="absolute -bottom-5 right-4 z-10 inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-white px-4 py-3 shadow-xl shadow-[#574237]/10 sm:right-8 sm:max-w-[calc(100%-4rem)] sm:px-5 sm:py-4">
+            <div data-aurum-service-count className="absolute -bottom-5 right-4 z-10 inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-surface px-4 py-3 shadow-xl shadow-[#574237]/10 sm:right-8 sm:max-w-[calc(100%-4rem)] sm:px-5 sm:py-4">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
               </span>
@@ -348,7 +348,7 @@ export default function PublicServices() {
 
       {serviceSteps.length > 0 ? (
         <section className="relative z-10 mx-auto -mt-1 max-w-7xl px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
-          <div data-service-steps className="grid overflow-hidden rounded-[1.5rem] border border-[#e7ddd4] bg-white shadow-[0_16px_50px_-32px_rgba(70,46,35,0.38)] sm:grid-cols-3">
+          <div data-service-steps className="grid overflow-hidden rounded-[1.5rem] border border-[#e7ddd4] bg-surface shadow-[0_16px_50px_-32px_rgba(70,46,35,0.38)] sm:grid-cols-3">
             {serviceSteps.map((step, index) => (
               <div key={step.number} className={`flex items-start gap-4 px-5 py-5 sm:px-6 sm:py-6 ${index < serviceSteps.length - 1 ? 'border-b border-[#eee7e0] sm:border-b-0 sm:border-r' : ''}`}>
                 <span data-service-step-number className="mt-0.5 shrink-0 whitespace-nowrap text-xs font-semibold tracking-[0.18em] text-[#80553e]">0{step.number}</span>
@@ -370,7 +370,7 @@ export default function PublicServices() {
             {editorial('catalog_description') ? <p className="mt-3 max-w-xl text-sm leading-6 text-[#79695e] sm:text-base">{editorial('catalog_description')}</p> : null}
           </div>
           <div className="flex shrink-0 items-center gap-3 text-sm text-[#79695e]">
-            <span data-service-catalog-icon className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e3d7cd] bg-white text-[#855c4c]">
+            <span data-service-catalog-icon className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e3d7cd] bg-surface text-[#855c4c]">
               <Sparkles className="h-4 w-4" aria-hidden="true" />
             </span>
             <span>{t('public.servicesPage.serviceCount', { count: visibleServiceCount })}</span>
@@ -385,7 +385,7 @@ export default function PublicServices() {
               <p className="text-sm text-[#79695e]">{t('public.servicesPage.loading')}</p>
               <div className="grid gap-5 xl:grid-cols-2">
                 {[0, 1].map((item) => (
-                  <div key={item} aria-hidden="true" className="h-72 animate-pulse rounded-[1.5rem] border border-[#eee5dd] bg-white" />
+                  <div key={item} aria-hidden="true" className="h-72 animate-pulse rounded-[1.5rem] border border-[#eee5dd] bg-surface" />
                 ))}
               </div>
             </div>
@@ -397,7 +397,7 @@ export default function PublicServices() {
               onRetry={() => void loadCategories()}
             />
           ) : (
-            <div role="alert" className="rounded-[1.5rem] border border-[#ead7d0] bg-white px-6 py-12 text-center shadow-sm">
+            <div role="alert" className="rounded-[1.5rem] border border-[#ead7d0] bg-surface px-6 py-12 text-center shadow-sm">
               <p className="text-[#65524a]">{t('public.servicesPage.loadFailed')}</p>
               <Button
                 type="button"
@@ -420,7 +420,7 @@ export default function PublicServices() {
               }
             />
           ) : (
-            <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center text-[#79695e]">
+            <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-surface px-6 py-14 text-center text-[#79695e]">
               {t('public.servicesPage.emptyCatalog')}
             </div>
           )
@@ -431,12 +431,12 @@ export default function PublicServices() {
                 showSubmit={false}
                 onReset={hasFilters ? clearFilters : undefined}
                 resultSummary={t('public.servicesPage.serviceCount', { count: visibleServiceCount })}
-                className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-white p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5"
+                className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-surface p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5"
               >
                 {filterFields}
               </FilterBar>
             ) : (
-              <div className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-white p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5">
+              <div className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-surface p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5">
                 {filterFields}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e9e2] pt-4 text-xs text-[#75645a]">
                   <span aria-live="polite" aria-atomic="true">
@@ -468,7 +468,7 @@ export default function PublicServices() {
                   }
                 />
               ) : (
-                <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center">
+                <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-surface px-6 py-14 text-center">
                   <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f3e8e0] text-[#8d554d]">
                     <Search className="h-5 w-5" aria-hidden="true" />
                   </span>
@@ -491,7 +491,7 @@ export default function PublicServices() {
                   return (
                     <article
                       key={category.id}
-                      className="group relative isolate overflow-hidden rounded-[1.5rem] border border-[#e8ddd3] bg-white p-5 shadow-[0_18px_50px_-38px_rgba(70,46,35,0.46)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-38px_rgba(70,46,35,0.55)] sm:p-7"
+                      className="group relative isolate overflow-hidden rounded-[1.5rem] border border-[#e8ddd3] bg-surface p-5 shadow-[0_18px_50px_-38px_rgba(70,46,35,0.46)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-38px_rgba(70,46,35,0.55)] sm:p-7"
                     >
                       <div aria-hidden="true" className={`pointer-events-none absolute -right-14 -top-16 -z-10 h-48 w-48 rounded-full blur-2xl ${tone.glow}`} />
                       <header className="flex items-start justify-between gap-4 border-b border-[#eee7e0] pb-5">

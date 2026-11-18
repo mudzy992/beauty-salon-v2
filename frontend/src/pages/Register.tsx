@@ -113,12 +113,12 @@ export default function Register() {
           alt={t('auth.registerBannerAlt')}
           className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-inverse/90 to-transparent" />
         <div className="absolute bottom-12 left-12 right-12 text-white">
           <div className="text-4xl font-light mb-4">
             {getSetting('public_register_title', t('auth.registerBannerTitle'))}
           </div>
-          <div className="text-lg text-slate-200 max-w-md">
+          <div className="text-lg text-on-surface-inverse max-w-md">
             {getSetting(
               'public_register_subtitle',
               t('auth.registerBannerSubtitle'),
@@ -127,7 +127,7 @@ export default function Register() {
         </div>
       </div>
 
-      <main className="flex items-center justify-center bg-slate-50 px-6 py-10">
+      <main className="flex items-center justify-center bg-surface-sunken px-6 py-10">
         <MotionDiv
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -138,12 +138,12 @@ export default function Register() {
             <Link to="/">{t('auth.backHome')}</Link>
           </Button>
 
-          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
+          <div className="bg-surface/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
             <AuthCardHeader />
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-content">
               {t('auth.registerTitle')}
             </h1>
-            <div className="text-slate-500 mt-2 mb-8">
+            <div className="text-content-muted mt-2 mb-8">
               {t('auth.registerPrompt')}
             </div>
 
@@ -256,7 +256,7 @@ export default function Register() {
                       {avatarFile ? t('auth.changeImage') : t('auth.addImage')}
                     </Button>
                     {avatarFile ? (
-                      <div className="text-sm text-slate-500">{avatarFile.name}</div>
+                      <div className="text-sm text-content-muted">{avatarFile.name}</div>
                     ) : null}
                   </div>
                 </div>
@@ -278,11 +278,11 @@ export default function Register() {
               ) : null}
             </form>
 
-            <div className="mt-6 text-center text-slate-600">
+            <div className="mt-6 text-center text-content-strong">
               {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 to="/login"
-                className="font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600"
+                className="font-semibold text-content underline underline-offset-4 hover:text-content-strong"
               >
                 {t('auth.login')}
               </Link>

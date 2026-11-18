@@ -167,7 +167,7 @@ export default function OnboardingEmail() {
           <div className="space-y-4">
             <form onSubmit={handleVerify} aria-busy={loading} className="space-y-4">
               <fieldset className="space-y-4">
-                <legend className="font-semibold text-slate-900">
+                <legend className="font-semibold text-content">
                   {t('onboarding.verificationCode')}
                 </legend>
                 <OtpInput value={code} onChange={setCode} disabled={loading} />

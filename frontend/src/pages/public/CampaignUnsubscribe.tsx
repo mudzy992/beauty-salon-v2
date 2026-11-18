@@ -89,10 +89,10 @@ export default function CampaignUnsubscribe() {
             aria-live={isErrorStatus ? "assertive" : "polite"}
             aria-atomic="true"
           >
-            <h1 className={`text-2xl font-semibold text-slate-900 dark:text-slate-50 ${isAurum ? publicAurum.heading : ''}`}>
+            <h1 className={`text-2xl font-semibold text-content dark:text-on-surface-inverse ${isAurum ? publicAurum.heading : ''}`}>
               {t(`campaignUnsubscribe.${copy[0]}`)}
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-sm text-content-strong dark:text-content-muted">
               {t(`campaignUnsubscribe.${copy[1]}`)}
             </p>
           </div>

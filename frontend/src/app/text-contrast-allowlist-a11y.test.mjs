@@ -76,9 +76,7 @@ const ALLOWLIST = {
   'features/shell/admin/ui/data-state.tsx::rose-500': 'ikona (AlertCircle) aria-hidden, 3.67:1 ≥ 3:1',
   'pages/ClientAnalytics.tsx::amber-400': 'ikona zvijezde (fill) aria-hidden, ima tekstualnu alternativu',
   'pages/ClientAnalytics.tsx::slate-200': 'neoznačena zvijezda, dekorativna',
-  'pages/Login.tsx::slate-200': 'tekst na bg-gradient-to-t from-black/80 preko slike',
   'pages/Notifications.tsx::emerald-600': 'ikona u icon-only dugmetu s aria-label, 3.77:1 ≥ 3:1',
-  'pages/Register.tsx::slate-200': 'tekst na tamnom overlayu preko slike',
   'pages/Reviews.tsx::emerald-600': 'ikona (Check) aria-hidden, 3.77:1 ≥ 3:1',
   'pages/Reviews.tsx::slate-300': 'neoznačena zvijezda, dekorativna',
   'pages/Reviews.tsx::yellow-400': 'ikona zvijezde (fill) aria-hidden',
@@ -88,9 +86,6 @@ const ALLOWLIST = {
   // 2026-11-17 (Faza C (9/)): `pages/Users.tsx::slate-400` obrisan — Search ikona
   // sada koristi AAA token `text-content-strong` (≥7:1), allowlist više ne treba unos.
   'pages/Users.tsx::teal-600': 'ikona (Eye) aria-hidden, 3.74:1 ≥ 3:1',
-  'pages/public/PublicHome.tsx::slate-200': 'hero tekst na tamnoj sekciji (javni sajt)',
-  'pages/public/PublicHome.tsx::slate-400': 'dekorativni vodeni žig na 22% prozirnosti',
-  'pages/public/PublicReserve.tsx::slate-400': 'ikona (Search) u polju, dekorativna',
 }
 
 const SCAN_DIRS = ['pages', 'features', 'components', 'layouts']
@@ -156,9 +151,9 @@ test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u
   const { found, scanned, skippedDark } = scan()
   // sweep ne smije tiho proći na praznom skupu. Pragovi su RATCHET-ovi — sed
   // tokenizuju i svjetle i dark: paleta-klase, pa se pragovi spuštaju u korak
-  // (smjer je uvijek dolje; mjerenje 2026-11-18 poslije C (17/) — javni shell/blog/
-  // client-reservations tokenizovani: scanned=279, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
-  assert.ok(scanned >= 278, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  // (smjer je uvijek dolje; mjerenje 2026-11-18 poslije C (18/) — javni portal/auth
+  // tokenizovan: scanned=126, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
+  assert.ok(scanned >= 125, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
   // 2026-11-18 (komponente standardizovane): skippedDark = 48
   assert.ok(skippedDark >= 45, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 
@@ -174,7 +169,9 @@ test('svaki unos allowliste ima razlog i pokriva stvarni nalaz', () => {
     assert.ok(typeof reason === 'string' && reason.length > 12, `${key}: razlog je prekratak`)
     assert.match(key, /^[^:]+\.tsx::[a-z]+-\d{2,3}$/, `${key}: loš format ključa`)
   }
-  assert.ok(Object.keys(ALLOWLIST).length >= 20, 'allowlista je sumnjivo mala')
+  // 29 → 17 (2026-11-18, Faza C (17/)–(18/)): javni/auth/portal tokenizacija
+  // uklonila je stale javne unose (Login/Register/PublicHome/PublicReserve).
+  assert.ok(Object.keys(ALLOWLIST).length >= 17, 'allowlista je sumnjivo mala')
 })
 
 /**
@@ -239,9 +236,9 @@ test('1.4.3/1.4.11: tekst i pozadina na istom elementu imaju >= 4.5:1', () => {
       }
     })
   }
-  // 49 parova izmjereno 2026-11-09; 33 poslije C (17/) (2026-11-18);
+  // 49 parova izmjereno 2026-11-09; 33 poslije C (17/); 25 poslije C (18/) (2026-11-18);
   // donja granica sprječava tiho prolazenje na praznom skupu.
-  assert.ok(checked >= 33, `sweep je obuhvatio samo ${checked} bg+text parova`)
+  assert.ok(checked >= 24, `sweep je obuhvatio samo ${checked} bg+text parova`)
   assert.deepEqual(bad, [], `tekst/pozadina ispod 4.5:1 na istom elementu:\n${bad.join('\n')}`)
 })
 

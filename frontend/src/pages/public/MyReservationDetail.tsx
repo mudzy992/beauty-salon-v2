@@ -92,7 +92,7 @@ export default function MyReservationDetail() {
     : ''
 
   return (
-    <div data-aurum-page="reservation-detail" className={`bg-white min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
+    <div data-aurum-page="reservation-detail" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
           <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.myReservations.detailTitle')}</h1>
@@ -108,7 +108,7 @@ export default function MyReservationDetail() {
         </Button>
 
         {loading ? (
-          <p role="status" aria-live="polite" className="text-center text-slate-600">
+          <p role="status" aria-live="polite" className="text-center text-content-strong">
             {t('common.loading')}
           </p>
         ) : loadError ? (
@@ -119,25 +119,25 @@ export default function MyReservationDetail() {
             </Button>
           </div>
         ) : !reservation || notFound ? (
-          <p className="text-center text-slate-600">{t('public.myReservations.notFound')}</p>
+          <p className="text-center text-content-strong">{t('public.myReservations.notFound')}</p>
         ) : (
-          <Card className="rounded-2xl border-slate-200/80 shadow-soft" data-aurum-surface>
+          <Card className="rounded-2xl border-line/80 shadow-soft" data-aurum-surface>
             <CardContent className="p-5 space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-slate-950">
+                  <p className="font-semibold text-content">
                     {servicesLabel}
                   </p>
                   {reservation.publicReferenceCode ? (
-                    <p className="text-xs text-slate-500 mt-0.5">{reservation.publicReferenceCode}</p>
+                    <p className="text-xs text-content-muted mt-0.5">{reservation.publicReferenceCode}</p>
                   ) : null}
                 </div>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-content-strong">
                   {statusKey ? t(statusKey) : reservation.status}
                 </span>
               </div>
 
-              <div className="grid gap-1.5 text-sm text-slate-700">
+              <div className="grid gap-1.5 text-sm text-content-strong">
                 <p>
                   <time dateTime={reservation.reservationDate.slice(0, 10)}>{formatReservationDate(reservation.reservationDate, locale)}</time> · {reservation.startTime}–{reservation.endTime}
                 </p>
@@ -147,7 +147,7 @@ export default function MyReservationDetail() {
               {reservation.paymentSummary ? (
                 <PaymentSummaryBlock payment={reservation.paymentSummary} />
               ) : reservation.status === 'COMPLETED' ? (
-                <p className="text-sm text-slate-500">{t('public.myReservations.paymentUnavailable')}</p>
+                <p className="text-sm text-content-muted">{t('public.myReservations.paymentUnavailable')}</p>
               ) : null}
             </CardContent>
           </Card>

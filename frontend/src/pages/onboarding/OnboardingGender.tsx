@@ -83,7 +83,7 @@ export default function OnboardingGender() {
         ) : null}
         <form onSubmit={handleContinue} aria-busy={saving} className="space-y-4">
           <fieldset disabled={saving} className="min-w-0 space-y-4">
-            <legend className="font-semibold text-slate-900">
+            <legend className="font-semibold text-content">
               {t('onboarding.genderLabel')}
             </legend>
             <div className="grid grid-cols-2 gap-3">
