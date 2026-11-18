@@ -103,7 +103,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                 {t('finance.expenseList.invoiceItemsCaption')}
               </caption>
               <thead>
-                <tr className="border-b border-line bg-surface-muted text-left text-xs uppercase tracking-wide text-content-strong  dark:bg-slate-900 ">
+                <tr className="border-b border-line bg-surface-muted text-left text-xs uppercase tracking-wide text-content-strong">
                   <th scope="col" className="px-3 py-2 font-medium">{t('finance.expenseList.columns.lineItem')}</th>
                   <th scope="col" className="px-3 py-2 text-right font-medium">{t('finance.expenseList.columns.amount')}</th>
                 </tr>
@@ -112,9 +112,9 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                 {rows.map((row, index) => (
                   <tr
                     key={`${row.name}-${index}`}
-                    className="border-b border-slate-100 last:border-0 dark:border-slate-900"
+                    className="border-b border-line last:border-0"
                   >
-                    <td data-label={t('finance.expenseList.columns.lineItem')} className="px-3 py-2 font-medium text-content dark:text-slate-50">
+                    <td data-label={t('finance.expenseList.columns.lineItem')} className="px-3 py-2 font-medium text-content">
                       {row.name}
                     </td>
                     <td data-label={t('finance.expenseList.columns.amount')} className="px-3 py-2 text-right tabular-nums font-medium">
@@ -124,7 +124,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-surface-muted dark:bg-slate-900">
+                <tr className="bg-surface-muted">
                   <td className="px-3 py-2 text-right text-sm font-medium text-content-strong ">
                     {t('finance.expenseForm.total')}
                   </td>

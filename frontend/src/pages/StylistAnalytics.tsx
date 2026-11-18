@@ -28,7 +28,7 @@ interface StylistAnalyticsData {
 const StatCard = ({ title, value }: { title: string; value: string }) => (
   <Card className="min-w-0 p-5">
     <p className="text-xs font-medium uppercase tracking-wide text-content-strong">{title}</p>
-    <p className="mt-2 text-3xl font-semibold text-content dark:text-slate-50">{value}</p>
+    <p className="mt-2 text-3xl font-semibold text-content">{value}</p>
   </Card>
 )
 
@@ -164,7 +164,7 @@ export default function StylistAnalytics() {
       {error && !loading ? <div role="alert" className="space-y-3"><p>{t('stylistAnalytics.loadFailed')}</p><Button type="button" variant="outline" onClick={() => load(lastParams.current)}>{t('common.retry')}</Button></div> : null}
       {data && data.stylist.id === stylistId && !loading ? <>
       <div>
-        <h1 className="text-xl font-semibold text-content dark:text-slate-50">{data.stylist.name}</h1>
+        <h1 className="text-xl font-semibold text-content">{data.stylist.name}</h1>
         {data.stylist.user?.email ? <p className="text-sm text-content-strong">{data.stylist.user.email}</p> : null}
       </div>
 
@@ -177,7 +177,7 @@ export default function StylistAnalytics() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="min-w-0 p-5">
-          <h2 id={topServicesLabelId} className="mb-3 text-sm font-semibold text-content dark:text-slate-50">{t('stylistAnalytics.topServices')}</h2>
+          <h2 id={topServicesLabelId} className="mb-3 text-sm font-semibold text-content">{t('stylistAnalytics.topServices')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby={topServicesLabelId} className="app-table w-full border-collapse">
               <thead>
@@ -196,7 +196,7 @@ export default function StylistAnalytics() {
                   </tr>
                 ) : (
                   data.topServices.map((s) => (
-                    <tr key={s.serviceId} className="border-b border-slate-100 dark:border-slate-800/80">
+                    <tr key={s.serviceId} className="border-b border-line">
                       <td className="py-2 pr-3">{s.serviceName}</td>
                       <td className="py-2 pr-3 text-right tabular-nums">{formatLocalizedNumber(s.count, i18n.language)}</td>
                       <td className="py-2 text-right tabular-nums">{formatLocalizedAmount(s.revenue, i18n.language)}</td>
@@ -209,7 +209,7 @@ export default function StylistAnalytics() {
         </Card>
 
         <Card className="min-w-0 p-5">
-          <h2 id={recentEntriesLabelId} className="mb-3 text-sm font-semibold text-content dark:text-slate-50">{t('stylistAnalytics.recentEntries')}</h2>
+          <h2 id={recentEntriesLabelId} className="mb-3 text-sm font-semibold text-content">{t('stylistAnalytics.recentEntries')}</h2>
           <div className="app-table-wrap">
             <table aria-labelledby={recentEntriesLabelId} className="app-table w-full border-collapse">
               <thead>
@@ -229,7 +229,7 @@ export default function StylistAnalytics() {
                   </tr>
                 ) : (
                   data.recentEntries.map((e) => (
-                    <tr key={e.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                    <tr key={e.id} className="border-b border-line">
                       <td className="py-2 pr-3">{formatDate(e.date)}</td>
                       <td className="py-2 pr-3">{e.serviceName ?? '-'}</td>
                       <td className="py-2 pr-3">{e.clientName ?? '-'}</td>

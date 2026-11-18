@@ -119,13 +119,13 @@ export default function Reviews() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.reviews')}</h1>
+        <h1 className="text-2xl font-semibold text-content">{t('nav.reviews')}</h1>
         {/* 1.3.1/3.3.2/4.1.2: filter nije imao NI vidljivu NI programsku labelu —
             AT ga je imenovao tek po izabranoj opciji. Vidljiva labela bi bila
             dizajnerska promjena, pa je dodata programska. */}
         <Select
           aria-label={t('reviews.filterLabel')}
-          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2   dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
         >
@@ -168,10 +168,10 @@ export default function Reviews() {
                   reviews.map((r) => (
                     <tr
                       key={r.id}
-                      className="cursor-pointer border-b border-slate-100 hover:bg-surface-muted dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                      className="cursor-pointer border-b border-line hover:bg-surface-muted"
                       onClick={() => openDetail(r)}
                     >
-                      <td data-label={t('reviews.client')} className="p-3 font-medium text-content dark:text-slate-50">{getUserName(r.user)}</td>
+                      <td data-label={t('reviews.client')} className="p-3 font-medium text-content">{getUserName(r.user)}</td>
                       <td data-label={t('reviews.service')} className="p-3">{r.service?.name ?? '-'}</td>
                       <td data-label={t('reviews.stylist')} className="p-3">{getUserName(r.stylist?.user)}</td>
                       <td data-label={t('reviews.serviceRating')} className="p-3">
@@ -241,22 +241,22 @@ export default function Reviews() {
           {detail ? (
             <div className="space-y-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-content dark:text-slate-50">{t('common.status')}</p>
+                <p className="font-medium text-content">{t('common.status')}</p>
                 {getApprovalBadge(detail.isApproved)}
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
                   <p className="text-xs text-content-strong">{t('reviews.client')}</p>
-                  <p className="font-medium text-content dark:text-slate-50">{getUserName(detail.user)}</p>
+                  <p className="font-medium text-content">{getUserName(detail.user)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('reviews.service')}</p>
-                  <p className="font-medium text-content dark:text-slate-50">{detail.service?.name ?? '-'}</p>
+                  <p className="font-medium text-content">{detail.service?.name ?? '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('reviews.stylist')}</p>
-                  <p className="font-medium text-content dark:text-slate-50">{getUserName(detail.stylist?.user)}</p>
+                  <p className="font-medium text-content">{getUserName(detail.stylist?.user)}</p>
                 </div>
               </div>
 
@@ -265,7 +265,7 @@ export default function Reviews() {
                   <p className="text-xs text-content-strong">{t('reviews.serviceRating')}</p>
                   <div className="mt-1 flex items-center justify-between gap-3">
                     <Stars count={detail.serviceRating} />
-                    <span className="font-semibold text-content dark:text-slate-50">{formatLocalizedNumber(detail.serviceRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
+                    <span className="font-semibold text-content">{formatLocalizedNumber(detail.serviceRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
                   </div>
                 </div>
                 <div>
@@ -273,7 +273,7 @@ export default function Reviews() {
                   {detail.stylistRating ? (
                     <div className="mt-1 flex items-center justify-between gap-3">
                       <Stars count={detail.stylistRating} />
-                      <span className="font-semibold text-content dark:text-slate-50">{formatLocalizedNumber(detail.stylistRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
+                      <span className="font-semibold text-content">{formatLocalizedNumber(detail.stylistRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
                     </div>
                   ) : (
                     <p className="mt-1 text-content-strong">{t('reviews.notRated')}</p>
@@ -284,7 +284,7 @@ export default function Reviews() {
               {detail.comment ? (
                 <div>
                   <p className="text-xs text-content-strong">{t('reviews.comment')}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-content dark:text-slate-50">{detail.comment}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-content">{detail.comment}</p>
                 </div>
               ) : null}
 

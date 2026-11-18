@@ -123,7 +123,7 @@ const SmallStatCard = ({
 }) => (
   <Card className={cn('p-4', className)}>
     <p className="text-xs text-content-strong">{title}</p>
-    <p className="mt-1 text-2xl font-semibold text-content [overflow-wrap:anywhere] dark:text-slate-50">{value}</p>
+    <p className="mt-1 text-2xl font-semibold text-content [overflow-wrap:anywhere]">{value}</p>
     {hint ? <p className="mt-1 text-xs text-content-strong">{hint}</p> : null}
   </Card>
 )
@@ -341,7 +341,7 @@ export default function ClientAnalytics() {
           <Card className="p-5">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-content dark:text-slate-50">{getUserName(analytics.user)}</h2>
+                <h2 className="text-lg font-semibold text-content">{getUserName(analytics.user)}</h2>
                 <p className="text-sm text-content-strong">{analytics.user.email}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <p className="text-sm text-content-strong">{t('clientAnalyticsPage.phone')}: {analytics.user.phone ?? '-'}</p>
@@ -411,12 +411,12 @@ export default function ClientAnalytics() {
             {analytics.stats.totalReservations > 0 ? (
               <Card className="p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-content dark:text-slate-50">{t('clientAnalyticsPage.stats.completionRate')}</p>
-                  <p className="text-sm font-semibold text-content dark:text-slate-50">
+                  <p className="text-sm font-semibold text-content">{t('clientAnalyticsPage.stats.completionRate')}</p>
+                  <p className="text-sm font-semibold text-content">
                     {Math.round((analytics.stats.completedReservations / analytics.stats.totalReservations) * 100)}%
                   </p>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-md bg-surface-muted dark:bg-slate-800">
+                <div className="h-2 w-full overflow-hidden rounded-md bg-surface-muted">
                   <div
                     className="h-full rounded-md bg-ok-foreground"
                     style={{ width: `${(analytics.stats.completedReservations / analytics.stats.totalReservations) * 100}%` }}
@@ -428,7 +428,7 @@ export default function ClientAnalytics() {
 
           {analytics.topServices.length > 0 ? (
             <Card className="p-5">
-              <p className="mb-3 font-semibold text-content dark:text-slate-50">{t('clientAnalyticsPage.topServices')}</p>
+              <p className="mb-3 font-semibold text-content">{t('clientAnalyticsPage.topServices')}</p>
               <div className="app-table-wrap">
                 <table className="app-table data-table w-full border-collapse">
                   <caption className="sr-only">{t('clientAnalyticsPage.servicesCaption')}</caption>
@@ -441,7 +441,7 @@ export default function ClientAnalytics() {
                   </thead>
                   <tbody>
                     {analytics.topServices.map((s, i) => (
-                      <tr key={`${s.name}-${i}`} className="border-b border-slate-100 dark:border-slate-800/80">
+                      <tr key={`${s.name}-${i}`} className="border-b border-line">
                         <td data-label={t('clientAnalyticsPage.service')} className="py-2 pr-3 font-medium">{s.name}</td>
                         <td data-label={t('clientAnalyticsPage.visitCount')} className="py-2 pr-3 text-right tabular-nums">{s.count}</td>
                         <td data-label={t('clientAnalyticsPage.total')} className="py-2 text-right tabular-nums">{formatLocalizedNumber(s.totalSpent, i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -488,7 +488,7 @@ export default function ClientAnalytics() {
                         analytics.reservations.map((r) => (
                           <tr
                             key={r.id}
-                            className="cursor-pointer border-b border-slate-100 hover:bg-surface-muted dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                            className="cursor-pointer border-b border-line hover:bg-surface-muted"
                             // 4.1.2: red je bio fokusabilan (tabIndex + onKeyDown) ali bez
                             // role koja kaže da je aktivabilan — AT najavi samo "red". Pristupačni
                             // put je dugme "Detalji" u zadnjoj koloni, isto kao u Reservations.tsx
@@ -550,7 +550,7 @@ export default function ClientAnalytics() {
                         </tr>
                       ) : (
                         analytics.manualEntries.map((e) => (
-                          <tr key={e.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                          <tr key={e.id} className="border-b border-line">
                             <td data-label={t('clientAnalyticsPage.date')} className="py-3 pl-4 pr-3">{formatDateOnly(e.date)}</td>
                             <td data-label={t('clientAnalyticsPage.service')} className="py-3 pr-3">{e.service?.name ?? '-'}</td>
                             <td data-label={t('clientAnalyticsPage.stylist')} className="py-3 pr-3">{getStylistName(e.stylistProfile)}</td>
@@ -601,7 +601,7 @@ export default function ClientAnalytics() {
                               aria-label={t('clientAnalyticsPage.reviewDetailsAction', {
                                 service: r.service?.name ?? '-',
                               })}
-                              className="cursor-pointer rounded text-left font-medium text-content after:absolute after:inset-0 after:content-[''] dark:text-slate-50"
+                              className="cursor-pointer rounded text-left font-medium text-content after:absolute after:inset-0 after:content-['']"
                             >
                               {r.service?.name ?? '-'}
                             </button>
@@ -662,7 +662,7 @@ export default function ClientAnalytics() {
                           className="rounded-md border border-line  p-3 flex items-start justify-between gap-3"
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-content dark:text-slate-50">
+                            <p className="text-sm font-semibold text-content">
                               {d.service?.name ?? t('clientAnalyticsPage.debt')} · {formatLocalizedAmount(d.amount, i18n.language)}
                             </p>
                             <p className="text-xs text-content-strong ">
@@ -704,25 +704,25 @@ export default function ClientAnalytics() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.date')}</p>
-                  <p className="font-semibold text-content dark:text-slate-50">{formatDateOnly(detailReservation.reservationDate)}</p>
+                  <p className="font-semibold text-content">{formatDateOnly(detailReservation.reservationDate)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.time')}</p>
-                  <p className="font-semibold text-content dark:text-slate-50">
+                  <p className="font-semibold text-content">
                     {detailReservation.startTime} - {detailReservation.endTime}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.service')}</p>
-                  <p className="text-content dark:text-slate-100">{detailReservation.service?.name ?? '-'}</p>
+                  <p className="text-content">{detailReservation.service?.name ?? '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.price')}</p>
-                  <p className="text-content dark:text-slate-100">{formatLocalizedAmount(Number(detailReservation.service?.price ?? 0), i18n.language)}</p>
+                  <p className="text-content">{formatLocalizedAmount(Number(detailReservation.service?.price ?? 0), i18n.language)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.stylist')}</p>
-                  <p className="text-content dark:text-slate-100">{getStylistName(detailReservation.confirmedStylist)}</p>
+                  <p className="text-content">{getStylistName(detailReservation.confirmedStylist)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.status')}</p>
@@ -733,7 +733,7 @@ export default function ClientAnalytics() {
                 {detailReservation.clientNotes ? (
                   <div className="md:col-span-2">
                     <p className="text-xs text-content-strong">{t('clientAnalyticsPage.clientNotes')}</p>
-                    <p className="text-content dark:text-slate-100">{detailReservation.clientNotes}</p>
+                    <p className="text-content">{detailReservation.clientNotes}</p>
                   </div>
                 ) : null}
                 {detailReservation.cancelReason ? (
@@ -745,7 +745,7 @@ export default function ClientAnalytics() {
                 {detailReservation.cancelledAt ? (
                   <div>
                     <p className="text-xs text-content-strong">{t('clientAnalyticsPage.cancelled')}</p>
-                    <p className="text-content dark:text-slate-100">
+                    <p className="text-content">
                       {formatInstantDate(detailReservation.cancelledAt)}
                     </p>
                   </div>
@@ -762,17 +762,17 @@ export default function ClientAnalytics() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.service')}</p>
-                  <p className="font-semibold text-content dark:text-slate-50">{detailReview.service?.name ?? '-'}</p>
+                  <p className="font-semibold text-content">{detailReview.service?.name ?? '-'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.stylist')}</p>
-                  <p className="text-content dark:text-slate-100">{getStylistName(detailReview.stylist)}</p>
+                  <p className="text-content">{getStylistName(detailReview.stylist)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.serviceRating')}</p>
                   <div className="flex items-center gap-2">
                     <StarRating rating={detailReview.serviceRating} />
-                    <p className="text-sm text-content-strong dark:text-slate-200">{formatLocalizedNumber(detailReview.serviceRating, i18n.language)}/5</p>
+                    <p className="text-sm text-content-strong">{formatLocalizedNumber(detailReview.serviceRating, i18n.language)}/5</p>
                   </div>
                 </div>
                 <div>
@@ -780,10 +780,10 @@ export default function ClientAnalytics() {
                   {detailReview.stylistRating != null ? (
                     <div className="flex items-center gap-2">
                       <StarRating rating={detailReview.stylistRating} />
-                      <p className="text-sm text-content-strong dark:text-slate-200">{formatLocalizedNumber(detailReview.stylistRating, i18n.language)}/5</p>
+                      <p className="text-sm text-content-strong">{formatLocalizedNumber(detailReview.stylistRating, i18n.language)}/5</p>
                     </div>
                   ) : (
-                    <p className="text-content dark:text-slate-100">-</p>
+                    <p className="text-content">-</p>
                   )}
                 </div>
                 <div>
@@ -794,12 +794,12 @@ export default function ClientAnalytics() {
                 </div>
                 <div>
                   <p className="text-xs text-content-strong">{t('clientAnalyticsPage.date')}</p>
-                  <p className="text-content dark:text-slate-100">{formatInstantDate(detailReview.createdAt)}</p>
+                  <p className="text-content">{formatInstantDate(detailReview.createdAt)}</p>
                 </div>
                 {detailReview.comment ? (
                   <div className="md:col-span-2">
                     <p className="text-xs text-content-strong">{t('clientAnalyticsPage.comment')}</p>
-                    <div className="rounded-md bg-surface-muted p-3 text-sm text-content dark:bg-slate-900/40 dark:text-slate-100">
+                    <div className="rounded-md bg-surface-muted p-3 text-sm text-content">
                       {detailReview.comment}
                     </div>
                   </div>
