@@ -424,7 +424,7 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 
 **Admin/C/D replans: završeno u mjeri u kojoj to dozvoljava javni portal. Dalji rad = tokenizacija javnog portala (novi batch serija).**
 
-### Faza C (17/) — javni shell/blog/client-reservations/toast tokenizacija (javni opseg potvrđen) `TBD`
+### Faza C (17/) — javni shell/blog/client-reservations/toast tokenizacija (javni opseg potvrđen) `f24f885`
 - Owner: „Može nastavi dalje“ → kroz ask_user potvrđeno da se tretira kao zeleno svjetlo za **javni opseg** tokenizacije.
 - Tokenizovano (Classic i Aurum jednako; bez novih animacija, bez izmišljenih vrijednosti):
   - `features/shell/public/public-layout.tsx` (loading/maintenance/header/nav/sidebar-footer/footer/socials), `public-ui.ts` (publicPage.outer/publicSection.surface → `bg-surface`, `subtle`), `before-after-spotlight.tsx`, `features/blog/public-blog-comments.tsx`, `features/client-reservations/{my-reservation-card, payment-summary-block}.tsx`, `src/lib/toast/toaster.tsx` (spreman za dark-toast estetiku preko tokena).
