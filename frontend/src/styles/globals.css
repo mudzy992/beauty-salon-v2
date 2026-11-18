@@ -543,11 +543,6 @@
 [data-skin="aurum"] [data-aurum-hero] .text-brand-champagne {
   color: var(--nejra-hero-gold);
 }
-[data-skin="aurum"] [data-aurum-cta="primary"] {
-  background-color: var(--nejra-hero-gold);
-  border-color: var(--nejra-hero-gold);
-  color: var(--nejra-hero-onbrand);
-}
 [data-skin="aurum"] [data-aurum-cta="secondary"] {
   background-color: transparent;
   border-color: var(--nejra-hero-gold);
@@ -852,8 +847,9 @@
   color: hsl(var(--primary-foreground));
 }
 
-/* Zlatni CTA iz §07 ostaje rezervisan za jednu primarnu akciju po ekranu;
-   pravilo je jače od gornjeg da S2 [data-aurum-cta] ne ostane mrtav kod. */
+/* Zlatni CTA iz §07 ostaje rezervisan za jednu primarnu akciju po ekranu.
+   Jedini izvor zlatnih CTA deklaracija: svi runtime korisnici su <Button>
+   (→ <button> ili <a href> kroz asChild) unutar [data-aurum-page]. */
 [data-skin="aurum"] [data-aurum-page] :is(button, a[href])[data-aurum-cta="primary"] {
   background-color: var(--nejra-hero-gold);
   border-color: var(--nejra-hero-gold);
