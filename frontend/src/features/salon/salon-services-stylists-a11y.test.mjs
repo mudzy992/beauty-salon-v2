@@ -64,8 +64,9 @@ test('radno vrijeme: ime kontrole uključuje dan (4.1.2)', () => {
 
 test('svih 5 tabela ima scope i caption (1.3.1)', () => {
   // 2026-11-09 — Salon.tsx je prešao na dijeljenu `DataTable` komponentu, pa njegova
-  // 2 tabele (4 + 5 = 9 <th>) više nemaju ručni markup. Ukupan broj TABELA je i dalje 5
-  // (2 u Salonu + 1 u Services + 2 u Stylists), ali se dokaz dijeli:
+  // 2 tabele (4 + 5 = 9 <th>) više nemaju ručni markup.
+  // 2026-11-17 (Faza C (9/)) — i Stylists.tsx prelazi na `DataTable` (2 tabele), pa ručno
+  // pisanih <th> više nema nigdje u modulu: dokaz je sada u potpunosti u komponenti.
   //   - ručno pisane tabele: <th scope="col"> i <caption> u izvornom tekstu,
   //   - DataTable potrošači: `caption={t(...)}` prop, a markup garantuje komponenta.
   const dataTable = read('../shell/admin/ui/data-table.tsx')
@@ -91,9 +92,9 @@ test('svih 5 tabela ima scope i caption (1.3.1)', () => {
     capTotal += dtCaptions
     tableTotal += (src.match(/<table\b/g) || []).length + dt
   }
-  assert.equal(thTotal, 10, '10 <th> u ručno pisanim tabelama (samo Stylists; Salon i Services su na DataTable)')
-  assert.equal(tableTotal, 5, '5 tabela u modulu (3 DataTable + 2 ručne)')
-  assert.equal(capTotal, 5, '5 tabela -> 5 caption-ova (3 preko propa + 2 ručno)')
+  assert.equal(thTotal, 0, '0 ručno pisanih <th> — sve tabele u modulu su na DataTable')
+  assert.equal(tableTotal, 5, '5 tabela u modulu (sve na DataTable)')
+  assert.equal(capTotal, 5, '5 tabela -> 5 caption-ova (svi preko caption propa)')
 })
 
 test('svih 5 tabela opt-in u card mode (1.4.10)', () => {

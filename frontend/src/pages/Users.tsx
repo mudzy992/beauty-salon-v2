@@ -752,23 +752,20 @@ export default function Users() {
           const isStylist = roleName === 'STYLIST'
           const isPending = isStylist && String(u.stylistProfile?.status ?? '').toUpperCase() === 'PENDING'
           return (
-            <span
-              key={roleName}
-              data-users-role-chip
-              className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-1 text-[11px] text-content-strong   dark:text-slate-200"
-            >
+            <Badge key={roleName} variant="outlineStrong" data-users-role-chip className="gap-1 border-line bg-surface-muted px-2 py-1 font-medium text-[11px] text-content-strong">
               <Badge variant={getRoleBadgeVariant(roleName)} className="rounded-full px-2 py-0.5 text-[10px]">
                 {getRoleLabel(roleName)}
               </Badge>
-              {isStylist ? <span className="text-muted-foreground">{t('users.stylistRoleBadge')}</span> : null}
+              {isStylist ? <span className="text-content-strong">{t('users.stylistRoleBadge')}</span> : null}
               {isPending ? (
-                <button
+                <Button
                   type="button"
-                  className="text-[10px] font-medium text-amber-700 underline underline-offset-2 dark:text-amber-300"
+                  variant="ghost"
+                  className="h-auto p-0 text-[10px] font-medium text-warn-fg underline underline-offset-2 hover:bg-transparent hover:text-warn-fg"
                   onClick={() => navigate('/admin/stylists')}
                 >
                   {t('users.status.profileIncomplete')}
-                </button>
+                </Button>
               ) : null}
               {canRemoveRole(roleName) ? (
                 <Button
@@ -784,7 +781,7 @@ export default function Users() {
                   <X className="h-3 w-3" aria-hidden="true" />
                 </Button>
               ) : null}
-            </span>
+            </Badge>
           )
         })}
 
@@ -827,7 +824,7 @@ export default function Users() {
       headerKey: 'users.username',
       className: 'p-3',
       render: (u) => (
-        <span className="font-medium text-content dark:text-slate-50">{u.username}</span>
+        <span className="font-medium text-content">{u.username}</span>
       ),
     },
     {
@@ -960,7 +957,7 @@ export default function Users() {
             <AvatarFallback>{initials(u.firstName, u.lastName, u.username)}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="truncate font-medium text-content dark:text-slate-50">{u.username}</p>
+            <p className="truncate font-medium text-content">{u.username}</p>
             <p className="text-sm text-content-strong ">{getUserDisplayName(u)}</p>
           </div>
         </div>
@@ -971,15 +968,15 @@ export default function Users() {
 
       <div className="mt-3 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">{t('users.email')}</span>
-          <span className="truncate text-content dark:text-slate-50">{u.email ?? '-'}</span>
+          <span className="text-content-strong">{t('users.email')}</span>
+          <span className="truncate text-content">{u.email ?? '-'}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-muted-foreground">{t('users.phone')}</span>
-          <span className="truncate text-content dark:text-slate-50">{u.phone ?? '-'}</span>
+          <span className="text-content-strong">{t('users.phone')}</span>
+          <span className="truncate text-content">{u.phone ?? '-'}</span>
         </div>
         <div className="space-y-2">
-          <p className="text-muted-foreground">{t('users.roles')}</p>
+          <p className="text-content-strong">{t('users.roles')}</p>
           {renderRoles(u)}
         </div>
       </div>
@@ -1032,7 +1029,7 @@ export default function Users() {
     <div data-admin-users>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.users')}</h1>
+          <h1 className="text-2xl font-semibold text-content">{t('nav.users')}</h1>
           <p className="mt-1 text-sm text-content-strong ">{t('users.subtitle')}</p>
         </div>
 
@@ -1058,7 +1055,7 @@ export default function Users() {
 
               {activeTab === 'clients' ? (
                 <div className="relative w-full max-w-[360px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-strong" aria-hidden="true" />
                   <Input
                     className="pl-9"
                     aria-label={t('users.searchClients')}
@@ -1068,7 +1065,7 @@ export default function Users() {
                   />
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">{headerTitle}</div>
+                <div className="text-sm text-content-strong">{headerTitle}</div>
               )}
             </div>
 
@@ -1086,7 +1083,7 @@ export default function Users() {
       </Card>
 
       {activeTab === 'clients' ? <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{t('users.clientTotal', { count: total })}</p>
+        <p className="text-sm text-content-strong">{t('users.clientTotal', { count: total })}</p>
 
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
@@ -1098,7 +1095,7 @@ export default function Users() {
               <Button type="button" size="sm" variant="ghost" onClick={() => setPage(0)}>
                 1
               </Button>
-              {visiblePageNumbers.pages[0] > 1 ? <span className="text-sm text-muted-foreground">…</span> : null}
+              {visiblePageNumbers.pages[0] > 1 ? <span className="text-sm text-content-strong">…</span> : null}
             </>
           ) : null}
 
@@ -1118,7 +1115,7 @@ export default function Users() {
           {visiblePageNumbers.totalPages - 1 > visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] ? (
             <>
               {visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] < visiblePageNumbers.totalPages - 2 ? (
-                <span className="text-sm text-muted-foreground">…</span>
+                <span className="text-sm text-content-strong">…</span>
               ) : null}
               <Button type="button" size="sm" variant="ghost" onClick={() => setPage(visiblePageNumbers.totalPages - 1)}>
                 {visiblePageNumbers.totalPages}
@@ -1162,7 +1159,7 @@ export default function Users() {
           </DialogHeader>
 
           {!removalPreview ? (
-            <div role="status" aria-live="polite" className="flex justify-center py-10 text-muted-foreground">
+            <div role="status" aria-live="polite" className="flex justify-center py-10 text-content-strong">
               <span className="sr-only">{t('common.loading')}</span>
               <Loader2 className="h-7 w-7 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>
@@ -1190,7 +1187,7 @@ export default function Users() {
                       ))}
                     </Select>
                     {!getTargetOptions().some(option => !option.isPending) ? (
-                      <p className="text-sm text-muted-foreground">{t('users.stylistRemoval.noFinancialTarget')}</p>
+                      <p className="text-sm text-content-strong">{t('users.stylistRemoval.noFinancialTarget')}</p>
                     ) : null}
                   </div>
                   <label className="flex items-start gap-2 text-sm">
@@ -1216,7 +1213,7 @@ export default function Users() {
                 const mode = removalModes[row.key]
                 return (
                   <fieldset key={row.key} className="rounded-md border border-line p-4 ">
-                    <legend className="px-1 font-medium text-content dark:text-slate-50">{row.label}</legend>
+                    <legend className="px-1 font-medium text-content">{row.label}</legend>
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <Badge variant="secondary">{row.count}</Badge>
                     </div>
@@ -1275,11 +1272,11 @@ export default function Users() {
 
               {removalSummary.length > 0 ? (
                 <div className="rounded-md border border-line p-4 ">
-                  <p className="mb-2 font-medium text-content dark:text-slate-50">{t('users.stylistRemoval.summary')}</p>
+                  <p className="mb-2 font-medium text-content">{t('users.stylistRemoval.summary')}</p>
                   <div className="space-y-1 text-sm">
                     {removalSummary.map((r) => (
                       <div key={r.label} className="flex items-center justify-between gap-3">
-                        <span className="text-content-strong dark:text-slate-200">
+                        <span className="text-content-strong">
                           {r.label} ({r.count})
                         </span>
                         <span className={r.mode === 'DELETE' ? 'font-medium text-rose-700 dark:text-rose-300' : 'font-medium text-blue-700 dark:text-blue-300'}>
@@ -1341,7 +1338,7 @@ export default function Users() {
                   setFormData((p) => ({ ...p, username: e.target.value }))
                 }}
               />
-              {editUsernameStatus.loading ? <p className="text-xs text-muted-foreground">{t('users.usernameAvailability.checking')}</p> : null}
+              {editUsernameStatus.loading ? <p className="text-xs text-content-strong">{t('users.usernameAvailability.checking')}</p> : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() === initialUsername.trim() ? (
                 <p className="text-xs text-blue-600">{t('users.usernameAvailability.current')}</p>
               ) : null}
@@ -1425,8 +1422,8 @@ export default function Users() {
 
             <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3  md:col-span-2">
               <div className="space-y-0.5">
-                <p id="users-active-label" className="text-sm font-medium text-content dark:text-slate-50">{t('users.form.active')}</p>
-                <p className="text-xs text-muted-foreground">{t('users.form.inactiveHint')}</p>
+                <p id="users-active-label" className="text-sm font-medium text-content">{t('users.form.active')}</p>
+                <p className="text-xs text-content-strong">{t('users.form.inactiveHint')}</p>
               </div>
               <Switch aria-labelledby="users-active-label" checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
             </div>
@@ -1436,7 +1433,7 @@ export default function Users() {
                 <div className="flex items-center justify-between gap-3">
                   <Label className="mb-0">{t('users.debts.title')}</Label>
                   {clientDebtsQuery.isLoading ? (
-                    <span role="status" className="text-xs text-muted-foreground">
+                    <span role="status" className="text-xs text-content-strong">
                       {t('users.debts.loading')}
                     </span>
                   ) : null}
@@ -1469,13 +1466,13 @@ export default function Users() {
                         className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface p-3 text-sm  "
                       >
                         <div className="min-w-0">
-                          <div className="font-medium text-content dark:text-slate-50">
+                          <div className="font-medium text-content">
                             {formatLocalizedAmount(d.amount, i18n.language)}
-                            {d.service?.name ? <span className="ml-2 text-xs text-muted-foreground">• {d.service.name}</span> : null}
+                            {d.service?.name ? <span className="ml-2 text-xs text-content-strong">• {d.service.name}</span> : null}
                           </div>
-                          {d.note ? <div className="mt-1 text-xs text-muted-foreground ">{d.note}</div> : null}
+                          {d.note ? <div className="mt-1 text-xs text-content-strong ">{d.note}</div> : null}
                           {d.createdBy?.username ? (
-                            <div className="mt-1 text-xs text-muted-foreground ">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
+                            <div className="mt-1 text-xs text-content-strong ">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
                           ) : null}
                         </div>
                         <Button
@@ -1539,7 +1536,7 @@ export default function Users() {
                   setCreateData((p) => ({ ...p, username: value }))
                 }}
               />
-              {usernameStatus.loading ? <p className="text-xs text-muted-foreground">{t('users.usernameAvailability.checking')}</p> : null}
+              {usernameStatus.loading ? <p className="text-xs text-content-strong">{t('users.usernameAvailability.checking')}</p> : null}
               {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-ok-foreground">{t('users.usernameAvailability.available')}</p> : null}
               {!usernameStatus.loading && usernameStatus.available === false ? <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p> : null}
             </div>
@@ -1574,7 +1571,7 @@ export default function Users() {
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="users-form-role">{t('users.form.role')}</Label>
               <Input id="users-form-role" value={getRoleLabel('CLIENT')} readOnly />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-content-strong">
                 {t('users.form.roleNote')}
               </p>
             </div>
@@ -1625,12 +1622,12 @@ export default function Users() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded-md border border-line p-3 ">
-              <p className="text-xs text-muted-foreground">{t('users.credentials.username')}</p>
-              <p className="font-semibold text-content dark:text-slate-50">{createdCredentials?.username}</p>
+              <p className="text-xs text-content-strong">{t('users.credentials.username')}</p>
+              <p className="font-semibold text-content">{createdCredentials?.username}</p>
             </div>
             <div className="rounded-md border border-line p-3 ">
-              <p className="text-xs text-muted-foreground">{t('users.credentials.initialPassword')}</p>
-              <p className="font-semibold text-content dark:text-slate-50">{createdCredentials?.initialPassword}</p>
+              <p className="text-xs text-content-strong">{t('users.credentials.initialPassword')}</p>
+              <p className="font-semibold text-content">{createdCredentials?.initialPassword}</p>
             </div>
             <p className="text-sm text-amber-700 dark:text-amber-300">
               {t('users.credentials.instructions')}
@@ -1675,7 +1672,7 @@ function UsersList({
   const { t } = useTranslation()
   if (loading) {
     return (
-      <div role="status" aria-live="polite" className="flex justify-center p-10 text-muted-foreground">
+      <div role="status" aria-live="polite" className="flex justify-center p-10 text-content-strong">
         <span className="sr-only">{t('common.loading')}</span>
         <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
       </div>
@@ -1683,7 +1680,7 @@ function UsersList({
   }
 
   if (items.length === 0) {
-    return <p className="p-6 text-sm text-muted-foreground">{t('common.noData')}</p>
+    return <p className="p-6 text-sm text-content-strong">{t('common.noData')}</p>
   }
 
   return (

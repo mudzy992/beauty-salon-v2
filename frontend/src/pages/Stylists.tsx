@@ -24,6 +24,9 @@ import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Textarea } from '../components/ui/textarea'
 
+import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
+import { EmptyState } from '../features/shell/admin/ui/data-state'
+
 interface StylistProfile {
   id: string
   userId: string
@@ -208,89 +211,151 @@ export default function Stylists() {
   const selectedServices = allServices.filter((s) => stylistServiceIds.includes(s.id))
   const unselectedServices = allServices.filter((s) => !stylistServiceIds.includes(s.id))
 
+  const stylistColumns: DataTableColumn<StylistProfile>[] = [
+    {
+      key: 'user',
+      headerKey: 'stylists.table.user',
+      className: 'p-3 font-medium text-content',
+      render: (s) =>
+        s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId,
+    },
+    {
+      key: 'email',
+      headerKey: 'stylists.table.email',
+      className: 'p-3',
+      render: (s) => s.user?.email ?? '-',
+    },
+    {
+      key: 'specialization',
+      headerKey: 'stylists.table.specialization',
+      className: 'p-3',
+      render: (s) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{s.specialization ?? '-'}</span>
+          {String(s.status ?? '').toUpperCase() === 'PENDING' ? (
+            <Badge variant="warning" className="text-[10px]">
+              {t('stylists.status.pending')}
+            </Badge>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'hireDate',
+      headerKey: 'stylists.table.hireDate',
+      className: 'p-3',
+      render: (s) => (s.hireDate ? formatDateOnlyLocale(s.hireDate.slice(0, 10), locale) : '—'),
+    },
+    {
+      key: 'status',
+      headerKey: 'stylists.table.status',
+      className: 'p-3',
+      render: (s) => (
+        <Badge variant={s.isActive ? 'success' : 'danger'} className="text-[10px]">
+          {s.isActive ? t('stylists.status.active') : t('stylists.status.inactive')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      headerKey: 'stylists.table.actions',
+      align: 'right',
+      className: 'p-3',
+      // Klik na akcijsku ćeliju NE okida row-click: DataTable ignoriše klikove
+      // s interaktivnih potomaka ('button, a, input, …').
+      render: (s) => (
+        <div className="flex justify-end gap-1">
+          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.analytics')}>
+            <RouterLink to={`/admin/analytics?tab=stylists&stylistId=${s.id}`}>
+              <Eye className="h-4 w-4 text-teal-600" aria-hidden="true" />
+            </RouterLink>
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.edit')} onClick={() => void openEditForm(s)}>
+            <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+  const workingHoursColumns: DataTableColumn<WorkingHours>[] = [
+    {
+      key: 'day',
+      headerKey: 'stylists.day',
+      className: 'p-3 font-medium',
+      render: (wh) => formatWeekday(wh.dayOfWeek, i18n.language),
+    },
+    {
+      key: 'workingDay',
+      headerKey: 'stylists.workingDay',
+      className: 'p-3',
+      render: (wh) => (
+        <Switch
+          aria-label={t('stylists.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+          checked={wh.isWorkingDay}
+          onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
+        />
+      ),
+    },
+    {
+      key: 'start',
+      headerKey: 'stylists.start',
+      className: 'p-3',
+      render: (wh) => (
+        <Input
+          type="time"
+          aria-label={t('stylists.aria.startTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+          className="h-9 w-[140px]"
+          value={wh.startTime}
+          onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)}
+          disabled={!wh.isWorkingDay}
+        />
+      ),
+    },
+    {
+      key: 'end',
+      headerKey: 'stylists.end',
+      className: 'p-3',
+      render: (wh) => (
+        <Input
+          type="time"
+          aria-label={t('stylists.aria.endTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+          className="h-9 w-[140px]"
+          value={wh.endTime}
+          onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)}
+          disabled={!wh.isWorkingDay}
+        />
+      ),
+    },
+  ]
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content dark:text-slate-50">{t('nav.stylists')}</h1>
+        <h1 className="text-2xl font-semibold text-content">{t('nav.stylists')}</h1>
       </div>
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-muted-foreground">
+          <div className="flex justify-center p-10 text-content-strong">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </div>
         ) : (
           <div className="app-table-wrap">
-            <table className="app-table data-table w-full border-collapse">
-                            <caption className="sr-only">{t('stylists.tableCaption')}</caption>
-                                <caption className="sr-only">{t('stylists.workingHoursCaption')}</caption>
-                  <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-muted-foreground ">
-                  <th scope="col" className="p-3 font-medium">{t('stylists.table.user')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('stylists.table.email')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('stylists.table.specialization')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('stylists.table.hireDate')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('stylists.table.status')}</th>
-                  <th scope="col" className="p-3 text-right font-medium">{t('stylists.table.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stylists.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-muted-foreground">
-                      {t('common.noData')}
-                    </td>
-                  </tr>
-                ) : (
-                  stylists.map((s) => (
-                    <tr
-                      key={s.id}
-                      className="cursor-pointer border-b border-slate-100 hover:bg-surface-muted dark:border-slate-800/80 dark:hover:bg-slate-900/40"
-                      onClick={() => void openEditForm(s)}
-                    >
-                      <td data-label={t('stylists.table.user')} className="p-3 font-medium text-content dark:text-slate-50">
-                        {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
-                      </td>
-                      <td data-label={t('stylists.table.email')} className="p-3">{s.user?.email ?? '-'}</td>
-                      <td data-label={t('stylists.table.specialization')} className="p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span>{s.specialization ?? '-'}</span>
-                          {String(s.status ?? '').toUpperCase() === 'PENDING' ? (
-                            <Badge variant="warning" className="text-[10px]">
-                              {t('stylists.status.pending')}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td data-label={t('stylists.table.hireDate')} className="p-3">{s.hireDate ? formatDateOnlyLocale(s.hireDate.slice(0, 10), locale) : '—'}</td>
-                      <td data-label={t('stylists.table.status')} className="p-3">
-                        <Badge variant={s.isActive ? 'success' : 'danger'} className="text-[10px]">
-                          {s.isActive ? t('stylists.status.active') : t('stylists.status.inactive')}
-                        </Badge>
-                      </td>
-                      <td data-label={t('stylists.table.actions')} className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1">
-                          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.analytics')}>
-                            <RouterLink to={`/admin/analytics?tab=stylists&stylistId=${s.id}`}>
-                              <Eye className="h-4 w-4 text-teal-600" />
-                            </RouterLink>
-                          </Button>
-                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.edit')} onClick={() => void openEditForm(s)}>
-                            <Pencil className="h-4 w-4 text-blue-600" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <DataTable
+              caption={t('stylists.tableCaption')}
+              columns={stylistColumns}
+              rows={stylists}
+              rowKey={(s) => s.id}
+              onRowClick={(s) => void openEditForm(s)}
+              empty={<EmptyState title={t('common.noData')} />}
+            />
           </div>
         )}
       </Card>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">{t('stylists.table.total', { count: total })}</p>
+        <p className="text-sm text-content-strong">{t('stylists.table.total', { count: total })}</p>
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
             {t('common.previous')}
@@ -329,7 +394,7 @@ export default function Stylists() {
                 <div>
                   <Label htmlFor="stylists-specialization-auto">{t('stylists.specializationAuto')}</Label>
                   <Input id="stylists-specialization-auto" className="mt-1" value={form.specialization} readOnly />
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-content-strong">
                     {t('stylists.specializationHint')}
                   </p>
                   {selectedServices.length > 0 ? (
@@ -366,50 +431,13 @@ export default function Stylists() {
 
             <TabsContent value="hours" className="mt-4">
               <div className="app-table-wrap rounded-md border border-line ">
-                <table className="app-table data-table w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-line text-left text-xs uppercase text-muted-foreground ">
-                      <th scope="col" className="p-3 font-medium">{t('stylists.day')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('stylists.workingDay')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('stylists.start')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('stylists.end')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {workingHours.map((wh) => (
-                      <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
-                        <td data-label={t('stylists.day')} className="p-3 font-medium">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
-                        <td data-label={t('stylists.workingDay')} className="p-3">
-                          <Switch
-                            aria-label={t('stylists.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-                            checked={wh.isWorkingDay}
-                            onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
-                          />
-                        </td>
-                        <td data-label={t('stylists.start')} className="p-3">
-                          <Input
-                            type="time"
-                            aria-label={t('stylists.aria.startTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-                            className="h-9 w-[140px]"
-                            value={wh.startTime}
-                            onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)}
-                            disabled={!wh.isWorkingDay}
-                          />
-                        </td>
-                        <td data-label={t('stylists.end')} className="p-3">
-                          <Input
-                            type="time"
-                            aria-label={t('stylists.aria.endTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-                            className="h-9 w-[140px]"
-                            value={wh.endTime}
-                            onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)}
-                            disabled={!wh.isWorkingDay}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  caption={t('stylists.workingHoursCaption')}
+                  columns={workingHoursColumns}
+                  rows={workingHours}
+                  rowKey={(wh) => String(wh.dayOfWeek)}
+                  rowClassName={(wh) => (!wh.isWorkingDay ? 'opacity-60' : undefined)}
+                />
               </div>
             </TabsContent>
 
@@ -418,21 +446,23 @@ export default function Stylists() {
                 <div>
                   <p className="mb-1 text-xs text-content-strong ">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
                   {selectedServices.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t('stylists.noSelectedCompetencies')}</p>
+                    <p className="text-sm text-content-strong">{t('stylists.noSelectedCompetencies')}</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {selectedServices.map((svc) => (
-                        <span key={svc.id} className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-1 text-[11px] text-content-strong dark:bg-slate-900 dark:text-slate-200">
+                        <Badge key={svc.id} variant="secondary" className="gap-1 px-2 py-1 text-[11px] font-medium">
                           <span>{svc.name}</span>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => toggleService(svc.id)}
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800"
+                            className="h-5 w-5 rounded-full hover:bg-surface-sunken"
                             aria-label={t('stylists.aria.removeCompetency')}
                           >
                             <X className="h-3 w-3" aria-hidden="true" />
-                          </button>
-                        </span>
+                          </Button>
+                        </Badge>
                       ))}
                     </div>
                   )}
@@ -441,13 +471,13 @@ export default function Stylists() {
                 <div>
                   <p className="mb-1 text-xs text-content-strong ">{t('stylists.availableCompetencies')}</p>
                   {unselectedServices.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{t('stylists.allCompetenciesSelected')}</p>
+                    <p className="text-sm text-content-strong">{t('stylists.allCompetenciesSelected')}</p>
                   ) : (
                     <div className="max-h-[320px] space-y-2 overflow-y-auto">
                       {unselectedServices.map((svc) => (
                         <label
                           key={svc.id}
-                          className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3 hover:bg-surface-muted  dark:hover:bg-slate-900/40"
+                          className="flex cursor-pointer items-start gap-3 rounded-md border border-line p-3 hover:bg-surface-muted"
                         >
                           <input
                             type="checkbox"
@@ -456,9 +486,9 @@ export default function Stylists() {
                             className="mt-0.5 h-4 w-4 accent-brand-gold-ring"
                           />
                           <span className="text-sm">
-                            <span className="font-medium text-content dark:text-slate-50">{svc.name}</span>
+                            <span className="font-medium text-content">{svc.name}</span>
                             {svc.subcategory ? (
-                              <span className="ml-1 text-muted-foreground">
+                              <span className="ml-1 text-content-strong">
                                 ({svc.subcategory.category?.name} &gt; {svc.subcategory.name})
                               </span>
                             ) : null}
@@ -467,7 +497,7 @@ export default function Stylists() {
                       ))}
                     </div>
                   )}
-                  {allServices.length === 0 ? <p className="text-sm text-muted-foreground">{t('stylists.noServicesAvailable')}</p> : null}
+                  {allServices.length === 0 ? <p className="text-sm text-content-strong">{t('stylists.noServicesAvailable')}</p> : null}
                 </div>
               </div>
             </TabsContent>

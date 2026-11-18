@@ -26,6 +26,13 @@ type DataTableProps<T> = {
   onSortChange?: (sortKey: string) => void
   /** Klase po redu — npr. `opacity-60` za neradne dane ili border između redova. */
   rowClassName?: (row: T) => string | undefined
+  /**
+   * Klik na red — pogodnost za miš/pointer. Tastaturni put do akcije MORA postojati
+   * u akcijskoj ćeliji (WCAG 2.1.1); `<tr>` sam po sebi nije fokusabilan. Klik koji
+   * potiče od interaktivnog potomka (dugme, link, polje, `role="button"`) se
+   * IGNORIŠE, pa stranice ne moraju stopPropagation-ovati u ćelijama.
+   */
+  onRowClick?: (row: T) => void
   /** Dodatne klase na `<table>`, kad stranica već ima ustaljen izgled (npr. `border-collapse`). */
   tableClassName?: string
   /**
@@ -82,6 +89,7 @@ export function DataTable<T>({
   rowClassName,
   tableClassName,
   unsortedIndicator = true,
+  onRowClick,
 }: DataTableProps<T>) {
   const { t } = useTranslation()
   const scrollRegion = useRef<HTMLDivElement>(null)
@@ -156,7 +164,22 @@ export function DataTable<T>({
           {rows.map((row) => (
             <tr
               key={rowKey(row)}
-              className={cn('border-b border-slate-100 dark:border-slate-800/80', rowClassName?.(row))}
+              onClick={
+                onRowClick
+                  ? (event) => {
+                      const target = event.target as HTMLElement | null
+                      // Klik na interaktivni potomak (akcijska ćelija) ne smije
+                      // okidati akciju reda — nema stopPropagation potrebe u stranicama.
+                      if (target?.closest('button, a, input, select, textarea, [role="button"]')) return
+                      onRowClick(row)
+                    }
+                  : undefined
+              }
+              className={cn(
+                'border-b border-slate-100 dark:border-slate-800/80',
+                onRowClick ? 'cursor-pointer hover:bg-surface-muted' : undefined,
+                rowClassName?.(row),
+              )}
             >
               {columns.map((column) => (
                 <td

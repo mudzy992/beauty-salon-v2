@@ -114,6 +114,11 @@ const ALLOWED = {
   'pages/Salon.tsx': {
     rowClassName: 1,
   },
+  // 2026-11-17 (Faza C (9/) pilot): radno vrijeme stiliste je isti obrazac kao Salon —
+  // `opacity-60` za neradne dane (funkcionalni razlog, dokumentiran u DataTable docblocku).
+  'pages/Stylists.tsx': {
+    rowClassName: 1,
+  },
 }
 
 test('nijedan potrošač ne donosi sopstveni stil tabele bez dokumentovanog razloga', () => {

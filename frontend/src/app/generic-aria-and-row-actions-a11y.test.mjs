@@ -161,16 +161,23 @@ test('4.1.2: ClientAnalytics — red tabele nije fokusabilan bez role', () => {
   )
 })
 
-test('konzistentnost: sve tri admin tabele s klikabilnim redom imaju dugme po redu', () => {
+test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu', () => {
+  // 2026-11-17 (Faza C (9/)): Stylists je prešao na djeljenu `DataTable` — klikabilni red
+  // sada se deklariše prop-om `onRowClick` (aplikacija u data-table.tsx ignoriše klikove
+  // s interaktivnih potomaka). Garancija o pristupačnom dugmetu po redu je ISTA.
   const cases = [
-    ['../pages/Reservations.tsx', /reservations\.adminList\.details/],
-    ['../pages/Stylists.tsx', /stylists\.aria\.edit/],
-    ['../pages/ClientAnalytics.tsx', /clientAnalyticsPage\.details/],
-    ['../pages/Reviews.tsx', /reviews\.details/],
+    ['../pages/Reservations.tsx', /reservations\.adminList\.details/, 'raw'],
+    ['../pages/Stylists.tsx', /stylists\.aria\.edit/, 'datatable'],
+    ['../pages/ClientAnalytics.tsx', /clientAnalyticsPage\.details/, 'raw'],
+    ['../pages/Reviews.tsx', /reviews\.details/, 'raw'],
   ]
-  for (const [rel, key] of cases) {
+  for (const [rel, key, kind] of cases) {
     const src = readFileSync(new URL(rel, import.meta.url), 'utf8')
-    assert.match(src, /<tr\b[^>]*onClick/s, `${rel}: očekivan klikabilan red`)
+    if (kind === 'datatable') {
+      assert.match(src, /<DataTable\b[\s\S]*?onRowClick/, `${rel}: očekivan klikabilan red kroz DataTable onRowClick`)
+    } else {
+      assert.match(src, /<tr\b[^>]*onClick/s, `${rel}: očekivan klikabilan red`)
+    }
     assert.match(
       src,
       new RegExp(`<Button[^>]*aria-label=\\{t\\('${key.source}'\\)\\}`.replace(/\\\//g, '/'), 's'),

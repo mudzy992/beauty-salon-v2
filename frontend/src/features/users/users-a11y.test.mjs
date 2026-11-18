@@ -102,11 +102,13 @@ test('Users.tsx ne donosi sopstveni stil tabele (konzistentnost dashboarda)', ()
 })
 
 test('D4 iz plana NIJE prekršaj — Search ikona je dekorativna', () => {
-  // Plan je tvrdio da je text-slate-400 na Users.tsx:952 prekršaj 1.4.3.
+  // Plan je tvrdio da je text-slate-400 na Users.tsx prekršaj 1.4.3.
   // Nije: ikona je aria-hidden i ima tekstualni ekvivalent (placeholder + labela).
+  // 2026-11-17 (Faza C (9/)): text-slate-400 -> text-content-strong (AAA token,
+  // >=7:1); garancija (ikona ostaje aria-hidden dekoracija) je nepromijenjena.
   assert.match(
     source,
-    /<Search className="[^"]*text-slate-400" aria-hidden="true" \/>/,
+    /<Search className="[^"]*text-content-strong" aria-hidden="true" \/>/,
     'Search ikona mora ostati aria-hidden (dekorativna, ne tekst)',
   )
 })
