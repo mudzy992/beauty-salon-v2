@@ -55,7 +55,7 @@ export const StylistStatsPage = () => {
     return (
       <Card className="p-6">
         <p className="text-content font-semibold">{t('stylistPortal.stats.noProfile')}</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.profileNotFound')}</p>
+        <p className="mt-1 text-sm text-content-strong">{t('stylistPortal.stats.profileNotFound')}</p>
       </Card>
     )
   }
@@ -76,7 +76,7 @@ export const StylistStatsPage = () => {
     <div className="space-y-4">
       <div>
         <h1 className="text-lg font-semibold text-content">{t('stylistPortal.stats.title')}</h1>
-        <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.monthRange', { from: formatDateOnly(fromDate, locale), to: formatDateOnly(toDate, locale) })}</p>
+        <p className="text-sm text-content-strong">{t('stylistPortal.stats.monthRange', { from: formatDateOnly(fromDate, locale), to: formatDateOnly(toDate, locale) })}</p>
       </div>
 
       {statsFetching ? (
@@ -87,7 +87,7 @@ export const StylistStatsPage = () => {
 
       {reservationsQuery.isError || dailyLogQuery.isError ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.loadFailed')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.stats.loadFailed')}</p>
           <Button
             type="button"
             variant="outline"
@@ -106,19 +106,19 @@ export const StylistStatsPage = () => {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Card className="p-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.completedReservations')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.stats.completedReservations')}</p>
           <p className="mt-1 text-2xl font-semibold text-content">{formatLocalizedNumber(completedReservations.length, locale, { maximumFractionDigits: 0 })}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.confirmedUpcoming')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.stats.confirmedUpcoming')}</p>
           <p className="mt-1 text-2xl font-semibold text-content">{formatLocalizedNumber(confirmedUpcoming.length, locale, { maximumFractionDigits: 0 })}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.workbookRevenue')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.stats.workbookRevenue')}</p>
           <p className="mt-1 text-2xl font-semibold text-content">{formatLocalizedAmount(totalRevenue, locale)}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.workbookTips')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.stats.workbookTips')}</p>
           <p className="mt-1 text-2xl font-semibold text-content">{formatLocalizedAmount(totalTips, locale)}</p>
         </Card>
       </div>

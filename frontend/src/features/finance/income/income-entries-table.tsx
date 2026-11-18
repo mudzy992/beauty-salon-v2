@@ -181,7 +181,7 @@ export function IncomeEntriesTable({
         sort={{ key: sortField, direction: sortDirection }}
         onSortChange={(key) => onSort(key as IncomeSortField)}
         unsortedIndicator={false}
-        rowClassName={() => 'last:border-0 dark:border-slate-900'}
+        rowClassName={() => 'last:border-0'}
       />
   )
 }

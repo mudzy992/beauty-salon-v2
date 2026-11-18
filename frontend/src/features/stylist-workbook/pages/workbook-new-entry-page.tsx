@@ -296,7 +296,7 @@ export const WorkbookNewEntryForm = ({
     return (
       <Card className="p-6">
         <p className="text-content font-semibold">{t('stylistWorkbook.newEntry.noProfile')}</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistWorkbook.newEntry.profileNotFound')}</p>
+        <p className="mt-1 text-sm text-content-strong">{t('stylistWorkbook.newEntry.profileNotFound')}</p>
         <Button
           type="button"
           variant="outline"
@@ -317,7 +317,7 @@ export const WorkbookNewEntryForm = ({
       {mode === 'page' ? (
         <div className="mb-4">
           <h1 className="text-2xl font-semibold text-content">{t('stylistWorkbook.newEntry.title')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-strong">
             {t('stylistWorkbook.newEntry.pageDescription')}
           </p>
         </div>
@@ -345,7 +345,7 @@ export const WorkbookNewEntryForm = ({
               }}
             />
             {showClientDropdown && filteredClients.length > 0 ? (
-              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
                 {filteredClients.map((c) => (
                   <li key={c.id}>
                     <button
@@ -393,7 +393,7 @@ export const WorkbookNewEntryForm = ({
               }}
             />
             {showServiceDropdown && filteredServices.length > 0 ? (
-              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
                 {filteredServices.map((svc) => (
                   <li key={svc.id}>
                     <button
@@ -418,7 +418,7 @@ export const WorkbookNewEntryForm = ({
               {selectedServices.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+                  className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2 text-sm"
                 >
                   <div className="min-w-0">
                     <div className="font-semibold text-content">{s.name}</div>
@@ -455,7 +455,7 @@ export const WorkbookNewEntryForm = ({
               placeholder={formatLocalizedNumber(chargeAmount, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               onChange={(e) => setPaidAmount(e.target.value)}
             />
-            <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            <div className="mt-2 text-sm text-content-strong">
               {t('stylistWorkbook.newEntry.serviceTotal', { amount: formatKm(basePrice, locale) })}
               {loyaltyPercent > 0 ? ` · ${t('stylistWorkbook.newEntry.loyaltyDiscount', { percent: formatLocalizedNumber(loyaltyPercent, locale, { maximumFractionDigits: 0 }), amount: formatKm(loyaltyDiscountAmount, locale) })}` : ''}
             </div>
@@ -474,7 +474,7 @@ export const WorkbookNewEntryForm = ({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p id={loyaltyLabelId} className="text-sm font-semibold text-content">{t('stylistWorkbook.newEntry.loyalty')}</p>
-              <p role="status" aria-live="polite" className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <p role="status" aria-live="polite" className="mt-1 text-sm text-content-strong">
                 {loadingLoyalty
                   ? t('common.loading')
                   : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
@@ -501,7 +501,7 @@ export const WorkbookNewEntryForm = ({
                   setPaidAmount('')
                 }}
               />
-              <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+              <p className="mt-2 text-xs text-content-strong">
                 {t('stylistWorkbook.newEntry.maxDiscountAmount', { amount: formatKm(Number(loyaltyInfo.service.maxDiscountAmount ?? 0), locale) })}
               </p>
             </div>

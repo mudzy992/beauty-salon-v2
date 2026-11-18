@@ -154,7 +154,7 @@ export function MediaConsentPanel() {
             aria-hidden="true"
           />
           <div>
-            <h2 className="text-lg font-semibold text-slate-950">
+            <h2 className="text-lg font-semibold text-content">
               {t('mediaConsent.title')}
             </h2>
             <p className="mt-1 text-sm text-content-strong">

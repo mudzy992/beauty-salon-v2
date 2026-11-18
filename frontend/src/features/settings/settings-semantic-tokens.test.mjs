@@ -48,7 +48,8 @@ test('aktivno stanje navigacije koristi brand tokene', () => {
   const nav = read('./settings-tab-nav.tsx')
   assert.match(nav, /border-brand-rose-ring bg-nav-active/)
   assert.match(nav, /bg-brand-rose text-on-primary/)
-  assert.match(nav, /isActive \? 'text-brand-rose-text' : 'text-slate-800'/)
+  // 2026-11-18 (Faza C): text-slate-800 → text-content (token).
+  assert.match(nav, /isActive \? 'text-brand-rose-text' : 'text-content'/)
   // nav mora imati ime; aria-current se postavlja eksplicitno jer <Link> ne
   // zna za ?tab= (NavLink gleda samo pathname)
   assert.match(nav, /<nav\s+aria-label=\{t\('adminSettings\.navigationLabel'\)\}/)

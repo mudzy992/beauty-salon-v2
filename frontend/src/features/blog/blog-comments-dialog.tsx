@@ -43,18 +43,18 @@ export function BlogCommentsDialog({
           <DialogTitle>{t('blog.admin.commentsForPost', { title })}</DialogTitle>
         </DialogHeader>
         {loading ? (
-          <div className="flex justify-center p-10 text-slate-500">
+          <div className="flex justify-center p-10 text-content-strong">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </div>
         ) : loadError ? (
-          <div role="alert" className="text-sm text-slate-600">
+          <div role="alert" className="text-sm text-content-strong">
             <p>{t('blog.admin.commentLoadFailed')}</p>
             <Button type="button" variant="outline" className="mt-3" onClick={onRetry}>
               {t('common.retry')}
             </Button>
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-sm text-slate-500">{t('blog.admin.noComments')}</p>
+          <p className="text-sm text-content-strong">{t('blog.admin.noComments')}</p>
         ) : (
           <div className="space-y-3">
             {comments.map((c) => (
@@ -63,7 +63,7 @@ export function BlogCommentsDialog({
                 className={[
                   'rounded-md border p-3',
                   c.isApproved
-                    ? 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'
+                    ? 'border-line bg-white'
                     : 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20',
                 ].join(' ')}
               >
@@ -80,7 +80,7 @@ export function BlogCommentsDialog({
                       </Badge>
                     </div>
                     <p className="text-sm text-content">{c.content}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-content-strong">
                       {new Intl.DateTimeFormat(i18n.language, {
                         dateStyle: 'medium',
                         timeStyle: 'short',

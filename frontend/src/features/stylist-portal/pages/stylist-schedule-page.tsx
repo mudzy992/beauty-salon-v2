@@ -106,7 +106,7 @@ export const StylistSchedulePage = () => {
     return (
       <Card className="p-6">
         <p className="text-content font-semibold">{t('stylistPortal.schedule.noProfile')}</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.profileNotFound')}</p>
+        <p className="mt-1 text-sm text-content-strong">{t('stylistPortal.schedule.profileNotFound')}</p>
       </Card>
     )
   }
@@ -118,7 +118,7 @@ export const StylistSchedulePage = () => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-content">{t('stylistPortal.schedule.title')}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-content-strong">
             {t('stylistPortal.schedule.range', { from: formatDate(scheduleWindow.fromDate, locale), to: formatDate(scheduleWindow.toDate, locale) })}
           </p>
         </div>
@@ -144,7 +144,7 @@ export const StylistSchedulePage = () => {
 
       {error ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.loadFailed')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.schedule.loadFailed')}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
             {t('common.retry')}
           </Button>
@@ -154,14 +154,14 @@ export const StylistSchedulePage = () => {
       {empty ? (
         <Card className="p-6">
           <p className="font-semibold text-content">{t('stylistPortal.schedule.emptyTitle')}</p>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.emptyDescription')}</p>
+          <p className="mt-1 text-sm text-content-strong">{t('stylistPortal.schedule.emptyDescription')}</p>
         </Card>
       ) : null}
 
       <div className="space-y-4">
         {sections.map((section) => (
           <div key={section.title} className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{section.title}</h2>
+            <h2 className="text-sm font-semibold text-content-strong">{section.title}</h2>
             <div className="grid gap-3">
               {section.data.map((r) => {
                 const detailHref = `/stylist/schedule/${r.id}`
@@ -176,7 +176,7 @@ export const StylistSchedulePage = () => {
                             {r.service?.name ?? t('stylistWorkbook.serviceFallback')}
                           </p>
                         </Link>
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        <p className="mt-1 text-sm text-content-strong">
                           {formatTime(r.startTime)} – {formatTime(r.endTime)}
                           {r.client ? ` · ${r.client.firstName} ${r.client.lastName}` : ''}
                         </p>

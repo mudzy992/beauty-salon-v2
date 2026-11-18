@@ -200,7 +200,7 @@ export function ExpenseTable({
           sort={{ key: sortField, direction: sortDirection }}
           onSortChange={(key) => onSort(key as ExpenseSortField)}
           unsortedIndicator={false}
-          rowClassName={() => 'last:border-0 dark:border-slate-900'}
+          rowClassName={() => 'last:border-0'}
         />
 
       <ExpenseInvoicePreview

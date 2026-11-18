@@ -91,7 +91,7 @@ export const AdminUserMenu = ({
         className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
         onClick={onOpenMobileNav}
       >
-        <Avatar className="h-9 w-9 ring-1 ring-slate-200">
+        <Avatar className="h-9 w-9 ring-1 ring-line">
           {avatarSrc ? (
             <AvatarImage
               src={avatarSrc}
@@ -112,7 +112,7 @@ export const AdminUserMenu = ({
             aria-label={labelWithVisibleText(t('shell.adminMenu'), initials)}
             className="hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:inline-flex"
           >
-            <Avatar className="h-9 w-9 ring-1 ring-slate-200">
+            <Avatar className="h-9 w-9 ring-1 ring-line">
               {avatarSrc ? (
                 <AvatarImage
                   src={avatarSrc}
@@ -129,7 +129,7 @@ export const AdminUserMenu = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent data-admin-user-menu align="end" className="w-[318px] max-w-[calc(100vw-2rem)] p-3">
           <div className="mt-4 flex min-w-0 items-center gap-3">
-            <Avatar className="h-11 w-11 shrink-0 ring-1 ring-slate-200">
+            <Avatar className="h-11 w-11 shrink-0 ring-1 ring-line">
               {avatarSrc ? (
                 <AvatarImage
                   src={avatarSrc}

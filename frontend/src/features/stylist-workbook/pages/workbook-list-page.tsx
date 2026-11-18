@@ -63,7 +63,7 @@ export const WorkbookListPage = () => {
   if (profileError && !profileNotFound) {
     return (
       <Card className="p-6" role="alert">
-        <p className="text-slate-600 dark:text-slate-300">{t('stylistWorkbook.profileLoadFailed')}</p>
+        <p className="text-content-strong">{t('stylistWorkbook.profileLoadFailed')}</p>
         <Button type="button" variant="outline" className="mt-3" onClick={() => void refetchProfile()}>
           {t('common.retry')}
         </Button>
@@ -75,7 +75,7 @@ export const WorkbookListPage = () => {
     return (
       <Card className="p-6">
         <p className="text-content font-semibold">{t('stylistWorkbook.noProfile')}</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        <p className="mt-1 text-sm text-content-strong">
           {t('stylistWorkbook.profileNotFound')}
         </p>
       </Card>
@@ -89,7 +89,7 @@ export const WorkbookListPage = () => {
           <h1 className="text-2xl font-semibold text-content">
             {t('stylistWorkbook.title')}
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-strong">
             {t('stylistWorkbook.period', {
               from: formatDateOnlyLocale(fromDate, locale),
               to: formatDateOnlyLocale(toDate, locale),
@@ -127,7 +127,7 @@ export const WorkbookListPage = () => {
         </div>
       ) : entriesError ? (
         <Card className="p-6 text-center" role="alert">
-          <p className="text-slate-600 dark:text-slate-300">{t('stylistWorkbook.entriesLoadFailed')}</p>
+          <p className="text-content-strong">{t('stylistWorkbook.entriesLoadFailed')}</p>
           <Button
             type="button"
             variant="outline"
@@ -144,7 +144,7 @@ export const WorkbookListPage = () => {
           <p className="text-content font-semibold">
             {t('stylistWorkbook.noEntries')}
           </p>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-strong">
             {t('stylistWorkbook.noEntriesDescription')}
           </p>
           <div className="mt-4">
@@ -179,7 +179,7 @@ export const WorkbookListPage = () => {
                               {item.publicReferenceCode ??
                                 getServicesLabel(item, t('stylistWorkbook.serviceFallback'))}
                             </div>
-                            <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            <div className="mt-1 text-sm text-content-strong">
                               {item.date?.slice(0, 10)
                                 ? formatDateOnlyLocale(item.date.slice(0, 10), locale)
                                 : '—'}{' '}

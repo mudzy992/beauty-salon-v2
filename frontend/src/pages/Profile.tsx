@@ -452,12 +452,12 @@ export default function Profile() {
 
   return (
     <div data-aurum-page="profile" className={`mx-auto max-w-4xl px-4 py-8 sm:py-10 space-y-6 ${isAurum ? publicAurum.page : ''}`}>
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+      <h1 className="text-2xl font-semibold tracking-tight text-content">
         {t('profile.title')}
       </h1>
 
       {loading ? (
-        <div role="status" aria-live="polite" className="text-slate-600">
+        <div role="status" aria-live="polite" className="text-content-strong">
           {t('common.loading')}
         </div>
       ) : profile ? (
@@ -478,15 +478,15 @@ export default function Profile() {
                   </Avatar>
 
                   <div className="space-y-1">
-                    <div className="font-semibold text-slate-900">
+                    <div className="font-semibold text-content">
                       {[firstName, lastName].filter(Boolean).join(' ') || username}
                     </div>
-                    <div className="text-slate-600 text-sm">@{username}</div>
+                    <div className="text-content-strong text-sm">@{username}</div>
                     <div className="flex flex-wrap gap-2">
                       {profile.roles.map((role) => (
                         <span
                           key={role}
-                          className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700"
+                          className="inline-flex items-center rounded-full border border-line bg-surface-sunken px-2 py-0.5 text-xs font-semibold text-content-strong"
                         >
                           {t(`users.roleNames.${role}`, { defaultValue: role })}
                         </span>
@@ -537,7 +537,7 @@ export default function Profile() {
                       {t('profile.avatar.uploading')}
                     </span>
                   ) : null}
-                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-800">
+                  <label className="mt-2 flex items-center gap-2 text-sm text-content">
                     <input
                       type="checkbox"
                       checked={isAvatarPublic}
@@ -565,10 +565,10 @@ export default function Profile() {
                       {t('common.saving')}
                     </span>
                   ) : null}
-                  <p className="max-w-xs text-right text-xs leading-5 text-slate-500">
+                  <p className="max-w-xs text-right text-xs leading-5 text-content-strong">
                     {t('profile.avatar.privacyDescription')}
                   </p>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-content-strong">
                     {t('profile.createdAt', {
                       date: formatInstantDateLocale(
                         profile.createdAt,
@@ -604,7 +604,7 @@ export default function Profile() {
                     />
 
                     {usernameStatus.loading ? (
-                      <div role="status" aria-live="polite" className="text-xs text-slate-500">
+                      <div role="status" aria-live="polite" className="text-xs text-content-strong">
                         {t('profile.username.checking')}
                       </div>
                     ) : null}
@@ -735,7 +735,7 @@ export default function Profile() {
 
                   {!profile?.isEmailVerified ? (
                     <div className="mt-3 space-y-2">
-                      <div className="text-sm text-slate-600">
+                      <div className="text-sm text-content-strong">
                         {t('profile.email.verificationHint')}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
@@ -831,7 +831,7 @@ export default function Profile() {
       ) : (
         <Card data-aurum-surface>
           <CardContent className="flex flex-col items-start gap-3 p-6">
-            <p role="alert" className="text-sm text-slate-700">
+            <p role="alert" className="text-sm text-content-strong">
               {t(profileLoadErrorKey)}
             </p>
             <Button type="button" variant="outline" onClick={() => void loadProfile()}>

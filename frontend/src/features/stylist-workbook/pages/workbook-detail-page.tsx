@@ -171,7 +171,7 @@ export const WorkbookDetailPage = () => {
           <h1 className="text-2xl font-semibold text-content truncate">
             {entry.publicReferenceCode ?? entry.id.slice(0, 8).toUpperCase()}
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-strong">
             {entry.date?.slice(0, 10)
               ? formatDateOnlyLocale(entry.date.slice(0, 10), locale)
               : '—'}{' '}
@@ -216,7 +216,7 @@ export const WorkbookDetailPage = () => {
                 ).map((it) => (
                   <li
                     key={it.serviceId}
-                    className="flex justify-between text-sm text-slate-700 dark:text-slate-200"
+                    className="flex justify-between text-sm text-content-strong"
                   >
                     <span>{it.service?.name ?? t('stylistWorkbook.serviceFallback')}</span>
                     <span>{formatKm(Number(it.unitPrice ?? 0), i18n.language)}</span>
@@ -233,7 +233,7 @@ export const WorkbookDetailPage = () => {
                   {entry.debtPaymentEntries!.map((dp) => (
                     <li
                       key={dp.id}
-                      className="flex justify-between text-sm text-slate-700 dark:text-slate-200"
+                      className="flex justify-between text-sm text-content-strong"
                     >
                       <span>
                         {dp.debt?.service?.name ??
@@ -249,7 +249,7 @@ export const WorkbookDetailPage = () => {
                 </ul>
               </div>
             ) : null}
-            <div className="text-sm text-slate-600 dark:text-slate-300">
+            <div className="text-sm text-content-strong">
               {t('stylistWorkbook.detail.client')}
               <span className="font-medium text-content">
                 {entry.client
@@ -259,7 +259,7 @@ export const WorkbookDetailPage = () => {
                   : '—'}
               </span>
             </div>
-            <div className="text-sm text-slate-600 dark:text-slate-300">
+            <div className="text-sm text-content-strong">
               {t('stylistWorkbook.detail.totalCollected')}
               <span className="font-semibold text-content">
                 {formatKm(getCollectedTotal(entry), i18n.language)}
@@ -281,7 +281,7 @@ export const WorkbookDetailPage = () => {
               </span>
             </div>
             {entry.notes ? (
-              <div className="text-sm text-slate-600 dark:text-slate-300">
+              <div className="text-sm text-content-strong">
                 {t('stylistWorkbook.detail.notes')}:{' '}
                 <span className="text-content">{entry.notes}</span>
               </div>
@@ -324,7 +324,7 @@ export const WorkbookDetailPage = () => {
               <p className="text-base font-semibold text-content">
                 {t('stylistWorkbook.detail.beforeAfter')}
               </p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <p className="mt-1 text-sm text-content-strong">
                 {t('stylistWorkbook.detail.beforeAfterHint')}
               </p>
             </div>
@@ -341,7 +341,7 @@ export const WorkbookDetailPage = () => {
                       key={img.id}
                       src={uri}
                       alt={t('stylistWorkbook.detail.before')}
-                      className="h-20 w-20 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-800"
+                      className="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
                       loading="lazy"
                     />
                   )
@@ -361,7 +361,7 @@ export const WorkbookDetailPage = () => {
                       key={img.id}
                       src={uri}
                       alt={t('stylistWorkbook.detail.after')}
-                      className="h-20 w-20 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-800"
+                      className="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
                       loading="lazy"
                     />
                   )

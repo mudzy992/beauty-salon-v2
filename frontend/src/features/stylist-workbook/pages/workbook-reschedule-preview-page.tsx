@@ -135,7 +135,7 @@ export const WorkbookReschedulePreviewPage = () => {
   if (proposalLoadError) {
     return (
       <Card className="p-5" role="alert">
-        <p className="text-slate-700 dark:text-slate-200">
+        <p className="text-content-strong">
           {t('stylistWorkbook.reschedule.previewLoadFailed')}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -157,7 +157,7 @@ export const WorkbookReschedulePreviewPage = () => {
           <h1 className="text-2xl font-semibold text-content">
             {t('stylistWorkbook.reschedule.title')}
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-strong">
             {t('stylistWorkbook.reschedule.summary', {
               delay: formatLocalizedNumber(
                 proposal?.overrunMinutes ?? proposal?.delayMinutes ?? 0,
@@ -222,12 +222,12 @@ export const WorkbookReschedulePreviewPage = () => {
             </div>
           ) : null}
 
-          <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-line p-4">
             <div>
               <p className="text-sm font-semibold text-content">
                 {t('stylistWorkbook.reschedule.includeFutureBreaks')}
               </p>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <p className="mt-1 text-sm text-content-strong">
                 {t('stylistWorkbook.reschedule.breaksDescription')}
               </p>
             </div>
@@ -239,8 +239,8 @@ export const WorkbookReschedulePreviewPage = () => {
               className={cn(
                 'h-6 w-11 rounded-full border transition-colors flex items-center px-0.5',
                 includeBreaks
-                  ? 'bg-slate-900 border-slate-900 dark:bg-slate-50 dark:border-slate-50'
-                  : 'bg-slate-200 border-slate-200 dark:bg-slate-800 dark:border-slate-800',
+                  ? 'bg-surface-inverse border-surface-inverse'
+                  : 'bg-surface-muted border-line',
               )}
               onClick={() => setIncludeBreaks((v) => !v)}
               disabled={submitting}
@@ -273,7 +273,7 @@ export const WorkbookReschedulePreviewPage = () => {
           <p className="text-base font-semibold text-content">
             {t('stylistWorkbook.reschedule.noChanges')}
           </p>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-2 text-sm text-content-strong">
             {mode === 'use_break_only'
               ? t('stylistWorkbook.reschedule.breakOnlyDescription')
               : t('stylistWorkbook.reschedule.noMovableAppointments')}
@@ -303,7 +303,7 @@ export const WorkbookReschedulePreviewPage = () => {
               <p className="text-sm font-semibold text-content">
                 {it.serviceName || t('stylistWorkbook.serviceFallback')} {it.clientName ? `· ${it.clientName}` : ''}
               </p>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              <p className="mt-2 text-sm text-content-strong">
                 {it.oldStartTime}–{it.oldEndTime} → {it.newStartTime}–{it.newEndTime}
               </p>
               <p className="mt-2 text-xs text-content-muted">

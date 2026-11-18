@@ -178,7 +178,7 @@ export function CategoryFieldsEditor({
           {draftFields.map((field, index) => (
             <li
               key={`${field.fieldName}-${index}`}
-              className="flex items-center justify-between gap-2 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700"
+              className="flex items-center justify-between gap-2 rounded-md border border-dashed border-control-border px-2 py-1.5 text-sm"
             >
               <span className="flex flex-wrap items-center gap-2">
                 {field.fieldName}

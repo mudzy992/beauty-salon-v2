@@ -679,11 +679,11 @@ export default function Services() {
                       {cat.subcategories.map((sub) => (
                         <div
                           key={sub.id}
-                          className="rounded-md border-l-4 border-l-brand-gold bg-surface-muted p-4 dark:bg-slate-900/40"
+                          className="rounded-md border-l-4 border-l-brand-gold bg-surface-muted p-4"
                         >
                           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold text-content dark:text-slate-100">
+                              <p className="font-semibold text-content">
                                 {sub.name}
                               </p>
                               <Badge
@@ -1094,7 +1094,7 @@ export default function Services() {
                   type="button"
                   aria-pressed={deletionAction === 'DELETE_LINKED_RECORDS'}
                   onClick={() => selectDeletionAction('DELETE_LINKED_RECORDS')}
-                  className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'DELETE_LINKED_RECORDS' ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/30' : 'border-line dark:border-slate-700'}`}
+                  className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'DELETE_LINKED_RECORDS' ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/30' : 'border-line'}`}
                 >
                   <span className="block text-sm font-semibold text-rose-700 dark:text-rose-300">
                     {t('services.deletion.deleteMode')}
@@ -1107,7 +1107,7 @@ export default function Services() {
                   type="button"
                   aria-pressed={deletionAction === 'MERGE'}
                   onClick={() => selectDeletionAction('MERGE')}
-                  className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'MERGE' ? 'border-brand-gold-ring bg-amber-50 dark:bg-amber-950/20' : 'border-line dark:border-slate-700'}`}
+                  className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'MERGE' ? 'border-brand-gold-ring bg-amber-50 dark:bg-amber-950/20' : 'border-line'}`}
                 >
                   <span className="block text-sm font-semibold text-content">
                     {t('services.deletion.mergeMode')}
@@ -1151,7 +1151,7 @@ export default function Services() {
                 <div
                   role="status"
                   aria-live="polite"
-                  className="rounded-xl border border-line p-4 text-sm text-content-strong dark:border-slate-700 "
+                  className="rounded-xl border border-line p-4 text-sm text-content-strong "
                 >
                   <Loader2
                     className="mr-2 inline h-4 w-4 animate-spin"
@@ -1185,7 +1185,7 @@ export default function Services() {
               ) : deletionImpact ? (
                 <section
                   aria-labelledby="service-deletion-impact-title"
-                  className="space-y-3 rounded-xl border border-line p-4 dark:border-slate-700"
+                  className="space-y-3 rounded-xl border border-line p-4"
                 >
                   <h3
                     id="service-deletion-impact-title"
@@ -1300,7 +1300,7 @@ export default function Services() {
                     </div>
                   </dl>
 
-                  <div className="rounded-lg bg-surface-muted p-3 text-sm dark:bg-slate-900">
+                  <div className="rounded-lg bg-surface-muted p-3 text-sm">
                     <p>
                       {t(
                         deletionAction === 'MERGE'

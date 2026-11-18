@@ -921,11 +921,11 @@ export default function EmailSettings() {
                     nikakvo ime, pa ga je AT najavio kao „edit, prazno". Sada je vidljivi
                     tekst ime GRUPE (role="group" + aria-labelledby), a svako polje ima
                     svoje. Vizuelno identično: <span> nosi iste razrede koje Label ima
-                    u osnovi (text-sm font-medium leading-none text-content-strong dark:text-slate-200). */}
+                    u osnovi (text-sm font-medium leading-none text-content-strong). */}
                 <div role="group" aria-labelledby="email-smtp-limits-label">
                   <span
                     id="email-smtp-limits-label"
-                    className="text-sm font-medium leading-none text-content-strong dark:text-slate-200"
+                    className="text-sm font-medium leading-none text-content-strong"
                   >
                     {t('emailSettings.smtp.maxConnectionsAndMessages')}
                   </span>
@@ -1185,12 +1185,12 @@ export default function EmailSettings() {
                   )}
 
                   <div>
-                    <p id="email-campaign-html-preview-source" className="text-sm font-medium leading-none text-content-strong dark:text-slate-200">
+                    <p id="email-campaign-html-preview-source" className="text-sm font-medium leading-none text-content-strong">
                       {t('emailSettings.campaigns.htmlPreviewSource')}
                     </p>
                     <pre
                       aria-labelledby="email-campaign-html-preview-source"
-                      className="mt-1 max-h-[280px] overflow-auto rounded-md border border-line bg-surface-muted p-3 text-xs text-content  dark:bg-slate-900/40 dark:text-slate-100">
+                      className="mt-1 max-h-[280px] overflow-auto rounded-md border border-line bg-surface-muted p-3 text-xs text-content ">
                       {(campaignMode === 'builder'
                         ? renderCampaignHtml(selectedCampaign.blocks ?? [])
                         : selectedCampaign.html
@@ -1328,7 +1328,7 @@ export default function EmailSettings() {
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-valuenow={percent}
-                            className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                            className="h-2 overflow-hidden rounded-full bg-surface-muted"
                           >
                             <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${percent}%` }} />
                           </div>

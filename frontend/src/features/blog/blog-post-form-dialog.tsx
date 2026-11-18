@@ -82,7 +82,7 @@ export function BlogPostFormDialog({
               onChange={(e) => onChange({ slug: e.target.value })}
               placeholder={t('blog.admin.slugPlaceholder')}
             />
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-content-strong">
               {t('blog.admin.publicUrl', { slug: form.slug || 'slug' })}
             </p>
           </div>
@@ -114,10 +114,10 @@ export function BlogPostFormDialog({
               stranica mogla izdati kao `lang` na naslovu i sadržaju. */}
           <div className="space-y-2">
             <Label htmlFor="blog-language">{t('blog.admin.language')}</Label>
-            <p className="text-xs text-slate-500">{t('blog.admin.languageHelp')}</p>
+            <p className="text-xs text-content-strong">{t('blog.admin.languageHelp')}</p>
             <Select
               id="blog-language"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
               value={form.language}
               onChange={(e) => onChange({ language: e.target.value as BlogPostFormValues['language'] })}
             >
@@ -130,13 +130,13 @@ export function BlogPostFormDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="blog-content">{t('blog.content')}</Label>
-            <p className="text-xs text-slate-500">{t('blog.admin.contentHelp')}</p>
+            <p className="text-xs text-content-strong">{t('blog.admin.contentHelp')}</p>
             <Textarea id="blog-content" rows={10} value={form.content} onChange={(e) => onChange({ content: e.target.value })} />
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3">
             <div className="space-y-0.5">
               <p className="text-sm font-medium text-content">{t('blog.published')}</p>
-              <p className="text-xs text-slate-500">{t('blog.admin.publishedHint')}</p>
+              <p className="text-xs text-content-strong">{t('blog.admin.publishedHint')}</p>
             </div>
             <Switch aria-label={t('blog.published')} checked={form.isPublished} onCheckedChange={(isPublished) => onChange({ isPublished })} />
           </div>
@@ -174,7 +174,7 @@ function ImageUpload({
   const hintId = useId()
   return (
     <div role="group" aria-labelledby={labelId} className="space-y-2">
-      <p id={labelId} className="text-sm font-medium leading-none text-slate-700 dark:text-slate-200">
+      <p id={labelId} className="text-sm font-medium leading-none text-content-strong">
         {label}
       </p>
       <MediaImage src={value ? getUploadUrl(value) : ''} alt={label} className="h-[120px] w-full rounded-md object-cover" />
@@ -206,7 +206,7 @@ function ImageUpload({
             : t('blog.admin.uploadImage')}
       </Button>
       {hint ? (
-        <p id={hintId} className="text-xs text-slate-500">
+        <p id={hintId} className="text-xs text-content-strong">
           {hint}
         </p>
       ) : null}

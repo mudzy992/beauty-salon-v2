@@ -66,10 +66,10 @@ export const ReservationDetailActions = ({
         <p className="font-semibold text-content">
           {t('stylistPortal.reservationDetail.actionsUnavailable')}
         </p>
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-content-strong">
           {t('stylistPortal.reservationDetail.actionsUnavailableDescription')}
         </p>
-        <div className="space-y-1 rounded-md border border-slate-200 p-3 text-xs text-slate-700 dark:border-slate-800 dark:text-slate-200">
+        <div className="space-y-1 rounded-md border border-line p-3 text-xs text-content-strong">
           <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.status')}:</span> {t(getReservationStatusTranslationKey(reservation.status, reservation.cancelReason), { defaultValue: reservation.status })}</div>
           <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.profileId')}:</span> {profileId ?? t('stylistPortal.reservationDetail.diagnostics.notSet')}</div>
           <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.confirmedStylistId')}:</span> {reservation.confirmedStylistId ?? t('stylistPortal.reservationDetail.diagnostics.notSet')}</div>

@@ -112,8 +112,9 @@ test('prvi loader u new-entry ima role="status" + aria-live + tekst', () => {
   const block = src.slice(i, i + 400)
   assert.match(block, /<Loader2[^>]*aria-hidden="true" \/>/)
   assert.match(block, /<span className="text-sm text-content-muted">\{t\('common\.loading'\)\}<\/span>/)
-  // loyalty status poruka (sadrzaj se mijenja: loading -> summary/unavailable)
-  assert.match(src, /<p role="status" aria-live="polite" className="mt-1 text-sm text-slate-600 dark:text-slate-300">/)
+  // status poruka (sadrzaj se mijenja: loading -> summary/unavailable)
+  // 2026-11-18 (Faza C): text-slate-600 dark:text-slate-300 → text-content-strong (AAA token).
+  assert.match(src, /<p role="status" aria-live="polite" className="mt-1 text-sm text-content-strong">/)
   // status kontejner ne smije biti skriven od AT-a (aria-hidden smije biti samo na ikoni)
   const container = src.slice(src.lastIndexOf('<div', i), i)
   assert.doesNotMatch(container, /aria-hidden/)

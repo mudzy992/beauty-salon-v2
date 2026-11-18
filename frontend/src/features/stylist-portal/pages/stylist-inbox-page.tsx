@@ -64,7 +64,7 @@ export const StylistInboxPage = () => {
     return (
       <Card className="p-6">
         <p className="text-content font-semibold">{t('stylistPortal.inbox.noProfile')}</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.inbox.profileNotFound')}</p>
+        <p className="mt-1 text-sm text-content-strong">{t('stylistPortal.inbox.profileNotFound')}</p>
       </Card>
     )
   }
@@ -154,7 +154,7 @@ export const StylistInboxPage = () => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-content">{t('stylistPortal.inbox.title')}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-content-strong">
             {t('stylistPortal.inbox.description')}
           </p>
         </div>
@@ -177,7 +177,7 @@ export const StylistInboxPage = () => {
 
       {error ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.inbox.loadFailed')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.inbox.loadFailed')}</p>
           <Button type="button" variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
             {t('common.retry')}
           </Button>
@@ -187,7 +187,7 @@ export const StylistInboxPage = () => {
       {empty ? (
         <Card className="p-6">
           <p className="font-semibold text-content">{t('stylistPortal.inbox.noRequests')}</p>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-1 text-sm text-content-strong">
             {t('stylistPortal.inbox.noRequestsDescription')}
           </p>
         </Card>
@@ -226,7 +226,7 @@ export const StylistInboxPage = () => {
                   <p className="font-semibold text-content truncate">
                     {r.service?.name ?? t('stylistWorkbook.serviceFallback')}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  <p className="mt-1 text-sm text-content-strong">
                     {formatDate(r.reservationDate, locale)} · {formatTime(r.startTime)}
                   </p>
                 </div>
@@ -237,7 +237,7 @@ export const StylistInboxPage = () => {
 
               {r.client ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <p className="text-sm text-content-strong">
                     {r.client.firstName} {r.client.lastName}
                   </p>
                   {count > 0 ? <Badge variant="warning">{t('stylistPortal.inbox.cancellationCount', { formattedCount: new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(count) })}</Badge> : null}
@@ -246,7 +246,7 @@ export const StylistInboxPage = () => {
               ) : null}
 
               {r.clientNotes ? (
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{r.clientNotes}</p>
+                <p className="mt-2 text-sm text-content-strong line-clamp-2">{r.clientNotes}</p>
               ) : null}
 
               {acting ? (

@@ -149,13 +149,13 @@ export const CompleteReservationDialog = ({
             onChange={(event) => setActualPrice(event.target.value)}
             inputMode="decimal"
           />
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-content-strong">
             {t('stylistPortal.reservationDialogs.complete.chargeAmount', {
               amount: formatLocalizedAmount(chargeAmount, i18n.language),
             })}
           </p>
           {tipAmount > 0 ? (
-            <p className="text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-sm text-content-strong">
               {t('stylistPortal.reservationDialogs.complete.tipAmount', {
                 amount: formatLocalizedAmount(tipAmount, i18n.language),
               })}
@@ -188,7 +188,7 @@ export const CompleteReservationDialog = ({
           }
         />
         {reservation.payDebtsIntent && debts.length > 0 ? (
-          <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
+          <label className="flex items-start gap-2 text-sm text-content-strong">
             <input
               type="checkbox"
               className="mt-1"

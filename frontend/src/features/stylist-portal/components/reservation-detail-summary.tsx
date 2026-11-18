@@ -36,7 +36,7 @@ export const ReservationDetailSummary = ({
           <h1 className="text-lg font-semibold text-content">
             {t('stylistPortal.reservationDetail.title')}
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-content-strong">
             <Link to="/stylist/schedule" className="underline underline-offset-2">
               {t('stylistPortal.schedule.title')}
             </Link>{' '}
@@ -53,7 +53,7 @@ export const ReservationDetailSummary = ({
             <p className="truncate font-semibold text-content">
               {reservation.service?.name ?? t('stylistPortal.reservationDetail.serviceFallback')}
             </p>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            <p className="mt-1 text-sm text-content-strong">
               {formatReservationDate(reservation.reservationDate, locale)} ·{' '}
               {formatReservationTime(reservation.startTime)} –{' '}
               {formatReservationTime(reservation.endTime)}
@@ -64,20 +64,20 @@ export const ReservationDetailSummary = ({
           </Badge>
         </div>
         <div className="mt-3 grid gap-2">
-          <p className="text-sm text-slate-700 dark:text-slate-200">
+          <p className="text-sm text-content-strong">
             <span className="font-semibold">{t('reservations.client')}:</span>{' '}
             {reservation.client
               ? `${reservation.client.firstName} ${reservation.client.lastName}`
               : '—'}
           </p>
-          <p className="text-sm text-slate-700 dark:text-slate-200">
+          <p className="text-sm text-content-strong">
             <span className="font-semibold">{t('stylistPortal.reservationDetail.loyalty')}:</span>{' '}
             {loyaltyPercent > 0
               ? `${formatLocalizedNumber(loyaltyPercent, i18n.language)}% (${formatLocalizedAmount(loyaltyAmount, i18n.language)})`
               : '—'}
           </p>
           {reservation.clientNotes ? (
-            <p className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
+            <p className="whitespace-pre-wrap text-sm text-content-strong">
               {reservation.clientNotes}
             </p>
           ) : null}

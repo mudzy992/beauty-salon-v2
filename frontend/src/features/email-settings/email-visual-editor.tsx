@@ -97,7 +97,7 @@ export function EmailVisualEditor({
         <h3 id={headingId} className="text-lg font-semibold text-content">
           {t('emailSettings.templates.visualEditorHeading')}
         </h3>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+        <p className="mt-1 text-sm text-content-strong">
           {t('emailSettings.templates.visualEditorDescription')}
         </p>
       </div>
@@ -123,7 +123,7 @@ export function EmailVisualEditor({
               </Button>
             ))}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-content-strong">
             {t('emailSettings.campaigns.dragHint')}
           </p>
 
@@ -135,7 +135,7 @@ export function EmailVisualEditor({
                 onDragStart={(event) => event.dataTransfer.setData('text/plain', block.id)}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => handleDrop(event, block.id)}
-                className="border border-slate-200 p-4 dark:border-slate-800"
+                className="border border-line p-4"
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <Badge variant="secondary" className="text-[10px]">
@@ -205,7 +205,7 @@ export function EmailVisualEditor({
                     />
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <p className="text-sm text-content-strong">
                     {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
                   </p>
                 )}
@@ -235,7 +235,7 @@ export function EmailVisualEditor({
             <h4 className="font-semibold text-content">
               {t('emailSettings.templates.previewHeading')}
             </h4>
-            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs leading-5 text-content-strong">
               {t('emailSettings.templates.previewSampleNote')}
             </p>
           </div>
@@ -267,7 +267,7 @@ export function EmailVisualEditor({
                   return <div key={block.id} aria-hidden="true" className="h-6" />
                 })}
                 {showVerificationCode ? (
-                  <div className="inline-flex rounded-lg bg-slate-100 px-5 py-3 font-mono text-xl font-bold tracking-[0.3em] text-slate-900">
+                  <div className="inline-flex rounded-lg bg-surface-muted px-5 py-3 font-mono text-xl font-bold tracking-[0.3em] text-content">
                     123456
                   </div>
                 ) : null}

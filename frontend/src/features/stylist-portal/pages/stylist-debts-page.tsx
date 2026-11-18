@@ -98,7 +98,7 @@ export const StylistDebtsPage = () => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-content">{t('stylistPortal.debts.title')}</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.description')}</p>
+          <p className="text-sm text-content-strong">{t('stylistPortal.debts.description')}</p>
         </div>
         <div className="text-right">
           <div className="text-xs text-content-muted">{t('stylistPortal.debts.total')}</div>
@@ -118,7 +118,7 @@ export const StylistDebtsPage = () => {
           </div>
         ) : query.isError ? (
           <div className="flex flex-wrap items-center justify-between gap-2" role="alert">
-            <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.loadFailed')}</p>
+            <p className="text-sm text-content-strong">{t('stylistPortal.debts.loadFailed')}</p>
             <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>
               {t('common.retry')}
             </Button>
@@ -138,10 +138,10 @@ export const StylistDebtsPage = () => {
                       ? t('stylistPortal.debts.manualEntryReference', { date: formatDateOnly(d.manualEntry.date, locale) })
                       : '—'
               return (
-                <div key={d.id} className="rounded-md border border-slate-200 dark:border-slate-800 p-3 flex items-start justify-between gap-3">
+                <div key={d.id} className="rounded-md border border-line p-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-semibold text-content truncate">{clientName}</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                    <div className="text-xs text-content-strong mt-0.5">
                       {d.service?.name ? `${d.service.name} · ` : ''}
                       {ref}
                     </div>

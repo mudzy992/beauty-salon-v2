@@ -390,7 +390,7 @@ export default function Gallery() {
                         : undefined
                     return (
                       <div key={img.id} className="group overflow-hidden rounded-lg border border-line ">
-                        <div className="relative aspect-[4/3] bg-surface-muted dark:bg-slate-900/40">
+                        <div className="relative aspect-[4/3] bg-surface-muted ">
                           <MediaImage src={src} alt={img.title ?? t('gallery.admin.galleryImageAlt')} className="h-full w-full object-cover" />
                           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
                             <div className="min-w-0">

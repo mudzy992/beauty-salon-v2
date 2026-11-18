@@ -117,7 +117,7 @@ export function DataTable<T>({
         <caption className="sr-only">{caption}</caption>
         <thead>
           {/* IZMJERENO 2026-11-09 nad izvornim `<thead><tr>` klasama svih 8 dashboard
-              tabela: `text-xs uppercase text-slate-500` ima 5 (Loyalty, Salon x2,
+              tabela: `text-xs uppercase text-content-strong` ima 5 (Loyalty, Salon x2,
               Services, Users), nema 3 (expense, income, Notifications). Uzglavlje je
               dominantni obrazac, pa je ovdje default — vlasnik je potvrdio da je
               konzistentnost na dashboardima obavezna, pa se lokalne varijante ne čuvaju.

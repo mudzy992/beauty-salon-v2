@@ -45,7 +45,7 @@ export function BlogPostSeoFields({ form, onChange }: Props) {
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-0.5">
           <p className="text-sm font-medium text-content">{t('blog.admin.noIndex')}</p>
-          <p className="text-xs text-slate-500">{t('blog.admin.noIndexHint')}</p>
+          <p className="text-xs text-content-strong">{t('blog.admin.noIndexHint')}</p>
         </div>
         <Switch aria-label={t('blog.admin.noIndex')} checked={form.noIndex} onCheckedChange={(noIndex) => onChange({ noIndex })} />
       </div>

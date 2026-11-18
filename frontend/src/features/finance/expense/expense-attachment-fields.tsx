@@ -42,7 +42,7 @@ export function ExpenseAttachmentFields({
         id="expense-files"
         type="file"
         multiple
-        className="block w-full text-sm text-content-strong file:mr-3 file:rounded-md file:border-0 file:bg-surface-muted file:px-3 file:py-2 file:text-sm  dark:file:bg-slate-800"
+        className="block w-full text-sm text-content-strong file:mr-3 file:rounded-md file:border-0 file:bg-surface-muted file:px-3 file:py-2 file:text-sm "
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
           onFiles(event.target.files)
         }

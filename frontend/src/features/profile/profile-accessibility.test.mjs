@@ -5,7 +5,8 @@ import test from 'node:test'
 const source = readFileSync(new URL('../../pages/Profile.tsx', import.meta.url), 'utf8')
 
 test('profile page title is a top-level heading', () => {
-  assert.match(source, /<h1 className="text-2xl font-semibold tracking-tight text-slate-950">\s*\{t\('profile\.title'\)\}\s*<\/h1>/)
+  // 2026-11-18 (Faza C): text-slate-950 → text-content (isti SSOT --text).
+  assert.match(source, /<h1 className="text-2xl font-semibold tracking-tight text-content">\s*\{t\('profile\.title'\)\}\s*<\/h1>/)
 })
 
 test('email verification code input has a localized accessible name', () => {

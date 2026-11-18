@@ -204,7 +204,7 @@ export default function Notifications() {
     {
       key: 'type',
       headerKey: 'notifications.notificationType',
-      className: 'p-3 font-medium text-content dark:text-slate-100',
+      className: 'p-3 font-medium text-content',
       render: (type) => getNotificationTypeLabel(type),
     },
     {
@@ -265,7 +265,7 @@ export default function Notifications() {
 
         <TabsContent value="list" className="mt-4">
           <div className="mb-4 flex max-w-xs items-center justify-between gap-3">
-            <span className="text-sm text-content-strong dark:text-slate-200" id="unread-only-label">
+            <span className="text-sm text-content-strong" id="unread-only-label">
               {t('notifications.unreadOnly')}
             </span>
             <Switch
@@ -303,7 +303,7 @@ export default function Notifications() {
                           {getNotificationTypeLabel(n.type)}
                         </Badge>
                       </div>
-                      <p className="text-sm text-content-strong dark:text-slate-200">{n.body}</p>
+                      <p className="text-sm text-content-strong">{n.body}</p>
                       <p className="mt-1 text-xs text-content-strong">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
                     </div>
                     {!n.isRead ? (
@@ -339,7 +339,7 @@ export default function Notifications() {
                   {t('notifications.campaignConsent.description')}
                 </p>
                 {campaignConsent ? (
-                  <p className="text-sm font-medium text-content-strong dark:text-slate-200">
+                  <p className="text-sm font-medium text-content-strong">
                     {campaignConsent.optedIn
                       ? t('notifications.campaignConsent.enabled')
                       : t('notifications.campaignConsent.disabled')}

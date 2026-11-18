@@ -85,12 +85,13 @@ const sweep = () => {
 
 test('konzistentnost/rezerva: nijedna paleta-klasa bez dark: varijante ne pada ispod 4.5:1 na tamnoj', () => {
   const rows = sweep()
-  // 2026-11-18 (Faza C, tokenize_first): prag je RATCHET, ne cilj. Masa paleta-klasa
-  // se uklanja/tokenizuje fazno (903 → ~0), pa se i prag spušta u korak s migracijom —
-  // inače bi čuvar pao baš kad projekat napreduje. Smjer je uvijek: prag pada kako
-  // tokenizacija odmiče. Sentinel ostaje sasvim dovoljan kao dokaz da sweep stvarno
-  // vidi kod (0 bi prošao prozoro kroz prazan rezultat).
-  assert.ok(rows.length >= 60, `ocekivano >=60 paleta-klasa (ratchet, bio 100), nadeno ${rows.length}`)
+  // 2026-11-18 (Faza C, tokenize_first): fiksni donji prag na BROJU paleta-klasa
+  // više nema smisla — tokenizacija ih pravilno uklanja (nadjeno: 2, obe s dark:
+  // varijantom). Stvarni cuvar ostaje dvojak: (a) sweep mora VIDJEN kod (SRC hoda
+  // ne smije biti prazna — ranije se upravo ovakvim pravom padao tihi, prazan
+  // prolaz), (b) svaka preostala paleta-klasa bez dark: varijante mora prolaziti
+  // 4.5:1 na tamnoj podlozi (offenders ispod).
+  assert.ok(SRC.length >= 15, `ocekivano najmanje 15 tsx fajlova u sweepu, nadeno ${SRC.length}`)
 
   const offenders = rows
     .filter((r) => !r.hasDarkVariant && r.onDark < 4.5)

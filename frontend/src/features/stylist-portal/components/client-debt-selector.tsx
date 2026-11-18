@@ -42,11 +42,11 @@ export const ClientDebtSelector = ({
         {t('stylistPortal.reservationDialogs.complete.debtsTitle')}
       </p>
       {isLoading ? (
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-content-strong">
           {t('stylistPortal.reservationDialogs.complete.debtsLoading')}
         </p>
       ) : debts.length === 0 ? (
-        <p className="text-sm text-slate-600 dark:text-slate-300">
+        <p className="text-sm text-content-strong">
           {t('stylistPortal.reservationDialogs.complete.noDebts')}
         </p>
       ) : (
@@ -65,14 +65,14 @@ export const ClientDebtSelector = ({
                 className={
                   selected
                     ? 'w-full rounded-md border border-brand-champagne bg-brand-champagne/10 px-3 py-2 text-left'
-                    : 'w-full rounded-md border border-slate-200 px-3 py-2 text-left hover:bg-slate-50/60 dark:border-slate-800 dark:hover:bg-slate-900/30'
+                    : 'w-full rounded-md border border-line px-3 py-2 text-left hover:bg-surface-sunken'
                 }
               >
                 <p className="text-sm font-semibold text-content">
                   {debt.service?.name ?? t('stylistPortal.reservationDialogs.complete.serviceFallback')} ·{' '}
                   {formatLocalizedAmount(debt.amount, i18n.language)}
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-content-strong">
                   {debt.stylistProfileId === profileId
                     ? t('stylistPortal.reservationDialogs.complete.debtWithYou')
                     : t('stylistPortal.reservationDialogs.complete.debtWithStylist', {
@@ -83,10 +83,10 @@ export const ClientDebtSelector = ({
               </button>
             )
           })}
-          <p className="text-xs text-slate-600 dark:text-slate-300">
+          <p className="text-xs text-content-strong">
             {t('stylistPortal.reservationDialogs.complete.selectedDebtsHint')}
           </p>
-          <p className="text-xs text-slate-600 dark:text-slate-300">
+          <p className="text-xs text-content-strong">
             {t('stylistPortal.reservationDialogs.complete.selectedDebtsTotal', {
               amount: formatLocalizedAmount(selectedDebtSum, i18n.language),
             })}

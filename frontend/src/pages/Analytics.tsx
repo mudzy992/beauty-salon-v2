@@ -205,7 +205,7 @@ export default function Analytics() {
               setPeriod(next)
               if (next !== 'custom') load(getPresetParams(next))
             }}
-            className="mt-1 flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950 md:max-w-[360px]"
+            className="mt-1 flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface md:max-w-[360px]"
           >
             <option value="12">{t('adminAnalytics.last12Months')}</option>
             <option value="thisMonth">{t('adminAnalytics.thisMonth')}</option>

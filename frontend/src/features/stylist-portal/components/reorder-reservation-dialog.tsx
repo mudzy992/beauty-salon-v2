@@ -115,7 +115,7 @@ export const ReorderReservationDialog = ({
             />
           </div>
         </div>
-        <p className="text-sm text-slate-600 dark:text-slate-300" aria-live="polite">
+        <p className="text-sm text-content-strong" aria-live="polite">
           {previewLabel}
         </p>
         <DialogFooter>

@@ -103,7 +103,7 @@ export function FixedFieldsEditor({
           )
         })}
       </ul>
-      <div className="flex justify-between rounded-md bg-surface-muted px-3 py-2 text-sm dark:bg-slate-900">
+      <div className="flex justify-between rounded-md bg-surface-muted px-3 py-2 text-sm">
         <span className="text-content-strong">{t('finance.expenseForm.total')}</span>
         <span className="font-semibold tabular-nums">
           {formatLocalizedAmount(total, i18n.language)}

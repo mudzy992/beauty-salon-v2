@@ -125,14 +125,14 @@ export function SettingEditorForm({
   }
 
   return (
-    <Card className="rounded-xl border-slate-200 bg-slate-50/60 p-4 shadow-none sm:p-5">
+    <Card className="rounded-xl border-line bg-surface-sunken p-4 shadow-none sm:p-5">
       <div className="mb-4 flex items-start gap-3">
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-rose-text shadow-sm">
           {def.type === 'image' ? <Upload className="h-4 w-4" aria-hidden="true" /> : <Pencil className="h-4 w-4" aria-hidden="true" />}
         </span>
         <div className="min-w-0">
-          <Label htmlFor={inputId} className="text-sm font-semibold text-slate-900">{displayLabel}</Label>
-          {def.helpText ? <p className="mt-1 text-xs leading-5 text-slate-500">{def.helpText}</p> : null}
+          <Label htmlFor={inputId} className="text-sm font-semibold text-content">{displayLabel}</Label>
+          {def.helpText ? <p className="mt-1 text-xs leading-5 text-content-strong">{def.helpText}</p> : null}
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export function SettingEditorForm({
         ) : def.type === 'select' ? (
           <Select
             id={inputId}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
             value={value}
             onChange={(event) => updateValue(event.target.value)}
             aria-invalid={Boolean(validationError)}
@@ -183,7 +183,7 @@ export function SettingEditorForm({
               max={def.max}
               className="h-11 max-w-48 rounded-xl bg-white"
             />
-            {def.suffix ? <span className="text-sm text-slate-500">{def.suffix}</span> : null}
+            {def.suffix ? <span className="text-sm text-content-strong">{def.suffix}</span> : null}
           </div>
         ) : def.type === 'image' || def.type === 'url' ? (
           <div className="space-y-3">
@@ -196,9 +196,9 @@ export function SettingEditorForm({
               className="h-11 rounded-xl bg-white"
             />
             {def.type === 'image' ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-3">
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-control-border bg-surface p-3">
                 <div className="min-w-0 flex-1">
-                  <Label htmlFor={fileInputId} className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor={fileInputId} className="text-xs font-semibold text-content-strong">
                     {t('adminSettings.editor.chooseImage')}
                   </Label>
                   <Input
@@ -208,13 +208,13 @@ export function SettingEditorForm({
                     className="mt-1 max-w-sm border-0 p-0 text-xs shadow-none"
                     onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                   />
-                  {file ? <p className="mt-1 truncate text-xs text-slate-500">{file.name}</p> : null}
+                  {file ? <p className="mt-1 truncate text-xs text-content-strong">{file.name}</p> : null}
                 </div>
                 <Button type="button" size="sm" variant="outline" onClick={() => void upload()} disabled={!file || uploading}>
                   {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Upload className="mr-2 h-4 w-4" aria-hidden="true" />}
                   {uploading ? t('adminSettings.editor.uploading') : t('adminSettings.editor.upload')}
                 </Button>
-                {value ? <MediaImage src={getUploadUrl(value)} alt={displayLabel} className="h-16 max-w-28 rounded-lg border border-slate-200 object-cover" /> : null}
+                {value ? <MediaImage src={getUploadUrl(value)} alt={displayLabel} className="h-16 max-w-28 rounded-lg border border-line object-cover" /> : null}
               </div>
             ) : null}
           </div>
@@ -232,7 +232,7 @@ export function SettingEditorForm({
 
       {validationError ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium text-rose-700">{validationError}</p> : null}
 
-      <div className="mt-5 flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
+      <div className="mt-5 flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:justify-end">
         <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={saving || uploading}>
           <X className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('common.cancel')}

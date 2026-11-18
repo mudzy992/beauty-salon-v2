@@ -11,7 +11,7 @@ type Props = {
 }
 
 const actionClass =
-  'inline-flex h-7 w-7 items-center justify-center rounded-md text-content-strong hover:bg-surface-muted hover:text-content  dark:hover:bg-slate-800 dark:hover:text-slate-50'
+  'inline-flex h-7 w-7 items-center justify-center rounded-md text-content-strong hover:bg-surface-muted hover:text-content'
 
 async function openPrivateAttachment(
   event: React.MouseEvent<HTMLAnchorElement>,
@@ -71,7 +71,7 @@ export function ExpenseAttachmentsList({ attachments, compact = false }: Props) 
         return (
           <li
             key={attachment.id}
-            className="flex min-w-0 items-center gap-0.5 text-xs text-content-strong dark:text-slate-200"
+            className="flex min-w-0 items-center gap-0.5 text-xs text-content-strong"
           >
             <Paperclip className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate" title={name}>

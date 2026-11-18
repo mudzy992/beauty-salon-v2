@@ -126,7 +126,7 @@ export function LineItemsEditor({
                 </div>
                 <div className="flex justify-between text-xs text-content-strong">
                   <span>{t('finance.expenseForm.lineTotal')}</span>
-                  <span className="tabular-nums font-medium text-content dark:text-slate-100">
+                  <span className="tabular-nums font-medium text-content">
                     {formatLocalizedAmount(computeLineTotal(fields, item.values), i18n.language)}
                   </span>
                 </div>
@@ -171,7 +171,7 @@ export function LineItemsEditor({
       )}
 
       {items.length > 0 ? (
-        <div className="flex justify-between rounded-md bg-surface-muted px-3 py-2 text-sm dark:bg-slate-900">
+        <div className="flex justify-between rounded-md bg-surface-muted px-3 py-2 text-sm">
           <span className="text-content-strong">{t('finance.expenseForm.lineItemsTotal')}</span>
           <span className="font-semibold tabular-nums">
             {formatLocalizedAmount(sumLineItems(items, fields), i18n.language)}

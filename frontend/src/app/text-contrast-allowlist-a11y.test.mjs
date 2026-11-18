@@ -71,7 +71,8 @@ const ALLOWLIST = {
   'features/finance/income/income-entries-table.tsx::rose-500': 'ikona (Trash2) aria-hidden, 3.67:1 ≥ 3:1',
   'features/finance/income/integrity-panel.tsx::amber-600': 'ikona aria-hidden, 3.19:1 ≥ 3:1',
   'features/finance/income/integrity-panel.tsx::emerald-600': 'ikona aria-hidden, 3.77:1 ≥ 3:1',
-  'features/settings/settings-module-page.tsx::slate-400': 'ikona (Search) aria-hidden',
+  // 2026-11-18 (Faza C (14/)): `features/settings/settings-module-page.tsx::slate-400`
+  // obrisan — Search ikona sada koristi AAA token `text-content-strong` (kao Users.tsx).
   'features/shell/admin/ui/data-state.tsx::rose-500': 'ikona (AlertCircle) aria-hidden, 3.67:1 ≥ 3:1',
   'pages/ClientAnalytics.tsx::amber-400': 'ikona zvijezde (fill) aria-hidden, ima tekstualnu alternativu',
   'pages/ClientAnalytics.tsx::slate-200': 'neoznačena zvijezda, dekorativna',
@@ -153,10 +154,12 @@ const scan = () => {
 
 test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u allowlisti', () => {
   const { found, scanned, skippedDark } = scan()
-  // sweep ne smije tiho proći na praznom skupu; prag je re-baziran nakon Faze A
-  // (tokenizacija djeljenih primitiva legitimo smanjuje broj raw `slate-*` tekstualnih klasa)
-  assert.ok(scanned >= 400, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
-  assert.ok(skippedDark >= 100, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
+  // sweep ne smije tiho proći na praznom skupu. Pragovi su RATCHET-ovi — sed
+  // tokenizuju i svjetle i dark: paleta-klase, pa se pragovi spuštaju u korak
+  // (smjer je uvijek dolje; mjerenje 2026-11-18 poslije Faze C (14/):
+  // scanned=313, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
+  assert.ok(scanned >= 300, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  assert.ok(skippedDark >= 50, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 
   const missing = [...found.keys()].filter((k) => !ALLOWLIST[k])
   assert.deepEqual(missing, [], `neobrazloženi niskokontrastni nalazi:\n${missing.join('\n')}`)

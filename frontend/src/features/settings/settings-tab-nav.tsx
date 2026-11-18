@@ -60,14 +60,14 @@ export function SettingsTabNav() {
             className={`group flex min-h-[5.25rem] items-center gap-3 rounded-xl border px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 sm:px-4 ${
               isActive
                 ? 'border-brand-rose-ring bg-nav-active shadow-sm'
-                : 'border-slate-200 bg-white hover:border-control-border hover:bg-surface-muted'
+                : 'border-line bg-white hover:border-control-border hover:bg-surface-muted'
             }`}
           >
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
                 isActive
                   ? 'bg-brand-rose text-on-primary'
-                  : 'bg-slate-100 text-slate-600 group-hover:bg-nav-active group-hover:text-content'
+                  : 'bg-surface-muted text-content-strong group-hover:bg-nav-active group-hover:text-content'
               }`}
             >
               <Icon className="h-5 w-5" aria-hidden="true" />
@@ -75,12 +75,12 @@ export function SettingsTabNav() {
             <span className="min-w-0">
               <span
                 className={`block text-sm font-semibold ${
-                  isActive ? 'text-brand-rose-text' : 'text-slate-800'
+                  isActive ? 'text-brand-rose-text' : 'text-content'
                 }`}
               >
                 {t(`adminSettings.nav.${tab}`)}
               </span>
-              <span className="mt-0.5 block text-xs leading-4 text-slate-600">
+              <span className="mt-0.5 block text-xs leading-4 text-content-strong">
                 {t(`adminSettings.navDescriptions.${tab}`)}
               </span>
             </span>

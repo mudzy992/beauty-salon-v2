@@ -125,7 +125,7 @@ export default function Reviews() {
             dizajnerska promjena, pa je dodata programska. */}
         <Select
           aria-label={t('reviews.filterLabel')}
-          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950"
+          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface"
           value={filter}
           onChange={(e) => setFilter(e.target.value as typeof filter)}
         >

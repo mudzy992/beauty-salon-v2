@@ -33,23 +33,23 @@ export function SettingEditorDisplay({
     <div className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{displayLabel}</p>
+          <p className="text-sm font-semibold text-content">{displayLabel}</p>
           <Badge variant={isCustomized ? 'success' : 'secondary'} className="text-[10px]">
             {statusLabel}
           </Badge>
         </div>
-        {def.helpText ? <p className="mt-1 text-xs leading-5 text-slate-500">{def.helpText}</p> : null}
+        {def.helpText ? <p className="mt-1 text-xs leading-5 text-content-strong">{def.helpText}</p> : null}
         {hasValue && def.type === 'image' ? (
-          <MediaImage src={getUploadUrl(value)} alt={displayLabel} className="mt-2 h-14 max-w-24 rounded-lg border border-slate-200 object-cover" />
+          <MediaImage src={getUploadUrl(value)} alt={displayLabel} className="mt-2 h-14 max-w-24 rounded-lg border border-line object-cover" />
         ) : null}
         {hasValue && def.type === 'color' ? (
           <div className="mt-2 flex items-center gap-2">
-            <span className="h-5 w-5 rounded-md border border-slate-300" style={{ backgroundColor: value }} aria-hidden="true" />
-            <p className="font-mono text-xs text-slate-600">{value}</p>
+            <span className="h-5 w-5 rounded-md border border-control-border" style={{ backgroundColor: value }} aria-hidden="true" />
+            <p className="font-mono text-xs text-content-strong">{value}</p>
           </div>
         ) : null}
         {hasValue && def.type !== 'image' && def.type !== 'color' ? (
-          <p className="mt-2 max-w-3xl whitespace-pre-wrap break-words text-sm leading-5 text-slate-600 dark:text-slate-300">
+          <p className="mt-2 max-w-3xl whitespace-pre-wrap break-words text-sm leading-5 text-content-strong">
             {value}
             {def.suffix ? <span className="ml-1 text-content-muted">{def.suffix}</span> : null}
           </p>

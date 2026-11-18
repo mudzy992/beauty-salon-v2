@@ -122,7 +122,7 @@ export function ManualEntryDialog({
             <>
               <span
                 id="manual-client-selected-label"
-                className="text-sm font-medium text-content-strong dark:text-slate-200"
+                className="text-sm font-medium text-content-strong"
               >
                 {t('finance.manualEntry.client')}
               </span>
@@ -157,7 +157,7 @@ export function ManualEntryDialog({
                     <li key={client.id}>
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted dark:hover:bg-slate-900"
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted"
                         onClick={() => f.selectClient(client)}
                       >
                         {getPersonName(client)}
@@ -181,7 +181,7 @@ export function ManualEntryDialog({
             value={f.form.paidAmount}
             onChange={(event) => f.update({ paidAmount: event.target.value })}
           />
-          <div className="mt-1 grid gap-1 rounded-md bg-surface-muted p-2 text-xs dark:bg-slate-900">
+          <div className="mt-1 grid gap-1 rounded-md bg-surface-muted p-2 text-xs">
             <div className="flex justify-between">
               <span className="text-content-strong">{t('finance.manualEntry.servicePrice')}</span>
               <span className="tabular-nums">{formatAmount(f.servicePrice)}</span>

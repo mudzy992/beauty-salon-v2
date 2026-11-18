@@ -63,7 +63,7 @@ export const NoShowReservationDialog = ({
               state: applyPenalty ? t('common.yes') : t('common.no'),
             })}
           </Button>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p className="text-sm text-content-strong">
             {t('stylistPortal.reservationDialogs.noShow.applyPenaltyDescription')}
           </p>
         </div>
