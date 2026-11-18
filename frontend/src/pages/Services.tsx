@@ -468,7 +468,7 @@ export default function Services() {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-muted-foreground">
+      <div className="flex justify-center p-10 text-content-muted">
         <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
       </div>
     )
@@ -608,7 +608,7 @@ export default function Services() {
       </div>
 
       {categories.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('common.noData')}</p>
+        <p className="text-sm text-content-muted">{t('common.noData')}</p>
       ) : (
         <Card className="overflow-hidden">
           <Accordion type="multiple" className="w-full">
@@ -628,7 +628,7 @@ export default function Services() {
                         : t('services.status.categoryInactive')}
                     </Badge>
                     {cat.description ? (
-                      <span className="hidden truncate text-sm text-muted-foreground md:block">
+                      <span className="hidden truncate text-sm text-content-muted md:block">
                         — {cat.description}
                       </span>
                     ) : null}
@@ -742,7 +742,7 @@ export default function Services() {
                               />
                             </div>
                           ) : (
-                            <p className="text-sm italic text-muted-foreground">
+                            <p className="text-sm italic text-content-muted">
                               {t('services.noServices')}
                             </p>
                           )}
@@ -750,7 +750,7 @@ export default function Services() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm italic text-muted-foreground">
+                    <p className="text-sm italic text-content-muted">
                       {t('services.noSubcategories')}
                     </p>
                   )}

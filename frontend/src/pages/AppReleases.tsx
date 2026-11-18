@@ -137,7 +137,7 @@ export default function AppReleases() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t('appReleases.title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('appReleases.subtitle')}</p>
+        <p className="mt-1 text-sm text-content-muted">{t('appReleases.subtitle')}</p>
       </div>
       <AppReleaseCreateForm
         file={file}
@@ -165,10 +165,10 @@ export default function AppReleases() {
       <Card className="overflow-hidden">
         {loading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader2 className="h-6 w-6 animate-spin text-content-muted" />
           </div>
         ) : rows.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">{t('appReleases.empty')}</p>
+          <p className="p-6 text-sm text-content-muted">{t('appReleases.empty')}</p>
         ) : (
           <ul className="divide-y">
             {rows.map((r) => (
@@ -186,7 +186,7 @@ export default function AppReleases() {
                       <Badge variant="danger">{t('appReleases.forceUpdate')}</Badge>
                     ) : null}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-content-muted">
                     {t('appReleases.minSupportedValue', {
                       versionCode: r.minSupportedVersionCode,
                       size: formatLocalizedNumber(r.apkSizeBytes / (1024 * 1024), language, {
@@ -196,7 +196,7 @@ export default function AppReleases() {
                     })}
                   </p>
                   {r.releaseNotes ? (
-                    <p className="text-sm text-muted-foreground">{r.releaseNotes}</p>
+                    <p className="text-sm text-content-muted">{r.releaseNotes}</p>
                   ) : null}
                 </div>
                 {r.status !== 'PUBLISHED' ? (

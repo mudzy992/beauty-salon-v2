@@ -73,7 +73,7 @@ export const AppReleaseCreateForm = ({
             {t('appReleases.upload')}
           </Button>
           {uploadMeta ? (
-            <p className="break-all text-xs text-muted-foreground">
+            <p className="break-all text-xs text-content-muted">
               SHA-256: {uploadMeta.apkSha256} · {(uploadMeta.apkSizeBytes / (1024 * 1024)).toFixed(1)} MB
             </p>
           ) : null}
