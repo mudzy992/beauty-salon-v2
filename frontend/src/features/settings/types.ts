@@ -59,7 +59,8 @@ export const GROUP_ICON_TEXT: Record<string, string> = {
   blue: 'text-blue-500',
   green: 'text-emerald-500',
   pink: 'text-pink-500',
-  gray: 'text-slate-500',
+  // 2026-11-18 (Faza C): text-slate-500 → text-content-muted (theme-aware, Aurum i Classic).
+  gray: 'text-content-muted',
   teal: 'text-teal-500',
   cyan: 'text-cyan-500',
   red: 'text-rose-500',
