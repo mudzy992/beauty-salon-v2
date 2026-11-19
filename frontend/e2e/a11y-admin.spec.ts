@@ -13,6 +13,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import {
   activeElementIsSegmentedInput,
   activeElementLabel,
+  clippedSnapshot,
   focusableSnapshot,
   describeImageInventory,
   imageBearingInventory,
@@ -2311,3 +2312,53 @@ test('O4 campaign retry: uncertain delivery requires confirmation and carries at
   const trigger = page.getByRole('button', { name: /ponovi neuspjele isporuke|retry failed deliveries/i })
   await exerciseO4Confirmation(page, trigger, /može poslati email ponovo|could send an email again/i, () => retries)
 })
+
+
+// M2 dopunska provjera: prioritetne admin rute, početna stanja.
+// Ovo su simulacije povećanja teksta i razmaka, NE stvarni zoom ili ručni pregled.
+const M2_PRIORITY_ROUTES = [
+  '/admin/users',
+  '/admin/reservations',
+  '/admin/reservations/calendar',
+  '/admin/finance',
+  '/admin/settings',
+] as const
+const M2_TEXT_SPACING = `
+  *, *::before, *::after {
+    line-height: 1.5 !important;
+    letter-spacing: 0.12em !important;
+    word-spacing: 0.16em !important;
+  }
+  p { margin-bottom: 2em !important; }
+`
+for (const mode of ['light', 'dark'] as const) {
+  for (const path of M2_PRIORITY_ROUTES) {
+    for (const adjustment of ['text-200', 'text-spacing'] as const) {
+      test(`M2 priority ${mode} ${adjustment}: ${path}`, async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await configureAurumTheme(page, mode)
+        await page.goto(path, { waitUntil: 'networkidle' })
+        expect(new URL(page.url()).pathname).toBe(path)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        const settled = await settleAnimations(page)
+        expect(settled).not.toBeNull()
+        expect(settled?.stillRunning).toBe(0)
+        const before = await page.evaluate(clippedSnapshot)
+        if (adjustment === 'text-200') {
+          const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+          await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+          await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+        } else {
+          await page.addStyleTag({ content: M2_TEXT_SPACING })
+        }
+        await settleAnimations(page)
+        const after = await page.evaluate(clippedSnapshot)
+        const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+        if (newlyClipped.length) reportAdmin(`M2 priority ${mode} ${adjustment} ${path}`, JSON.stringify(newlyClipped.slice(0, 8)))
+        expect(newlyClipped, `${path} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+      })
+    }
+  }
+}
