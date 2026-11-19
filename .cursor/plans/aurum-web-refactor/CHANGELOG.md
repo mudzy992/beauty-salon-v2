@@ -687,3 +687,15 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - **CI `44523392570` (`a8b3899`) = ALL GREEN (5/5).** Rendered a11y: sve praćene Axe rules PROLAZ / 0 violations nad **51 izmjerenim stanjem** (prije 32; +19 novi: 4 child-proof zapisa (`/admin/analytics?tab=clients|stylists (aurum-light|dark)`) + 15 Aurum dark admin ruta). `1.4.6 color-contrast-enhanced: PROLAZ 51`; `2.5.3` ostaje 0 incomplete; `1.4.3 color-contrast incomplete 18` — isključivo poznati Recharts legend `.legend-item-*-text` determination-blokovi (izmjena: SVG serijski čvor uz tekst; `hsl(var(--text))`), sada izmjereno i u `/admin/analytics (aurum-dark)` — isti uzrok kao classic, ne novi defekt.
 - Accent SSOT: contrast strict 148/148; theme-ssot-sync 10/10 (novi dedicated odstupanje-test).
 - CI Node 20→24: action majors na node24 (checkout v5 / setup-node v5 / setup-python v6 / upload-artifact v6); app Node 22 nepromjenjeno.
+
+---
+
+## 2026-11-19 · Aurum light sweep, veličina fonta i O4 · u toku
+
+**Light sweep:** commit `b0facb3` dodaje axe provjeru 15 admin ruta u Aurum light režimu; četiri postojeće proof provjere AnalyticsHub panela obuhvataju oba režima. CI `44534293560` je 5/5. Ovo je ograničen automatizirani dokaz, ne potpuna WCAG ocjena.
+
+**Font:** po izričitom izboru vlasnika commit `e38552b` postavlja root na 17px za cijeli web, uključujući Classic, Aurum, javni i admin dio; rem skala raste u odnosu na podrazumijevanih 16px, dok hardkodirane px veličine ne rastu. CI `44536662139` je 5/5; vizuelni pregled i ručne provjere ostaju otvoreni. Fiksni root može nadjačati korisničku podrazumijevanu veličinu fonta u browseru; treba provjeriti pristupačnost i odluku prije zaključivanja izmjene.
+
+**O4:** commit `1b06474` zamjenjuje 13 nativnih potvrda zajedničkim dijalogom. CI `44544674553` je **4/5**: rendered a11y suite 459 prošlih, četiri pala testa za korisnike (stari testovi čekali su nativni dijalog); ostali poslovi prošli. Detalji pada su iz GitHub check anotacije, jer log i artefakt nisu dostupni iz sandboxa. O4 nije završen niti je dokazano ponašanje svih 13 tokova.
+
+**Izmjena postojećih testova:** četiri testa deaktivacije, uklanjanja uloge i reset-linka prilagođena su novom renderovanom dijalogu. Zadržane su provjere da nema zahtjeva prije potvrde i poslije odustajanja te da potvrda šalje tačno jedan zahtjev; prethodna zaštita za nepotvrđeni email i prikaz na 320px ostaje. Dodane su provjere sadržaja, Escape/odustajanja i axe pregleda dijaloga za desktop i mobilni prikaz. Lokalni `typecheck:e2e` i lint prolaze (6 postojećih upozorenja); Chromium i izolovana baza nisu dostupni lokalno. Čeka se novi CI, kao i dodatni dokaz preostalih tokova i ručni pregled.
