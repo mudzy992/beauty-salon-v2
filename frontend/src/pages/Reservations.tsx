@@ -114,7 +114,23 @@ export default function Reservations() {
   const [items, setItems] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const reservationTableRegion = useRef<HTMLDivElement>(null)
   const requestSequenceRef = useRef(0)
+
+  useEffect(() => {
+    const region = reservationTableRegion.current
+    if (!region) return
+    // The wide table is a tab stop only when it can actually be scrolled.
+    const update = () => {
+      if (region.scrollWidth > region.clientWidth && getComputedStyle(region).overflowX === 'auto') region.tabIndex = 0
+      else region.removeAttribute('tabindex')
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(region)
+    if (region.firstElementChild) observer.observe(region.firstElementChild)
+    return () => observer.disconnect()
+  }, [loading, loadError, items])
   const [page, setPage] = useState(0)
   const [pageSize] = useState(20)
   const [total, setTotal] = useState(0)
@@ -387,7 +403,7 @@ export default function Reservations() {
               )}
             </div>
 
-            <div className="hidden app-table-wrap lg:block" role="region" aria-label={t('nav.reservations')} tabIndex={0}>
+            <div ref={reservationTableRegion} className="hidden app-table-wrap lg:block" role="region" aria-label={t('nav.reservations')}>
               <table className="app-table w-full border-collapse">
                 <caption className="sr-only">{t('nav.reservations')}</caption>
                 <thead>

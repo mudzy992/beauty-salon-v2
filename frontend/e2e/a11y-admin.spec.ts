@@ -2358,6 +2358,14 @@ for (const mode of ['light', 'dark'] as const) {
         const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
         if (newlyClipped.length) reportAdmin(`M2 priority ${mode} ${adjustment} ${path}`, JSON.stringify(newlyClipped.slice(0, 8)))
         expect(newlyClipped, `${path} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+        if (path === '/admin/reservations' && adjustment === 'text-200') {
+          const tableRegion = page.getByRole('region', { name: /rezervacije|reservations/i }).filter({ has: page.locator('table') })
+          await expect.poll(() => tableRegion.evaluate(el => el.scrollWidth - el.clientWidth)).toBeGreaterThan(0)
+          await expect.poll(() => tableRegion.getAttribute('tabindex')).toBe('0')
+          await tableRegion.focus()
+          await page.keyboard.press('ArrowRight')
+          await expect.poll(() => tableRegion.evaluate(el => el.scrollLeft)).toBeGreaterThan(0)
+        }
       })
     }
   }
