@@ -727,3 +727,7 @@ Dodaje se rendered mjerenje horizontalnog prelijevanja dokumenta za 15 admin rut
 Matrice `aurum-theme` i `aurum-route-coverage` dobile su aktuelnu politiku, inventar 15 mjerenih ruta i jasne granice dokaza; prethodne S0–S5 tabele su označene arhivom. Najnoviji blok u CHECKLIST/HANDOFF ima prednost nad starijim statusom. CI za dokumentaciju čeka provjeru.
 
 **CI matrica:** `534a694` → `44570089463` = 5/5 success. Historijski dijelovi matrica ostaju isključivo arhiva; aktuelni pregledi ne proglašavaju ručne provjere završenim.
+
+## O4 · Interaktivni dokazi preostalih potvrda · u toku
+
+Dodane Playwright fiksure za 10 prethodno zasebno neprovjerenih tokova (blog ×2, galerija ×2, recenzije, praznik, kategorija i potkategorija usluga, SMTP lozinka i retry kampanje). Provjeravaju poruku, odustajanje, fokus, potvrdu i izolovane zahtjeve, uključujući nested dijaloge i `confirmAtLeastOnce` payload. Svi relevantni zahtjevi su presretnuti fiksurama; nije kontaktirana produkcija. Typecheck E2E prolazi; rendered rezultat tek čeka CI, nije dokaz prolaza.

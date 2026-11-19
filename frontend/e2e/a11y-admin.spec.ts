@@ -2135,3 +2135,178 @@ for (const mode of ['light', 'dark'] as const) {
     })
   }
 }
+
+// O4 greške nosimo u CI anotaciju: artefakti i puni logovi nisu uvijek dostupni u sandboxu.
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('O4 ') && info.status !== info.expectedStatus) {
+    const detail = info.errors.map((error) => error.message || String(error)).join(' | ').slice(0, 2200)
+    reportAdmin(`O4 ${info.title}`, detail)
+  }
+})
+
+// O4 preostali tokovi: svi podaci i mutacije su izolovani Playwright fiksurama.
+// Odustajanje ne šalje mutaciju; potvrda šalje samo odgovarajući zahtjev.
+async function exerciseO4Confirmation(
+  page: Page,
+  trigger: import('@playwright/test').Locator,
+  description: RegExp,
+  getCount: () => number,
+  confirmName = /^(obriši|delete|potvrdi|confirm)$/i,
+) {
+  await expect(trigger).toBeVisible()
+  await trigger.click()
+  const dialog = page.getByRole('dialog', { name: /potvrdi brisanje|confirm deletion|potvrda|confirmation/i })
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toContainText(description)
+  expect(getCount()).toBe(0)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(trigger).toBeFocused()
+  expect(getCount()).toBe(0)
+  await trigger.click()
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: confirmName }).click()
+  await expect.poll(getCount).toBe(1)
+}
+
+const o4Post = { id: 'o4-post', title: 'O4 članak', slug: 'o4-clanak', content: 'Primjer', language: 'bs', isPublished: true, createdAt: '2026-01-01T10:00:00Z' }
+const o4Comment = { id: 'o4-comment', content: 'O4 komentar', isApproved: true, createdAt: '2026-01-01T10:00:00Z', user: { username: 'primjer', firstName: 'Primjer', lastName: 'Klijent' } }
+const o4Category = { id: 'o4-category', name: 'O4 kategorija', description: null, sortOrder: 0, autoPublishConsentedPairs: false, _count: { images: 1 } }
+const o4Image = { id: 'o4-image', title: 'O4 slika', description: null, sortOrder: 0 }
+
+for (const kind of ['post', 'comment'] as const) {
+  test(`O4 blog ${kind}: cancel and confirm isolated deletion`, async ({ page }) => {
+    const target = kind === 'post' ? '/api/blog/o4-post' : '/api/blog/comments/o4-comment'
+    let count = 0
+    await page.route('**/api/blog/admin', route => route.fulfill({ json: [o4Post] }))
+    await page.route('**/api/blog/o4-post/comments/admin', route => route.fulfill({ json: [o4Comment] }))
+    await page.route(`**${target}`, route => {
+      expect(route.request().method()).toBe('DELETE')
+      count++
+      return route.fulfill({ json: {} })
+    })
+    await page.goto('/admin/blog', { waitUntil: 'networkidle' })
+    let trigger = page.getByRole('table').getByRole('button', { name: /^(obriši|delete)$/i }).first()
+    if (kind === 'comment') {
+      await page.getByRole('button', { name: /^(komentari|comments)$/i }).first().click()
+      const parent = page.getByRole('dialog', { name: /O4 članak/ })
+      await expect(parent.getByText('O4 komentar')).toBeVisible()
+      trigger = parent.getByRole('button', { name: /^(obriši|delete)$/i })
+    }
+    await exerciseO4Confirmation(page, trigger, kind === 'post' ? /obrisati članak|delete.*post/i : /obrisati komentar|delete.*comment/i, () => count)
+  })
+}
+
+for (const kind of ['category', 'image'] as const) {
+  test(`O4 gallery ${kind}: cancel and confirm isolated deletion`, async ({ page }) => {
+    const target = kind === 'category' ? '/api/gallery/categories/o4-category' : '/api/gallery/images/o4-image'
+    let count = 0
+    await page.route('**/api/gallery/categories', route => route.fulfill({ json: [o4Category] }))
+    await page.route('**/api/gallery/categories/o4-category', route => {
+      if (route.request().method() === 'GET') return route.fulfill({ json: { ...o4Category, images: [o4Image] } })
+      expect(kind).toBe('category')
+      expect(route.request().method()).toBe('DELETE')
+      count++
+      return route.fulfill({ json: {} })
+    })
+    if (kind === 'image') await page.route(`**${target}`, route => {
+      expect(route.request().method()).toBe('DELETE')
+      count++
+      return route.fulfill({ json: {} })
+    })
+    await page.goto('/admin/gallery', { waitUntil: 'networkidle' })
+    if (kind === 'image') await page.getByRole('button', { name: /O4 kategorija/ }).click()
+    const trigger = page.getByRole('button', { name: /^(obriši|delete)$/i }).nth(kind === 'category' ? 0 : 1)
+    await exerciseO4Confirmation(page, trigger, kind === 'category' ? /kategoriju i sve njene slike|category and all/i : /obrisati sliku|delete.*image/i, () => count)
+  })
+}
+
+test('O4 review from details: nested confirmation preserves cancellation and sends delete', async ({ page }) => {
+  const review = { id: 'o4-review', serviceRating: 5, stylistRating: null, comment: 'O4 recenzija', isApproved: true, createdAt: '2026-01-01T10:00:00Z' }
+  let count = 0
+  await page.route(/\/api\/reviews\/admin(?:\?.*)?$/, route => route.fulfill({ json: [review] }))
+  await page.route('**/api/reviews/o4-review', route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
+  await page.goto('/admin/reviews', { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: /detalji recenzije|review details/i }).click()
+  const parent = page.getByRole('dialog', { name: /detalji recenzije|review details/i })
+  await expect(parent.getByText('O4 recenzija')).toBeVisible()
+  await exerciseO4Confirmation(page, parent.getByRole('button', { name: /^(obriši|delete)$/i }), /obrisati recenziju|delete.*review/i, () => count)
+})
+
+test('O4 salon holiday: cancel and confirm isolated deletion', async ({ page }) => {
+  const salon = { id: 'o4-salon', name: 'O4 salon', workingHours: [{ dayOfWeek: 1, openTime: '09:00', closeTime: '17:00', isWorkingDay: true }], holidays: [{ id: 'o4-holiday', name: 'O4 praznik', date: '2026-12-25', sendPush: false }] }
+  let count = 0
+  await page.route('**/api/salon/list', route => route.fulfill({ json: [salon] }))
+  await page.route('**/api/salon/o4-salon', route => route.fulfill({ json: salon }))
+  await page.route('**/api/salon/holidays/o4-holiday', route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
+  await page.goto('/admin/salon', { waitUntil: 'networkidle' })
+  await page.getByRole('tab', { name: /praznici|holidays/i }).click()
+  await exerciseO4Confirmation(page, page.getByRole('table').getByRole('button', { name: /^(obriši|delete)$/i }).first(), /praznik|holiday/i, () => count)
+})
+
+for (const kind of ['category', 'subcategory'] as const) {
+  test(`O4 services ${kind}: cancel and confirm isolated deletion`, async ({ page }) => {
+    let count = 0
+    await page.route('**/api/services/admin/categories?**', route => route.fulfill({ json: [{ id: 'o4-cat', name: 'O4 usluge', isActive: true }] }))
+    await page.route('**/api/services/admin/subcategories?**', route => route.fulfill({ json: [{ id: 'o4-sub', categoryId: 'o4-cat', name: 'O4 podkategorija', isActive: true }] }))
+    await page.route('**/api/services/admin/services?**', route => route.fulfill({ json: [] }))
+    await page.route(`**/api/services/${kind === 'category' ? 'categories/o4-cat' : 'subcategories/o4-sub'}`, route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
+    await page.goto('/admin/services', { waitUntil: 'networkidle' })
+    if (kind === 'subcategory') await page.getByRole('button', { name: /O4 usluge/ }).first().click()
+    const trigger = page.getByRole('button', { name: kind === 'category' ? /obriši kategoriju|delete category/i : /obriši potkategoriju|delete subcategory/i })
+    await exerciseO4Confirmation(page, trigger, kind === 'category' ? /kategoriju i sve potkategorije|category and all subcategories/i : /potkategoriju i sve usluge|subcategory and all services/i, () => count)
+  })
+}
+
+test('O4 SMTP password: cancel retains configured state; confirm only clears on save', async ({ page }) => {
+  const writes: { key: string; value: unknown }[] = []
+  await page.route('**/api/settings', route => route.fulfill({ json: [
+    { key: 'system_email_password', value: '', isConfigured: true },
+    { key: 'system_notif_email_from', value: 'fixture@example.test' },
+  ] }))
+  await page.route(/\/api\/settings\/[^/?]+$/, route => {
+    expect(route.request().method()).toBe('PUT')
+    writes.push({ key: new URL(route.request().url()).pathname.split('/').pop()!, value: route.request().postDataJSON().value })
+    return route.fulfill({ json: {} })
+  })
+  await page.goto('/admin/settings?tab=email', { waitUntil: 'networkidle' })
+  const trigger = page.getByRole('button', { name: /obriši lozinku|clear password/i })
+  await trigger.click()
+  const dialog = page.getByRole('dialog', { name: /potvrdi brisanje|confirm deletion/i })
+  await expect(dialog).toContainText(/SMTP lozinku|SMTP password/i)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(trigger).toBeFocused()
+  expect(writes).toEqual([])
+  await trigger.click()
+  await dialog.getByRole('button', { name: /obriši lozinku|clear password/i }).click()
+  await expect(trigger).toBeHidden()
+  expect(writes).toEqual([])
+  await page.getByRole('button', { name: /sačuvaj postavke|save settings/i }).first().click()
+  await expect.poll(() => writes.filter(row => row.key === 'system_email_password').length).toBe(1)
+  expect(writes.find(row => row.key === 'system_email_password')?.value).toBe('')
+})
+
+test('O4 campaign retry: uncertain delivery requires confirmation and carries at-least-once acknowledgement', async ({ page }) => {
+  const campaign = { id: 'o4-template', name: 'O4 kampanja', html: '<p>O4</p>', blocks: [] }
+  const job = { id: 'o4-job', status: 'FAILED', totalRecipients: 1, counts: { pending: 0, processing: 0, delivered: 0, skipped: 0, failed: 1, cancelled: 0 }, recipients: [{ id: 'o4-recipient', username: 'primjer', status: 'FAILED' }] }
+  let retries = 0
+  await page.route('**/api/settings', route => route.fulfill({ json: [{ key: 'system_email_campaign_templates', value: JSON.stringify([campaign]) }] }))
+  await page.route('**/api/notifications/campaigns/audience', route => route.fulfill({ json: { total: 1, maxRecipients: 100, exceedsLimit: false, sample: [{ username: 'primjer' }] } }))
+  await page.route('**/api/notifications/campaigns/send', route => route.fulfill({ json: { queued: true, jobId: 'o4-job', totalTargeted: 1 } }))
+  await page.route('**/api/notifications/campaigns/o4-job', route => route.fulfill({ json: job }))
+  await page.route('**/api/notifications/campaigns/o4-job/retry', route => {
+    expect(route.request().method()).toBe('POST')
+    const payload = route.request().postDataJSON()
+    expect(payload.confirmAtLeastOnce).toBe(true)
+    expect(payload.requestId).toMatch(/^[0-9a-f-]{36}$/i)
+    retries++
+    return route.fulfill({ json: { ...job, ok: true } })
+  })
+  await page.goto('/admin/settings?tab=email', { waitUntil: 'networkidle' })
+  await page.getByRole('tab', { name: /kampanje|campaigns/i }).click()
+  await page.getByRole('button', { name: /izračunaj publiku|calculate audience/i }).click()
+  await page.getByRole('button', { name: /pošalji kampanju|send campaign/i }).click()
+  const trigger = page.getByRole('button', { name: /ponovi neuspjele isporuke|retry failed deliveries/i })
+  await exerciseO4Confirmation(page, trigger, /može poslati email ponovo|could send an email again/i, () => retries)
+})
