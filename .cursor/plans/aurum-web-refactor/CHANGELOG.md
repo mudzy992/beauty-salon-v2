@@ -652,3 +652,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - **Opcionalna adopcija (B opcija, NIJE urađena):** BlogList retry/load-more ×3 (rounded-lg→pill), clear-search ikonice ×2 (ghost/icon, h-11→h-10) — ostaje za vlasnikovu odluku.
 - Gates: build PASS (289.5 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
 - Vlasnički visual check: u toku (delete/cancel tok: /services brisanje usluge, dnevni log delete, cancel reservation; danger se sada renderuje semantičkim danger tokenom, nije red-600 — vizuelno vrlo slično).
+
+### Faza F (5/) — ZATVORENO (2026-11-18)
+- Button variant reconciliation: `destructive` → `danger` (5 pozivnih mjesta); `destructive` varijanta obrisana; 50 raw `<button>` widgeta dokumentovano zadržana.
+- Gates: build PASS (289.5 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) 0 grešaka.
+- **CI `44515714897` (`a18cc8a`) = ALL GREEN (5/5).**
+- Vlasnički visual check: **OK**.
