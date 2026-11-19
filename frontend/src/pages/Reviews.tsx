@@ -8,6 +8,7 @@ import api from '../api/client'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
+import { useTableScrollRegion } from '../features/shell/admin/ui/use-table-scroll-region'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -50,6 +51,7 @@ function Stars({ count }: { count: number }) {
 export default function Reviews() {
   const { t, i18n } = useTranslation()
   const { success, error } = useAppToast()
+  const scrollRegion = useTableScrollRegion()
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
@@ -143,13 +145,13 @@ export default function Reviews() {
         </Select>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="aurum-scroll-table-card overflow-hidden">
         {loading ? (
           <div className="flex justify-center p-10 text-content-strong">
             <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
           </div>
         ) : (
-          <div className="app-table-wrap">
+          <div ref={scrollRegion} data-m2-scroll-region role="region" aria-label={t('reviews.tableCaption')} className="app-table-wrap">
             <table className="app-table data-table w-full border-collapse">
                                 <caption className="sr-only">{t('reviews.tableCaption')}</caption>
                   <thead>

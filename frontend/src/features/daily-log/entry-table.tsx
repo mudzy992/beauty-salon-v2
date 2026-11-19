@@ -17,6 +17,7 @@ import {
   formatLocalizedNumber,
 } from '../../i18n/locale-utils.mjs'
 import { DailyLogEntryActions } from './entry-table-actions'
+import { useTableScrollRegion } from '../shell/admin/ui/use-table-scroll-region'
 import {
   formatDailyLogDate,
   formatMobileAmount,
@@ -49,6 +50,7 @@ export const DailyLogEntryTable = ({
   onRestore,
 }: Props) => {
   const { t, i18n } = useTranslation()
+  const scrollRegion = useTableScrollRegion()
   if (loading) {
     return (
       <Card className="overflow-hidden">
@@ -68,7 +70,7 @@ export const DailyLogEntryTable = ({
       maximumFractionDigits: 2,
     })
   return (
-    <Card className="overflow-hidden">
+    <Card className="aurum-scroll-table-card overflow-hidden">
       <div className="space-y-3 p-3 lg:hidden">
         {entries.length === 0 ? (
           <p className="text-content-muted">{noDataLabel}</p>
@@ -132,7 +134,7 @@ export const DailyLogEntryTable = ({
           ))
         )}
       </div>
-      <div className="hidden app-table-wrap lg:block">
+      <div ref={scrollRegion} data-m2-scroll-region role="region" aria-label={t('dailyLog.table.caption')} className="hidden app-table-wrap lg:block">
         <table className="app-table w-full border-collapse">
           <caption className="sr-only">{t('dailyLog.table.caption')}</caption>
           <thead>

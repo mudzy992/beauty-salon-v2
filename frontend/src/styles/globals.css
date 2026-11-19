@@ -378,8 +378,10 @@
     overflow-wrap: anywhere;
   }
   /* The wide reservations table gets its own keyboard-scrollable region. */
-  [data-skin="aurum"] .reservation-list-card { min-width: 0; }
-  [data-skin="aurum"] .reservation-list-card .app-table-wrap {
+  [data-skin="aurum"] .reservation-list-card,
+  [data-skin="aurum"] .aurum-scroll-table-card { min-width: 0; }
+  [data-skin="aurum"] .reservation-list-card .app-table-wrap,
+  [data-skin="aurum"] .aurum-scroll-table-card .app-table-wrap {
     max-width: 100%;
     overflow-x: auto;
   }
