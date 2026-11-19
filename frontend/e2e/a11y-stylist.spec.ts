@@ -391,6 +391,18 @@ for (const mode of ['light', 'dark'] as const) {
           expect(widths.viewport).toBe(320)
           if (widths.scroll > widths.viewport + 1) reportStylist(`M2 stylist ${mode} 320 ${route.path}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
           expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+          if (route.path === '/stylist/schedule') {
+            const heading = page.locator('[data-stylist-schedule-heading]')
+            await expect(heading.getByRole('heading', { name: /raspored|schedule/i })).toBeVisible()
+            for (const action of [/osvježi|refresh/i, /direktna rezervacija|direct booking/i]) {
+              const button = heading.getByRole('button', { name: action })
+              await expect(button).toBeVisible()
+              const bounds = await button.boundingBox()
+              expect(bounds).not.toBeNull()
+              expect(bounds!.x).toBeGreaterThanOrEqual(0)
+              expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(321)
+            }
+          }
         } else {
           const before = await page.evaluate(clippedSnapshot)
           if (adjustment === 'text-200') {

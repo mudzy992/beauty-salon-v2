@@ -115,7 +115,7 @@ export const StylistSchedulePage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+      <div data-stylist-schedule-heading className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-content">{t('stylistPortal.schedule.title')}</h1>
           <p className="text-sm text-content-strong">

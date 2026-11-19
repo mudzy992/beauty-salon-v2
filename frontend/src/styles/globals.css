@@ -377,6 +377,12 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+  /* Aurum stylist schedule: wrap the heading and actions on narrow screens. */
+  [data-skin="aurum"] [data-stylist-schedule-heading] { flex-wrap: wrap; }
+  [data-skin="aurum"] [data-stylist-schedule-heading] > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   /* The wide reservations table gets its own keyboard-scrollable region. */
   [data-skin="aurum"] .reservation-list-card,
   [data-skin="aurum"] .aurum-scroll-table-card { min-width: 0; }
