@@ -725,3 +725,5 @@ Dodaje se rendered mjerenje horizontalnog prelijevanja dokumenta za 15 admin rut
 ## Sinhronizacija matrica · u toku
 
 Matrice `aurum-theme` i `aurum-route-coverage` dobile su aktuelnu politiku, inventar 15 mjerenih ruta i jasne granice dokaza; prethodne S0–S5 tabele su označene arhivom. Najnoviji blok u CHECKLIST/HANDOFF ima prednost nad starijim statusom. CI za dokumentaciju čeka provjeru.
+
+**CI matrica:** `534a694` → `44570089463` = 5/5 success. Historijski dijelovi matrica ostaju isključivo arhiva; aktuelni pregledi ne proglašavaju ručne provjere završenim.
