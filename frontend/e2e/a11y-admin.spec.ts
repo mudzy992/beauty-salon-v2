@@ -2314,7 +2314,7 @@ test('O4 campaign retry: uncertain delivery requires confirmation and carries at
 })
 
 
-// M2 dopunska provjera: prioritetne admin rute, početna stanja.
+// M2 dopunska provjera: admin rute, početna stanja.
 // Ovo su simulacije povećanja teksta i razmaka, NE stvarni zoom ili ručni pregled.
 const M2_PRIORITY_ROUTES = [
   '/admin/users',
@@ -2323,6 +2323,9 @@ const M2_PRIORITY_ROUTES = [
   '/admin/finance',
   '/admin/settings',
 ] as const
+// Preostalih deset ruta iz istog inventara; dinamični detalji i tabovi nisu pokriveni.
+const M2_REMAINING_ADMIN_ROUTES = ADMIN_ROUTES.map(route => route.path)
+  .filter(path => !M2_PRIORITY_ROUTES.some(priority => priority === path))
 const M2_TEXT_SPACING = `
   *, *::before, *::after {
     line-height: 1.5 !important;
@@ -2332,9 +2335,10 @@ const M2_TEXT_SPACING = `
   p { margin-bottom: 2em !important; }
 `
 for (const mode of ['light', 'dark'] as const) {
-  for (const path of M2_PRIORITY_ROUTES) {
+  for (const path of [...M2_PRIORITY_ROUTES, ...M2_REMAINING_ADMIN_ROUTES]) {
+    const group = M2_PRIORITY_ROUTES.some(priority => priority === path) ? 'priority' : 'remaining'
     for (const adjustment of ['text-200', 'text-spacing'] as const) {
-      test(`M2 priority ${mode} ${adjustment}: ${path}`, async ({ page }) => {
+      test(`M2 ${group} ${mode} ${adjustment}: ${path}`, async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 900 })
         await page.emulateMedia({ reducedMotion: 'reduce' })
         await configureAurumTheme(page, mode)
@@ -2356,7 +2360,7 @@ for (const mode of ['light', 'dark'] as const) {
         await settleAnimations(page)
         const after = await page.evaluate(clippedSnapshot)
         const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
-        if (newlyClipped.length) reportAdmin(`M2 priority ${mode} ${adjustment} ${path}`, JSON.stringify(newlyClipped.slice(0, 8)))
+        if (newlyClipped.length) reportAdmin(`M2 ${group} ${mode} ${adjustment} ${path}`, JSON.stringify(newlyClipped.slice(0, 8)))
         expect(newlyClipped, `${path} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
         if (path === '/admin/reservations' && adjustment === 'text-200') {
           const tableRegion = page.getByRole('region', { name: /rezervacije|reservations/i }).filter({ has: page.locator('table') })
