@@ -13,6 +13,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import {
   activeElementIsSegmentedInput,
   activeElementLabel,
+  clippedSnapshot,
+  overflowingElements,
   focusableSnapshot,
   describeImageInventory,
   imageBearingInventory,
@@ -344,5 +346,67 @@ for (const mode of ['light', 'dark'] as const) {
       const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
       expect(assertableViolations(results.violations)).toEqual([])
     })
+  }
+}
+
+// M2: osam stvarnih odredišta iz inventara (profil je namjerni redirect).
+// 320 CSS px i uvećanje rem-a nisu stvarni browser zoom, niti mjere sva stanja.
+const STYLIST_TEXT_SPACING = `
+  *, *::before, *::after {
+    line-height: 1.5 !important;
+    letter-spacing: 0.12em !important;
+    word-spacing: 0.16em !important;
+  }
+  p { margin-bottom: 2em !important; }
+`
+for (const mode of ['light', 'dark'] as const) {
+  for (const route of STYLIST_ROUTES) {
+    for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+      test(`M2 stylist ${mode} ${adjustment}: ${route.path}`, async ({ page }) => {
+        await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.addInitScript(selectedMode => {
+          localStorage.removeItem('nejra.theme')
+          localStorage.setItem('nejra.theme.mode', selectedMode)
+        }, mode)
+        await page.route('**/api/settings/public', async intercepted => {
+          const response = await intercepted.fetch()
+          if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+          const rows = await response.json() as Array<{ key: string; value: string }>
+          await intercepted.fulfill({ response, json: [
+            ...rows.filter(row => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
+            { key: 'theme_active_skin', value: 'aurum' },
+            { key: 'theme_default_mode', value: mode },
+          ] })
+        })
+        await page.goto(route.path, { waitUntil: 'networkidle' })
+        expect(new URL(page.url()).pathname).toBe(route.expectPrefix ?? route.path)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        const settled = await settleAnimations(page)
+        expect(settled).not.toBeNull()
+        expect(settled?.stillRunning).toBe(0)
+        if (adjustment === '320px') {
+          const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+          expect(widths.viewport).toBe(320)
+          if (widths.scroll > widths.viewport + 1) reportStylist(`M2 stylist ${mode} 320 ${route.path}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+          expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+        } else {
+          const before = await page.evaluate(clippedSnapshot)
+          if (adjustment === 'text-200') {
+            const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+            await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+            await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+          } else {
+            await page.addStyleTag({ content: STYLIST_TEXT_SPACING })
+          }
+          await settleAnimations(page)
+          const after = await page.evaluate(clippedSnapshot)
+          const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+          if (newlyClipped.length) reportStylist(`M2 stylist ${mode} ${adjustment} ${route.path}`, JSON.stringify(newlyClipped.slice(0, 8)))
+          expect(newlyClipped, `${route.path} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+        }
+      })
+    }
   }
 }
