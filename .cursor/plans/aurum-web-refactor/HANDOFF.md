@@ -5,7 +5,7 @@
 
 ## Najnoviji status — nakon CI `44567932983`
 
-Ovaj blok ima prednost nad starijim „Ažurirani status“ i arhivom ispod: light admin axe je urađen; O4 potvrde imaju interaktivne fiksure za svih 13 tokova (`5407b13`, CI `44579698293` 5/5); nekorišteni `aurum-stat-grid.tsx` uklonjen (`d603042`, CI `44563869689` 5/5). M2: 15 admin ruta × Aurum light/dark na 320 CSS px prošlo, nakon popravki postavki i kalendara (`7081698`, CI `44567932983` 5/5, suite 493/493). To ne dokazuje stvarni zoom, sve dijaloge i sadržaj; ručni M1/M2/M4/M5 ostaju otvoreni. Aktuelne matrice su u `.cursor/docs/matrices/aurum-theme/` i `aurum-route-coverage/`; njihovi stari dijelovi su arhiva. Root font 17px je globalan i traži vizuelni pregled i provjeru korisničkih browser postavki. S8 razbijanje velikih fajlova nije odobreno ovim radom.
+Ovaj blok ima prednost nad starijim „Ažurirani status“ i arhivom ispod: light admin axe je urađen; O4 potvrde imaju interaktivne fiksure za svih 13 tokova (`5407b13`, CI `44579698293` 5/5); nekorišteni `aurum-stat-grid.tsx` uklonjen (`d603042`, CI `44563869689` 5/5). M2: 15 admin ruta × Aurum light/dark na 320 CSS px prošlo, nakon popravki postavki i kalendara (`7081698`, CI `44567932983` 5/5, suite 493/493). To ne dokazuje stvarni zoom, sve dijaloge i sadržaj; ručni M1/M2/M4/M5 ostaju otvoreni. Aktuelne matrice su u `.cursor/docs/matrices/aurum-theme/` i `aurum-route-coverage/`; njihovi stari dijelovi su arhiva. Root font je globalno `106.25%` (17px uz browser default 16px); Chromium provjera browser defaulta 16/20px prošla (`caeebc4` / `44585484397` 5/5). Vizuelni pregled i ručne provjere ostaju otvoreni. S8 razbijanje velikih fajlova nije odobreno ovim radom.
 
 ## Ažurirani status (2026-11-19)
 

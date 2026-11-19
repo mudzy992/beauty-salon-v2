@@ -10,7 +10,7 @@
 | Aurum light / dark | globalni skin Aurum; lokalni izbor režima ima prednost nad globalnim defaultom | `<html data-skin="aurum" data-mode="light|dark">`; `.dark` samo u dark; prekidač ima `aria-pressed` i statusnu najavu. |
 | Fallback i spremanje | `nejra.theme.mode`; stari `nejra.theme` samo za migraciju režima | Početni globalni fallback Aurum light; nevažeći lokalni izbor prepušta odluku administratorskom defaultu. |
 | Boje | NEJRA §10 + semantički tokeni | Bez izmjene zaključane palete; jedini prethodno odobreni izuzetak `brand-accent-text` je dokumentovan u planu. `check_ui_contrast.py --strict` 148/148 je **source-only**. |
-| Tipografija | globalni `html { font-size: 17px }`, vlasnički izbor | Pogađa Classic, Aurum i javni/admin web; rem vrijednosti rastu, hardkodirani px ne. Vizuelni pregled i uticaj na korisničke browser postavke ostaju otvoreni. |
+| Tipografija | globalni `html { font-size: 106.25% }`: 17px uz browser default 16px | Classic, Aurum i javni/admin web; rem prati browser osnovu, hardkodirani px ne. Render test browser defaulta 16/20px: `caeebc4` / `44585484397` 5/5; vizuelni pregled ostaje. |
 
 ### Dokazi i granice
 
