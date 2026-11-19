@@ -392,59 +392,59 @@ export default function PublicServiceDetail() {
         twitter={{ image: ogImage }}
         jsonLd={jsonLd}
       />
-      <div data-aurum-page="service-detail" className={`min-h-screen bg-[#fbf8f4] pb-20 text-[#352925] ${isAurum ? publicAurum.page : ""}`}>
-        <section className="relative isolate overflow-hidden border-b border-[#e8ddd3] bg-[#f4eee7]">
+      <div data-aurum-page="service-detail" className={`min-h-screen bg-surface pb-20 text-content ${isAurum ? publicAurum.page : ""}`}>
+        <section className="relative isolate overflow-hidden border-b border-line bg-surface-sunken">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-36 -top-44 h-[36rem] w-[36rem] rounded-full border border-[#d5c1b0]/35"
+            className="pointer-events-none absolute -right-36 -top-44 h-[36rem] w-[36rem] rounded-full border border-line"
           />
           <div className="mx-auto max-w-7xl px-4 pb-14 pt-7 sm:px-6 sm:pb-20 sm:pt-10 lg:px-8">
             <Link
               to="/usluge"
-              className="inline-flex items-center gap-2 text-sm font-medium text-[#725c4f] transition hover:text-[#49332d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
+              className="inline-flex items-center gap-2 text-sm font-medium text-content-strong transition hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               {t("public.serviceDetail.allServices")}
             </Link>
             <div className="mt-8 grid items-center gap-10 lg:grid-cols-[1fr_0.9fr] lg:gap-16">
               <div className="relative z-10">
-                <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#80553e]">
+                <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-rose-text">
                   {categoryName ? (
                     <span>{categoryName}</span>
                   ) : (
                     <span>{t("public.serviceDetail.kicker")}</span>
                   )}
-                  {salonName ? <span className="text-[#b79b87]">·</span> : null}
+                  {salonName ? <span className="text-content-muted">·</span> : null}
                   {salonName ? (
-                    <span className="text-[#806b5d]">{salonName}</span>
+                    <span className="text-content-strong">{salonName}</span>
                   ) : null}
                 </div>
-                <h1 className={`max-w-3xl break-words text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[5.25rem] ${isAurum ? publicAurum.heading : ""}`}>
+                <h1 className={`max-w-3xl break-words text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-content sm:text-6xl lg:text-[5.25rem] ${isAurum ? publicAurum.heading : ""}`}>
                   {service.name}
                 </h1>
                 {service.shortDescription?.trim() ? (
-                  <p className="mt-6 max-w-2xl text-base leading-7 text-[#75645a] sm:text-lg sm:leading-8">
+                  <p className="mt-6 max-w-2xl text-base leading-7 text-content-strong sm:text-lg sm:leading-8">
                     {service.shortDescription}
                   </p>
                 ) : null}
                 <div className="mt-8 flex flex-wrap gap-3">
                   {showServicePrices ? (
-                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-surface/80 px-4 py-3 shadow-sm">
-                      <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
+                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-line bg-surface/80 px-4 py-3 shadow-sm">
+                      <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-content-strong">
                         {t("public.serviceDetail.priceLabel")}
                       </span>
-                      <span className="mt-1 block text-lg font-semibold text-[#49332d]">
+                      <span className="mt-1 block text-lg font-semibold text-content">
                         {formattedPrice} KM
                       </span>
                     </div>
                   ) : null}
-                  <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-surface/80 px-4 py-3 shadow-sm">
-                    <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
+                  <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-line bg-surface/80 px-4 py-3 shadow-sm">
+                    <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-content-strong">
                       {t("public.serviceDetail.durationLabel")}
                     </span>
-                    <span className="mt-1 inline-flex items-center gap-2 text-lg font-semibold text-[#49332d]">
+                    <span className="mt-1 inline-flex items-center gap-2 text-lg font-semibold text-content">
                       <Clock3
-                        className="h-4 w-4 text-[#9b735f]"
+                        className="h-4 w-4 text-brand-rose-text"
                         aria-hidden="true"
                       />
                       {service.durationMinutes}{" "}
@@ -452,11 +452,11 @@ export default function PublicServiceDetail() {
                     </span>
                   </div>
                   {categoryName ? (
-                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-surface/80 px-4 py-3 shadow-sm">
-                      <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
+                    <div data-detail-fact className="min-w-[9rem] rounded-2xl border border-line bg-surface/80 px-4 py-3 shadow-sm">
+                      <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-content-strong">
                         {t("public.serviceDetail.categoryLabel")}
                       </span>
-                      <span className="mt-1 block text-lg font-semibold text-[#49332d]">
+                      <span className="mt-1 block text-lg font-semibold text-content">
                         {categoryName}
                       </span>
                     </div>
@@ -477,7 +477,7 @@ export default function PublicServiceDetail() {
                   {canBookService ? (
                     <Button
                       asChild
-                      className="h-12 gap-2 rounded-full bg-[#49332d] px-6 text-white hover:bg-[#382722]"
+                      className="h-12 gap-2 rounded-full bg-surface-inverse px-6 text-on-surface-inverse hover:opacity-90"
                     >
                       <Link
                         to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
@@ -494,7 +494,7 @@ export default function PublicServiceDetail() {
                         phone: salonPhone,
                       })}
                       data-detail-contact
-                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-surface/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-surface break-all"
+                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-line bg-surface/70 px-5 py-2 text-sm font-semibold text-content hover:bg-surface break-all"
                     >
                       <Phone className="h-4 w-4" aria-hidden="true" />
                       {salonPhone}
@@ -507,7 +507,7 @@ export default function PublicServiceDetail() {
                         email: salonEmail,
                       })}
                       data-detail-contact
-                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-[#d5c4b8] bg-surface/70 px-5 py-2 text-sm font-semibold text-[#49332d] hover:bg-surface break-all"
+                      className="inline-flex min-h-12 max-w-full items-center gap-2 rounded-full border border-line bg-surface/70 px-5 py-2 text-sm font-semibold text-content hover:bg-surface break-all"
                     >
                       <Mail className="h-4 w-4" aria-hidden="true" />
                       {salonEmail}
@@ -515,9 +515,9 @@ export default function PublicServiceDetail() {
                   ) : null}
                 </div>
                 {salonAddress ? (
-                  <p className="mt-5 flex items-center gap-2 text-sm text-[#75645a]">
+                  <p className="mt-5 flex items-center gap-2 text-sm text-content-strong">
                     <MapPin
-                      className="h-4 w-4 shrink-0 text-[#9b735f]"
+                      className="h-4 w-4 shrink-0 text-brand-rose-text"
                       aria-hidden="true"
                     />
                     {salonAddress}
@@ -527,7 +527,7 @@ export default function PublicServiceDetail() {
               <div className="relative mx-auto w-full max-w-[42rem] lg:ml-auto lg:max-w-none">
                 <div
                   aria-hidden="true"
-                  className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-[#bd9c83]/60 sm:-right-6 sm:-top-6 sm:h-36 sm:w-36"
+                  className="absolute -right-4 -top-4 h-24 w-24 rounded-full border border-line sm:-right-6 sm:-top-6 sm:h-36 sm:w-36"
                 />
                 <div className="relative aspect-[4/3] overflow-hidden rounded-[1.75rem] border border-white/70 bg-gradient-to-br from-[#c6aa96] via-[#e6d8ca] to-[#8e7060] shadow-[0_28px_80px_-35px_rgba(63,42,32,0.5)] sm:aspect-[5/4]">
                   {detailHeroBg ? (
@@ -577,25 +577,25 @@ export default function PublicServiceDetail() {
             <div
               role="status"
               data-detail-empty-gallery
-              className="rounded-[1.5rem] border border-[#e8ddd3] bg-surface px-6 py-14 text-center shadow-[0_16px_50px_-38px_rgba(70,46,35,0.4)] md:py-20"
+              className="rounded-[1.5rem] border border-line bg-surface px-6 py-14 text-center shadow-[0_16px_50px_-38px_rgba(70,46,35,0.4)] md:py-20"
             >
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-brand-rose-text">
                 <Sparkles className="h-6 w-6" aria-hidden="true" />
               </span>
-              <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-[#75645a]">
+              <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-content-strong">
                 {t("public.serviceDetail.noGalleryItems")}
               </p>
             </div>
           ) : (
             <>
               <div className="mb-8 max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#80553e]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-rose-text">
                   {t("public.serviceDetail.galleryEyebrow")}
                 </p>
-                <h2 className="mt-3 text-3xl font-medium tracking-[-0.04em] text-[#382a25] sm:text-4xl">
+                <h2 className="mt-3 text-3xl font-medium tracking-[-0.04em] text-content sm:text-4xl">
                   {t("public.serviceDetail.galleryTitle")}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-[#79695e] sm:text-base">
+                <p className="mt-3 text-sm leading-6 text-content-strong sm:text-base">
                   {t("public.serviceDetail.gallerySubtitle")}
                 </p>
               </div>
