@@ -729,3 +729,45 @@ for (const mode of ['light', 'dark'] as const) {
     await expect(drawer.getByRole('button', { name: /Obriši: Muško šišanje|Delete: Muško šišanje/ })).toHaveCount(0)
   })
 }
+
+// A browser's configured default text size must not be overwritten by a fixed px root.
+// CDP changes the browser default; a clean iframe independently verifies that it took effect.
+for (const { skin, mode } of [
+  { skin: 'classic', mode: 'light' },
+  { skin: 'aurum', mode: 'light' },
+  { skin: 'aurum', mode: 'dark' },
+] as const) {
+  for (const defaultSize of [16, 20]) {
+    test(`root font respects ${defaultSize}px browser default: ${skin} ${mode}`, async ({ page, context }) => {
+      const session = await context.newCDPSession(page)
+      await session.send('Page.setFontSizes', { fontSizes: { standard: defaultSize } })
+      await configure(page, skin, mode)
+      await page.goto('/login', { waitUntil: 'networkidle' })
+      await expect(page.locator('html')).toHaveAttribute('data-skin', skin)
+      await expect(page.locator('html')).toHaveAttribute('data-mode', skin === 'classic' ? 'light' : mode)
+      const result = await page.evaluate(async () => {
+        const iframe = document.createElement('iframe')
+        iframe.hidden = true
+        iframe.srcdoc = '<!doctype html><html><body>Default font</body></html>'
+        await new Promise<void>((resolve, reject) => {
+          iframe.addEventListener('load', () => resolve(), { once: true })
+          iframe.addEventListener('error', () => reject(new Error('font baseline iframe failed to load')), { once: true })
+          document.body.appendChild(iframe)
+        })
+        const baseline = parseFloat(iframe.contentWindow!.getComputedStyle(iframe.contentDocument!.documentElement).fontSize)
+        const root = parseFloat(getComputedStyle(document.documentElement).fontSize)
+        const probe = document.createElement('span')
+        probe.style.fontSize = '1rem'
+        document.body.appendChild(probe)
+        const rem = parseFloat(getComputedStyle(probe).fontSize)
+        probe.remove()
+        iframe.remove()
+        return { baseline, root, rem }
+      })
+      expect(result.baseline).toBe(defaultSize)
+      expect(result.root).toBeCloseTo(defaultSize * 1.0625, 2)
+      expect(result.rem).toBeCloseTo(result.root, 2)
+      await session.detach()
+    })
+  }
+}

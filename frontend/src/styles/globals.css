@@ -398,12 +398,11 @@
     }
   }
 
-  /* Owner odluka 2026-11-19: root font-size 16px → 17px (~+6% rem skale). Sitni UI tekst
-     (text-xs/text-sm, admin labele) bio je presizan; px-hardkodirani Badge (text-[10px]) ostaje
-     namjerno. NEJRA predviđene clamp() skale i em/rem slijede automatski. Važeće za SVA
-     stanja (klasični i Aurum) — klasični identitet je izuzetak samo uz novu odluku. */
+  /* Odobreno globalno povećanje: 106.25% = 17px za browser default 16px.
+     Relativna vrijednost zadržava korisničku osnovnu veličinu fonta browsera;
+     rem skala i clamp() je slijede, dok hardkodirane px veličine ne rastu. */
   html {
-    font-size: 17px;
+    font-size: 106.25%;
     scroll-padding-top: calc(var(--header-height) + 1rem);
     scroll-padding-bottom: 5rem;
   }

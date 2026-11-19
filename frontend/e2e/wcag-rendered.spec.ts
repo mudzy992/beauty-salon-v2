@@ -122,10 +122,13 @@ for (const route of PUBLIC_ROUTES) {
     // pa se mjeri POGORŠANJE, ne apsolutna vrijednost.
     const overflowBefore = await measureHorizontalOverflow(page)
 
-    // Skala je rem-bazirana, pa se 200% postiže na korijenu — kao browser zoom za tekst.
-    await page.evaluate(() => {
-      document.documentElement.style.fontSize = '200%'
-    })
+    // Dupliraj STVARNU početnu veličinu korijena. `200%` CSS-a bi nadjačalo
+    // osnovnih 106.25% i dalo 32 umjesto 34px, tj. manje od 200% prikazanog teksta.
+    const baseSize = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+    await page.evaluate((size) => {
+      document.documentElement.style.fontSize = `${size * 2}px`
+    }, baseSize)
+    await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(baseSize * 2, 2)
     await page.waitForTimeout(300)
 
     const lost = regressions(before, await measureClipped(page))
