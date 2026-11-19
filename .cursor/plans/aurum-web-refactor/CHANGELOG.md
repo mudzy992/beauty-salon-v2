@@ -711,3 +711,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 ## Mrtvi `aurum-stat-grid` · odobrena stavka 6
 
 Uklonjen `frontend/src/features/dashboard/aurum-stat-grid.tsx`: pregled referenci potvrđuje da nema uvoza ni potrošača ovog fajla; aktivni dashboard koristi `features/shell/admin/ui/stat-grid.tsx`, koji ostaje netaknut. Historijski planovi ostaju arhiva, ne naredbe. CI za uklanjanje je na čekanju.
+
+**CI uklanjanja:** `d603042` → `44563869689` = 5/5. Lokalno: TypeScript, 25 dashboard testova i svi standardni Python gates prolaze.
+
+## M2 · Admin reflow 320 CSS px · u toku
+
+Dodaje se rendered mjerenje horizontalnog prelijevanja dokumenta za 15 admin ruta u oba Aurum režima uz provjeru autentificirane rute i teme. To pokriva početno učitano stanje na 320 CSS px, **ne** stvarni browser zoom od 400%, sve podatke, dijaloge, tekstualne razmake niti upotrebljivost tastaturom; ručni M2 ostaje otvoren. Lokalni browser/baza nisu dostupni, CI je potreban za stvarni nalaz.

@@ -2094,3 +2094,42 @@ for (const route of ADMIN_ROUTES) {
     expect(assertableViolations(results.violations)).toEqual([])
   })
 }
+
+// M2: 320 CSS px je približan viewportu desktopa širine 1280 px na 400% zoomu,
+// ne zamjenjuje stvarni browser zoom, provjeru sadržaja ni rad s tipkovnicom.
+// Provjeravaju se samo učitana početna stanja 15 ruta, u oba Aurum režima.
+for (const mode of ['light', 'dark'] as const) {
+  for (const route of ADMIN_ROUTES) {
+    test(`M2 320px Aurum ${mode}: ${route.name} (${route.path})`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 720 })
+      await configureAurumTheme(page, mode)
+      await page.goto(route.path, { waitUntil: 'networkidle' })
+      expect(new URL(page.url()).pathname).toBe(route.path)
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const settled = await settleAnimations(page)
+      expect(settled).not.toBeNull()
+      expect(settled?.stillRunning).toBe(0)
+      const measurement = await page.evaluate(() => {
+        const width = document.documentElement.clientWidth
+        return {
+          width,
+          scrollWidth: document.documentElement.scrollWidth,
+          outside: Array.from(document.body.querySelectorAll('*'))
+            .filter((el) => {
+              const rect = el.getBoundingClientRect()
+              const style = getComputedStyle(el)
+              return style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.right > width + 1
+            })
+            .slice(0, 8)
+            .map((el) => ({ tag: el.tagName, class: el.getAttribute('class')?.slice(0, 100), right: Math.round(el.getBoundingClientRect().right) })),
+        }
+      })
+      expect(measurement.width).toBe(320)
+      if (measurement.scrollWidth > measurement.width + 1) {
+        reportAdmin(`M2 320 ${mode} ${route.path}`, JSON.stringify(measurement))
+      }
+      expect(measurement.scrollWidth - measurement.width, JSON.stringify(measurement)).toBeLessThanOrEqual(1)
+    })
+  }
+}
