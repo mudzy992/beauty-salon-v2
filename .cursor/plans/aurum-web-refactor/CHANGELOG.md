@@ -608,3 +608,10 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Gates: build PASS (290.7 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
 - **Zapis mape (NE dirano, čeka vlasničku odluku):** `PublicServices.tsx` 109 + `PublicServiceDetail.tsx` 38 hardcoded-hex čvorova (warm-paper paleta #49332d/#75645a/#e8ddd3…, `dark:` pokrivenosti 0) — javne stranice ne slijede Aurum temu; `email-visual-editor.tsx` 11 hex = white email preview (namjerno).
 - Vlasnički visual check: u toku.
+
+### Faza F (2/) — ZATVORENO (2026-11-18)
+- `settings-module-page.tsx`: 2 ikonice `text-[#8a624e]` → `text-brand-rose-text` (token, AAA u sva 4 stanja).
+- Gates: build PASS (290.7 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) 0 grešaka.
+- **CI `44496125943` (`903123c`) = ALL GREEN (5/5).**
+- Vlasnički visual check: **OK**.
+- Napomena: veći nalaz (`PublicServices.tsx` 109 + `PublicServiceDetail.tsx` 38 hardcoded-hex, 0 `dark:`) ostaje zabilježen u F (2/) logu — čeka vlasničku odluku (istraživanje / migracija / standstill).
