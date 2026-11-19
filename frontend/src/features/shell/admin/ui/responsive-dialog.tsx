@@ -18,6 +18,8 @@ type ResponsiveDialogProps = {
   children: ReactNode
   footer?: ReactNode
   className?: string
+  onOpenAutoFocus?: (event: Event) => void
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 /** Dialog na desktopu, drawer na mobitelu (globalni UX standard). */
@@ -29,6 +31,8 @@ export function ResponsiveDialog({
   children,
   footer,
   className,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile()
 
@@ -37,6 +41,8 @@ export function ResponsiveDialog({
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent
           side="right"
+          onOpenAutoFocus={onOpenAutoFocus}
+          onCloseAutoFocus={onCloseAutoFocus}
           className="flex h-full w-full max-w-full flex-col gap-0 p-0"
         >
           <div className="border-b border-line px-4 py-3 ">
@@ -62,7 +68,7 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className ?? 'max-w-2xl'}>
+      <DialogContent className={className ?? 'max-w-2xl'} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? (

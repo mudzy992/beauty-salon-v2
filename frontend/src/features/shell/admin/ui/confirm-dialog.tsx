@@ -18,6 +18,8 @@ type ConfirmDialogProps = {
   reasonLabel?: string
   minReasonLength?: number
   onConfirm: (reason: string) => void
+  onOpenAutoFocus?: (event: Event) => void
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 export function ConfirmDialog({
@@ -31,6 +33,8 @@ export function ConfirmDialog({
   reasonLabel,
   minReasonLength = 3,
   onConfirm,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
 }: ConfirmDialogProps) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
@@ -80,6 +84,8 @@ export function ConfirmDialog({
     <ResponsiveDialog
       open={open}
       onOpenChange={handleOpenChange}
+      onOpenAutoFocus={onOpenAutoFocus}
+      onCloseAutoFocus={onCloseAutoFocus}
       title={title}
       description={description}
       className="max-w-md"

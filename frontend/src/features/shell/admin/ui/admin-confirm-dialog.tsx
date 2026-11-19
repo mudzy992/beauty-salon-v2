@@ -1,13 +1,7 @@
+import { useRef } from 'react'
 import { ConfirmDialog } from './confirm-dialog'
 
-/**
- * Zalazna točka za administrativne potvrde koje su ranije bile `window.confirm`
- * (O4, vlasnička odluka 2026-11-19). Naslov/opis su prethodno postojeći i18n stringovi;
- * poruka, uvjet i efekt ostaju 1:1 kao kod `window.confirm`.
- *
- * `action` se pokreće tek nakon klika na potvrdu; greške rukuj unutar akcije
- * (postojeći toast obrazac), dijalog se odmah zatvara.
- */
+/** Potvrda akcije se izvršava tek nakon potvrđivanja; greške obrađuje akcija. */
 export type AdminConfirmRequest = {
   title: string
   description: string
@@ -22,11 +16,23 @@ export function AdminConfirmDialog({
   request: AdminConfirmRequest | null
   onClose: () => void
 }) {
+  const triggerRef = useRef<HTMLElement | null>(null)
+
   return (
     <ConfirmDialog
       open={Boolean(request)}
       onOpenChange={(next: boolean) => {
         if (!next) onClose()
+      }}
+      onOpenAutoFocus={() => {
+        triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      }}
+      onCloseAutoFocus={(event) => {
+        if (triggerRef.current?.isConnected) {
+          event.preventDefault()
+          triggerRef.current.focus()
+        }
+        triggerRef.current = null
       }}
       title={request?.title ?? ''}
       description={request?.description}
