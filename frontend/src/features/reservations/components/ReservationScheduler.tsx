@@ -558,7 +558,7 @@ export const ReservationScheduler = (props: Props) => {
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
 
-            <div className="inline-flex rounded-md border border-line overflow-hidden">
+            <div className="inline-flex max-w-full flex-wrap rounded-md border border-line">
               <button
                 type="button"
                 className={props.view === 'dayGridMonth' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}

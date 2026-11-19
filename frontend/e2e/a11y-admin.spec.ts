@@ -2115,6 +2115,8 @@ for (const mode of ['light', 'dark'] as const) {
         return {
           width,
           scrollWidth: document.documentElement.scrollWidth,
+          root: { bodyWidth: document.body.clientWidth, bodyScrollWidth: document.body.scrollWidth, bodyRight: Math.round(document.body.getBoundingClientRect().right) },
+          scrollers: Array.from(document.body.querySelectorAll('*')).filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflowX === 'visible').slice(0, 10).map((el) => ({ tag: el.tagName, class: el.getAttribute('class')?.slice(0, 100), scroll: el.scrollWidth, width: el.clientWidth })),
           outside: Array.from(document.body.querySelectorAll('*'))
             .filter((el) => {
               const rect = el.getBoundingClientRect()

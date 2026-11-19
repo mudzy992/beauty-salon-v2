@@ -717,3 +717,5 @@ Uklonjen `frontend/src/features/dashboard/aurum-stat-grid.tsx`: pregled referenc
 ## M2 · Admin reflow 320 CSS px · u toku
 
 Dodaje se rendered mjerenje horizontalnog prelijevanja dokumenta za 15 admin ruta u oba Aurum režima uz provjeru autentificirane rute i teme. To pokriva početno učitano stanje na 320 CSS px, **ne** stvarni browser zoom od 400%, sve podatke, dijaloge, tekstualne razmake niti upotrebljivost tastaturom; ručni M2 ostaje otvoren. Lokalni browser/baza nisu dostupni, CI je potreban za stvarni nalaz.
+
+**Prvi M2 nalaz:** `edddc74` / CI `44565781934` = 4/5; 489 prolaza, četiri pada: `/admin/settings` 328px i `/admin/reservations/calendar` 339px na 320px, u oba režima. Nije ukinut niti oslabljen test. Predložene korekcije: postavke prelaze na jednu kolonu na uskim prikazima; izbor prikaza kalendara može prelomiti dugmad umjesto širenja dokumenta. Test dodatno bilježi detalje unutrašnjih dimenzija radi dijagnostike. Lokalno typecheck i build prolaze; čekaju rendered CI i vizuelni pregled.

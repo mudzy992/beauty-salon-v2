@@ -47,7 +47,7 @@ export function SettingsTabNav() {
   return (
     <nav
       aria-label={t('adminSettings.navigationLabel')}
-      className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4"
+      className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4"
     >
       {SETTINGS_TABS.map((tab) => {
         const Icon = ICONS[tab]
