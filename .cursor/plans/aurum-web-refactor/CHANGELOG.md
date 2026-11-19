@@ -545,4 +545,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
   - Registracija testova: `wcag-source-contracts.test.mjs` — ažurirane 2.5.3 grane ugovora (novi `userInitials` helper + novi contract koji zabranjuje 1-char fallback na sva tri mjesta) — 17/17 PASS.
 - **ZADRŽANO:** label-in-name mehanizam (`label-in-name.mjs`) — nepromijenjen; WCAG 2.5.3 je i dalje odlučivo (accName ⊇ vidljivi tekst).
 - Gates prije commita: build PASS (290.7 KiB / 300), diff-check PASS, kontrast 140/140 PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
-- Čeka: commit, push, CI (annotacije a11y posla će pokazati da li 2.5.3 `NEPOTPUNO` → `PROLAZ`), vlasnički visual check (avatar inicijali na admin/stylist/javnim omotačima — npr. „CA“ umjesto „C“).
+- Commit `0e5137d` (fix) + `69c2269` (CI hygiene: `test:user-initials` dodat u ci.yml — `check_ci_index.py` PASS; prvotni run `44476000167` pao SAMO na hygiene poslu, ostalih 4 zeleno — poznata posljedica novog `test:*` bez CI koraka, sada otklonjeno).
+- **CI `44476078583` (`69c2269`) = ALL GREEN (5/5). a11y annotacije: `2.5.3 label-content-name-mismatch: PROLAZ (passed 32, incomplete 0)`** (prije: 10 passed / 22 incomplete). Bonus: `1.4.3 color-contrast: NEPOTPUNO (incomplete 7)` (prije 15) — dio nestalih je isti uzrok (inicijali čvorovi).
+- Vlasnički visual check: **OK** (avatar inicijali 2-znakovni).
+
+### Faza E (3/) — ZATVORENO (2026-11-18)
+- 2.5.3 incomplete → 0. Dijeljeni `userInitials` helper (`src/utils/user-initials.mjs`, 6/6 unit), sva tri omotača konsolidovana na jedan izvor; `wcag-source-contracts` 17/17.
