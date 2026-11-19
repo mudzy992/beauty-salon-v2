@@ -705,3 +705,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 **Dopuna O4 — fokus:** dijalog sada pamti aktivni element prije automatskog fokusiranja i vraća fokus nakon zatvaranja kada element još postoji; oba prikaza (desktop i mobilni drawer) koriste isti mehanizam. Četiri postojeća testa korisničkih potvrda dodatno provjeravaju povrat fokusa, uz zadržane postojeće asercije; lokalno TypeScript, E2E typecheck, 5/5 source testova i lint prolaze (6 poznatih upozorenja). Renderovani dokaz čeka CI. Posebna potvrda svih 13 tokova i vizuelni pregled i dalje su otvoreni.
 
 **Dopuna O4 — CI dokaz:** commit `9574e7b` → run `44550068368` = **5/5 success**, rendered suite **463 passed / 0 failed / 0 skipped**, uključujući ažurirane provjere fokusa za korisničke potvrde. O4 implementacija je isporučena, ali interaktivna provjera ostalih tokova, vizuelni pregled, ručni M1/M2/M4/M5 i razmatranje fiksnog root fonta ostaju otvoreni. Nema tvrdnje o potpunoj WCAG usklađenosti.
+
+---
+
+## Mrtvi `aurum-stat-grid` · odobrena stavka 6
+
+Uklonjen `frontend/src/features/dashboard/aurum-stat-grid.tsx`: pregled referenci potvrđuje da nema uvoza ni potrošača ovog fajla; aktivni dashboard koristi `features/shell/admin/ui/stat-grid.tsx`, koji ostaje netaknut. Historijski planovi ostaju arhiva, ne naredbe. CI za uklanjanje je na čekanju.
