@@ -240,6 +240,7 @@ export function EmailVisualEditor({
             </p>
           </div>
           <div className="rounded-2xl bg-[#f9f3f0] p-3 sm:p-5">
+            {/* Aurum: email preview okvir namjerno ostaje bijel — mailovi se renderuju na bijeloj pozadini, nezavisno od teme aplikacije. */}
             <div className="mx-auto max-w-[480px] overflow-hidden rounded-xl border border-[#f2e7e2] bg-white shadow-xl">
               <div className="bg-gradient-to-br from-[#2d1f1c] via-[#7b4b3a] to-[#d4b098] px-6 py-6 text-white sm:px-8">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">

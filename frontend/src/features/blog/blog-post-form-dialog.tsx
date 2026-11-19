@@ -117,7 +117,7 @@ export function BlogPostFormDialog({
             <p className="text-xs text-content-strong">{t('blog.admin.languageHelp')}</p>
             <Select
               id="blog-language"
-              className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
+              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
               value={form.language}
               onChange={(e) => onChange({ language: e.target.value as BlogPostFormValues['language'] })}
             >

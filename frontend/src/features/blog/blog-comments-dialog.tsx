@@ -63,7 +63,7 @@ export function BlogCommentsDialog({
                 className={[
                   'rounded-md border p-3',
                   c.isApproved
-                    ? 'border-line bg-white'
+                    ? 'border-line bg-surface'
                     : 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20',
                 ].join(' ')}
               >

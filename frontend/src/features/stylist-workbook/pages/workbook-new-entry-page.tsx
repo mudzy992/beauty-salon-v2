@@ -345,7 +345,7 @@ export const WorkbookNewEntryForm = ({
               }}
             />
             {showClientDropdown && filteredClients.length > 0 ? (
-              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
                 {filteredClients.map((c) => (
                   <li key={c.id}>
                     <button
@@ -393,7 +393,7 @@ export const WorkbookNewEntryForm = ({
               }}
             />
             {showServiceDropdown && filteredServices.length > 0 ? (
-              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-white shadow-lg">
+              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
                 {filteredServices.map((svc) => (
                   <li key={svc.id}>
                     <button
@@ -418,7 +418,7 @@ export const WorkbookNewEntryForm = ({
               {selectedServices.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-line bg-white px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-3 py-2 text-sm"
                 >
                   <div className="min-w-0">
                     <div className="font-semibold text-content">{s.name}</div>

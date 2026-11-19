@@ -60,7 +60,7 @@ export function SettingsTabNav() {
             className={`group flex min-h-[5.25rem] items-center gap-3 rounded-xl border px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 sm:px-4 ${
               isActive
                 ? 'border-brand-rose-ring bg-nav-active shadow-sm'
-                : 'border-line bg-white hover:border-control-border hover:bg-surface-muted'
+                : 'border-line bg-surface hover:border-control-border hover:bg-surface-muted'
             }`}
           >
             <span

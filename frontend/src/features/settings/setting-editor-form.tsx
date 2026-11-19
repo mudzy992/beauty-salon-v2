@@ -146,12 +146,12 @@ export function SettingEditorForm({
             rows={4}
             aria-invalid={Boolean(validationError)}
             aria-describedby={validationError ? errorId : undefined}
-            className="min-h-28 rounded-xl bg-white"
+            className="min-h-28 rounded-xl bg-surface"
           />
         ) : def.type === 'select' ? (
           <Select
             id={inputId}
-            className="h-11 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
             value={value}
             onChange={(event) => updateValue(event.target.value)}
             aria-invalid={Boolean(validationError)}
@@ -163,6 +163,7 @@ export function SettingEditorForm({
           </Select>
         ) : def.type === 'color' ? (
           <div className="flex flex-wrap items-center gap-3">
+            {/* Aurum: color swatch namjerno ostaje bijel — kontrast za native color picker, nije površina teme. */}
             <Input
               type="color"
               aria-label={t('adminSettings.editor.colorPicker', { label: displayLabel })}
@@ -170,7 +171,7 @@ export function SettingEditorForm({
               onChange={(event) => updateValue(event.target.value)}
               className="h-11 w-14 cursor-pointer rounded-xl bg-white p-1"
             />
-            <Input id={inputId} value={value} {...inputProps} className="h-11 max-w-48 rounded-xl bg-white font-mono" />
+            <Input id={inputId} value={value} {...inputProps} className="h-11 max-w-48 rounded-xl bg-surface font-mono" />
           </div>
         ) : def.type === 'number' ? (
           <div className="flex items-center gap-3">
@@ -181,7 +182,7 @@ export function SettingEditorForm({
               {...inputProps}
               min={def.min}
               max={def.max}
-              className="h-11 max-w-48 rounded-xl bg-white"
+              className="h-11 max-w-48 rounded-xl bg-surface"
             />
             {def.suffix ? <span className="text-sm text-content-strong">{def.suffix}</span> : null}
           </div>
@@ -193,7 +194,7 @@ export function SettingEditorForm({
               value={value}
               {...inputProps}
               placeholder={def.placeholder || 'https://'}
-              className="h-11 rounded-xl bg-white"
+              className="h-11 rounded-xl bg-surface"
             />
             {def.type === 'image' ? (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-control-border bg-surface p-3">
@@ -225,7 +226,7 @@ export function SettingEditorForm({
             value={value}
             {...inputProps}
             placeholder={def.placeholder}
-            className="h-11 rounded-xl bg-white"
+            className="h-11 rounded-xl bg-surface"
           />
         )}
       </div>

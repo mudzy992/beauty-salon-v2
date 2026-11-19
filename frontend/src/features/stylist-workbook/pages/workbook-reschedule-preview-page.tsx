@@ -245,6 +245,7 @@ export const WorkbookReschedulePreviewPage = () => {
               onClick={() => setIncludeBreaks((v) => !v)}
               disabled={submitting}
             >
+              {/* Aurum: toggle knob namjerno ostaje bijel — kontrast na tamnom/aktiviranom track-u, nije površina teme. */}
               <span
                 className={cn(
                   'h-5 w-5 rounded-full bg-white transition-transform',

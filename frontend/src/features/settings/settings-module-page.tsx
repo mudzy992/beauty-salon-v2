@@ -47,7 +47,7 @@ export function SettingsModulePage({
 
   return (
     <SettingsShell title={title} description={description}>
-      <section aria-label={t('adminSettings.search.label')} className="mb-5 rounded-2xl border border-line bg-white p-4 shadow-sm sm:p-5">
+      <section aria-label={t('adminSettings.search.label')} className="mb-5 rounded-2xl border border-line bg-surface p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-xl">
             <label htmlFor={inputId} className="sr-only">{t('adminSettings.search.label')}</label>
@@ -88,7 +88,7 @@ export function SettingsModulePage({
             <span className="sr-only">{t('common.loading')}</span>
           </div>
           {[0, 1, 2].map((item) => (
-            <div key={item} aria-hidden="true" className="h-20 animate-pulse rounded-2xl border border-line bg-white" />
+            <div key={item} aria-hidden="true" className="h-20 animate-pulse rounded-2xl border border-line bg-surface" />
           ))}
         </div>
       ) : loadError ? (

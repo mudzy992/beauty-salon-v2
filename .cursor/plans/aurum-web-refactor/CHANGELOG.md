@@ -583,3 +583,13 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 ### Faza E (5/) — ZATVORENO (2026-11-18)
 - 1.4.6 AAA čvorovi → 0. Lanac Faze E sada zatvorena: (1/) admin patch-CSS ✓ · (2/) CTA ✓ · (3/) 2.5.3 PROLAZ 32/0 ✓ · (4/) 1.4.3 human-judgment ✓ · (5/) 1.4.6 PROLAZ 32/0 ✓.
 - Napomena: dark Aurum `--text-muted` (6.78:1 na surface-muted) ostaje known-issue po vlasnikovoj odluci (još neodobreno); Button adopcija ~50, `features/** bg-white`, Button strukturni scope, orphan komentari — čekaju vlasničke odluke.
+
+### Faza F (1/) — `features/** bg-white`: mapa + migracija 15 čvorova → `bg-surface` (dark Aurum defect) (2026-11-18)
+- Owner-scope (odabrano poslije zatvaranja Faze E): prvo mapa/procjena obima (18 solid čvorova / 9 fajlova, sva u `features/`; 0 u ostatku `src/`), zatim vlasnička odluka „Da — migracija sad“.
+- **Razlog (uzrok defekta):** `Input`/`Select`/`Textarea` base je `bg-surface`; proslijeđeni `bg-white` ga poništava (`cn`/tailwind-merge — kasniji utility pobjeđuje) → u Aurum **dark** ove površine ostaju bijele uz `text-content` (near-white) ⇒ gotovo nečitljiv tekst. U light stanjima ponašanje je vizuelno identično (`--surface` = #FFFFFF), zato nije primijećeno.
+- **Migrirano (15):** `setting-editor-form.tsx` ×6 (textarea/select/number/url/text + mono color-hex input), `setting-group-panel.tsx` (panel), `settings-module-page.tsx` (search kartica + skeleton), `settings-tab-nav.tsx` (neaktivni tab), `blog-comments-dialog.tsx` (odobren komentar; neapproved grana ostaje amber + `dark:` varijante), `blog-post-form-dialog.tsx` (language Select), `workbook-new-entry-page.tsx` ×3 (2× listbox dropdown + odabrana-usluga row).
+- **ZADRŽANO (3 deliberate-keep, komentar dodan uz svaki):** color-swatch backdrop (`setting-editor-form.tsx` — kontrast native color pickera), toggle knob (`workbook-reschedule-preview-page.tsx` — kontrast na aktiviranom/tamnom track-u), email preview okvir (`email-visual-editor.tsx` — mailovi se renderuju na bijelo, nezavisno od teme aplikacije).
+- `bg-white/xx` opacity-varijante na imagery overlay-jima (BeforeAfterSlider, Gallery, PublicServices, `button.tsx` onDark/overlay-hero) — van scope-a, namjerno (scrims/badge na slikama).
+- **Bonus nalaz (NE dirano, van scope-a):** `settings-module-page.tsx` — hardcoded `text-[#8a624e]` ikonice (search row + skeleton loader); kandidat za zaseban token batch.
+- Gates: build PASS (290.7 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
+- Vlasnički visual check: u toku (admin settings + stylist workbook u light/dark Aurumu).

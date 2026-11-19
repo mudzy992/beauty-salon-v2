@@ -37,7 +37,7 @@ export function SettingGroupPanel({
   }, [defaultExpanded, query])
 
   return (
-    <section className={cn('overflow-hidden rounded-2xl border bg-white shadow-sm transition-colors', expanded ? 'border-control-border' : 'border-line')}>
+    <section className={cn('overflow-hidden rounded-2xl border bg-surface shadow-sm transition-colors', expanded ? 'border-control-border' : 'border-line')}>
       <button
         type="button"
         aria-expanded={expanded}
