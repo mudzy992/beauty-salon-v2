@@ -666,3 +666,8 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Inventura je potvrdila: svi ostali komentari u tail bloku tačno prate aktivna pravila (Recharts zero-width, portal-scoped client-analytics-dialog, badge surface pairs, hub text-muted-strong pairs) — nikakva pravila bez komentara osim L1849, nikakvi komentari bez pravila.
 - Bez izmjena ponašanja (comment/CSS-rule description only).
 - Gates: build PASS (289.6 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
+
+### Faza F (6/) — ZATVORENO (2026-11-18)
+- Tail komentari: reword `index.css` reference + dodat komentar uz L1849; ništa drugo (inventura potvrdila — ostale komentare su žive dok.).
+- **CI `44518166979` (`895feb1`) = ALL GREEN (5/5)** — taj run builda i F (5/) close-out commit (`a178a7d`) koji je prethodno otkazan auto-cancel mehanizmom (`concurrency: ci-<branch>`, cancel-in-progress na brzim uzastopnim pushovima); a178a7d je sadržajno podskup 895feb1, pa ga pokriva.
+- Vlasnički visual check: **OK** (bez render izmjene; /admin/analytics nepromijenjen).
