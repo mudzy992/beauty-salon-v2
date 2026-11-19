@@ -624,3 +624,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - **Poznato:** Aurum hex-patch (L559–573) sada bez ijednog TSX potrošača (provjereno grep-om) — brisanje u zasebnom krugu uz mimik dokaze; `text-content-muted` na `#b79b87` separatoru je malo blaži nego prije (dekorativno).
 - Gates: build PASS (289.6 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
 - Vlasnički visual check: u toku (/usluge + detalj usluge u 4 stanja: aurum light/dark, classic light/dark).
+
+### Faza F (3/) — ZATVORENO (2026-11-18)
+- PublicServices/PublicServiceDetail: ~148 hardcoded hex čvorova → semantički tokeni; classic-dark light-ostrva otklonjena; Aurum patch zadržan (brisanje uz mimik dokaze).
+- Gates: build PASS (289.6 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) 0 grešaka.
+- **CI `44508482933` (`7ec128e`) = ALL GREEN (5/5).**
+- Vlasnički visual check: **OK** (/usluge + detalj usluge u 4 stanja).
