@@ -100,7 +100,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             type="button"
-            variant={isDestructive ? 'destructive' : 'default'}
+            variant={isDestructive ? 'danger' : 'default'}
             onClick={handleConfirm}
             disabled={isPending || !isReasonValid || confirmLocked}
             aria-busy={isPending}

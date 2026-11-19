@@ -42,7 +42,7 @@ export const CancelReservationDialog = ({
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           {dismissLabel}
         </Button>
-        <Button type="button" variant="destructive" disabled={busy} onClick={onConfirm}>
+        <Button type="button" variant="danger" disabled={busy} onClick={onConfirm}>
           {confirmLabel}
         </Button>
       </div>

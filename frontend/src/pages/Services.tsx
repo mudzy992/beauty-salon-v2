@@ -1471,7 +1471,7 @@ export default function Services() {
               type="button"
               variant={
                 deletionAction === 'DELETE_LINKED_RECORDS'
-                  ? 'destructive'
+                  ? 'danger'
                   : 'default'
               }
               onClick={() => void handleServiceMutation()}

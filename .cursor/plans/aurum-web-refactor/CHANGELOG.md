@@ -644,3 +644,11 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Gates: build PASS (289.7 KiB / 300), diff-check PASS, contrast strict **PASS (144/144)**, full `test:*` sweep (205 paketa) 0 grešaka.
 - **CI `44512475492` (`cf7708e`) = ALL GREEN (5/5).**
 - Vlasnički visual check: **OK** (Aurum dark; classic states nemijenjani).
+
+### Faza F (5/) — Button variant reconciliation: `destructive` → `danger` (2026-11-18)
+- Vlasnik odabrao opciju A (bez adopcije 50 raw `<button>` — svi su specijalizovani a11y/widget obrasci: segmented controls, listbox opcije, calendar ćelije, stretched-link kartice, disclosure/toggle switcheve, sort-header-i; nekoliko nosi eksplicitne komentare zašto raw `<button>` mora biti).
+- **Reconciliation:** 5 preklapajućih upotreba Button `destructive` (hardcoded red-600/red-700) → `danger` (semantički `bg-danger` token; 5.22:1 light / 6.29:1 dark po contrast SSOT-u): `cancel-reservation-dialog.tsx`, `entry-delete-dialog.tsx`, `admin/ui/confirm-dialog.tsx` (isDestructive ternary), `aurum/ui/confirm-dialog.tsx` (isti), `Services.tsx` (deletionAction ternary). `destructive` varijanta obrisana iz `ui/button.tsx`.
+- **ZADRŽANO:** `Alert variant="destructive"` (×3, rose-tint soft alert — vlastita komponenta/semantic), `Badge variant="danger"` (×3), svih 50 raw `<button>` widget čvorova, `--destructive` CSS tokeni (klasični shadcn sloj).
+- **Opcionalna adopcija (B opcija, NIJE urađena):** BlogList retry/load-more ×3 (rounded-lg→pill), clear-search ikonice ×2 (ghost/icon, h-11→h-10) — ostaje za vlasnikovu odluku.
+- Gates: build PASS (289.5 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
+- Vlasnički visual check: u toku (delete/cancel tok: /services brisanje usluge, dnevni log delete, cancel reservation; danger se sada renderuje semantičkim danger tokenom, nije red-600 — vizuelno vrlo slično).
