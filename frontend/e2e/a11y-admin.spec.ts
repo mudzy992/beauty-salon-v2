@@ -1926,6 +1926,9 @@ test('settings sidebar is grouped while existing settings tab deep links remain 
 //    classic light); cilj: 1.4.6/1.4.3 dokaz na istim stranicama koje axe nikad nije mjerio
 //    u Aurum dark-u (javne rute pokriva theme-policy.spec; admin rute nijedne).
 //    Assert je isti kao postojeći Aurum admin blok (`assertableViolations` = prazno).
+// 3. Aurum light sweep (2026-11-19, owner odluka — simetrija dark sweepa): isti posao za
+//    Aurum light admin rute (ranije nijedna admin ruta nije mjerena u Aurum light-u; javne
+//    rute i dalje pokriva theme-policy.spec). Isti assert, AAA samo u log.
 
 const configureAurumTheme = async (page: Page, mode: 'light' | 'dark') => {
   await page.addInitScript((selectedMode) => {
@@ -2047,6 +2050,24 @@ for (const route of ADMIN_ROUTES) {
     const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
     recordAxeCoverage(test.info().project.name, `${route.path} (aurum-dark)`, results, defaultCoverageDir())
     console.log(`ADMIN_DARK_AAA ${route.path} ${JSON.stringify(aaaDetail(results.violations))}`)
+    expect(assertableViolations(results.violations)).toEqual([])
+  })
+}
+
+for (const route of ADMIN_ROUTES) {
+  test(`Aurum light admin rendered axe (sweep): ${route.name} (${route.path})`, async ({ page }) => {
+    await configureAurumTheme(page, 'light')
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+    const url = new URL(page.url())
+    expect(url.pathname).toBe(route.path)
+    await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+    await expect(page.locator('html')).toHaveAttribute('data-mode', 'light')
+    const settled = await settleAnimations(page)
+    expect(settled).not.toBeNull()
+    expect(settled?.stillRunning).toBe(0)
+    const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+    recordAxeCoverage(test.info().project.name, `${route.path} (aurum-light)`, results, defaultCoverageDir())
+    console.log(`ADMIN_LIGHT_AAA ${route.path} ${JSON.stringify(aaaDetail(results.violations))}`)
     expect(assertableViolations(results.violations)).toEqual([])
   })
 }
