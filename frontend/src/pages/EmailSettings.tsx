@@ -19,6 +19,7 @@ import {
   type EmailContentBlock,
   type EmailContentBlockType,
 } from '../features/email-settings/email-visual-editor'
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 
 type ProviderType = 'google' | 'office365' | 'exchange' | 'custom';
 
@@ -336,6 +337,7 @@ export default function EmailSettings() {
   const [campaignJob, setCampaignJob] = useState<CampaignJobSummary | null>(null);
   const [campaignJobLoadFailed, setCampaignJobLoadFailed] = useState(false);
   const [campaignJobActionBusy, setCampaignJobActionBusy] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null);
   const campaignRequestId = useRef<{ key: string; fingerprint: string } | null>(null);
 
   const isCustomLike = useMemo(
@@ -754,21 +756,28 @@ export default function EmailSettings() {
     }
   };
 
-  const handleRetryFailedCampaign = async () => {
-    if (!campaignJobId || !window.confirm(t('emailSettings.campaigns.retryConfirmAtLeastOnce'))) return
-    setCampaignJobActionBusy(true)
-    try {
-      const { data } = await api.post<{ ok: boolean } & CampaignJobSummary>(
-        `/api/notifications/campaigns/${campaignJobId}/retry`,
-        { confirmAtLeastOnce: true, requestId: crypto.randomUUID() },
-      )
-      setCampaignJob(data)
-      setCampaignJobLoadFailed(false)
-    } catch {
-      toastError(t('emailSettings.campaigns.retryFailedMessage'))
-    } finally {
-      setCampaignJobActionBusy(false)
-    }
+  const handleRetryFailedCampaign = () => {
+    if (!campaignJobId) return
+    setConfirmRequest({
+      title: t('common.confirmTitle'),
+      description: t('emailSettings.campaigns.retryConfirmAtLeastOnce'),
+      confirmLabel: t('common.confirm'),
+      action: async () => {
+        setCampaignJobActionBusy(true)
+        try {
+          const { data } = await api.post<{ ok: boolean } & CampaignJobSummary>(
+            `/api/notifications/campaigns/${campaignJobId}/retry`,
+            { confirmAtLeastOnce: true, requestId: crypto.randomUUID() },
+          )
+          setCampaignJob(data)
+          setCampaignJobLoadFailed(false)
+        } catch {
+          toastError(t('emailSettings.campaigns.retryFailedMessage'))
+        } finally {
+          setCampaignJobActionBusy(false)
+        }
+      },
+    })
   };
 
   if (loading) {
@@ -878,10 +887,16 @@ export default function EmailSettings() {
                         variant="ghost"
                         className="shrink-0 text-rose-600"
                         onClick={() => {
-                          if (!window.confirm(t('emailSettings.smtp.clearPasswordConfirm'))) return
-                          setClearPasswordRequested(true)
-                          setHasPasswordConfigured(false)
-                          setPassword('')
+                          setConfirmRequest({
+                            title: t('common.confirmDestructiveTitle'),
+                            description: t('emailSettings.smtp.clearPasswordConfirm'),
+                            confirmLabel: t('emailSettings.smtp.clearPassword'),
+                            action: () => {
+                              setClearPasswordRequested(true)
+                              setHasPasswordConfigured(false)
+                              setPassword('')
+                            },
+                          })
                         }}
                       >
                         {t('emailSettings.smtp.clearPassword')}
@@ -1395,6 +1410,7 @@ export default function EmailSettings() {
           </Card>
         </TabsContent>
       </Tabs>
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )
 }

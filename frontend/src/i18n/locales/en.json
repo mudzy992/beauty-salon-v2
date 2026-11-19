@@ -542,7 +542,9 @@
     "next": "Next",
     "saving": "Saving…",
     "pageNotFound": "Page not found.",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "confirmTitle": "Confirmation",
+    "confirmDestructiveTitle": "Confirm deletion"
   },
   "profile": {
     "title": "My profile",

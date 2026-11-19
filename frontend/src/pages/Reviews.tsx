@@ -7,6 +7,7 @@ import { Check, Eye, Loader2, Star, Trash2 } from 'lucide-react'
 import api from '../api/client'
 import { useAppToast } from '../lib/toast/useAppToast'
 
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -52,6 +53,7 @@ export default function Reviews() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
 
   const [open, setOpen] = useState(false)
   const [detail, setDetail] = useState<Review | null>(null)
@@ -82,16 +84,22 @@ export default function Reviews() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t('reviews.deleteConfirm'))) return
-    try {
-      await api.delete(`/api/reviews/${id}`)
-      success(t('reviews.deletedSuccess'))
-      loadData()
-      if (detail?.id === id) setOpen(false)
-    } catch {
-      error(t('reviews.actionFailed'))
-    }
+  const handleDelete = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('reviews.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/reviews/${id}`)
+          success(t('reviews.deletedSuccess'))
+          loadData()
+          if (detail?.id === id) setOpen(false)
+        } catch {
+          error(t('reviews.actionFailed'))
+        }
+      },
+    })
   }
 
   const openDetail = (r: Review) => {
@@ -309,6 +317,7 @@ export default function Reviews() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )
 }

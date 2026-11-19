@@ -29,6 +29,7 @@ import {
   AccordionTrigger,
 } from '../components/ui/accordion'
 import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Select } from '../components/ui/select'
@@ -135,6 +136,7 @@ export default function Services() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
 
   const [open, setOpen] = useState(false)
   const [modalMode, setModalMode] = useState<ModalMode>('category')
@@ -352,26 +354,38 @@ export default function Services() {
     }
   }
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm(t('services.confirmDeleteCategory'))) return
-    try {
-      await api.delete(`/api/services/categories/${id}`)
-      success(t('services.toast.categoryDeleted'))
-      loadData()
-    } catch (err) {
-      showApiError(err, 'services.errors.deleteCategoryFailed')
-    }
+  const handleDeleteCategory = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('services.confirmDeleteCategory'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/services/categories/${id}`)
+          success(t('services.toast.categoryDeleted'))
+          loadData()
+        } catch (err) {
+          showApiError(err, 'services.errors.deleteCategoryFailed')
+        }
+      },
+    })
   }
 
-  const handleDeleteSubcategory = async (id: string) => {
-    if (!window.confirm(t('services.confirmDeleteSubcategory'))) return
-    try {
-      await api.delete(`/api/services/subcategories/${id}`)
-      success(t('services.toast.subcategoryDeleted'))
-      loadData()
-    } catch (err) {
-      showApiError(err, 'services.errors.deleteSubcategoryFailed')
-    }
+  const handleDeleteSubcategory = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('services.confirmDeleteSubcategory'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/services/subcategories/${id}`)
+          success(t('services.toast.subcategoryDeleted'))
+          loadData()
+        } catch (err) {
+          showApiError(err, 'services.errors.deleteSubcategoryFailed')
+        }
+      },
+    })
   }
 
   const loadDeletionImpact = async (
@@ -1499,6 +1513,7 @@ export default function Services() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )
 }

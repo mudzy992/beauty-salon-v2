@@ -35,6 +35,7 @@ import { Button } from '../components/ui/button'
 import { Select } from '../components/ui/select'
 import { Card } from '../components/ui/card'
 import { ConfirmDialog } from '../features/finance/components/confirm-dialog'
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -168,6 +169,7 @@ export default function Users() {
 
   const [saving, setSaving] = useState(false)
   const [resetLinkSendingId, setResetLinkSendingId] = useState<string | null>(null)
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
   const [debtToWriteOff, setDebtToWriteOff] = useState<string | null>(null)
   const [writeOffPending, setWriteOffPending] = useState(false)
   const [page, setPage] = useState(0)
@@ -451,27 +453,29 @@ export default function Users() {
     return () => { cancelled = true; clearTimeout(timeout) }
   }, [editOpen, editUser, formData.username, initialUsername])
 
-  const handleIssueInitialPasswordResetLink = async (user: UserRow) => {
+  const handleIssueInitialPasswordResetLink = (user: UserRow) => {
     if (!user.mustChangePassword) return
     if (!user.email || !user.isEmailVerified) {
       warning(t('users.credentials.resetLinkNeedsVerifiedEmail'))
       return
     }
-    const confirmed = window.confirm(
-      t('users.credentials.resetLinkConfirm', { email: user.email }),
-    )
-    if (!confirmed) return
-
-    setResetLinkSendingId(user.id)
-    try {
-      await api.post(`/auth/admin/users/${encodeURIComponent(user.id)}/password-reset-link`)
-      success(t('users.credentials.resetLinkSent'))
-      loadData()
-    } catch (err) {
-      showApiError(err, 'users.errors.passwordResetLinkFailed')
-    } finally {
-      setResetLinkSendingId(null)
-    }
+    setConfirmRequest({
+      title: t('common.confirmTitle'),
+      description: t('users.credentials.resetLinkConfirm', { email: user.email }),
+      confirmLabel: t('common.confirm'),
+      action: async () => {
+        setResetLinkSendingId(user.id)
+        try {
+          await api.post(`/auth/admin/users/${encodeURIComponent(user.id)}/password-reset-link`)
+          success(t('users.credentials.resetLinkSent'))
+          loadData()
+        } catch (err) {
+          showApiError(err, 'users.errors.passwordResetLinkFailed')
+        } finally {
+          setResetLinkSendingId(null)
+        }
+      },
+    })
   }
 
   const handleCreate = async () => {
@@ -546,15 +550,21 @@ export default function Users() {
     return () => { cancelled = true; clearTimeout(timeout) }
   }, [createOpen, createData.firstName, createData.lastName, createData.username, isUsernameManuallyEdited])
 
-  const handleDeactivate = async (id: string, username: string) => {
-    if (!window.confirm(t('users.confirmDeactivate', { username }))) return
-    try {
-      await api.patch(`/api/users/${id}`, { isActive: false })
-      success(t('users.toast.deactivated'))
-      loadData()
-    } catch (err) {
-      showApiError(err, 'users.errors.deactivateFailed')
-    }
+  const handleDeactivate = (id: string, username: string) => {
+    setConfirmRequest({
+      title: t('common.confirmTitle'),
+      description: t('users.confirmDeactivate', { username }),
+      confirmLabel: t('common.confirm'),
+      action: async () => {
+        try {
+          await api.patch(`/api/users/${id}`, { isActive: false })
+          success(t('users.toast.deactivated'))
+          loadData()
+        } catch (err) {
+          showApiError(err, 'users.errors.deactivateFailed')
+        }
+      },
+    })
   }
 
   const handleAssignRole = async (userId: string, roleName: string) => {
@@ -672,14 +682,20 @@ export default function Users() {
       await openRemoveStylist(userId)
       return
     }
-    if (!window.confirm(t('users.confirmRemoveRole', { role: getRoleLabel(roleName) }))) return
-    try {
-      await api.delete(`/api/users/${userId}/roles/${roleName}`)
-      success(t('users.toast.roleRemoved', { role: getRoleLabel(roleName) }))
-      loadData()
-    } catch (err) {
-      showApiError(err, 'users.errors.removeRoleFailed')
-    }
+    setConfirmRequest({
+      title: t('common.confirmTitle'),
+      description: t('users.confirmRemoveRole', { role: getRoleLabel(roleName) }),
+      confirmLabel: t('common.confirm'),
+      action: async () => {
+        try {
+          await api.delete(`/api/users/${userId}/roles/${roleName}`)
+          success(t('users.toast.roleRemoved', { role: getRoleLabel(roleName) }))
+          loadData()
+        } catch (err) {
+          showApiError(err, 'users.errors.removeRoleFailed')
+        }
+      },
+    })
   }
 
   const handleConfirmRemoveStylist = async () => {
@@ -1640,6 +1656,8 @@ export default function Users() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
 
       <ConfirmDialog
         open={Boolean(debtToWriteOff)}

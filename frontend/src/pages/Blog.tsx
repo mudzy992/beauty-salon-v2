@@ -12,6 +12,7 @@ import { BlogCommentsDialog } from '../features/blog/blog-comments-dialog'
 import { emptyBlogPostForm, formFromPost, toBlogPostPayload } from '../features/blog/blog-post-form'
 import { BlogPostFormDialog } from '../features/blog/blog-post-form-dialog'
 import { BlogPostsTable } from '../features/blog/blog-posts-table'
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import type { BlogComment, BlogPost, BlogPostFormValues } from '../features/blog/types'
 
 export default function Blog() {
@@ -30,6 +31,7 @@ export default function Blog() {
   const [comments, setComments] = useState<BlogComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [commentsLoadError, setCommentsLoadError] = useState(false)
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
 
   const reportApiError = (err: unknown, fallbackKey: string) => {
     const message = getErrorMessage(err, '')
@@ -93,15 +95,21 @@ export default function Blog() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t('blog.admin.deleteConfirm'))) return
-    try {
-      await api.delete(`/api/blog/${id}`)
-      success(t('blog.admin.deleted'))
-      loadData()
-    } catch (err) {
-      reportApiError(err, 'blog.admin.deleteFailed')
-    }
+  const handleDelete = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('blog.admin.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/blog/${id}`)
+          success(t('blog.admin.deleted'))
+          loadData()
+        } catch (err) {
+          reportApiError(err, 'blog.admin.deleteFailed')
+        }
+      },
+    })
   }
 
   const openComments = async (postId: string, postTitle: string) => {
@@ -131,15 +139,21 @@ export default function Blog() {
     }
   }
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm(t('blog.admin.deleteCommentConfirm'))) return
-    try {
-      await api.delete(`/api/blog/comments/${commentId}`)
-      success(t('blog.admin.commentDeleted'))
-      if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
-    } catch (err) {
-      reportApiError(err, 'blog.admin.deleteCommentFailed')
-    }
+  const handleDeleteComment = (commentId: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('blog.admin.deleteCommentConfirm'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/blog/comments/${commentId}`)
+          success(t('blog.admin.commentDeleted'))
+          if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
+        } catch (err) {
+          reportApiError(err, 'blog.admin.deleteCommentFailed')
+        }
+      },
+    })
   }
 
   return (
@@ -191,6 +205,7 @@ export default function Blog() {
         onApprove={(id) => void handleApproveComment(id)}
         onDelete={(id) => void handleDeleteComment(id)}
       />
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
 
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -56,6 +57,7 @@ export default function Gallery() {
   const [saving, setSaving] = useState(false)
 
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
   const [catImages, setCatImages] = useState<GalleryImage[]>([])
   const [imagesLoading, setImagesLoading] = useState(false)
 
@@ -157,19 +159,25 @@ export default function Gallery() {
     }
   }
 
-  const handleDeleteCat = async (id: string) => {
-    if (!window.confirm(t('gallery.admin.deleteCategoryConfirm'))) return
-    try {
-      await api.delete(`/api/gallery/categories/${id}`)
-      success(t('gallery.admin.categoryDeleted'))
-      if (selectedCatId === id) {
-        setSelectedCatId(null)
-        setCatImages([])
-      }
-      loadCategories()
-    } catch {
-      error(t('gallery.admin.genericError'))
-    }
+  const handleDeleteCat = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('gallery.admin.deleteCategoryConfirm'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/gallery/categories/${id}`)
+          success(t('gallery.admin.categoryDeleted'))
+          if (selectedCatId === id) {
+            setSelectedCatId(null)
+            setCatImages([])
+          }
+          loadCategories()
+        } catch {
+          error(t('gallery.admin.genericError'))
+        }
+      },
+    })
   }
 
   const openImgEdit = (img: GalleryImage) => {
@@ -193,16 +201,22 @@ export default function Gallery() {
     }
   }
 
-  const handleDeleteImg = async (id: string) => {
-    if (!window.confirm(t('gallery.admin.deleteImageConfirm'))) return
-    try {
-      await api.delete(`/api/gallery/images/${id}`)
-      success(t('gallery.admin.imageDeleted'))
-      if (selectedCatId) await loadImages(selectedCatId)
-      loadCategories()
-    } catch {
-      error(t('gallery.admin.genericError'))
-    }
+  const handleDeleteImg = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('gallery.admin.deleteImageConfirm'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/gallery/images/${id}`)
+          success(t('gallery.admin.imageDeleted'))
+          if (selectedCatId) await loadImages(selectedCatId)
+          loadCategories()
+        } catch {
+          error(t('gallery.admin.genericError'))
+        }
+      },
+    })
   }
 
   const openAddImage = async () => {
@@ -606,6 +620,7 @@ export default function Gallery() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )
 }

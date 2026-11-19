@@ -14,6 +14,7 @@ import {
 } from '../../../shared/business-date.mjs'
 
 import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
+import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -72,6 +73,7 @@ export default function Salon() {
   const [salon, setSalon] = useState<SalonSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
   const [noSalonExists, setNoSalonExists] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -266,15 +268,21 @@ export default function Salon() {
     }
   }
 
-  const handleDeleteHoliday = async (id: string) => {
-    if (!window.confirm(t('salon.confirmDeleteHoliday'))) return
-    try {
-      await api.delete(`/api/salon/holidays/${id}`)
-      success(t('salon.toast.holidayDeleted'))
-      reloadHolidays()
-    } catch (err) {
-      showApiError(err, 'salon.errors.deleteHolidayFailed')
-    }
+  const handleDeleteHoliday = (id: string) => {
+    setConfirmRequest({
+      title: t('common.confirmDestructiveTitle'),
+      description: t('salon.confirmDeleteHoliday'),
+      confirmLabel: t('common.delete'),
+      action: async () => {
+        try {
+          await api.delete(`/api/salon/holidays/${id}`)
+          success(t('salon.toast.holidayDeleted'))
+          reloadHolidays()
+        } catch (err) {
+          showApiError(err, 'salon.errors.deleteHolidayFailed')
+        }
+      },
+    })
   }
 
   const handleSendNotification = async (holidayId: string) => {
@@ -660,6 +668,7 @@ export default function Salon() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )
 }

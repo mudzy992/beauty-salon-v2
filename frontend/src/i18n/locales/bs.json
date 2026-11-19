@@ -542,7 +542,9 @@
     "next": "Sljedeća",
     "saving": "Spremanje…",
     "pageNotFound": "Stranica nije pronađena.",
-    "backHome": "Nazad na početnu"
+    "backHome": "Nazad na početnu",
+    "confirmTitle": "Potvrda",
+    "confirmDestructiveTitle": "Potvrdi brisanje"
   },
   "profile": {
     "title": "Moj profil",
