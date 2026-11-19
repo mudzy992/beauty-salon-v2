@@ -315,9 +315,10 @@ export default function Reviews() {
               {t('common.close')}
             </Button>
           </DialogFooter>
+          <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
         </DialogContent>
       </Dialog>
-      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      {!open && <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
     </div>
   )
 }

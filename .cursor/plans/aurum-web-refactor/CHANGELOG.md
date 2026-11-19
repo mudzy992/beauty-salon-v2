@@ -731,3 +731,5 @@ Matrice `aurum-theme` i `aurum-route-coverage` dobile su aktuelnu politiku, inve
 ## O4 · Interaktivni dokazi preostalih potvrda · u toku
 
 Dodane Playwright fiksure za 10 prethodno zasebno neprovjerenih tokova (blog ×2, galerija ×2, recenzije, praznik, kategorija i potkategorija usluga, SMTP lozinka i retry kampanje). Provjeravaju poruku, odustajanje, fokus, potvrdu i izolovane zahtjeve, uključujući nested dijaloge i `confirmAtLeastOnce` payload. Svi relevantni zahtjevi su presretnuti fiksurama; nije kontaktirana produkcija. Typecheck E2E prolazi; rendered rezultat tek čeka CI, nije dokaz prolaza.
+
+**Prvi nalaz:** `b533743` / `44575707833` = 4/5; 499 prošlo, 4 pala. Dva testa su pokazala stvarni problem Escape-a pri potvrdi iz blog komentara i detalja recenzije; druga dva su bila problem fiksura/lokatora (GET zahvaćen preširokim SMTP mockom i neprecizan lokator kategorije). Ispravka ugniježđuje potvrdu unutar odgovarajućeg roditeljskog dijaloga; fiksure su precizirane bez slabljenja asercija. Lokalno typecheck, lint, build i 18 fokusiranih source testova prolaze; rendered CI je potreban za verifikaciju.

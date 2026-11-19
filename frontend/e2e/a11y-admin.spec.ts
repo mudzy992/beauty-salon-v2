@@ -2253,7 +2253,7 @@ for (const kind of ['category', 'subcategory'] as const) {
     await page.route(`**/api/services/${kind === 'category' ? 'categories/o4-cat' : 'subcategories/o4-sub'}`, route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
     await page.goto('/admin/services', { waitUntil: 'networkidle' })
     if (kind === 'subcategory') await page.getByRole('button', { name: /O4 usluge/ }).first().click()
-    const trigger = page.getByRole('button', { name: kind === 'category' ? /obriši kategoriju|delete category/i : /obriši potkategoriju|delete subcategory/i })
+    const trigger = page.getByRole('button', { name: kind === 'category' ? /^(obriši kategoriju|delete category)$/i : /^(obriši potkategoriju|delete subcategory)$/i })
     await exerciseO4Confirmation(page, trigger, kind === 'category' ? /kategoriju i sve potkategorije|category and all subcategories/i : /potkategoriju i sve usluge|subcategory and all services/i, () => count)
   })
 }
@@ -2265,6 +2265,7 @@ test('O4 SMTP password: cancel retains configured state; confirm only clears on 
     { key: 'system_notif_email_from', value: 'fixture@example.test' },
   ] }))
   await page.route(/\/api\/settings\/[^/?]+$/, route => {
+    if (route.request().method() !== 'PUT') return route.fallback()
     expect(route.request().method()).toBe('PUT')
     writes.push({ key: new URL(route.request().url()).pathname.split('/').pop()!, value: route.request().postDataJSON().value })
     return route.fulfill({ json: {} })

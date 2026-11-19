@@ -204,8 +204,9 @@ export default function Blog() {
         }}
         onApprove={(id) => void handleApproveComment(id)}
         onDelete={(id) => void handleDeleteComment(id)}
+        confirmation={<AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
       />
-      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      {!commentsOpen && <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
     </div>
   )
 }

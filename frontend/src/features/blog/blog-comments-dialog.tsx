@@ -1,4 +1,5 @@
 import { Check, Loader2, Trash2 } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '../../components/ui/badge'
@@ -16,6 +17,7 @@ type Props = {
   onRetry: () => void
   onApprove: (id: string) => void
   onDelete: (id: string) => void
+  confirmation?: ReactNode
 }
 
 const commentAuthor = (u: BlogComment['user'] | undefined, fallback: string) => {
@@ -33,6 +35,7 @@ export function BlogCommentsDialog({
   onRetry,
   onApprove,
   onDelete,
+  confirmation,
 }: Props) {
   const { t, i18n } = useTranslation()
 
@@ -121,6 +124,7 @@ export function BlogCommentsDialog({
             {t('common.close')}
           </Button>
         </DialogFooter>
+        {confirmation}
       </DialogContent>
     </Dialog>
   )
