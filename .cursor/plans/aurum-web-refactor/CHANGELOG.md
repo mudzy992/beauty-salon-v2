@@ -630,3 +630,17 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Gates: build PASS (289.6 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) 0 grešaka.
 - **CI `44508482933` (`7ec128e`) = ALL GREEN (5/5).**
 - Vlasnički visual check: **OK** (/usluge + detalj usluge u 4 stanja).
+
+### Faza F (4/) — Dark Aurum `--text-muted` → #BFAF96 (AAA 1.4.6) (2026-11-18)
+- Vlasnik je iz odluke A odabrao minimalno brighteno: `#B7A98F` → **#BFAF96** (na surface-muted `#2A2217`: 6.78:1 → **7.31:1**; na surface `#1A1510`: 7.84 → 8.45; na page: 8.49 → 9.15). AA je oduvijek prolazio; AAA (7.0) nije na najtamnijoj tekstualnoj površini.
+- **Mehanizam — kao i svijetla strana (#524738), NE kao brand-devijacija (E5):** NEJRA §10 SoT (`docs/design/NEJRA – beauty salon · Referentni dokument.html`, dark `muted`) ažuriran u isti #BFAF96 — SoT ostaje jedini izvor istine; `theme-ssot-sync.test.mjs` NE mijenjan (exact-match i dalje drži). `globals.css`: `--aurum-muted` + izvedene HSL trojke (`--muted-foreground`, `--text-muted`, `--neutral-fg` → `36.585 24.260% 66.863%`).
+- **Contrast SSOT:** AAA pragovi za `text-muted/surface` i `text-muted/surface-muted` su dodani AURUM-ONLY (u `AURUM_EXTRA_PAIRS`) — klasični web (5.59/5.10 i 6.55/5.43 na AAA 7.0) namjerno ostaje na TEXT_THRESHOLD (AA). Prva verzija podigla pragove za sva 4 stanja → 4 FAIL-a u classic states, otklonjeno odmah. Strict run: **PASS — svih 144 para** (140 + 4 nova aurum-AAA).
+- Napomena: ostali dokumenti u `docs/design/` (referentni-prijedlog-v2/v3, aurum-novi-identitet-koncept) nose istorijski #B7A98F — namjerno netaknuti (arhivski prijedlozi, nisu SoT koji čitaju gatesi).
+- Gates: build PASS (289.7 KiB / 300), diff-check PASS, contrast strict **PASS (144/144)**, full `test:*` sweep (205 paketa) = 0 grešaka.
+- Vlasnički visual check: u toku (Aurum dark — muted tekstovi su ~7% svjetliji; nijedan drugi state se ne mijenja).
+
+### Faza F (4/) — ZATVORENO (2026-11-18)
+- Dark Aurum `--text-muted` #B7A98F → #BFAF96 (AAA na surface-muted/surface/page); NEJRA §10 SoT ažuriran kao light precedent; contrast SSOT: aurum-only AAA parovi (classic netaknut).
+- Gates: build PASS (289.7 KiB / 300), diff-check PASS, contrast strict **PASS (144/144)**, full `test:*` sweep (205 paketa) 0 grešaka.
+- **CI `44512475492` (`cf7708e`) = ALL GREEN (5/5).**
+- Vlasnički visual check: **OK** (Aurum dark; classic states nemijenjani).
