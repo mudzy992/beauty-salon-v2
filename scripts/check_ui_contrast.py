@@ -181,6 +181,12 @@ def main() -> int:
         ("NEJRA §10: muted / page", "aurum-muted", "aurum-page", TEXT_THRESHOLD),
         ("NEJRA §10: brand / page", "aurum-brand", "aurum-page", TEXT_THRESHOLD),
         ("NEJRA §10: accent / page", "aurum-accent", "aurum-page", TEXT_THRESHOLD),
+        # Aurum-only AAA za semantički text-muted (vlasnikova odluka 2026-11-18:
+        # dark #BFAF96 = 7.31:1 na surface-muted / 8.45:1 na surface; light #524738
+        # = 9.06:1). Klasični web ostaje na TEXT_THRESHOLD (5.59/5.10 — AA),
+        # namjerno nepromjenjeno.
+        ("text-muted / surface (Aurum AAA)", "text-muted", "surface", AAA_TEXT_THRESHOLD),
+        ("text-muted / surface-muted (Aurum AAA)", "text-muted", "surface-muted", AAA_TEXT_THRESHOLD),
     )
     web_states = (
         ("web light", ":root", False),
