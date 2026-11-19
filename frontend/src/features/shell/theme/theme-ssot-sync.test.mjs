@@ -65,8 +65,8 @@ const HSL_MAP = {
 }
 const RAW_MAP = {
   'brand-primary': 'brand', 'brand-accent': 'accent',
-  'brand-primary-text-light': 'brand', 'brand-primary-text-dark': 'text',
-  'brand-primary-text': 'brand', 'brand-primary-ring': 'brand',
+  'brand-primary-text-dark': 'text',
+  'brand-primary-ring': 'brand',
   'brand-accent-text-light': 'accent', 'brand-accent-text-dark': 'text',
   'brand-accent-text': 'accent', 'brand-accent-ring': 'accent',
   'focus-ring': 'brand',
@@ -150,6 +150,22 @@ for (const state of ['light', 'dark']) {
     assert.match(tokens.get('font-aurum-serif') ?? '', /Palatino.*Georgia.*serif/)
   })
 }
+
+test('light: --brand-primary-text(-light) namjerno odstupa od §10 brand (AAA odluka 2026-11-18)', () => {
+  // Vlasnička odluka: Aurum svijetli brand gold #7A5A12 je #5.14:1 na --nav-active-bg
+  // (#EFE6D4) — nije AAA. Tekst uloga ide na #554308 (7.73:1); sirovi --brand-primary
+  // (Button/CTA/border) i --aurum-brand OSTAJU #7A5A12 (§10 netaknut).
+  const css = readFileSync(new URL('../../../styles/globals.css', import.meta.url), 'utf8')
+  const block = cssBlock('[data-skin="aurum"][data-mode="light"]')
+  const tokens = vars(block)
+  assert.equal(tokens.get('brand-primary-text')?.toUpperCase(), '#554308')
+  assert.equal(tokens.get('brand-primary-text-light')?.toUpperCase(), '#554308')
+  assert.equal(tokens.get('brand-primary')?.toUpperCase(), '#7A5A12', 'raw brand ostaje')
+  assert.equal(tokens.get('aurum-brand')?.toUpperCase(), '#7A5A12', 'NEJRA §10 brand ostaje')
+  const darkBlock = cssBlock('.dark[data-skin="aurum"]')
+  const darkTokens = vars(darkBlock)
+  assert.equal(darkTokens.get('brand-primary-text')?.toUpperCase(), '#D4AF6A', 'dark netaknut (7.57:1)')
+})
 
 test('fontFamily.serif koristi samo sistemske fontove; nema vanjskih izvora', () => {
   assert.match(tailwindCode, /serif:\s*\[\s*'Palatino',\s*'Palatino Linotype',\s*'Book Antiqua',\s*'Georgia',\s*'serif',\s*\]/)

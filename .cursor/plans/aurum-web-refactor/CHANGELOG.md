@@ -567,3 +567,14 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 ### Faza E (4/) — ZATVORENO (2026-11-18)
 - WCAG 1.4.3: 7 incomplete čvorova = human-judgment zaključen (bez izmjena). Faza E lanac sada: (1/) admin patch-CSS ✓, (2/) CTA ✓, (3/) 2.5.3 PROLAZ 32/0 ✓, (4/) 1.4.3 human-judgment ✓.
 - Otvorene stavke ostaju po vlasničkim odlukama: 1.4.6 8× brand-on-nav-active; dark `--text-muted`; `features/** bg-white`; Button strukturna adopcija; orphan komentar-analitika na kraju globals.css.
+
+### Faza E (5/) — WCAG 1.4.6 8× brand-on-nav-active: AAA brand-text (Aurum light) (2026-11-18)
+- Odlukom vlasnika („A — Zatamni brand-text (7.73:1)"): Aurum light `--brand-primary-text(-light)` **#7A5A12 → #554308** (7.73:1 na #EFE6D4 — AAA 7:1; ranije 5.14:1, 1.4.6 enhanced kršeno na 8 čvorova, AA 4.5 je zadovoljeno).
+  - Obuhvaća: `/admin/settings` aktivni tab „Sajt" + 5× `.bg-nav-active` anchor (`/stylist/debts|inbox|schedule|schedule/new|stats`) + `/admin/settings` ikonica u settings tab-nav/`.text-brand-rose-text` čvorove — **sve 8 1.4.6 annotacija je isti par**.
+  - **NE dijeto:** sirovi `--brand-primary` #7A5A12 (Button/CTA/borderi), `--aurum-brand` #7A5A12 (NEJRA §10 — raw brand tokeni), `--brand-primary-ring`, classic `:root`/`.dark` (#632238/#E5B3C5 — 9.40/8.48 AAA već), Aurum dark (#D4AF6A — 7.57 AAA).
+- **SSOT sync:** `theme-ssot-sync.test.mjs` — `brand-primary-text(-light)` izbačeni iz RAW_MAP (više se ne ravnaju na §10 brand by-design); nova dedicated asertacija: light block `#554308`/`#554308`, `brand-primary`/`aurum-brand` ostaju `#7A5A12`, dark ostaje `#D4AF6A` — **9/9 PASS**.
+- **Contrast SSOT:** `check_ui_contrast.py` — parovi „brand-primary-text / surface" i „brand-primary-text / nav-active" podignuti na **AAA_TEXT_THRESHOLD (7.0)** (hard-enforced going forward). Rezultat strict runa: **140/140 PASS** — svi 4 stanja AAA (web light 9.39, web dark 8.47, aurum light 7.73, aurum dark 7.57).
+- **Komentar** u `admin-nav-menu.tsx` (zastarjela tvrdnja „9.39:1 light" — bila je CLASSIC mjerenje) rewordovan preciznim vrijednostima po stanju.
+- NEJRA §10 HTML **nemijenjan** (brand je 1 od 12 SSOT tokena; `#7A5A12` ostaje).
+- Gates: build PASS (290.7 KiB / 300), diff-check PASS, 140/140 contrast strict PASS, full `test:*` sweep (205 paketa) 0 grešaka.
+- Čeka: commit, push, CI (annotacija 1.4.6 se očekuje prazna / PROLAZ 24/0), vlasnički visual check (aktivni nav na /admin i /stylist — tamniji brand tekst na champagne čipu).

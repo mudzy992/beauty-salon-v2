@@ -46,7 +46,10 @@ type Props = {
 
 /**
  * `min-h-target` (44px) zadovoljava 2.5.5 AAA.
- * `bg-nav-active` + `text-brand-rose-text` daje 9.39:1 (light) / 8.47:1 (dark);
+ * `bg-nav-active` + `text-brand-rose-text`:
+ *   classic light 9.40:1 (#632238 na #F5E6CC) · classic dark 8.48:1 (#E5B3C5 na #3A1B27)
+ *   Aurum light 7.73:1 (#554308 na #EFE6D4 — vlasnik redarkovao `--brand-primary-text` 2026-11-18 zbog AAA;
+ *     ranije #7A5A12 = 5.14:1) · Aurum dark 7.57:1 (#D4AF6A na #2A2217);
  * prijašnji `text-brand-gold-text` na `bg-brand-champagne/20` bio je 4.35:1 (ispod 4.5:1).
  */
 const linkClass = (compact: boolean, active: boolean) => {

@@ -220,8 +220,8 @@ def main() -> int:
             ("control-border / surface (UI indicator)", "control-border", "surface", UI_THRESHOLD),
             ("control-border / surface-sunken (UI indicator)", "control-border", "surface-sunken", UI_THRESHOLD),
             ("on-primary / primary", "on-primary", "primary", TEXT_THRESHOLD),
-            ("brand-primary-text / surface (brand text)", "brand-primary-text", "surface", TEXT_THRESHOLD),
-            ("brand-primary-text / nav-active (active nav)", "brand-primary-text", "nav-active-bg", TEXT_THRESHOLD),
+            ("brand-primary-text / surface (brand text, AAA)", "brand-primary-text", "surface", AAA_TEXT_THRESHOLD),  # Aurum light 9.02:1 (#554308)
+            ("brand-primary-text / nav-active (active nav, AAA)", "brand-primary-text", "nav-active-bg", AAA_TEXT_THRESHOLD),  # Aurum light 7.73:1 (#554308 na #EFE6D4) — vlasnikova odluka 2026-11-18
             ("brand-accent-text / surface (accent text)", "brand-accent-text", "surface", TEXT_THRESHOLD),
             ("focus-ring / surface (focus indicator)", "focus-ring", "surface", UI_THRESHOLD),
             ("on-danger / danger", "on-danger", "danger", TEXT_THRESHOLD),

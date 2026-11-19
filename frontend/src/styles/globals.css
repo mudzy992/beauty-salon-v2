@@ -198,9 +198,9 @@
     /* Raw brand/ring tokeni (tačan hex). */
     --brand-primary: #7A5A12;
     --brand-accent: #9B3D4F;
-    --brand-primary-text-light: #7A5A12;
+    --brand-primary-text-light: #554308; /* #7A5A12 → AAA odluka vlasnika 2026-11-18: 5.14:1 na --nav-active-bg (#EFE6D4) nije AAA; #554308 = 7.73:1. Brand gold #7A5A12 ostaje za Button/CTA/border. */
     --brand-primary-text-dark: #1F1810;
-    --brand-primary-text: #7A5A12;
+    --brand-primary-text: #554308; /* AAA — vidi iznad */
     --brand-primary-ring: #7A5A12;
     --brand-accent-text-light: #9B3D4F;
     --brand-accent-text-dark: #1F1810;
