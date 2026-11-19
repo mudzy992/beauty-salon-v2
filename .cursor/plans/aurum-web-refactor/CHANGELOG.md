@@ -530,4 +530,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Verified before delete: svaki CTA čvor renderuje `button` ili `a[href]` (link: PublicHome 188, MyReservations 175, PublicReservationView 242; submit-buttoni: Login/Register/ResetPassword/NotFound/CampaignUnsubscribe/PublicContact/PublicReserve/Onboarding*/ForceChangePassword).
 - Neto: −7/+3 linija; ponašanje Aurum CTA dugmadi nepromijenjeno (iste deklaracije vode, samo kroz jedan izvor).
 - Lokalno gates: build PASS (290.5 KiB / 300), diff-check PASS, 204× `test:*` = 0 grešaka.
-- Čeka: commit, push, CI, vlasnički visual check (javne Aurum stranice s CTA — /rezervacija, /, /blog itd.).
+- Gates prije commita: 204× `test:*` = 0 grešaka, diff-check PASS, CI `44392890535` (`bbd74b4`) = **ALL GREEN (5/5)**.
+- Vlasnički visual check: **OK** (zlatna CTA dugmad nepromijenjena).
+
+### Faza E (2/) — ZATVORENO (2026-11-18)
+- Gold CTA: jedan izvor deklaracija (`[data-aurum-page] [data-aurum-cta="primary"]` re-assert), dead S2 baza obrisana; secondary / auth / home-cta / pressed-state grane zadržane i dokazane žive.
+- Napomena: daljnja CTA evolucija (npr. Button strukturna adopcija, varijanta reconciliation) ostaje van ovog audit-scope-a — zaseban vlasnički batch.
