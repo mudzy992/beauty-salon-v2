@@ -240,7 +240,11 @@ export default function Reviews() {
         )}
       </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(next) => {
+        // Close the nested confirmation first if the parent receives dismissal.
+        if (!next && confirmRequest) setConfirmRequest(null)
+        else setOpen(next)
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t('reviews.detailsTitle')}</DialogTitle>

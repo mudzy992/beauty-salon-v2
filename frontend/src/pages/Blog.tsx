@@ -198,7 +198,11 @@ export default function Blog() {
         comments={comments}
         loading={commentsLoading}
         loadError={commentsLoadError}
-        onOpenChange={setCommentsOpen}
+        onOpenChange={(next) => {
+          // A parent dismiss event must never strand an open confirmation.
+          if (!next && confirmRequest) setConfirmRequest(null)
+          else setCommentsOpen(next)
+        }}
         onRetry={() => {
           if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
         }}

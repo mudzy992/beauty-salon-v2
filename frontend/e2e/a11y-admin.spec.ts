@@ -2283,7 +2283,7 @@ test('O4 SMTP password: cancel retains configured state; confirm only clears on 
   await dialog.getByRole('button', { name: /obriši lozinku|clear password/i }).click()
   await expect(trigger).toBeHidden()
   expect(writes).toEqual([])
-  await page.getByRole('button', { name: /sačuvaj postavke|save settings/i }).first().click()
+  await page.getByRole('button', { name: /sačuvaj email postavke|save email settings/i }).first().click()
   await expect.poll(() => writes.filter(row => row.key === 'system_email_password').length).toBe(1)
   expect(writes.find(row => row.key === 'system_email_password')?.value).toBe('')
 })
