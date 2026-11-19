@@ -577,4 +577,9 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - **Komentar** u `admin-nav-menu.tsx` (zastarjela tvrdnja „9.39:1 light" — bila je CLASSIC mjerenje) rewordovan preciznim vrijednostima po stanju.
 - NEJRA §10 HTML **nemijenjan** (brand je 1 od 12 SSOT tokena; `#7A5A12` ostaje).
 - Gates: build PASS (290.7 KiB / 300), diff-check PASS, 140/140 contrast strict PASS, full `test:*` sweep (205 paketa) 0 grešaka.
-- Čeka: commit, push, CI (annotacija 1.4.6 se očekuje prazna / PROLAZ 24/0), vlasnički visual check (aktivni nav na /admin i /stylist — tamniji brand tekst na champagne čipu).
+- Commit `e8a5ec2`. **CI `44482691344` (`e8a5ec2`) = ALL GREEN (5/5). a11y annotacije: `1.4.6 color-contrast-enhanced: PROLAZ (passed 32, incomplete 0, inapplicable 0, violations 0, absent 0)`** — prvi put **nula** 1.4.6 čvorova; 1.4.3 ostaje (7) determination-blok, jednako kao E (4/).
+- Vlasnički visual check: **OK** (aktivni nav/tab — tamniji brand tekst, champagne čip; /admin, /stylist, /admin/settings).
+
+### Faza E (5/) — ZATVORENO (2026-11-18)
+- 1.4.6 AAA čvorovi → 0. Lanac Faze E sada zatvorena: (1/) admin patch-CSS ✓ · (2/) CTA ✓ · (3/) 2.5.3 PROLAZ 32/0 ✓ · (4/) 1.4.3 human-judgment ✓ · (5/) 1.4.6 PROLAZ 32/0 ✓.
+- Napomena: dark Aurum `--text-muted` (6.78:1 na surface-muted) ostaje known-issue po vlasnikovoj odluci (još neodobreno); Button adopcija ~50, `features/** bg-white`, Button strukturni scope, orphan komentari — čekaju vlasničke odluke.
