@@ -620,6 +620,9 @@ jobs:
       - name: Test label-in-name helper (WCAG 2.5.3)
         working-directory: frontend
         run: npm run test:label-in-name
+      - name: Test user-initials helper (avatar visible text, WCAG 2.5.3)
+        working-directory: frontend
+        run: npm run test:user-initials
       - name: Test animation settle helper (axe color-contrast flake)
         working-directory: frontend
         run: npm run test:settle-animations
