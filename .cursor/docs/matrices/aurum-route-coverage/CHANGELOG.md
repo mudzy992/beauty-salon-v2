@@ -70,3 +70,7 @@
 Aktuelni pregled politike i granica dokaza prebačen je na početak matrice; stariji S0–S5 tekst ostaje označena arhiva. Referenca na dokaze i otvorene ručne provjere nalazi se u glavnom Aurum `CHANGELOG.md`. CI dokumentacije čeka provjeru.
 
 **Dokaz:** commit `534a694`, CI `44570089463` = 5/5.
+
+## O4 interaktivni dokazi
+
+Svih 13 potvrda ima interaktivne fiksure; `5407b13` / `44579698293` 5/5, 503/503 suite. Novi tokovi desktop, deaktivacija dodatno 320px; ostaju ručne provjere i ostale kombinacije.

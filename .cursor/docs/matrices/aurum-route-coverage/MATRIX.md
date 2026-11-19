@@ -34,7 +34,7 @@ Svaki red: `a11y-admin.spec.ts` provjerava Aurum light i dark axe, a dodatno mje
 | Javne rute | `theme-policy.spec.ts` i ostali rendered specovi testiraju izričito navedene rute i stanja; ne zaključivati da su sve deklaracije ili svi podaci testirani. |
 | Stylist portal | `a11y-stylist.spec.ts` pokriva navedene rute s prijavljenim nalogom; parametrizirani detalji nisu dio tog sweepa. Ne tvrditi isti M2 obuhvat kao za 15 admin ruta. |
 | Admin detalji i tabovi | `services/:serviceId/work-gallery`, postavke i finansije sa svim query tabovima, dijalozi i različiti podaci nisu iscrpno pokriveni 320px sweepom. Redirect nije zaseban renderirani ekran. |
-| O4 potvrde | 13 poziva zamijenjeno dijalogom; interaktivno testirane potvrde za korisnike i fokus; ostali tokovi zahtijevaju pojedinačnu provjeru. |
+| O4 potvrde | Svih 13 ranijih tokova ima interaktivne fiksure; `5407b13` / CI `44579698293` 5/5, 503/503 ukupno. Novi tokovi su testirani na desktop prikazu, korisničke deaktivacije i na 320px; nisu dokaz svih uređaja, jezika ili ručnog čitača ekrana. |
 | Ručno | M1, stvarni 200%/400% zoom i text-spacing (M2), M4 čitač ekrana i M5 forced-colors ostaju otvoreni. |
 
 ---
