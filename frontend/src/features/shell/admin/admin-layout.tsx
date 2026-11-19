@@ -158,7 +158,7 @@ export const AdminLayout = () => {
             <Link to="/admin" className="flex min-w-0 items-center gap-2">
               <AdminBrand {...brand} />
             </Link>
-            <div className="hidden truncate text-sm text-content-strong md:block">{currentLabel}</div>
+            <div data-admin-current-label className="hidden truncate text-sm text-content-strong md:block">{currentLabel}</div>
           </div>
           {/* WCAG 3.2.6 — pomoć je na istom mjestu na svakom admin ekranu. */}
           <Link

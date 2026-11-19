@@ -333,7 +333,7 @@ export default function Reservations() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
+      <Card className="reservation-list-card overflow-hidden">
         {loading ? (
           <div role="status" className="flex justify-center p-10 text-content-strong">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
@@ -387,7 +387,7 @@ export default function Reservations() {
               )}
             </div>
 
-            <div className="hidden app-table-wrap lg:block">
+            <div className="hidden app-table-wrap lg:block" role="region" aria-label={t('nav.reservations')} tabIndex={0}>
               <table className="app-table w-full border-collapse">
                 <caption className="sr-only">{t('nav.reservations')}</caption>
                 <thead>
