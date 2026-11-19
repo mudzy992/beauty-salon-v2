@@ -67,8 +67,8 @@ const RAW_MAP = {
   'brand-primary': 'brand', 'brand-accent': 'accent',
   'brand-primary-text-dark': 'text',
   'brand-primary-ring': 'brand',
-  'brand-accent-text-light': 'accent', 'brand-accent-text-dark': 'text',
-  'brand-accent-text': 'accent', 'brand-accent-ring': 'accent',
+  'brand-accent-text-dark': 'text',
+  'brand-accent-ring': 'accent',
   'focus-ring': 'brand',
 }
 const ORDER = ['page', 'surface', 'text', 'muted', 'brand', 'onbrand', 'accent', 'border', 'soft', 'ok', 'warn', 'err']
@@ -150,6 +150,25 @@ for (const state of ['light', 'dark']) {
     assert.match(tokens.get('font-aurum-serif') ?? '', /Palatino.*Georgia.*serif/)
   })
 }
+
+test('light: --brand-accent-text(-light) namjerno odstupa od §10 accent (AAA odluka 2026-11-18)', () => {
+  // Vlasnička odluka: Aurum svijetli accent rosé #9B3D4F je 6.62:1 na surface i
+  // 6.14:1 na page (sunken) — nije AAA. Tekst uloga ide na #8A3346 (7.95:1 / 7.38:1);
+  // sirovi --brand-accent (#9B3D4F: Button/CTA/border/hero dekor) i --aurum-accent
+  // OSTAJU #9B3D4F (§10 netaknut). Na nav-active (#EFE6D4) je 6.41:1 — accent-text se
+  // tamo ne koristi kao tekst, zato AA prag za taj par nije podignut.
+  const css = readFileSync(new URL('../../../styles/globals.css', import.meta.url), 'utf8')
+  const block = cssBlock('[data-skin="aurum"][data-mode="light"]')
+  const tokens = vars(block)
+  assert.equal(tokens.get('brand-accent-text')?.toUpperCase(), '#8A3346')
+  assert.equal(tokens.get('brand-accent-text-light')?.toUpperCase(), '#8A3346')
+  assert.equal(tokens.get('brand-accent')?.toUpperCase(), '#9B3D4F', 'raw accent ostaje')
+  assert.equal(tokens.get('brand-accent-ring')?.toUpperCase(), '#9B3D4F', 'accent ring ostaje')
+  assert.equal(tokens.get('aurum-accent')?.toUpperCase(), '#9B3D4F', 'NEJRA §10 accent ostaje')
+  const darkBlock = cssBlock('.dark[data-skin="aurum"]')
+  const darkTokens = vars(darkBlock)
+  assert.equal(darkTokens.get('brand-accent-text')?.toUpperCase(), '#E8A89A', 'dark netaknut (9.06:1)')
+})
 
 test('light: --brand-primary-text(-light) namjerno odstupa od §10 brand (AAA odluka 2026-11-18)', () => {
   // Vlasnička odluka: Aurum svijetli brand gold #7A5A12 je #5.14:1 na --nav-active-bg

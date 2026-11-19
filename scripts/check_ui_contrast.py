@@ -187,6 +187,14 @@ def main() -> int:
         # namjerno nepromjenjeno.
         ("text-muted / surface (Aurum AAA)", "text-muted", "surface", AAA_TEXT_THRESHOLD),
         ("text-muted / surface-muted (Aurum AAA)", "text-muted", "surface-muted", AAA_TEXT_THRESHOLD),
+        # Aurum-only AAA za semantički accent text (vlasnikova odluka 2026-11-18:
+        # light #8A3346 = 7.95:1 na surface / 7.38:1 na page (sunken); #9B3D4F je
+        # 6.62/6.14 — AA, ne AAA). Klasični light (#8A641E, 5.35:1) ostaje na
+        # TEXT_THRESHOLD (AA), namjerno nepromjenjeno. `surface-sunken` se mapira na
+        # NEJRA `page` (HSL_MAP). Nav-active (#EFE6D4): 6.41:1 — accent-text se tamo
+        # ne koristi kao tekst, prag namjerno nije podignut.
+        ("brand-accent-text / surface (Aurum AAA)", "brand-accent-text", "surface", AAA_TEXT_THRESHOLD),
+        ("brand-accent-text / surface-sunken (Aurum AAA)", "brand-accent-text", "surface-sunken", AAA_TEXT_THRESHOLD),
     )
     web_states = (
         ("web light", ":root", False),

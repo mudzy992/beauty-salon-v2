@@ -6,7 +6,7 @@ import {
   defaultCoverageDir,
   recordAxeCoverage,
 } from './axe-coverage.mjs'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { settleAnimations } from './settle'
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -1915,3 +1915,138 @@ test('settings sidebar is grouped while existing settings tab deep links remain 
   await expect(nav.locator('a[href="/admin/settings?tab=releases"]')).toHaveCount(1)
   await expect(page.locator('[data-admin-sidebar] a[href="/admin/settings"]')).toHaveAttribute('aria-current', 'page')
 })
+
+// ─── Faza F (7/) — child proofs + Aurum dark admin sweep (owner odluke 2026-11-18) ──────────────
+//
+// 1. Child proofs: `/admin/analytics?tab=clients` i `?tab=stylists` su lazy paneli unutar
+//    `AnalyticsHub`-a, pa se NIKAD ne vide u ADMIN_ROUTES sweepu (tamo je samo hub na
+//    `/admin/analytics` bez ?tab=). Ovdje ih renderujemo POPULIRANO (fiksturama) i axe-amo,
+//    u oba Aurum režima; `recordAxeCoverage` ih bilježi kao sopstvene rute.
+// 2. Aurum dark sweep: svih 15 admin ruta u Aurum dark-u (defaultni ADMIN_ROUTES sweep je
+//    classic light); cilj: 1.4.6/1.4.3 dokaz na istim stranicama koje axe nikad nije mjerio
+//    u Aurum dark-u (javne rute pokriva theme-policy.spec; admin rute nijedne).
+//    Assert je isti kao postojeći Aurum admin blok (`assertableViolations` = prazno).
+
+const configureAurumTheme = async (page: Page, mode: 'light' | 'dark') => {
+  await page.addInitScript((selectedMode) => {
+    localStorage.removeItem('nejra.theme')
+    localStorage.setItem('nejra.theme.mode', selectedMode)
+  }, mode)
+  await page.route('**/api/settings/public', async (route) => {
+    const response = await route.fetch()
+    if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+    const rows = await response.json() as Array<{ key: string; value: string }>
+    await route.fulfill({ response, json: [
+      ...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
+      { key: 'theme_active_skin', value: 'aurum' },
+      { key: 'theme_default_mode', value: mode },
+    ] })
+  })
+}
+
+const populatedClientAnalyticsFixture = {
+  ...clientAnalyticsFixture,
+  stats: { ...clientAnalyticsFixture.stats, totalReservations: 2, completedReservations: 1, totalSpent: 84, avgServiceRating: 4.5, reviewCount: 1 },
+  topServices: [{ name: 'Žensko šišanje', count: 2, totalSpent: 84 }],
+  reservations: [
+    { id: 'res-one', reservationDate: '2026-02-03', startTime: '10:00', endTime: '10:45', status: 'COMPLETED', clientNotes: null, cancelReason: null, cancelledAt: null,
+      service: { id: 'service-one', name: 'Žensko šišanje', price: 42 },
+      confirmedStylist: { user: { firstName: 'Primjer', lastName: 'Stilista', username: 'primjer.stilista' } } },
+    { id: 'res-two', reservationDate: '2026-02-10', startTime: '12:00', endTime: '12:30', status: 'CONFIRMED', clientNotes: 'Prvi put', cancelReason: null, cancelledAt: null,
+      service: { id: 'service-two', name: 'Muško šišanje', price: 42 } },
+  ],
+  reviews: [
+    { id: 'review-one', serviceRating: 5, stylistRating: 5, comment: 'Odlična usluga.', isApproved: true, createdAt: '2026-02-04T10:00:00Z',
+      service: { name: 'Žensko šišanje' },
+      stylist: { user: { firstName: 'Primjer', lastName: 'Stilista', username: 'primjer.stilista' } } },
+  ],
+  manualEntries: [
+    { id: 'manual-one', date: '2026-02-11', actualPrice: 20, tipAmount: 2, isManual: true, notes: 'Dopuna porudžbine', status: 'COMPLETED',
+      service: { id: 'service-three', name: 'Pranje kose', price: 20 } },
+  ],
+}
+
+const clientDebtFixture = {
+  id: 'debt-one', amount: 25, createdAt: '2026-02-05T09:00:00Z', status: 'OPEN',
+  service: { id: 'service-one', name: 'Žensko šišanje' },
+  reservation: { id: 'res-one', publicReferenceCode: 'DK-2026-0001', reservationDate: '2026-02-03', startTime: '10:00', endTime: '10:45' },
+  dailyLogEntry: null,
+  manualEntry: null,
+  stylistProfile: { user: { firstName: 'Primjer', lastName: 'Stilista', username: 'primjer.stilista' } },
+}
+
+const populatedStylistAnalyticsFixture = {
+  stylist: { id: 'fixture-stylist', name: 'Primjer Stilista', user: { id: 'stylist-user', username: 'primjer.stilista', email: 'stilista@example.com', firstName: 'Primjer', lastName: 'Stilista' } },
+  fromDate: null, toDate: null,
+  completedCount: 24, revenue: 960, tips: 58,
+  topServices: [
+    { serviceId: 'service-one', serviceName: 'Žensko šišanje', count: 15, revenue: 630 },
+    { serviceId: 'service-two', serviceName: 'Muško šišanje', count: 9, revenue: 330 },
+  ],
+  recentEntries: [
+    { id: 'entry-one', date: '2026-02-12', serviceName: 'Žensko šišanje', clientName: 'Adis Hodžić', actualPrice: 42, tipAmount: 4 },
+    { id: 'entry-two', date: '2026-02-10', serviceName: 'Muško šišanje', clientName: null, actualPrice: 35, tipAmount: 0 },
+  ],
+}
+
+const aaaDetail = (violations: Array<{ id: string; tags: string[]; nodes: Array<{ target: unknown[]; failureSummary?: string }> }>) =>
+  violations
+    .filter((v) => v.tags.includes('wcag2aaa'))
+    .map((v) => ({ id: v.id, nodes: v.nodes.length }))
+
+for (const mode of ['light', 'dark'] as const) {
+  test(`Aurum ${mode} child proof: /admin/analytics?tab=clients (populated)`, async ({ page }) => {
+    await configureAurumTheme(page, mode)
+    await page.route('**/api/users/fixture-client/analytics**', (route) => route.fulfill({ json: populatedClientAnalyticsFixture }))
+    await page.route('**/api/client-debts?**', (route) => route.fulfill({ json: [clientDebtFixture] }))
+    await page.goto('/admin/analytics?tab=clients&userId=fixture-client', { waitUntil: 'networkidle' })
+    const url = new URL(page.url())
+    expect(url.pathname).toBe('/admin/analytics')
+    expect(url.searchParams.get('tab')).toBe('clients')
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+    const settled = await settleAnimations(page)
+    expect(settled).not.toBeNull()
+    expect(settled?.stillRunning).toBe(0)
+    const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+    recordAxeCoverage(test.info().project.name, `/admin/analytics?tab=clients (aurum-${mode})`, results, defaultCoverageDir())
+    console.log(`CHILD_CLIENTS_${mode.toUpperCase()}_AAA ${JSON.stringify(aaaDetail(results.violations))}`)
+    expect(assertableViolations(results.violations)).toEqual([])
+  })
+
+  test(`Aurum ${mode} child proof: /admin/analytics?tab=stylists (populated)`, async ({ page }) => {
+    await configureAurumTheme(page, mode)
+    await page.route('**/api/stylists/fixture-stylist/analytics**', (route) => route.fulfill({ json: populatedStylistAnalyticsFixture }))
+    await page.goto('/admin/analytics?tab=stylists&stylistId=fixture-stylist', { waitUntil: 'networkidle' })
+    const url = new URL(page.url())
+    expect(url.pathname).toBe('/admin/analytics')
+    expect(url.searchParams.get('tab')).toBe('stylists')
+    await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+    await expect(page.getByRole('heading', { name: 'Primjer Stilista' })).toBeVisible()
+    const settled = await settleAnimations(page)
+    expect(settled).not.toBeNull()
+    expect(settled?.stillRunning).toBe(0)
+    const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+    recordAxeCoverage(test.info().project.name, `/admin/analytics?tab=stylists (aurum-${mode})`, results, defaultCoverageDir())
+    console.log(`CHILD_STYLISTS_${mode.toUpperCase()}_AAA ${JSON.stringify(aaaDetail(results.violations))}`)
+    expect(assertableViolations(results.violations)).toEqual([])
+  })
+}
+
+for (const route of ADMIN_ROUTES) {
+  test(`Aurum dark admin rendered axe (sweep): ${route.name} (${route.path})`, async ({ page }) => {
+    await configureAurumTheme(page, 'dark')
+    await page.goto(route.path, { waitUntil: 'networkidle' })
+    const url = new URL(page.url())
+    expect(url.pathname).toBe(route.path)
+    await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+    await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark')
+    const settled = await settleAnimations(page)
+    expect(settled).not.toBeNull()
+    expect(settled?.stillRunning).toBe(0)
+    const results = await new AxeBuilder({ page }).withTags(AXE_RULE_TAGS).analyze()
+    recordAxeCoverage(test.info().project.name, `${route.path} (aurum-dark)`, results, defaultCoverageDir())
+    console.log(`ADMIN_DARK_AAA ${route.path} ${JSON.stringify(aaaDetail(results.violations))}`)
+    expect(assertableViolations(results.violations)).toEqual([])
+  })
+}
