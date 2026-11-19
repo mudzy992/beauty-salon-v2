@@ -551,3 +551,19 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 
 ### Faza E (3/) — ZATVORENO (2026-11-18)
 - 2.5.3 incomplete → 0. Dijeljeni `userInitials` helper (`src/utils/user-initials.mjs`, 6/6 unit), sva tri omotača konsolidovana na jedan izvor; `wcag-source-contracts` 17/17.
+
+### Faza E (4/) — WCAG 1.4.3 incomplete (7): dokazivanje human-judgment zaključka (2026-11-18)
+- Odluka vlasnika: E (4/) istraživanje incomplete čvorova. Bez izmjena koda — ispostavilo se da je **svih 7 čvorova axe determination-blok, a ne defekt**; kompenzacije već u kodu i CI-ju su dovoljne; vlasnik je vizualno potvrdio.
+- **Dokazi iz trenutnog stanja (CI `44477995617`) i iz source-a:**
+  - `/admin/analytics` `.recharts-legend-item-text` ×3 (legend-item-0/1/2) — axe: „Element's background color could not be determined **because element contains an image node**“ (Recharts ikona serije je SVG susjed teksta). Recharts `<Legend labelStyle={{ color: 'hsl(var(--text))' }} />` (Analytics.tsx:357) — tekst je Token-backed (`--text` AAA na kartici); kontrast mjeri `inlineColorContrastViolations` probe u CI (a11y-admin.spec.ts + stylist-stylist + wcag-rendered) → 0 fail. Napomena uzrun `43000853379`: iza incomplete se KADA skrivao stvarni prekršaj (serijski boje 3.25/4.13/2.39:1) — otklonjeno (tekst sada `--text`).
+  - `/blog` kicker `.tracking-wide` (Novosti i sav…, `text-content-strong` 12px uppercase) — „…due to **a background image**"; `/blog` h1 (title 30–36px) — isto; `/galerija` h1 — „…due to **a background gradient**".
+    - Hero scene: blog/gallery vrh ima dekorativnu pozadinsku sliku na **opacity 0.08** + `pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white` (PublicBlogList.tsx L92, PublicGallery.tsx L133) — efectivno ≥85% bijela podloga pod tekst; kicker/h1 su `text-content-strong`/`text-content` — ≈9:1 / ≈14:1 na toj podlozi.
+    - Dekorativne pozadine su `pointer-events-none` bez teksta — 1.4.5 inventory (zauzeto kroz anotacije) ih vodi kao „TRAŽI LJUDSKU PROCJENU“; vlasnik je vizualno potvrdio kontrast na sva 3 h/kicker čvora (+ analitičku legendu).
+- **Anotacija-semantika** (potvrđeno čitanjem `e2e/axe-coverage.mjs`): anotacija „axe nepotpuni cvorovi po pravilu“ akumulira **uzorke** (`MAX_INCOMPLETE_NODES_PER_RULE = 3`/rute), otuda „15 nepotpunih čvorova“ za 1.4.3 dok pokrivenost-brojka glasi **7**; 2.5.3 anotacija je nakon E (3/) ZERO (nije se pojavila). Annotacija je INFORMATIVNA (warning-level), CI je oduvijek zelen s njom.
+- **Zaključak:** 1.4.3 incomplete 7 = eloquent determination-blok; NE prekršaj; NE mijenjati kod zato; alarm ne dići. Ako ikad treba formalno na nulu — jedina održiva ruta je scrim → solid/`via-transparent` na bijelom (bijeli 95% je već gotovo-neka podloga) + `inlineColorContrastViolations` za objavljene h1/kicker; NE preporučuje se gaming axe-a.
+- Vlasnički visual check: **OK** — /blog, /galerija hero tekstovi i /admin/analytics legenda čitljivi (preview :5173).
+- Nema commit-ova osim ovog zatvaranja; nema novog koda.
+
+### Faza E (4/) — ZATVORENO (2026-11-18)
+- WCAG 1.4.3: 7 incomplete čvorova = human-judgment zaključen (bez izmjena). Faza E lanac sada: (1/) admin patch-CSS ✓, (2/) CTA ✓, (3/) 2.5.3 PROLAZ 32/0 ✓, (4/) 1.4.3 human-judgment ✓.
+- Otvorene stavke ostaju po vlasničkim odlukama: 1.4.6 8× brand-on-nav-active; dark `--text-muted`; `features/** bg-white`; Button strukturna adopcija; orphan komentar-analitika na kraju globals.css.
