@@ -1,5 +1,53 @@
 # HANDOFF — Aurum web refaktor
 
+> ⚠️ **SUPERSEDED kao radna predaja (2026-11-19).** Ovaj dokument je arhiva perioda kickoff → S5 na grani `arena/71be6ba3-beauty-salon-v2` (2026-11-11, bazni commit `a82020e`). Sve ispod ovog bloka NE opisuje trenutno stanje i NE smije se koristiti kao uputa. Važeće stanje i preostali rad: blok **„Ažurirani status“**. Evidencija po fazama (commit + CI run) = `CHANGELOG.md`; tokeni = NEJRA §10 + `scripts/check_ui_contrast.py`.
+
+## Ažurirani status (2026-11-19)
+
+**Grana:** `arena/dadb4053-beauty-salon-v2` (iz master `c5267fa`) · **Zadnji push:** `b1206f3` (close-out, samo changelog) — CI `44525141061` **5/5 success**. `PublicFeatureGate` netaknut bez posebne vlasničke odluke; paleta zaključana (NEJRA §10 je izvor istine); Classic se ne uklanja i ne dira bez odluke.
+
+Šta se suštinski dogodilo nakon S5 (evidencija u `CHANGELOG.md`, §15–§30 i faze C–F):
+
+1. **2026-11-16/17 — revidirani smjer:** vlasnik odobrava koncept novog identiteta (`docs/design/aurum-novi-identitet-koncept.html`) i temelj `approve_foundation` (§15): administrator bira aktivni identitet i početni režim za cijeli web (`whole_web` + `admin_skin_and_mode`), posjetilac pamti samo light/dark (`persist_mode`), zadano **Aurum + light** (`aurum_initial`), klasični identitet skriva javni prekidač (`hide_when_classic`); minimalne backend izmjene bez migracije (`allow_minimal_backend`); `/mobile` izvan opsega; Classic ostaje dok tranzicija traje; S6 lokalni WIP sačuvan, ne commitovan. **`13_revidirani-plan-novi-identitet.md` je ostao označen „PRIJEDLOG“ u svom zaglavlju** — naslijeđena historijska oznaka; stvarna odluka je `approve_foundation` iz §15.
+2. **Identity re-skin i čišćenje kroz Faze C, D, E, F** — admin shell/nav/dashboard (§16, §30), javni portal redoslijedom (§17–§29), tokenizacija, WCAG 2.5.3/1.4.3/1.4.6, dark Aurum kontrast, hardcoded-hex migracija. Svaki batch je zasebno praćen CI-jem; svi navedeni close-outovi su **5/5**:
+   - Faza D (5/) — mrtvi patch CSS nakon C (16/)/(18/): `44353945386` (`eb84cf8`)
+   - Faza E (1/) — admin patch-CSS batch 1: `44382663785` (`c9bbe0f`)
+   - Faza E (2/) — dead S2 gold CTA pravilo obrisano: `44392890535` (`bbd74b4`)
+   - Faza E (3/) — WCAG 2.5.3 napredak: `44476078583` (`69c2269`) — `2.5.3 label-content-name-mismatch: PROLAZ (32/0)` (prije 10 passed / 22 incomplete; 11 admin ruta × 2 dugmeta)
+   - Faza E (4/) — WCAG 1.4.3: 7 incomplete = human-judgment (Recharts legend `.legend-item-*-text` determination-blok); bez izmjena; dokazi u CI `44477995617`
+   - Faza E (5/) — WCAG 1.4.6 Aurum light nav-active: `44482691344` (`e8a5ec2`) — `1.4.6 PROLAZ (passed 32, incomplete 0)` (prvi put nula 1.4.6 čvorova)
+   - Faza F (1/) — `features/** bg-white` → `bg-surface` (dark Aurum defekt): `44486871989` (`98cf7c4`) — axe 429 passed / 32 rute
+   - Faza F (2/) — `settings-module-page.tsx` `#8a624e` → `brand-rose-text` (AAA sva 4 stanja): `44496125943` (`903123c`)
+   - Faza F (3/) — javne stranice warm-paper hex → semantički tokeni: `44508482933` (`7ec128e`)
+   - Faza F (4/) — dark `--text-muted` #B7A98F → **#BFAF96** (AAA; NEJRA §10 SoT ažuriran kao izvor istine; classic AA netaknut): `44512475492` (`cf7708e`) — contrast strict 144/144
+   - Faza F (5/) — Button `destructive` → `danger` (5 pozivača); varijanta obrisana: `44515714897` (`a18cc8a`)
+   - Faza F (6/) — orphan komentari u `globals.css` tail (reword `index.css` ref + L1849 komentar): `44518166979` (`895feb1`)
+   - Faza F (7/) — Aurum **dark admin** rendered axe sweep (15 `ADMIN_ROUTES`) + 4 AnalyticsHub **child-proof** testa s popunjenim fiksturama (`/admin/analytics?tab=clients|stylists` × light/dark) + Aurum-light accent-text #9B3D4F → **#8A3346** (AAA surface+sunken; §10 sirovi accent netaknut) + CI action majors na Node 24 (`checkout@v5`, `setup-node@v5`, `setup-python@v6`, `upload-artifact@v6`; app `node-version: 22` netaknut): `44523392570` (`a8b3899`) — rendered axe nad **51 izmjerenim stanjem** (prije 32; +19 novih), `1.4.6 PROLAZ 51`; `1.4.3` incomplete 18 = isti Recharts determination-blok, sada izmjeren i na `/admin/analytics (aurum-dark)`; `2.5.3` = 0 incomplete.
+   - **Zaključak/close-out:** `b1206f3` / CI `44525141061` — 5/5 (changelog-only).
+3. **S6, S7, S8, S9, S10 nikad nisu isporućeni kao zasebni segmenti.** S6 je odobren uz revidirane odluke (§16) i realizovan kroz revidirani identitet i Faze C/D/E/F; S7–S10 pokriveni su tokenizacijom i WCAG batchevima bez pojedinačnih releasea. **S11 (završni prolaz, sync matrica, dokazni paket) NIJE urađen.**
+4. **Matrice** `.cursor/docs/matrices/aurum-theme/MATRIX.md` i `aurum-route-coverage/MATRIX.md` imaju zadnje unose iz S5 ere (2026-11-11) i **ne predstavljaju aktuelno stanje**; njihovu evidenciju od Faza C–F drži `CHANGELOG.md`. Sinkronizacija matrica = posebna vlasnička odluka.
+
+**Izmjereno 2026-11-18 (F (7/) close-out):** build **289.6/300 KiB** · `frontend test:*` **205/205 PASS** · i18n **2776/2776** BS/EN · contrast strict **148/148** (classic ostaje AA, Aurum-only AAA parovi) · `check_ci_index.py` PASS (386/389; 3 interaktivna izuzeta) · `check_doc_links.py` PASS · `check_repo_hygiene.py` PASS (1826 putanja) · lint 0 grešaka (6 poznatih `exhaustive-deps` warn-ova, CI-dozvoljeni) · CI Node 22 (app) / Node 24 (action runtimes).
+
+**Rendered a11y (stanje):** classic 32 rute (`a11y-e2e`) ✅ · javni portal oba Aurum režima (theme-policy) ✅ · **Aurum dark 15 admin ruta** ✅ (F (7/)) · **AnalyticsHub child proofs** ✅ (4 zapisa) — **Aurum light admin 🟡 nije mjereno**; **M1 (tastatura), M2 (320 px/400 % zoom) — admin nije mjeren, M4 (čitač ekrana), M5 (`forced-colors`) 🟡/➖**; ručne provjere ostaju obaveza prije javne WCAG tvrdnje.
+
+**Još uvijek otvoreno — isključivo vlasničke odluke (NIJE pokrenuto, NE pokretati samoinicijativno):**
+
+1. **O4** — 13× `window.confirm` u adminu → pristupačni `ConfirmDialog` (Blog ×2, EmailSettings ×2, Gallery ×2, Reviews, Salon, Services ×2, Users ×3 — isti obrazac kao `features/media-consent/media-consent-panel.tsx`).
+2. **Aurum light admin** rendered axe sweep (simetrija F (7/) dark dokaza).
+3. **M2** — admin 320 px reflow / 400 % zoom (public ima; admin nema; public 320 px je dokazano).
+4. **M1 / M4 / M5** — tastaturni e2e, čitač ekrana, `forced-colors`.
+5. **Veliki fajlovi (S8):** `pages/Users.tsx` ~1700 ln, `pages/Services.tsx` ~1504 ln, `pages/EmailSettings.tsx` ~1400 ln — razbijanje je zaseban projekat.
+6. **Dead code:** `frontend/src/features/dashboard/aurum-stat-grid.tsx` (37 ln, **0 potrošača**) — brisanje čeka odluku.
+7. **Sync matrica** aurum-theme + aurum-route-coverage sa stanjem nakon Faze F.
+8. **WCAG claim:** ne tvrditi WCAG 2.2 AA/AAA usklađenost izvan izmjerenog (rendered axe + source kontrasta); ručne provjere i light-admin sweep su preduslovi.
+
+**Pravila koja i dalje važe:** **ne brisati Classic** (tranzicija; `keep_palette`) · **ne mijenjati NEJRA paletu** bez STOP odobrenja · **ne dirati `PublicFeatureGate`** · **`/mobile` izvan opsega** · **nikakve nove npm zavisnosti bez odluke** · **testovi se ne brišu niti slabe** (izmjene uz obrazloženje u changelogu) · **nijedan push bez 5/5 CI**.
+
+**Sljedeći korak:** **STOP**. Sve iznad čeka vlasničku odluku. Ne pokretati S6–S11 niti bilo koju otvorenu stavku po vlastitoj procjeni.
+
+---
+
 **Stanje:** ✅ **S0 → S1 → S2 → S3 → S4 → S5 ZAVRŠENI (svaki 5/5).** Plan je odobren (`approve_s0`); vlasnik je odobrio S1, S2, S3 (`approve_s3`), S4 (`approve_s4`) i S5 (`approve_s5` + O2 `card_header`), a na S2 STOP uvjet odabrao `dopuna_ssot`. S5 je realizovan po [06_phase-5-auth-exceptions.md](06_phase-5-auth-exceptions.md).
 **Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e47c1b21a3c05113e843f853a8e64baaf0` · **S0 commiti:** `fa6d73a` (dizajn) + `bbd7ca5` (CI fallback) + `3ed3069` (konačna evidencija)
 **Zeleni runovi S0:** `43043182552` (5/5, rendered axe 252/252) i `43046250037` (5/5, docs-only) · **S1:** `ae87acf` / `43100889990` · **S2:** `d1fb55d` / `43110763869` · **S3 commit:** `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · **S3 CI:** `43116167107` = **5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13899570263` · **Datum:** 2026-11-11 · **S4 commit:** `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`) · **S4 CI:** **`43177106881` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13924239127` (331564 B) · **S5 commit:** `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`) · **S5 CI:** **`43181880043` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute (default `classic`), artifact `13926547985` (331785 B) · **Sljedeći korak:** **STOP** → pitanje „Odobravaš li S6 (admin shell + Dashboard + Rezervacije + fullscreen kalendar)?". R2/O2 su riješeni; `PublicFeatureGate` nije diran.

@@ -1,6 +1,44 @@
 # CHECKLIST — Aurum web refaktor
 
-**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (**S5 završen: `90acca2` / run `43181880043` / 5/5**)
+> ⚠️ **SUPERSEDED (2026-11-18, nakon Faze F (7/) ZATVORENO).** Ovaj fajl je historijski zapis iz vremena S0–S5 na grani `arena/71be6ba3-beauty-salon-v2` (2026-11-11, bazni commit `a82020e`). Program je od tada revidiran po odobrenoj `13_revidirani-plan-novi-identitet.md` odluci (koncept `docs/design/aurum-novi-identitet-koncept.html`, odobren; implementacija se vodi uz STOP samo za stvarne Aurum kontrast padove — paleta je zabranjena za samostalno mijenjanje) i realizovan kroz **Faze C, D, E, F**. Originalni sadržaj ispod je arhiva i ne mijenja se retroaktivno; stvarno stanje je u „Ažurirani status“ odmah ispod.
+>
+> **Gdje je izvor istine danas:** evidencija po fazama (commit + CI run id) = `CHANGELOG.md`; tokeni = NEJRA §10 + `scripts/check_ui_contrast.py`; CI status = GitHub Actions (grana `arena/dadb4053-beauty-salon-v2`, iz master `c5267fa`).
+
+## Ažurirani status (2026-11-19 — skraćena mapa; evidencija 2026-11-18; detalji u `CHANGELOG.md`)
+
+| Segment / faza | Status | Dokaz (grana `arena/dadb4053-beauty-salon-v2` osim S1–S5) |
+|---|---|---|
+| S0 Dizajn dokumenti + CI baseline | ✅ ZAVRŠEN 2026-11-11 | runovi `43043182552` (5/5; prva dva runa `43032814134`, `43038425689` historijski 4/5 zbog `apt` DNS-a) |
+| S1 Temelj (tokeni + 3-state + primitive) | ✅ ZAVRŠEN 2026-11-11 | `ae87acf` / `43100889990` (5/5) |
+| S2 Javni shell + Početna + Usluge/Detalj | ✅ ZAVRŠEN 2026-11-11, **revidiran** | `d1fb55d` / `43110763869`; revidirano u §17–§29 changeloga (naslovnica, zaglavlje, katalog, usluga/detalj) |
+| S3 Javni sadržaj (blog/galerija/kontakt/klijenti) | ✅ ZAVRŠEN 2026-11-11, **revidiran** | `a12cf5b` / `43116167107`; revidirano u §22/§28–29 |
+| S4 Javni tokovi (rezervacija/profil/token) | ✅ ZAVRŠEN 2026-11-11 | `7d2ab0e` / `43177106881` |
+| S5 Auth + onboarding | ✅ ZAVRŠEN 2026-11-11 | `90acca2` / `43181880043` |
+| S6 Admin shell + kalendar | ✅ ODOBREN I REVIDIRAN — nikada kao zaseban „S6“ batch | `approve_s6` uz `group_with_map`/`approve_map_a` (5 sekcija), `calendar_header`, O4 `allow_s7_s9`, Dashboard `preserve_existing`; realizovano kroz revidirani identitet + **Faze C (9/–18/), D, E** novi `§16` i `§30`+ u changelogu |
+| S7 Dnevna knjiga/Finansije/Lojalnost | ✅ REALIZOVANO KROZ FAZE | `Faze C (15/)–C (18/)` (tokenize/standardizacija) + admin WCAG E (3/–5/); nema zasebnog S7 releasea |
+| S8 Analitika/Korisnici/Salon/Usluge/Frizeri | ✅ REALIZOVANO KROZ FAZE | admin WCAG dokazi `Faze E (1/–5/)`; AnalyticsHub child proofs kroz `F (7/)`; veliki fajlovi (Users/Services/EmailSettings) ostaju — vidi otvorene stavke |
+| S9 Sadržaj + Postavke hub | ✅ REALIZOVANO KROZ FAZE | tokenizacija javnih/auth/settings površina kroz `Faze C (17/–18/)`; Settings modules čistoća kroz `F (1/–2/)` |
+| S10 Stylist portal | ✅ REALIZOVANO KROZ FAZE | tokenizacija `Faza C (16/)`; workbook odabir klijenta popravak (CHANGELOG §29) |
+| S11 Završni prolaz | 🟡 DJELIMIČNO | rendered axe: classic ✅ 32rute · Aurum dark admin ✅ 15 · child proofs ✅ 4 · javne Aurum light/dark ✅ (theme-policy) — **Aurum light admin** ostaje 🟡 · ručne provjere M1–M5 ostaju 🟡/➖ (public 320px urađeno; admin reflow nije) |
+| Bonus §30 Admin dashboard | ✅ ZAVRŠENO | `§30`+ Faze C/D/E/F; admin shell/nav/grupisanje kroz S6+reviziju; Faza F (5/) danger reconciliation; F (6/) tail komentari |
+
+**Izmjereno 2026-11-18 (F (7/) close-out):** build **289.6 KiB / 300**; svi `frontend test:*` **205/205**; contrast strict **148/148** (2 nova Aurum-only AAA para; classic ostaje AA); i18n **2776/2776** BS/EN; `check_ci_index.py` PASS (386/389); `check_doc_links.py` PASS; `check_repo_hygiene.py` PASS (1826 putanja). Rendered axe (F (7/)): **51/51 PROLAZ** po praćenim pravilima — `1.4.6 PROLAZ 51`; `2.5.3` = 0 incomplete; `1.4.3` incomplete = Recharts legend `.legend-item-*-text` determination-blok (classic + aurum-dark; nije prekršaj, odluka E (4/)).
+
+**Grana i CI:** F (1/) `44486871989` (`98cf7c4`) · F (2/) `44496125943` (`903123c`) · F (3/) `44508482933` (`7ec128e`) · F (4/) `44512475492` (`cf7708e`) · F (5/) `44515714897` (`a18cc8a`) · F (6/) `44518166979` (`895feb1`) · F (7/) `44523392570` (`a8b3899`) · close-out `b1206f3` / **44525141061** (5/5) — sve 5/5 2026-11-18.
+
+**Matrice** `.cursor/docs/matrices/aurum-theme/` i `aurum-route-coverage/`: historijski, zadnji unosi su S5 (2026-11-11) — **nisu ažurirani**; njihovu evidenciju drži `CHANGELOG.md` od Faza C–F. Zasebna odluka za sync matrica je potrebna.
+
+**Otvorene stavke (samo vlasničke odluke; ne pokretati samoinicijativno):**
+1. **O4** — 13× `window.confirm` u adminu (Blog ×2, EmailSettings ×2, Gallery ×2, Reviews, Salon, Services ×2, Users ×3) → pristupačni `ConfirmDialog` (odobreni okvir S7–S9; **nije izvršeno**).
+2. **Aurum light admin** rendered axe (simetrija F (7/) dark sweepa).
+3. **Admin 320 px reflow / zoom** dokaz (M2) — public ima, admin nema.
+4. **Ručne provjere:** čitač ekrana (M4), `forced-colors` (M5), tastaturni e2e (M1) — ostaju 🟡/➖ u sandboxu.
+5. **Veliki fajlovi (S8):** `pages/Users.tsx` 1700 ln, `pages/Services.tsx` 1504, `pages/EmailSettings.tsx` 1400 — razbijanje je zaseban projekat.
+6. **Dead code:** `frontend/src/features/dashboard/aurum-stat-grid.tsx` (37 ln, **0 potrošača**, zalutao u commit `6ac2b95`).
+
+---
+
+**Grana:** `arena/71be6ba3-beauty-salon-v2` · **Bazni commit:** `a82020e` · **Ažurirano:** 2026-11-11 (**S5 završen: `90acca2` / run `43181880043` / 5/5**) — **arhiva; vidi blok iznad**.
 **Legenda:** ✅ izmjereno/provjereno · 🟡 u kodu ili planu, nije provjereno u renderu · ❌ nije zadovoljeno · ➖ nije primjenjivo · ⬜ nije započeto
 
 ---
