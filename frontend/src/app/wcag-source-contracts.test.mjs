@@ -297,6 +297,30 @@ test('4.1.3: mjerenje stanja, ne tvrdnja o usklađenosti', () => {
   assert.ok(live.length >= 20, `samo ${live.length} fajlova s live regionom — očekivano ≥20`)
 })
 
+test('2.5.3: vidljivi inicijali su uvijek 2 alfanumerička znaka (userInitials helper)', () => {
+  // Run `44472018787` (Faza E): 22 `label-content-name-mismatch` incomplete čvora na
+  // admin rutama — axe 4.14 `isNonDigitCharacter` tretira svaki 1-char vidljivi tekst
+  // kao "nije human-interpretable" → "Unable to determine", bez obzira na ime.
+  // Zato inicijali MORAJU biti 2 alfanumerička znaka na sva tri mjesta — jedan izvor:
+  // `src/utils/user-initials.mjs`. AvatarFallback i labelWithVisibleText dijele isti izlaz.
+  const sites = [
+    '../features/shell/admin/admin-layout.tsx',
+    '../layouts/StylistLayout.tsx',
+    '../features/shell/public/public-layout.tsx',
+  ]
+  for (const file of sites) {
+    const src = readFileSync(new URL(file, import.meta.url), 'utf8')
+    assert.ok(
+      src.includes("import { userInitials } from"),
+      `${file}: mora koristiti dijeljeni userInitials helper`,
+    )
+    assert.ok(
+      !/\w\[0\]\s*\?\?\s*'[A-Za-z]'/.test(src),
+      `${file}: jedan-char toUpperCase fallback ne smije ostati`,
+    )
+  }
+})
+
 test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', () => {
   // Axe je na 22 admin/stylist rute javio `label-content-name-mismatch` kao nepotpuno
   // (run `42893779087`): `aria-label="Admin meni"` uz vidljive inicijale iz
@@ -307,8 +331,8 @@ test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', ()
   // prekršaj ostao a postao nevidljiv alatima. Zato se traži da ime SADRŽI vidljivi tekst.
   const sites = [
     ['../features/shell/admin/admin-chrome.tsx', 'shell.adminMenu', 'initials'],
-    ['../features/shell/public/public-layout.tsx', 'shell.userMenu', "avatarInitials || 'U'"],
-    ['../layouts/StylistLayout.tsx', 'shell.userMenu', "avatarInitials || 'S'"],
+    ['../features/shell/public/public-layout.tsx', 'shell.userMenu', 'avatarInitials'],
+    ['../layouts/StylistLayout.tsx', 'shell.userMenu', 'avatarInitials'],
   ]
   for (const [file, key, visible] of sites) {
     const src = readFileSync(new URL(file, import.meta.url), 'utf8')

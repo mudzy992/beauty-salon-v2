@@ -11,6 +11,7 @@ import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
 import api from '../../../api/client'
 import { getUploadUrl } from '../../../utils/uploadUrl'
+import { userInitials } from '../../../utils/user-initials.mjs'
 import { useFocusOnNavigate } from '../../../hooks/use-focus-on-navigate'
 import { flatAdminNavItems, isAdminNavItemActive } from './admin-nav'
 import { AdminNav } from './admin-nav-menu'
@@ -61,7 +62,7 @@ export const AdminLayout = () => {
     return location.pathname
   }, [location.pathname, location.search, t])
 
-  const adminInitials = (user?.username?.trim()?.[0] ?? 'A').toUpperCase()
+  const adminInitials = userInitials(user?.username, 'AA')
   const adminAvatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
 
   useEffect(() => {

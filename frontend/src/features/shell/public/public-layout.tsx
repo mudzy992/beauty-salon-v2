@@ -22,6 +22,7 @@ import { useSettings } from '../../../context/SettingsContext'
 import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils/clientOnboarding'
 import { isPublicFeatureOn } from './public-features'
 import { getUploadUrl } from '../../../utils/uploadUrl'
+import { userInitials } from '../../../utils/user-initials.mjs'
 import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
 import { ThemeSwitcher } from '../theme/theme-switcher'
 import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs';
@@ -89,14 +90,7 @@ export const PublicLayout = () => {
     const roles = normalizeRoles(user?.roles)
     return roles.includes('STYLIST')
   }, [user?.roles])
-  const avatarInitials = (user?.username ?? '')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0] ?? '')
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const avatarInitials = userInitials(user?.username, 'UU')
   const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
   const facebook = getSetting('public_social_facebook', '').trim()
   const instagram = getSetting('public_social_instagram', '').trim()
@@ -219,7 +213,7 @@ export const PublicLayout = () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials || 'U')}
+                    aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials)}
                   >
                     <Avatar className="h-9 w-9">
                       {avatarSrc ? (
@@ -233,7 +227,7 @@ export const PublicLayout = () => {
                         />
                       ) : null}
                       <AvatarFallback className="text-xs font-semibold">
-                        {avatarInitials || 'U'}
+                        {avatarInitials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

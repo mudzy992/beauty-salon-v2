@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { normalizeRoles } from '../utils/clientOnboarding'
 import { getUploadUrl } from '../utils/uploadUrl'
+import { userInitials } from '../utils/user-initials.mjs'
 import { LanguageSwitcher } from '../components/i18n/language-switcher'
 import { useFocusOnNavigate } from '../hooks/use-focus-on-navigate'
 import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
@@ -74,14 +75,7 @@ export default function StylistLayout() {
 
   const roles = normalizeRoles(user?.roles)
   const canSwitchToClient = roles.includes('CLIENT')
-  const avatarInitials = (user?.username ?? 'S')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0] ?? '')
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+  const avatarInitials = userInitials(user?.username, 'SS')
   const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
 
   useStylistPortalSocketRefresh()
@@ -126,7 +120,7 @@ export default function StylistLayout() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials || 'S')}
+                  aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials)}
                 >
                   <Avatar className="h-9 w-9 ring-1 ring-line">
                     {avatarSrc ? (
@@ -140,7 +134,7 @@ export default function StylistLayout() {
                       />
                     ) : null}
                     <AvatarFallback className="text-xs font-semibold">
-                      {avatarInitials || 'S'}
+                      {avatarInitials}
                     </AvatarFallback>
                   </Avatar>
                 </Button>

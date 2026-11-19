@@ -175,6 +175,7 @@
     "test:theme-brand-precedence": "node --test src/features/shell/theme/theme-brand-precedence.test.mjs",
     "test:theme-ssot-sync": "node --test src/features/shell/theme/theme-ssot-sync.test.mjs",
     "test:label-in-name": "node --test src/components/a11y/label-in-name.test.mjs",
+    "test:user-initials": "node --test src/utils/user-initials.test.mjs",
     "test:settle-animations": "node --test e2e/settle-animations.test.mjs",
     "test:tab-traversal": "node --test e2e/tab-traversal.test.mjs",
     "test:admin-content-a11y": "node --test src/features/content/admin-content-a11y.test.mjs",
