@@ -682,3 +682,8 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Gates: build **289.6 KiB / 300**; `git diff --check` PASS; contrast strict **148/148**; `typecheck:e2e` PASS; lint 0 grešaka (6 poznatih `exhaustive-deps` warn-ova, CI-dozvoljeni); full sweep **205/205 PASS**.
 - Rendered rezultati su dokaz koji se generiše tek u CI — eventualni nalazi iz child/dark suite-a će biti dokumentovani (nije unaprijed tvrđeno da su čisti).
 - Vlasnički visual check: u toku (rosé linkovi/kickeri na svijetlom Aurumu sada #8A3346 — tamniji, isti identitet).
+### Faza F (7/) — ZATVORENO (2026-11-18)
+- Owner visual check: **OK** (Aurum light — rosé linkovi/kickeri u #8A3346; 4 stanja preostala netaknuta).
+- **CI `44523392570` (`a8b3899`) = ALL GREEN (5/5).** Rendered a11y: sve praćene Axe rules PROLAZ / 0 violations nad **51 izmjerenim stanjem** (prije 32; +19 novi: 4 child-proof zapisa (`/admin/analytics?tab=clients|stylists (aurum-light|dark)`) + 15 Aurum dark admin ruta). `1.4.6 color-contrast-enhanced: PROLAZ 51`; `2.5.3` ostaje 0 incomplete; `1.4.3 color-contrast incomplete 18` — isključivo poznati Recharts legend `.legend-item-*-text` determination-blokovi (izmjena: SVG serijski čvor uz tekst; `hsl(var(--text))`), sada izmjereno i u `/admin/analytics (aurum-dark)` — isti uzrok kao classic, ne novi defekt.
+- Accent SSOT: contrast strict 148/148; theme-ssot-sync 10/10 (novi dedicated odstupanje-test).
+- CI Node 20→24: action majors na node24 (checkout v5 / setup-node v5 / setup-python v6 / upload-artifact v6); app Node 22 nepromjenjeno.
