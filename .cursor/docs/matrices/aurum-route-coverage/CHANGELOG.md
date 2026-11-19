@@ -64,3 +64,7 @@
 **Zašto:** `approve_s5` + O2 = `card_header` po NEJRA §12; režim plan → implementacija → 5/5 CI → evidencija → STOP. Dijeljeni `OnboardingShell` pokriva 3 ekrana jednom izmjenom; `NotFound` je dobio jedan `<h1>`. Guardovi, `app/router.tsx`, error mapping, `autocomplete`, OTP paste i `PublicFeatureGate` imaju **0 diff**.
 
 **Status:** ✅ **204/204** `test:*` (bez novih skripti, bez izmjene ijednog testa), 5 Python gate-ova, build **281,6/300 KiB**, BS/EN **2730/2730** (bez novih ključeva), `check_ui_contrast` **140/140 source-only**. **CI:** commit `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`), run **`43181880043`** = **5/5 success**; `a11y-e2e` job `131059574192` **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`, artifact `13926547985` (331785 B). 🟡 rendered axe za `aurum-light`/`aurum-dark`, 320 px / 400% i čitač ekrana do S11.
+
+## Usklađivanje nakon CI `44567932983`
+
+Aktuelni pregled politike i granica dokaza prebačen je na početak matrice; stariji S0–S5 tekst ostaje označena arhiva. Referenca na dokaze i otvorene ručne provjere nalazi se u glavnom Aurum `CHANGELOG.md`. CI dokumentacije čeka provjeru.

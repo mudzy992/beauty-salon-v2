@@ -1,5 +1,46 @@
 # MATRIX — Pokrivenost ruta Aurum refaktorom
 
+## Aktuelna matrica dokaza — CI `44567932983`
+
+> Historijske tabele od naslova **Arhiva S0–S5** nadalje zadržane su radi traga odluka; njihovi statusi, brojke i tvrdnje o politici teme nisu aktuelni. Ispod je trenutni opseg testova, a ne tvrdnja da je svaka ruta ili svako stanje završeno. Popis ruta i guardova održava se u `frontend/src/app/router.tsx`, `app/routes/admin.routes.tsx` i `public.routes.tsx`.
+
+### Izmjereni admin početni prikazi
+
+Svaki red: `a11y-admin.spec.ts` provjerava Aurum light i dark axe, a dodatno mjeri širinu dokumenta na **320 CSS px** u oba režima; CI `44567932983` (`7081698`) je 5/5, cijeli rendered suite 493/493 bez skipova. Ove provjere nisu dokaz svih stanja, unutrašnjeg clippinga, rada kontrola ili stvarnog zooma.
+
+| Ruta | Aurum light/dark axe | 320 CSS px širina dokumenta |
+|---|---|---|
+| `/admin` | ✅ | ✅ |
+| `/admin/users` | ✅ | ✅ |
+| `/admin/salon` | ✅ | ✅ |
+| `/admin/services` | ✅ | ✅ |
+| `/admin/stylists` | ✅ | ✅ |
+| `/admin/reservations` | ✅ | ✅ |
+| `/admin/daily-log` | ✅ | ✅ |
+| `/admin/finance` | ✅ | ✅ |
+| `/admin/blog` | ✅ | ✅ |
+| `/admin/gallery` | ✅ | ✅ |
+| `/admin/reviews` | ✅ | ✅ |
+| `/admin/settings` | ✅ | ✅ |
+| `/admin/analytics` | ✅ | ✅ |
+| `/admin/loyalty` | ✅ | ✅ |
+| `/admin/reservations/calendar` | ✅ | ✅ |
+
+### Dodatni opseg i otvorene rupe
+
+| Područje | Dokaz / ograničenje |
+|---|---|
+| Analytics child paneli | `?tab=clients` i `?tab=stylists`, popunjene fiksure, oba Aurum režima: četiri zasebne axe provjere; 320px sweep iznad odnosi se na podrazumijevani hub, ne sve child stanja. |
+| Javne rute | `theme-policy.spec.ts` i ostali rendered specovi testiraju izričito navedene rute i stanja; ne zaključivati da su sve deklaracije ili svi podaci testirani. |
+| Stylist portal | `a11y-stylist.spec.ts` pokriva navedene rute s prijavljenim nalogom; parametrizirani detalji nisu dio tog sweepa. Ne tvrditi isti M2 obuhvat kao za 15 admin ruta. |
+| Admin detalji i tabovi | `services/:serviceId/work-gallery`, postavke i finansije sa svim query tabovima, dijalozi i različiti podaci nisu iscrpno pokriveni 320px sweepom. Redirect nije zaseban renderirani ekran. |
+| O4 potvrde | 13 poziva zamijenjeno dijalogom; interaktivno testirane potvrde za korisnike i fokus; ostali tokovi zahtijevaju pojedinačnu provjeru. |
+| Ručno | M1, stvarni 200%/400% zoom i text-spacing (M2), M4 čitač ekrana i M5 forced-colors ostaju otvoreni. |
+
+---
+
+## Arhiva S0–S5 — historijski inventar i statusi, ne aktuelni dokaz
+
 **Status:** 🟡 **S0–S5 završeni (svaki 5/5).** ✅ je **20/58 deklaracija** = 14/14 javnih (#1–#14) + 6/8 auth/izuzeci (#15–#20, #22); preostalih **38** (fullscreen kalendar #21, admin, stylist) čeka S6–S10. **S5:** `90acca2` / run `43181880043` / 5/5; default-classic axe 252/252 / 32 rute, artifact `13926547985`.
 **Izvor inventara (izmjeren 2026-11-11):** `frontend/src/app/router.tsx`, `app/routes/public.routes.tsx`, `app/routes/admin.routes.tsx`; unakrsno `docs/audit/UX_UI_ROUTE_INVENTORY.md`.
 **Ukupno:** **58 deklaracija ruta** = javne 14 + auth/izuzeci 8 + admin 24 + stylist 12.

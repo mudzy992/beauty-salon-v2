@@ -2,6 +2,11 @@
 
 > ⚠️ **SUPERSEDED kao radna predaja (2026-11-19).** Ovaj dokument je arhiva perioda kickoff → S5 na grani `arena/71be6ba3-beauty-salon-v2` (2026-11-11, bazni commit `a82020e`). Sve ispod ovog bloka NE opisuje trenutno stanje i NE smije se koristiti kao uputa. Važeće stanje i preostali rad: blok **„Ažurirani status“**. Evidencija po fazama (commit + CI run) = `CHANGELOG.md`; tokeni = NEJRA §10 + `scripts/check_ui_contrast.py`.
 
+
+## Najnoviji status — nakon CI `44567932983`
+
+Ovaj blok ima prednost nad starijim „Ažurirani status“ i arhivom ispod: light admin axe je urađen; O4 implementiran uz ograničene interaktivne dokaze; nekorišteni `aurum-stat-grid.tsx` uklonjen (`d603042`, CI `44563869689` 5/5). M2: 15 admin ruta × Aurum light/dark na 320 CSS px prošlo, nakon popravki postavki i kalendara (`7081698`, CI `44567932983` 5/5, suite 493/493). To ne dokazuje stvarni zoom, sve dijaloge i sadržaj; ručni M1/M2/M4/M5 ostaju otvoreni. Aktuelne matrice su u `.cursor/docs/matrices/aurum-theme/` i `aurum-route-coverage/`; njihovi stari dijelovi su arhiva. Root font 17px je globalan i traži vizuelni pregled i provjeru korisničkih browser postavki. S8 razbijanje velikih fajlova nije odobreno ovim radom.
+
 ## Ažurirani status (2026-11-19)
 
 **Grana:** `arena/dadb4053-beauty-salon-v2` (iz master `c5267fa`) · **Zadnji push:** `b1206f3` (close-out, samo changelog) — CI `44525141061` **5/5 success**. `PublicFeatureGate` netaknut bez posebne vlasničke odluke; paleta zaključana (NEJRA §10 je izvor istine); Classic se ne uklanja i ne dira bez odluke.

@@ -4,6 +4,11 @@
 >
 > **Gdje je izvor istine danas:** evidencija po fazama (commit + CI run id) = `CHANGELOG.md`; tokeni = NEJRA §10 + `scripts/check_ui_contrast.py`; CI status = GitHub Actions (grana `arena/dadb4053-beauty-salon-v2`, iz master `c5267fa`).
 
+
+## Najnoviji status — nakon CI `44567932983`
+
+Ovaj blok ima prednost nad starijim „Ažurirani status“ i arhivom ispod: light admin axe je urađen; O4 implementiran uz ograničene interaktivne dokaze; nekorišteni `aurum-stat-grid.tsx` uklonjen (`d603042`, CI `44563869689` 5/5). M2: 15 admin ruta × Aurum light/dark na 320 CSS px prošlo, nakon popravki postavki i kalendara (`7081698`, CI `44567932983` 5/5, suite 493/493). To ne dokazuje stvarni zoom, sve dijaloge i sadržaj; ručni M1/M2/M4/M5 ostaju otvoreni. Aktuelne matrice su u `.cursor/docs/matrices/aurum-theme/` i `aurum-route-coverage/`; njihovi stari dijelovi su arhiva. Root font 17px je globalan i traži vizuelni pregled i provjeru korisničkih browser postavki. S8 razbijanje velikih fajlova nije odobreno ovim radom.
+
 ## Ažurirani status (2026-11-19 — skraćena mapa; evidencija 2026-11-18; detalji u `CHANGELOG.md`)
 
 | Segment / faza | Status | Dokaz (grana `arena/dadb4053-beauty-salon-v2` osim S1–S5) |

@@ -1,5 +1,30 @@
 # MATRIX — Aurum theme / skin sustav
 
+## Aktuelna matrica — nakon CI `44567932983`
+
+> Sadržaj od naslova **Arhiva S1–S5** nadalje je historija, nije aktuelna politika ni uputa. Prethodni model s tri korisnička izbora je zamijenjen; Classic nije uklonjen. Izvor izvršne politike: `frontend/src/features/shell/theme/theme-policy.mjs`, `theme-context.tsx` i `theme-switcher.tsx`.
+
+| Stanje | Odabir | Efekat / dokaz |
+|---|---|---|
+| Classic | globalni skin postavljen od administratora | Classic light; lokalni toggle se ne prikazuje. Classic identitet ostaje. |
+| Aurum light / dark | globalni skin Aurum; lokalni izbor režima ima prednost nad globalnim defaultom | `<html data-skin="aurum" data-mode="light|dark">`; `.dark` samo u dark; prekidač ima `aria-pressed` i statusnu najavu. |
+| Fallback i spremanje | `nejra.theme.mode`; stari `nejra.theme` samo za migraciju režima | Početni globalni fallback Aurum light; nevažeći lokalni izbor prepušta odluku administratorskom defaultu. |
+| Boje | NEJRA §10 + semantički tokeni | Bez izmjene zaključane palete; jedini prethodno odobreni izuzetak `brand-accent-text` je dokumentovan u planu. `check_ui_contrast.py --strict` 148/148 je **source-only**. |
+| Tipografija | globalni `html { font-size: 17px }`, vlasnički izbor | Pogađa Classic, Aurum i javni/admin web; rem vrijednosti rastu, hardkodirani px ne. Vizuelni pregled i uticaj na korisničke browser postavke ostaju otvoreni. |
+
+### Dokazi i granice
+
+| Provjera | Dokaz | Granica |
+|---|---|---|
+| Tema i javni prikazi | `theme-policy.spec.ts` + CI `44567932983` 5/5 | Testirane su izričito navedene javne rute/stanja, ne sve kombinacije svih ruta. |
+| Admin Aurum light/dark axe | `a11y-admin.spec.ts`: 15 ruta po režimu + 4 AnalyticsHub child proofs; CI `44567932983` | Automatska provjera početnih/izabranih stanja, ne potpuni WCAG audit; axe može prijaviti incomplete. |
+| Admin reflow | 15 ruta × 2 režima, 320 CSS px, početno stanje; `7081698` / CI `44567932983`, suite 493/493 | Mjeri širinu dokumenta, ne unutrašnji gubitak sadržaja ili sve panele; nije stvarni 400% zoom. |
+| Ručna provjera | M1, M2 (uklj. 200%/400% i text-spacing), M4, M5 | Otvoreno; nisu dokazani ni ukupni AA/AAA ni stvarni rad s čitačem ekrana. |
+
+---
+
+## Arhiva S1–S5 — zastarjela, nije aktuelna politika
+
 **Status:** ✅ **S1 ZAVRŠEN (2026-11-11, 5/5 CI `43100889990`).** Runtime logika postoji i lokalno je izmjerena: `features/shell/theme/*`, `ThemeProvider` iznad `SettingsProvider`, `ThemeSwitcher` u 3 shella, 2 Aurum CSS bloka, `check_ui_contrast.py --strict` **140/140**, 4 nova `test:*` (203/203 ukupno). **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. Rendered axe za `aurum-light`/`aurum-dark` i dalje 🟡 do S11 — ovo je source-only + default-classic rendered dokaz, ne potvrda sva 3 stanja u browseru.
 **Vlasnik:** `.cursor/plans/aurum-web-refactor/` · **Izvori odluka:** `00_overview.md` §2, `02_phase-1-foundation.md`
 **Ažurirano:** 2026-11-11

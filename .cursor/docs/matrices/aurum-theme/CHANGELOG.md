@@ -80,3 +80,7 @@
 **Zašto:** Q7 (NEJRA jedini izvor), Q9 (bez korekcije palete), Q10 (strogi paritet), `approve_s5` + `card_header`. Bez `data-skin="aurum"` nijedno novo pravilo se ne primjenjuje — rendered axe **252 passed | 0 failed | 0 skipped** na default `classic` to potvrđuje; `2.5.3` coverage se pomjerio na `passed 9 / incomplete 22 / inapplicable 1` zbog 4 nova pristupačna dugmeta, bez prekršaja.
 
 **Status:** ✅ source-only (`test:theme-ssot-sync`, `check_ui_contrast.py --strict` **140/140**) + ✅ **5/5 CI** run **`43181880043`** na `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`); artifact `13926547985`. 🟡 rendered axe za oba Aurum stanja, 320 px / zoom 400%, čitač ekrana i `1.4.6` AAA do S11; `1.4.3`/`2.5.3` ostaju nepotpuni u coverage logu.
+
+## Usklađivanje nakon CI `44567932983`
+
+Aktuelni pregled politike i granica dokaza prebačen je na početak matrice; stariji S0–S5 tekst ostaje označena arhiva. Referenca na dokaze i otvorene ručne provjere nalazi se u glavnom Aurum `CHANGELOG.md`. CI dokumentacije čeka provjeru.
