@@ -600,3 +600,11 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - **CI `44486871989` (`98cf7c4`) = ALL GREEN (5/5). a11y: 429 passed / 0 failed; `1.4.6 enhanced: PROLAZ (32/0)`; `1.4.3` ostaje 7 incomplete (human-judgment, kao E (4/)); nema novih nalaza.**
 - Vlasnički visual check: **OK** (admin settings + stylist workbook u light/dark Aurumu).
 - Otvorene stavke (čekaju vlasničke odluke, ne pokretati samoinicijativno): dark Aurum `--text-muted`; Button adopcija; orphan komentari (globals.css tail); dark 1.4.6/1.4.3; 1.4.6 accent #9B3D4F; AnalyticsHub child proofs; CI Node 20→24; bonus nalaz iz F (1/) — hardcoded `text-[#8a624e]` ikonice u `settings-module-page.tsx`.
+
+### Faza F (2/) — `settings-module-page.tsx` hardcoded `#8a624e` → `brand-rose-text` (2026-11-18)
+- Vlasnik je iz mape hardcoded-hex nalaza (poslije F (1/)) odabrao minimalni scope: samo 2 čvora — `Settings2` (search row status) i `Loader2` (skeleton loader ikonice) u `settings-module-page.tsx`.
+- `text-[#8a624e]` → `text-brand-rose-text` (`var(--brand-primary-text)`): classic light 9.39 / classic dark 8.47 / Aurum light 7.73 / Aurum dark 7.57 na površini — sve AAA; isti token kao postojeći brand-ikonica obrazac u fajlu (L103, `bg-nav-active` + `text-brand-rose-text`).
+- `dark:` grana sada kroz token (prije: uvijek #8a624e, bez dark varijante).
+- Gates: build PASS (290.7 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
+- **Zapis mape (NE dirano, čeka vlasničku odluku):** `PublicServices.tsx` 109 + `PublicServiceDetail.tsx` 38 hardcoded-hex čvorova (warm-paper paleta #49332d/#75645a/#e8ddd3…, `dark:` pokrivenosti 0) — javne stranice ne slijede Aurum temu; `email-visual-editor.tsx` 11 hex = white email preview (namjerno).
+- Vlasnički visual check: u toku.

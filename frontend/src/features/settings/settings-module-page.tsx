@@ -73,7 +73,7 @@ export function SettingsModulePage({
             ) : null}
           </div>
           <p role="status" aria-live="polite" className="flex items-center gap-2 text-xs font-medium text-content-strong">
-            <Settings2 className="h-4 w-4 text-[#8a624e]" aria-hidden="true" />
+            <Settings2 className="h-4 w-4 text-brand-rose-text" aria-hidden="true" />
             {normalizedQuery
               ? t('adminSettings.search.results', { count: visibleSettings })
               : t('adminSettings.sections.settingsCount', { count: totalSettings })}
@@ -84,7 +84,7 @@ export function SettingsModulePage({
       {loading ? (
         <div role="status" aria-live="polite" className="space-y-3 py-4">
           <div className="flex items-center gap-3 text-sm font-medium text-content-strong">
-            <Loader2 className="h-5 w-5 animate-spin text-[#8a624e]" aria-hidden="true" />
+            <Loader2 className="h-5 w-5 animate-spin text-brand-rose-text" aria-hidden="true" />
             <span className="sr-only">{t('common.loading')}</span>
           </div>
           {[0, 1, 2].map((item) => (
