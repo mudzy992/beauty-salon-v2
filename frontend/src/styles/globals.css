@@ -1846,13 +1846,15 @@
 [data-skin="aurum"] .admin-shell [data-analytics-hub] table.app-table th {
   color: hsl(var(--text-muted-strong));
 }
+/* Chart cards must be able to shrink below their content's intrinsic width
+   (grid track minimum) — mirrors the Recharts zero-width measurement below. */
 [data-analytics-hub] .grid > [data-default-card-surface] { min-width: 0; }
 /* Recharts deliberately mounts its wrapper inside a zero-width measuring node.
    Constraining that wrapper to 100% collapses every chart to zero width. */
 [data-analytics-hub] .recharts-responsive-container { min-width: 0; max-width: 100%; }
 
 /* The chart's data alternative must reflow independently of the chart at 320px.
-   index.css is not loaded by the application, so scope the card presentation here. */
+   Scoped to the analytics hub here — no separate global stylesheet owns this table. */
 @media (max-width: 639px) {
   [data-analytics-hub] table.data-table { display: block; width: 100%; }
   [data-analytics-hub] table.data-table thead {

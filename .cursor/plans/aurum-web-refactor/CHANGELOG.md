@@ -658,3 +658,11 @@ Owner je odobrio admin fazu nakon zatvaranja javne. Svi batchevi uvoditi `<Butto
 - Gates: build PASS (289.5 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) 0 grešaka.
 - **CI `44515714897` (`a18cc8a`) = ALL GREEN (5/5).**
 - Vlasnički visual check: **OK**.
+
+### Faza F (6/) — Orphan komentari (globals.css tail): reword + dopuna (2026-11-18)
+- Owner je odabrao minimalni scope (A) iz inventure tail bloka (L1841–1887, analytics):
+  - L1854–55: odbačena zastarjela referenca na nepostojeći `index.css` (istorijski artefakt) — zadržan WHY (reflow nezavisan od grafa na 320px; scope na hub).
+  - L1849: `[data-analytics-hub] .grid > [data-default-card-surface]` dobilo komentar (min-width:0 ↔ grid track, mirror Recharts zero-width mjerenje).
+- Inventura je potvrdila: svi ostali komentari u tail bloku tačno prate aktivna pravila (Recharts zero-width, portal-scoped client-analytics-dialog, badge surface pairs, hub text-muted-strong pairs) — nikakva pravila bez komentara osim L1849, nikakvi komentari bez pravila.
+- Bez izmjena ponašanja (comment/CSS-rule description only).
+- Gates: build PASS (289.6 KiB / 300), diff-check PASS, full `test:*` sweep (205 paketa) = 0 grešaka.
