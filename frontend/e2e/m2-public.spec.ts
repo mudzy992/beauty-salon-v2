@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 import { clippedSnapshot, overflowingElements } from './dom-metrics.mjs'
 import { settleAnimations } from './settle'
 
-// Initial unauthenticated screens only; token/ID details and authenticated flows need fixtures.
+// Initial public screens; reservation uses an isolated authenticated-client fixture.
+// Token/ID detail pages and other authenticated flows need separate fixtures.
 const PUBLIC_SCREENS = [
   '/', '/usluge', '/galerija', '/kontakt', '/rezervacija',
   '/zadovoljni-klijenti', '/blog', '/login', '/register', '/reset-password', '/unsubscribe',
@@ -19,6 +20,12 @@ function report(title: string, detail: string) {
   const encoded = detail.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
   process.stdout.write(`::error title=${title}::${encoded}\n`)
 }
+
+test.afterEach(async ({}, info) => {
+  if (info.status !== info.expectedStatus) {
+    report(`M2 public failure ${info.title}`, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+  }
+})
 
 for (const mode of ['light', 'dark'] as const) {
   for (const path of PUBLIC_SCREENS) {
@@ -44,8 +51,22 @@ for (const mode of ['light', 'dark'] as const) {
             ...Object.entries(settings).map(([key, value]) => ({ key, value })),
           ] })
         })
+        if (path === '/rezervacija') {
+          await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+          await page.route('**/api/users/profile', route => route.fulfill({ json: {
+            id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User',
+            createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456',
+            gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'],
+          } }))
+          await page.route('**/api/services**', route => route.fulfill({ json: [{
+            id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE',
+            subcategory: { name: 'Kosa', category: { name: 'Žene' } },
+          }] }))
+          await page.route('**/api/reservations/availability/dates**', route => route.fulfill({ json: [] }))
+        }
         await page.goto(path, { waitUntil: 'networkidle' })
         expect(new URL(page.url()).pathname).toBe(path)
+        if (path === '/rezervacija') await expect(page.locator('#public-service-search')).toBeVisible()
         await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
         await expect(page.locator('main')).toBeVisible()
