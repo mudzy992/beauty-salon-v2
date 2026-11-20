@@ -1988,3 +1988,25 @@
   }
   [data-skin="aurum"] [data-finance-expense-detail] > div:first-child > div:first-child { flex-wrap: wrap; }
 }
+
+/* Populated admin gallery and reviews must remain readable when text is enlarged. */
+[data-skin="aurum"] [data-gallery-category-row] { flex-wrap: wrap; }
+[data-skin="aurum"] [data-gallery-category-row] > button { flex: 1 1 8rem; }
+[data-skin="aurum"] [data-gallery-category-name],
+[data-skin="aurum"] [data-gallery-image-meta] p,
+[data-skin="aurum"] [data-review-comment] {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+[data-skin="aurum"] [data-gallery-image-media] { aspect-ratio: auto; }
+[data-skin="aurum"] [data-gallery-image-media] > img { aspect-ratio: 4 / 3; height: auto; }
+[data-skin="aurum"] [data-gallery-image-meta] {
+  position: static;
+  flex-wrap: wrap;
+  background: hsl(var(--surface));
+  color: hsl(var(--text));
+}
+[data-skin="aurum"] [data-gallery-image-meta] :is(p, button) { color: hsl(var(--text)); }
+[data-skin="aurum"] [data-gallery-image-meta] > div:first-child { flex: 1 1 8rem; }

@@ -2782,6 +2782,17 @@ for (const mode of ['light', 'dark'] as const) {
           await page.keyboard.press('Escape')
           await expect(dialog).toBeHidden()
           await expect(trigger).toBeFocused()
+          const readable = state === 'gallery-image'
+            ? page.locator('[data-gallery-category-name], [data-gallery-image-meta] p')
+            : state === 'review' ? page.locator('[data-review-comment]') : null
+          if (readable) {
+            for (const element of await readable.all()) {
+              const metrics = await element.evaluate(el => ({ overflow: getComputedStyle(el).overflowX, whiteSpace: getComputedStyle(el).whiteSpace, width: el.clientWidth, scroll: el.scrollWidth }))
+              expect(metrics.overflow, JSON.stringify(metrics)).toBe('visible')
+              expect(metrics.whiteSpace).not.toBe('nowrap')
+              expect(metrics.scroll - metrics.width, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+            }
+          }
           expect(writes).toEqual([])
         })
       }

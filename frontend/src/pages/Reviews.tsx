@@ -188,7 +188,7 @@ export default function Reviews() {
                         <Stars count={r.serviceRating} />
                       </td>
                       <td data-label={t('reviews.stylistRating')} className="p-3">{r.stylistRating ? <Stars count={r.stylistRating} /> : '-'}</td>
-                      <td data-label={t('reviews.comment')} className="max-w-[220px] truncate p-3">{r.comment ?? '-'}</td>
+                      <td data-review-comment data-label={t('reviews.comment')} className="max-w-[220px] truncate p-3">{r.comment ?? '-'}</td>
                       <td data-label={t('common.status')} className="p-3">{getApprovalBadge(r.isApproved)}</td>
                       <td data-label={t('common.date')} className="p-3">{Number.isFinite(new Date(r.createdAt).getTime())
                         ? new Intl.DateTimeFormat(getIntlLocale(i18n.language), { dateStyle: 'medium' }).format(new Date(r.createdAt))

@@ -466,7 +466,7 @@ for (const mode of ['light', 'dark'] as const) {
           const root = page.locator('[data-aurum-page="reservation-view"]')
           if (state === 'retry') {
             await expect(root.getByRole('alert')).toBeVisible()
-            await expect(root.getByRole('button', { name: /pokušaj ponovo|retry/i })).toBeVisible()
+            await expect(root.getByRole('button', { name: /pokušaj ponovo|retry|try again/i })).toBeVisible()
           } else {
             await expect(root).toContainText('M2-CANCEL-001')
             await expect(root).toContainText(payload.cancelReason)
@@ -492,7 +492,7 @@ for (const mode of ['light', 'dark'] as const) {
             expect(newlyClipped).toEqual([])
           }
           if (state === 'retry') {
-            await root.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+            await root.getByRole('button', { name: /pokušaj ponovo|retry|try again/i }).click()
             await expect(root.getByRole('alert')).toBeHidden()
             await expect(root).toContainText('M2-CANCEL-001')
             await expect(root).toContainText(payload.cancelReason)

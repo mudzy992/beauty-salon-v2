@@ -768,7 +768,7 @@ for (const mode of ['light', 'dark'] as const) {
           if (state === 'retry') {
             const error = page.getByRole('alert').filter({ hasText: /preview rekalkulacije|schedule preview/i })
             await expect(error).toBeVisible()
-            await error.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+            await error.getByRole('button', { name: /pokušaj ponovo|retry|try again/i }).click()
             await expect.poll(() => requests.length).toBe(2)
             expect(requests[1]).toEqual(requests[0])
           }

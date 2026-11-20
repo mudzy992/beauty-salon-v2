@@ -299,7 +299,7 @@ export default function Gallery() {
   }
 
   return (
-    <div>
+    <div data-admin-gallery>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-content">{t('nav.gallery')}</h1>
         <Button type="button" onClick={() => openCatForm()}>
@@ -322,7 +322,7 @@ export default function Gallery() {
                     selectedCatId === c.id ? 'border-brand-gold-ring bg-brand-champagne/10' : '',
                   ].join(' ')}
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div data-gallery-category-row className="flex items-center justify-between gap-3">
                     {/* 2.1.1: izbor kategorije MORA biti pravo <button>. `Card` renderuje običan
                         <div> (`components/ui/card.tsx:7`), pa `onClick` na njemu tastaturnom
                         korisniku nije bio dostupan — a ovo je JEDINI put do `loadImages`, koji
@@ -335,7 +335,7 @@ export default function Gallery() {
                       aria-pressed={selectedCatId === c.id}
                       className="min-w-0 flex-1 cursor-pointer rounded text-left"
                     >
-                      <span className="block truncate font-semibold text-content">
+                      <span data-gallery-category-name className="block truncate font-semibold text-content">
                         {c.name}
                       </span>
                       <span className="mt-1 block text-xs text-content-muted">
@@ -404,9 +404,9 @@ export default function Gallery() {
                         : undefined
                     return (
                       <div key={img.id} className="group overflow-hidden rounded-lg border border-line ">
-                        <div className="relative aspect-[4/3] bg-surface-muted ">
+                        <div data-gallery-image-media className="relative aspect-[4/3] bg-surface-muted ">
                           <MediaImage src={src} alt={img.title ?? t('gallery.admin.galleryImageAlt')} className="h-full w-full object-cover" />
-                          <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
+                          <div data-gallery-image-meta className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
                             <div className="min-w-0">
                               <p className="truncate text-xs font-semibold text-white">{img.title ?? t('gallery.admin.untitled')}</p>
                               <p className="truncate text-[10px] text-white/80">{t('gallery.admin.sortOrderValue', { value: img.sortOrder })}</p>
