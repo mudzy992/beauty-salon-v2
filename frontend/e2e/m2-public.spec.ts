@@ -573,7 +573,19 @@ for (const mode of ['light', 'dark'] as const) {
           if (lost.length) report(`M2 booking failed-submit ${mode} ${language} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
           expect(lost).toEqual([])
         }
-        await submit.click()
+        try {
+          await submit.click({ timeout: 8_000 })
+        } catch (error) {
+          const geometry = await submit.evaluate(el => {
+            const rect = el.getBoundingClientRect()
+            const style = getComputedStyle(el)
+            const x = Math.max(0, Math.min(window.innerWidth - 1, rect.left + rect.width / 2))
+            const y = Math.max(0, Math.min(window.innerHeight - 1, rect.top + rect.height / 2))
+            return { rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, viewport: { width: window.innerWidth, height: window.innerHeight }, overflow: style.overflow, hit: document.elementsFromPoint(x, y).slice(0, 5).map(item => ({ tag: item.tagName, class: String(item.className).slice(0, 100), text: (item.textContent || '').slice(0, 50) })) }
+          })
+          report(`M2 booking retry click ${mode} ${language} ${adjustment}`, JSON.stringify(geometry))
+          throw error
+        }
         await expect.poll(() => requests.length).toBe(2)
         expect(requests[1]).toEqual(requests[0])
         await expect(note).toHaveValue('M2 retry note')
