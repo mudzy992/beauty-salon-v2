@@ -402,9 +402,8 @@ for (const mode of ['light', 'dark'] as const) {
               : (language === 'bs' ? 'Odjavu trenutno nije moguće završiti' : 'We could not complete the unsubscribe right now'))
             if (state === 'unsubscribe-failed') await expect(page.getByRole('button', { name: /pokušaj ponovo|try again/i })).toBeVisible()
           }
-          const settled = await settleAnimations(page)
-          expect(settled).not.toBeNull()
-          expect(settled?.stillRunning).toBe(0)
+          // The async result can start another transition after the first animation snapshot.
+          await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
           if (adjustment === '320px') {
             const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
             if (widths.scroll > widths.viewport + 1) report(`M2 booking-token ${mode} ${language} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
