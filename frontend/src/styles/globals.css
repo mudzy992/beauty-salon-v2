@@ -1967,3 +1967,24 @@
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+/* The expense book contains intrinsically wide controls and a responsive table.
+   Constrain grid tracks rather than clipping the card or the table's scroll region. */
+[data-skin="aurum"] [data-finance-expense-detail],
+[data-skin="aurum"] [data-finance-expense-content],
+[data-skin="aurum"] [data-finance-expense-filters] {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+[data-skin="aurum"] [data-finance-expense-detail] > *,
+[data-skin="aurum"] [data-finance-expense-content] > *,
+[data-skin="aurum"] [data-finance-expense-filters] > * { min-width: 0; }
+[data-skin="aurum"] [data-finance-expense-filters] :is(input, select) { min-width: 0; max-width: 100%; }
+@media (max-width: 639px) {
+  [data-skin="aurum"] [data-finance-expense-filters] > div:first-child,
+  [data-skin="aurum"] [data-finance-expense-filters] > div:first-child > div {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  [data-skin="aurum"] [data-finance-expense-detail] > div:first-child > div:first-child { flex-wrap: wrap; }
+}

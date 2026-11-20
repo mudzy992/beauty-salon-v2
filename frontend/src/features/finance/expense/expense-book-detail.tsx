@@ -232,7 +232,7 @@ export function ExpenseBookDetail({
     })
 
   return (
-    <div className="grid gap-4">
+    <div data-finance-expense-detail className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button
@@ -302,7 +302,7 @@ export function ExpenseBookDetail({
             })}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3">
+        <CardContent data-finance-expense-content className="grid gap-3">
           {categoriesQuery.isLoading ? (
             <p role="status" className="text-xs text-content-strong">
               {t('finance.states.loading')}

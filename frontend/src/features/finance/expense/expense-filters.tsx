@@ -30,7 +30,7 @@ export function ExpenseFiltersBar({
     onChange({ ...filters, ...patch })
 
   return (
-    <div className="grid gap-3 rounded-lg border border-line p-3 ">
+    <div data-finance-expense-filters className="grid gap-3 rounded-lg border border-line p-3 ">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1">
           <Label htmlFor="expense-search" className="text-xs">

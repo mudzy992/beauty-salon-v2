@@ -14,6 +14,7 @@ import {
   activeElementIsSegmentedInput,
   activeElementLabel,
   clippedSnapshot,
+  overflowingElements,
   focusableSnapshot,
   describeImageInventory,
   imageBearingInventory,
@@ -2650,7 +2651,7 @@ for (const mode of ['light', 'dark'] as const) {
           expect(settled?.stillRunning).toBe(0)
           if (adjustment === '320px') {
             const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
-            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 finance ${mode} ${language} ${state} 320`, JSON.stringify(widths))
+            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 finance ${mode} ${language} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
             expect(widths.viewport).toBe(320)
             expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
             if (state === 'expense-dialog') {
