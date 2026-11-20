@@ -789,3 +789,9 @@ Vlasnik je tražio da se odmah pređe na stylist ekrane, a zatim javne. Dodana s
 Dodaje se 18 mjerenja za izolovanu fiksuru potvrđenog termina: popunjeni raspored, detalj i otvoreni dijalog otkazivanja, u Aurum light/dark × 320 CSS px, 200% rem i text-spacing. Asertuju se učitani podaci, tema i ruta; dialog se zatvara Escapeom bez mutacija. Ovo ne pokriva sve statuse, akcije, podatke, niti stvarni browser zoom; CI je potreban za rezultat.
 
 **Prvi CI popunjenog termina:** `992e4ff` / `44694947607` = 4/5; check anotacije bilježe prelijevanje popunjenog rasporeda na 323px i detalja na 352px pri viewportu 320px. Isti detalj iza otvorenog dijaloga također prelijeva; svi nalazi koje su anotacije prikazale javljaju se u oba režima osim što nisu svi slučajevi dijaloga zasebno anotirani. Testovi nisu oslabljeni. Aurum-only korekcija dozvoljava prelamanje kartice, punog naziva i akcija; dodatno se asertuje da naziv nije odsječen. Lokalno build, E2E typecheck, lint (6 ranijih upozorenja), 17 ciljnih source testova i docs gates prolaze; rendered CI predstoji.
+
+**CI popunjenog termina stiliste:** `b0f9824` / `44696637062` = **5/5**, rendered suite **719 prošlo / 0 palo / 0 preskočeno**. Svih 18 novih mjerenja prolazi za fiksurni raspored, detalj i dijalog otkazivanja; puni naziv usluge dodatno se provjerava bez odsijecanja. Rezultat ne obuhvata sve statuse, dijaloge, stvarni zoom ni stvarne podatke.
+
+## M2 · popunjeni javni detalji · u toku
+
+Dodano 12 provjera za fiksurni detalj usluge s prije/poslije sadržajem i blog članak s komentarom, u Aurum light/dark × 320 CSS px / 200% rem / text-spacing. Asertuju se stvarni URL, tema i učitan sadržaj. PublicFeatureGate ostaje netaknut; blog flag se uključuje samo u izolovanom odgovoru postavki. Testovi ne pokrivaju sve javne detalje, podvrste sadržaja ni stvarni browser zoom; CI tek predstoji.

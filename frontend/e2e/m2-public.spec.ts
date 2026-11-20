@@ -97,3 +97,86 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// Populated service and article details: separate from the initial-screen sweep.
+for (const mode of ['light', 'dark'] as const) {
+  for (const state of ['service-detail', 'blog-post'] as const) {
+    for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+      test(`M2 public populated ${mode} ${state} ${adjustment}`, async ({ page }) => {
+        await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.addInitScript(selectedMode => {
+          localStorage.removeItem('nejra.theme')
+          localStorage.setItem('nejra.theme.mode', selectedMode)
+        }, mode)
+        await page.route('**/api/settings/public', async intercepted => {
+          const response = await intercepted.fetch()
+          if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+          const rows = await response.json() as Array<{ key: string; value: string }>
+          const settings: Record<string, string> = {
+            theme_active_skin: 'aurum', theme_default_mode: mode, public_feature_blog: 'true',
+            public_service_prices_enabled: 'true', public_contact_phone: '+387 62 568 580',
+            public_contact_email: 'salon@example.test', public_contact_address: 'Visoko',
+          }
+          await intercepted.fulfill({ response, json: [
+            ...rows.filter(row => !(row.key in settings)),
+            ...Object.entries(settings).map(([key, value]) => ({ key, value })),
+          ] })
+        })
+        await page.route('**/api/services/detail-test', route => route.fulfill({ json: {
+          id: 'detail-test', name: 'Svečana frizura – elegancija za posebne trenutke',
+          heroImage: '/brand/aurum-hero-editorial.jpg', shortDescription: 'Njega za posebne trenutke.',
+          durationMinutes: 60, price: 50, subcategory: { name: 'Kosa', category: { name: 'Žene' } },
+        } }))
+        await page.route('**/api/daily-log/before-after**', route => route.fulfill({ json: {
+          items: [{ id: 'pair-test', before: { pathOriginal: '/brand/aurum-hero-editorial.jpg' }, after: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }],
+          hasMore: false, nextOffset: 1,
+        } }))
+        await page.route('**/api/blog/slug/test-article', route => route.fulfill({ json: {
+          id: 'article-1', slug: 'test-article', title: 'Njega kose i savjeti za svakodnevnu ljepotu',
+          excerpt: 'Praktični savjeti za zdraviju kosu i njegu kod kuće.',
+          content: '<p>Koristan članak o njezi kose. <a href="/usluge">Pogledajte usluge</a>.</p>',
+          language: 'bs', heroImage: null, publishedAt: '2025-01-01T12:00:00Z',
+        } }))
+        await page.route('**/api/blog/article-1/comments**', route => route.fulfill({ json: [{
+          id: 'comment-1', content: 'Odličan članak o njezi kose!', createdAt: '2025-01-02T12:00:00Z', user: { firstName: 'Ana', lastName: 'Test' },
+        }] }))
+        const path = state === 'service-detail' ? '/usluge/detail-test' : '/blog/test-article'
+        await page.goto(path, { waitUntil: 'networkidle' })
+        expect(new URL(page.url()).pathname).toBe(path)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        if (state === 'service-detail') {
+          await expect(page.getByRole('heading', { level: 1, name: 'Svečana frizura – elegancija za posebne trenutke' })).toBeVisible()
+          await expect(page.locator('[data-aurum-spotlight]')).toBeVisible()
+        } else {
+          await expect(page.locator('[data-aurum-page="blog-post"] h1')).toHaveText('Njega kose i savjeti za svakodnevnu ljepotu')
+          await expect(page.locator('[data-aurum-comment]')).toContainText('Odličan članak')
+        }
+        const settled = await settleAnimations(page)
+        expect(settled).not.toBeNull()
+        expect(settled?.stillRunning).toBe(0)
+        if (adjustment === '320px') {
+          const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+          if (widths.scroll > widths.viewport + 1) report(`M2 public populated ${mode} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+          expect(widths.viewport).toBe(320)
+          expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+        } else {
+          const before = await page.evaluate(clippedSnapshot)
+          if (adjustment === 'text-200') {
+            const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+            await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+            await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+          } else {
+            await page.addStyleTag({ content: TEXT_SPACING })
+          }
+          await settleAnimations(page)
+          const after = await page.evaluate(clippedSnapshot)
+          const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+          if (lost.length) report(`M2 public populated ${mode} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+          expect(lost, `${state} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+        }
+      })
+    }
+  }
+}
