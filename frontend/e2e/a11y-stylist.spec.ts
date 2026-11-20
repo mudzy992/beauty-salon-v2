@@ -422,3 +422,93 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// M2 sljedeći segment: jedan popunjeni unos radne knjige, njegov detalj i otvoreni drawer.
+// Testni podaci su izolovani; ne šalju se mutacije niti se tvrdi pokrivenost drugih stanja.
+for (const mode of ['light', 'dark'] as const) {
+  for (const state of ['list', 'detail', 'drawer'] as const) {
+    for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+      test(`M2 stylist workbook ${mode} ${state} ${adjustment}`, async ({ page }) => {
+        await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.addInitScript(selectedMode => {
+          localStorage.removeItem('nejra.theme')
+          localStorage.setItem('nejra.theme.mode', selectedMode)
+        }, mode)
+        await page.route('**/api/settings/public', async intercepted => {
+          const response = await intercepted.fetch()
+          if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+          const rows = await response.json() as Array<{ key: string; value: string }>
+          await intercepted.fulfill({ response, json: [
+            ...rows.filter(row => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
+            { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+          ] })
+        })
+        const entry = {
+          id: 'entry-test', publicReferenceCode: 'DK-TEST', stylistProfileId: 'stylist-profile',
+          date: '2026-01-01', status: 'COMPLETED', images: [], isManual: true,
+          serviceId: 'service-test', service: { id: 'service-test', name: 'Svečana frizura i njega kose' },
+          client: { id: 'client-test', firstName: 'Test', lastName: 'Klijent' },
+          actualPrice: 45, tipAmount: 5, notes: 'Primjer bilješke o tretmanu.',
+        }
+        await page.route('**/api/stylists/me', route => route.fulfill({ json: { id: 'stylist-profile' } }))
+        await page.route('**/api/daily-log?**', route => route.fulfill({ json: [entry] }))
+        await page.route('**/api/daily-log/entry-test', route => route.fulfill({ json: entry }))
+        await page.route('**/api/users/for-daily-log**', route => route.fulfill({ json: [] }))
+        await page.route('**/api/services?**', route => route.fulfill({ json: [] }))
+        const path = state === 'detail' ? '/stylist/workbook/entry-test' : '/stylist/workbook'
+        await page.goto(path, { waitUntil: 'networkidle' })
+        expect(new URL(page.url()).pathname).toBe(path)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        if (state === 'detail') {
+          await expect(page.getByRole('heading', { name: 'DK-TEST' })).toBeVisible()
+          await expect(page.getByText('Svečana frizura i njega kose')).toBeVisible()
+        } else {
+          await expect(page.locator('a[href="/stylist/workbook/entry-test"]')).toContainText('DK-TEST')
+          if (state === 'drawer') {
+            await page.getByRole('button', { name: /Novi unos|New entry/i }).first().click()
+            const drawer = page.locator('[data-aurum-overlay-surface][role="dialog"]')
+            await expect(drawer).toBeVisible()
+            await expect(drawer.getByLabel(/Klijent|Client/i, { exact: true })).toBeVisible()
+          }
+        }
+        const settled = await settleAnimations(page)
+        expect(settled).not.toBeNull()
+        expect(settled?.stillRunning).toBe(0)
+        if (adjustment === '320px') {
+          const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+          if (widths.scroll > widths.viewport + 1) reportStylist(`M2 workbook ${mode} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+          expect(widths.viewport).toBe(320)
+          expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+          if (state === 'drawer') {
+            const box = await page.locator('[data-aurum-overlay-surface][role="dialog"]').boundingBox()
+            expect(box).not.toBeNull()
+            expect(box!.x).toBeGreaterThanOrEqual(-1)
+            expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+          }
+        } else {
+          const before = await page.evaluate(clippedSnapshot)
+          if (adjustment === 'text-200') {
+            const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+            await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+            await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+          } else {
+            await page.addStyleTag({ content: STYLIST_TEXT_SPACING })
+          }
+          await settleAnimations(page)
+          const after = await page.evaluate(clippedSnapshot)
+          const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+          if (lost.length) reportStylist(`M2 workbook ${mode} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+          expect(lost, `${state} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+        }
+      })
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 stylist workbook') && info.status !== info.expectedStatus) {
+    reportStylist(`M2 workbook failure ${info.title}`, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+  }
+})
