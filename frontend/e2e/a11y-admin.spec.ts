@@ -2480,3 +2480,114 @@ test.afterEach(async ({}, info) => {
     reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2200))
   }
 })
+
+// M2 settings: populated notifications, preferences, release list and email editing states.
+// Two languages and both Aurum modes; fixtures do not perform writes.
+const M2_SETTINGS_STATES = ['notification-list', 'notification-preferences', 'releases', 'smtp-dialog', 'email-templates', 'email-campaign'] as const
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of M2_SETTINGS_STATES) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 settings populated ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await configureAurumTheme(page, mode)
+          await page.addInitScript(locale => localStorage.setItem('APP_LOCALE', locale), language)
+          const campaign = { id: 'm2-campaign', name: 'M2 campaign fixture', html: '<p>Fixture</p>', blocks: [] }
+          await page.route('**/api/settings', route => {
+            expect(route.request().method()).toBe('GET')
+            return route.fulfill({ json: [
+              { key: 'system_email_password', value: '', isConfigured: true },
+              { key: 'system_notif_email_from', value: 'fixture@example.test' },
+              { key: 'system_email_campaign_templates', value: JSON.stringify([campaign]) },
+            ] })
+          })
+          await page.route(/\/api\/notifications(?:\?.*)?$/, route => route.fulfill({ json: [{
+            id: 'm2-notification', title: 'M2 notification fixture', body: 'Dodatna obavijest za provjeru prikaza.',
+            type: 'RESERVATION_NEW', channel: 'EMAIL', isRead: false, sentAt: '2026-01-15T12:00:00Z', readAt: null,
+          }] }))
+          await page.route('**/api/notifications/preferences', route => route.fulfill({ json: [{ id: 'm2-pref', type: 'RESERVATION_NEW', pushEnabled: false, emailEnabled: true }] }))
+          await page.route('**/api/notifications/campaigns/consent', route => route.fulfill({ json: { optedIn: true, consentedAt: '2026-01-15T12:00:00Z', withdrawnAt: null } }))
+          await page.route('**/api/app-releases', route => route.fulfill({ json: [{
+            id: 'm2-release', version: '9.9.9-M2', versionCode: 999, minSupportedVersionCode: 900,
+            forceUpdate: true, apkSizeBytes: 10485760, releaseNotes: 'M2 release notes fixture', status: 'DRAFT',
+          }] }))
+          const tab = state.startsWith('notification-') ? 'notifications' : state === 'releases' ? 'releases' : 'email'
+          const path = `/admin/settings?tab=${tab}`
+          await page.goto(path, { waitUntil: 'networkidle' })
+          const url = new URL(page.url())
+          expect(url.pathname).toBe('/admin/settings')
+          expect(url.searchParams.get('tab')).toBe(tab)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          await expect(page.locator(`a[href="/admin/settings?tab=${tab}"]`)).toHaveAttribute('aria-current', 'page')
+          if (state === 'notification-list') {
+            await expect(page.getByText('M2 notification fixture')).toBeVisible()
+            await expect(page.getByRole('button', { name: /M2 notification fixture/ })).toBeVisible()
+          } else if (state === 'notification-preferences') {
+            await page.getByRole('tab', { name: /^preference(s)?$/i }).click()
+            const pref = page.getByRole('switch', { name: /push (obavijesti za nova rezervacija|notifications for new reservation)/i })
+            await expect(pref).toHaveAttribute('aria-checked', 'false')
+            await expect(page.getByRole('switch', { name: /promotivne kampanje|promotional campaigns/i })).toHaveAttribute('aria-checked', 'true')
+          } else if (state === 'releases') {
+            await expect(page.getByText('9.9.9-M2', { exact: false })).toBeVisible()
+            await expect(page.getByText('M2 release notes fixture')).toBeVisible()
+          } else if (state === 'smtp-dialog') {
+            const trigger = page.getByRole('button', { name: /obriši lozinku|clear password/i })
+            await expect(page.locator('#email-smtp-host')).toBeVisible()
+            await trigger.click()
+            await expect(page.getByRole('dialog')).toContainText(/SMTP lozinku|SMTP password/i)
+          } else if (state === 'email-templates') {
+            await page.getByRole('tab', { name: /postojeći template|existing templates/i }).click()
+            await expect(page.locator('#email-templates-existing-template-type')).toBeVisible()
+            await expect(page.locator('#existing-email-subject')).toBeVisible()
+          } else {
+            await page.getByRole('tab', { name: /kampanje|campaigns/i }).click()
+            await expect(page.locator('#email-campaign-selected-campaign-name')).toHaveValue('M2 campaign fixture')
+          }
+          const settled = await settleAnimations(page)
+          expect(settled).not.toBeNull()
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 settings ${mode} ${language} ${state} 320`, JSON.stringify(widths))
+            expect(widths.viewport).toBe(320)
+            expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+            if (state === 'smtp-dialog') {
+              const box = await page.getByRole('dialog').boundingBox()
+              expect(box).not.toBeNull()
+              expect(box!.x).toBeGreaterThanOrEqual(-1)
+              expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+            }
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else {
+              await page.addStyleTag({ content: M2_TEXT_SPACING })
+            }
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) reportAdmin(`M2 settings ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped, `${state} ${mode} ${language} ${adjustment}: newly clipped elements`).toEqual([])
+          }
+          if (state === 'smtp-dialog') {
+            await page.keyboard.press('Escape')
+            await expect(page.getByRole('dialog')).toBeHidden()
+            await expect(page.getByRole('button', { name: /obriši lozinku|clear password/i })).toBeFocused()
+          }
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 settings populated') && info.status !== info.expectedStatus) {
+    reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2200))
+  }
+})
