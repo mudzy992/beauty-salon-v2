@@ -1911,6 +1911,13 @@
 /* Chart cards must be able to shrink below their content's intrinsic width
    (grid track minimum) — mirrors the Recharts zero-width measurement below. */
 [data-analytics-hub] .grid > [data-default-card-surface] { min-width: 0; }
+/* Keep manual-entry notes readable when text grows; Classic retains its existing truncation. */
+[data-skin="aurum"] [data-analytics-hub] [data-analytics-manual-note] {
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 /* Recharts deliberately mounts its wrapper inside a zero-width measuring node.
    Constraining that wrapper to 100% collapses every chart to zero width. */
 [data-analytics-hub] .recharts-responsive-container { min-width: 0; max-width: 100%; }

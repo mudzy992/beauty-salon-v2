@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
+import { useTableScrollRegion } from '../features/shell/admin/ui/use-table-scroll-region'
 import {
   ArrowLeft,
   Eye,
@@ -108,6 +109,12 @@ const statusBadgeVariant: Record<string, NonNullable<BadgeProps['variant']>> = {
   CANCELLED_BY_CLIENT: 'danger',
   CANCELLED_BY_STYLISTS: 'danger',
   NO_SHOW: 'secondary',
+}
+
+// Each tab mounts its own region, so overflow focusability updates when it becomes active.
+const AnalyticsTableRegion = ({ label, children }: { label: string; children: ReactNode }) => {
+  const ref = useTableScrollRegion()
+  return <div ref={ref} className="app-table-wrap" role="region" aria-label={label}>{children}</div>
 }
 
 const SmallStatCard = ({
@@ -427,9 +434,9 @@ export default function ClientAnalytics() {
           </div>
 
           {analytics.topServices.length > 0 ? (
-            <Card className="p-5">
+            <Card className="p-5 aurum-scroll-table-card">
               <p className="mb-3 font-semibold text-content">{t('clientAnalyticsPage.topServices')}</p>
-              <div className="app-table-wrap">
+              <AnalyticsTableRegion label={t('clientAnalyticsPage.servicesCaption')}>
                 <table className="app-table data-table w-full border-collapse">
                   <caption className="sr-only">{t('clientAnalyticsPage.servicesCaption')}</caption>
                   <thead>
@@ -449,7 +456,7 @@ export default function ClientAnalytics() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </AnalyticsTableRegion>
             </Card>
           ) : null}
 
@@ -462,8 +469,8 @@ export default function ClientAnalytics() {
             </TabsList>
 
             <TabsContent value="reservations" className="mt-4">
-              <Card className="overflow-hidden">
-                <div className="app-table-wrap">
+              <Card className="overflow-hidden aurum-scroll-table-card">
+                <AnalyticsTableRegion label={t('clientAnalyticsPage.reservationsCaption')}>
                   <table className="app-table data-table w-full border-collapse">
                     <caption className="sr-only">{t('clientAnalyticsPage.reservationsCaption')}</caption>
                     <thead>
@@ -521,13 +528,13 @@ export default function ClientAnalytics() {
                       )}
                     </tbody>
                   </table>
-                </div>
+                </AnalyticsTableRegion>
               </Card>
             </TabsContent>
 
             <TabsContent value="manual" className="mt-4">
-              <Card className="overflow-hidden">
-                <div className="app-table-wrap">
+              <Card className="overflow-hidden aurum-scroll-table-card">
+                <AnalyticsTableRegion label={t('clientAnalyticsPage.manualEntriesCaption')}>
                   <table className="app-table data-table w-full border-collapse">
                     <caption className="sr-only">{t('clientAnalyticsPage.manualEntriesCaption')}</caption>
                     <thead>
@@ -562,14 +569,14 @@ export default function ClientAnalytics() {
                               </Badge>
                             </td>
                             <td data-label={t('clientAnalyticsPage.note')} className="max-w-xs py-3 pr-4">
-                              <p className="truncate text-xs text-content-strong ">{e.notes ?? '-'}</p>
+                              <p data-analytics-manual-note className="truncate text-xs text-content-strong ">{e.notes ?? '-'}</p>
                             </td>
                           </tr>
                         ))
                       )}
                     </tbody>
                   </table>
-                </div>
+                </AnalyticsTableRegion>
               </Card>
             </TabsContent>
 

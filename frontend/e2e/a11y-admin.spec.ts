@@ -2454,6 +2454,17 @@ for (const mode of ['light', 'dark'] as const) {
             await page.addStyleTag({ content: M2_TEXT_SPACING })
           }
           await settleAnimations(page)
+          if (state === 'manual' && adjustment === 'text-200') {
+            const region = page.getByRole('region', { name: /tabela rucnih unosa|manual entries/i })
+            await expect.poll(() => region.evaluate(el => el.scrollWidth - el.clientWidth)).toBeGreaterThan(0)
+            await expect.poll(() => region.getAttribute('tabindex')).toBe('0')
+            await region.focus()
+            await page.keyboard.press('ArrowRight')
+            await expect.poll(() => region.evaluate(el => el.scrollLeft)).toBeGreaterThan(0)
+            const note = page.locator('[data-analytics-manual-note]')
+            await expect(note).toContainText('Dopuna porudžbine')
+            expect(await note.evaluate(el => ({ overflow: getComputedStyle(el).overflowX, whitespace: getComputedStyle(el).whiteSpace }))).toEqual({ overflow: 'visible', whitespace: 'normal' })
+          }
           const after = await page.evaluate(clippedSnapshot)
           const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
           if (newlyClipped.length) reportAdmin(`M2 analytics ${mode} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
