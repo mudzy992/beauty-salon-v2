@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Naknadna korisnička potvrda:** korisnik je rekao „Stvarni browser prošao.“ Browser, režim, zum, obuhvaćene rute i text-spacing nisu specificirani; ne proširivati ovu potvrdu na sve M2 slučajeve niti tvrditi da je text-spacing ručno provjeren.
+
 ## Najnoviji M2 dokaz — CI `44740804314`
 
 `fb34344` / [CI 44740804314](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44740804314): **5/5; rendered 1031 prošlo, 0 palo, 0 preskočeno**. Fiksurno su potvrđeni popunjena knjiga rashoda i edit dijalog, stylist inbox/odbijanje/no-show/pomjeranje (60 slučajeva), booking i token stanja (108, prethodni CI `44731561761`), te analitika i postavke; opseg i raniji nalazi su u `CHANGELOG.md`. Mjere su 320 CSS px, simulirani 200% root tekst i text-spacing; nisu stvarni browser zoom ni dokaz svih podataka i stanja. Knjiga ima imenovanu, tastaturom skrolabilnu regiju. Axe kontrast na 66 ruta: 57 prošlo, 9 incomplete, 0 violations; nepotpune nalaze treba ručno pregledati.

@@ -727,3 +727,95 @@ test.afterEach(async ({}, info) => {
     reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
   }
 })
+
+// Parameterized reschedule preview, including failure/retry and confirmation without commit.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['preview', 'confirm', 'retry'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 stylist reschedule ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await page.addInitScript(({ selectedMode, locale }) => {
+            localStorage.removeItem('nejra.theme')
+            localStorage.setItem('nejra.theme.mode', selectedMode)
+            localStorage.setItem('APP_LOCALE', locale)
+          }, { selectedMode: mode, locale: language })
+          await page.route('**/api/settings/public', async route => {
+            const response = await route.fetch()
+            if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+            const rows = await response.json() as Array<{ key: string; value: string }>
+            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+          })
+          const proposal = { delayMinutes: 15, overrunMinutes: 15, shiftMinutes: 15, items: [{ id: 'r-next', clientId: 'c-next', serviceName: 'Svečana frizura i njega duge kose', clientName: 'Ana Test', oldStartTime: '12:00', oldEndTime: '13:00', newStartTime: '12:15', newEndTime: '13:15', shiftMinutes: 15, reducedBreakMinutes: 0 }] }
+          const requests: unknown[] = []
+          let commits = 0
+          await page.route('**/api/reservations/m2-preview/reschedule/propose', route => {
+            expect(route.request().method()).toBe('POST')
+            requests.push(route.request().postDataJSON())
+            return state === 'retry' && requests.length === 1 ? route.fulfill({ status: 503, json: {} }) : route.fulfill({ json: proposal })
+          })
+          await page.route('**/api/reservations/m2-preview/reschedule/commit', route => { commits++; return route.fulfill({ status: 500, json: {} }) })
+          const path = '/stylist/workbook/reschedule-preview/m2-preview'
+          await page.goto(`${path}?mode=manual_minutes&manualShiftMinutes=15&includeBreaks=1`, { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe(path)
+          expect(new URL(page.url()).searchParams.get('manualShiftMinutes')).toBe('15')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          await expect.poll(() => requests.length).toBe(1)
+          expect(requests[0]).toEqual({ includeBreaks: true, mode: 'manual_minutes', manualShiftMinutes: 15 })
+          if (state === 'retry') {
+            const error = page.getByRole('alert').filter({ hasText: /preview rekalkulacije|schedule preview/i })
+            await expect(error).toBeVisible()
+            await error.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+            await expect.poll(() => requests.length).toBe(2)
+            expect(requests[1]).toEqual(requests[0])
+          }
+          await expect(page.getByLabel(/ručni pomak|manual shift/i)).toHaveValue('15')
+          await expect(page.getByRole('switch', { name: /uključi buduće pauze|include upcoming breaks/i })).toHaveAttribute('aria-checked', 'true')
+          await expect(page.getByText(/Svečana frizura i njega duge kose/)).toBeVisible()
+          await expect(page.getByText(/12:15.*13:15/)).toBeVisible()
+          const trigger = page.getByRole('button', { name: /^(obavijesti klijente|notify clients)$/i })
+          if (state === 'confirm') await trigger.click()
+          const dialog = page.getByRole('dialog')
+          if (state === 'confirm') await expect(dialog).toBeVisible()
+          const settled = await settleAnimations(page)
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportStylist(`M2 stylist reschedule ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+            if (state === 'confirm') {
+              const box = await dialog.boundingBox()
+              expect(box).not.toBeNull()
+              expect(box!.x).toBeGreaterThanOrEqual(-1)
+              expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+            }
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: STYLIST_TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) reportStylist(`M2 stylist reschedule ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped).toEqual([])
+          }
+          if (state === 'confirm') {
+            await page.keyboard.press('Escape')
+            await expect(dialog).toBeHidden()
+          }
+          expect(commits).toBe(0)
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 stylist reschedule') && info.status !== info.expectedStatus) reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+})

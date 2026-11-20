@@ -430,3 +430,76 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// Tokenized reservation: cancelled data and transient error with a successful retry.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['cancelled', 'retry'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 token additional ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await page.addInitScript(({ selectedMode, locale }) => {
+            localStorage.removeItem('nejra.theme')
+            localStorage.setItem('nejra.theme.mode', selectedMode)
+            localStorage.setItem('APP_LOCALE', locale)
+          }, { selectedMode: mode, locale: language })
+          await page.route('**/api/settings/public', async route => {
+            const response = await route.fetch()
+            if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+            const rows = await response.json() as Array<{ key: string; value: string }>
+            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+          })
+          let requests = 0
+          const payload = { publicReferenceCode: 'M2-CANCEL-001', reservationDate: '2026-11-20', startTime: '10:00', endTime: '11:00', status: 'CANCELLED_BY_CLIENT', serviceName: 'Svečana frizura i njega duge kose', stylistName: 'Ana Test', clientNotes: 'Važna napomena termina', cancelReason: 'Klijent nije u mogućnosti doći na zakazani termin.', cancelledAt: '2026-11-19T10:00:00Z', rescheduleStatus: null, rescheduleProposedStartTime: null, rescheduleProposedEndTime: null }
+          await page.route('**/api/public/reservations/by-token/m2-cancel-token', route => {
+            expect(route.request().method()).toBe('GET')
+            requests++
+            return state === 'retry' && requests === 1 ? route.fulfill({ status: 503, json: {} }) : route.fulfill({ json: payload })
+          })
+          const path = '/moj-termin/m2-cancel-token'
+          await page.goto(path, { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe(path)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          const root = page.locator('[data-aurum-page="reservation-view"]')
+          if (state === 'retry') {
+            await expect(root.getByRole('alert')).toBeVisible()
+            await expect(root.getByRole('button', { name: /pokušaj ponovo|retry/i })).toBeVisible()
+          } else {
+            await expect(root).toContainText('M2-CANCEL-001')
+            await expect(root).toContainText(payload.cancelReason)
+            await expect(root).toContainText(payload.serviceName)
+          }
+          const settled = await settleAnimations(page)
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) report(`M2 token additional ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) report(`M2 token additional ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped).toEqual([])
+          }
+          if (state === 'retry') {
+            await root.getByRole('button', { name: /pokušaj ponovo|retry/i }).click()
+            await expect(root.getByRole('alert')).toBeHidden()
+            await expect(root).toContainText('M2-CANCEL-001')
+            await expect(root).toContainText(payload.cancelReason)
+            await expect.poll(() => requests).toBe(2)
+          } else expect(requests).toBe(1)
+        })
+      }
+    }
+  }
+}

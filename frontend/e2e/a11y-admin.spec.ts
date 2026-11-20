@@ -2710,3 +2710,85 @@ test.afterEach(async ({}, info) => {
     reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
   }
 })
+
+// Populated content and nested destructive confirmations: no DELETE is sent.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['blog-comment', 'gallery-image', 'review'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 admin content ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await configureAurumTheme(page, mode)
+          await page.addInitScript(locale => localStorage.setItem('APP_LOCALE', locale), language)
+          const writes: string[] = []
+          page.on('request', request => {
+            if (/\/api\/(blog|gallery|reviews)(?:\/|\?|$)/.test(request.url()) && request.method() !== 'GET') writes.push(request.method())
+          })
+          await page.route('**/api/blog/admin', route => route.fulfill({ json: [o4Post] }))
+          await page.route('**/api/blog/o4-post/comments/admin', route => route.fulfill({ json: [o4Comment] }))
+          await page.route('**/api/gallery/categories', route => route.fulfill({ json: [o4Category] }))
+          await page.route('**/api/gallery/categories/o4-category', route => route.fulfill({ json: { ...o4Category, images: [o4Image] } }))
+          await page.route(/\/api\/reviews\/admin(?:\?.*)?$/, route => route.fulfill({ json: [{ id: 'o4-review', serviceRating: 5, stylistRating: null, comment: 'O4 recenzija', isApproved: true, createdAt: '2026-01-01T10:00:00Z' }] }))
+          const path = state === 'blog-comment' ? '/admin/blog' : state === 'gallery-image' ? '/admin/gallery' : '/admin/reviews'
+          await page.goto(path, { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe(path)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          let trigger
+          if (state === 'blog-comment') {
+            await page.getByRole('button', { name: /^(komentari|comments)$/i }).first().click()
+            const parent = page.getByRole('dialog', { name: /O4 članak/ })
+            await expect(parent.getByText('O4 komentar')).toBeVisible()
+            trigger = parent.getByRole('button', { name: /^(obriši|delete)$/i })
+          } else if (state === 'gallery-image') {
+            await page.getByRole('button', { name: /O4 kategorija/ }).click()
+            await expect(page.getByText('O4 slika')).toBeVisible()
+            trigger = page.getByRole('button', { name: /^(obriši|delete)$/i }).nth(1)
+          } else {
+            await page.getByRole('button', { name: /detalji recenzije|review details/i }).click()
+            const parent = page.getByRole('dialog', { name: /detalji recenzije|review details/i })
+            await expect(parent.getByText('O4 recenzija')).toBeVisible()
+            trigger = parent.getByRole('button', { name: /^(obriši|delete)$/i })
+          }
+          await trigger.click()
+          const dialog = page.getByRole('dialog', { name: /potvrdi brisanje|confirm deletion|potvrda|confirmation/i })
+          await expect(dialog).toBeVisible()
+          await expect(dialog).toContainText(state === 'blog-comment' ? /obrisati komentar|delete.*comment/i : state === 'gallery-image' ? /obrisati sliku|delete.*image/i : /obrisati recenziju|delete.*review/i)
+          const settled = await settleAnimations(page)
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 admin content ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+            const box = await dialog.boundingBox()
+            expect(box).not.toBeNull()
+            expect(box!.x).toBeGreaterThanOrEqual(-1)
+            expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: M2_TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) reportAdmin(`M2 admin content ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped).toEqual([])
+          }
+          await page.keyboard.press('Escape')
+          await expect(dialog).toBeHidden()
+          await expect(trigger).toBeFocused()
+          expect(writes).toEqual([])
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 admin content') && info.status !== info.expectedStatus) reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+})
