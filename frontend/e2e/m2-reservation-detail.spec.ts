@@ -127,12 +127,16 @@ for (const mode of ['light', 'dark'] as const) {
               await expect(root).toContainText(payment.publicReferenceCode)
               await expect(root.getByText(itemName, { exact: true })).toBeVisible()
               await expect(root.getByText(secondItem, { exact: true })).toBeVisible()
-              const amount = (value: number) => `${new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'bs-BA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} KM`
-              await expect(root.getByText(itemName, { exact: true }).locator('..')).toContainText(amount(50))
-              await expect(root.getByText(secondItem, { exact: true }).locator('..')).toContainText(amount(25))
-              await expect(root.getByText(/loyalty popust|loyalty discount/i).locator('..')).toContainText(amount(10))
-              await expect(root.getByText(/napojnica|^tip$/i).locator('..')).toContainText(amount(5))
-              await expect(root.getByText(/ukupno naplaćeno|total charged/i).locator('..')).toContainText(amount(70))
+              // Node and Chromium may ship different ICU locale data. Compute the expected
+              // formatting in the browser while still asserting each independent amount.
+              const amounts = await page.evaluate(locale => [50, 25, 10, 5, 70].map(value =>
+                `${new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} KM`,
+              ), language === 'en' ? 'en-GB' : 'bs-BA')
+              await expect(root.getByText(itemName, { exact: true }).locator('..')).toContainText(amounts[0])
+              await expect(root.getByText(secondItem, { exact: true }).locator('..')).toContainText(amounts[1])
+              await expect(root.getByText(/loyalty popust|loyalty discount/i).locator('..')).toContainText(amounts[2])
+              await expect(root.getByText(/napojnica|^tip$/i).locator('..')).toContainText(amounts[3])
+              await expect(root.getByText(/ukupno naplaćeno|total charged/i).locator('..')).toContainText(amounts[4])
             } else {
               await expect(root.getByText(/detalji uplate još nisu dostupni|payment details are not available yet/i)).toBeVisible()
               await expect(root).not.toContainText(payment.publicReferenceCode)
