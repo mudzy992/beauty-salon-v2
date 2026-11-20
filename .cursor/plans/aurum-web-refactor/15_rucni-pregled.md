@@ -10,4 +10,19 @@ Za svaki identitet (classic, Aurum light i Aurum dark), jezik BS/EN i relevantnu
 4. Provjeriti `prefers-reduced-motion`, forced-colors, dugačke stvarne nazive, prazne kolekcije, učitavanje, grešku i retry, stvarne medije i korisnički uploadan logo bez izlaganja privatnih podataka.
 5. Provjeriti admin izbor identiteta/režima, osvježenje i drugi uređaj/tab, naslijeđenu lokalnu preferenciju, prekidač skriven u classic, dozvole te postavke nakon greške mreže.
 
-Zapisivati datum, commit, uređaj/viewport, ulogu, rutu, postavku, rezultat, dokaz i otvorene nalaze. Nijedna stavka se ne smatra prolazom dok nije stvarno pregledana. Kontrast prijavljen od rendered axe-a: STOP i odluka vlasnika prije izmjene palete; ne slabiti testove.
+## Text-spacing — postupak za stvarni ručni pregled
+
+Na izolovanom testnom okruženju otvoriti reprezentativne popunjene javne, admin i stylist rute i dijaloge, u BS/EN i Aurum light/dark. Pomoću alata za korisnički CSS ili DevTools primijeniti sljedeći override, bez izmjene izvornog koda aplikacije:
+
+```css
+*, *::before, *::after {
+  line-height: 1.5 !important;
+  letter-spacing: 0.12em !important;
+  word-spacing: 0.16em !important;
+}
+p { margin-bottom: 2em !important; }
+```
+
+Pregledati sadržaj, oznake i poruke, vidljivost i upotrebljivost kontrola, preklapanja, odsijecanje te dijaloge i njihove skrol regije; po potrebi proći tastaturom. Zabilježiti i ukloniti override nakon pregleda. Ne unositi stvarne klijentske podatke niti izvršavati stvarne finansijske radnje. Automatizovani CSS override i diferencijalna DOM mjera nisu dokaz ovog vizuelnog i interaktivnog pregleda.
+
+Zapisivati datum, commit, uređaj/viewport, browser, ulogu, rutu, jezik, temu, postavku, rezultat, dokaz i otvorene nalaze. Nijedna stavka se ne smatra prolazom dok nije stvarno pregledana. Korisnik je prijavio da je stvarni browser prošao, ali bez tačnog obima i bez potvrde ručnog text-spacinga; to ne zamjenjuje ovaj zapis. Kontrast prijavljen od rendered axe-a: STOP i odluka vlasnika prije izmjene palete; ne slabiti testove.

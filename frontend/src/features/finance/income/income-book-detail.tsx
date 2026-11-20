@@ -258,7 +258,7 @@ export function IncomeBookDetail({
     })
 
   return (
-    <div className="grid gap-4">
+    <div data-finance-income-detail className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button
@@ -333,7 +333,7 @@ export function IncomeBookDetail({
             {t('finance.incomeDetail.entriesTitle', { count: summary.count })}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3">
+        <CardContent data-finance-income-content className="grid gap-3">
           <IncomeEntryFiltersBar
             filters={filters}
             onChange={setFilters}

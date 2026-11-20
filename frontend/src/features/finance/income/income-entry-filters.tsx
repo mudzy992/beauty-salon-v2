@@ -39,7 +39,7 @@ export function IncomeEntryFiltersBar({
     onChange({ ...filters, ...patch })
 
   return (
-    <div className="grid gap-3 rounded-lg border border-line p-3 ">
+    <div data-finance-income-filters className="grid gap-3 rounded-lg border border-line p-3 ">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1">
           <Label htmlFor="income-search" className="text-xs">
@@ -91,6 +91,7 @@ export function IncomeEntryFiltersBar({
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div
+          data-income-kind-filter
           className="flex gap-1"
           role="group"
           aria-label={t('finance.incomeList.kindFilterLabel')}

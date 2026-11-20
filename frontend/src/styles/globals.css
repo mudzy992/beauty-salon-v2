@@ -2034,3 +2034,22 @@
 
 /* A large Aurum public header must not obscure the content when text grows. */
 [data-skin="aurum"] [data-aurum-shell="header"][data-header-tall] { position: static; }
+
+/* Income book: constrain the grid and wrap populated filters without clipping the table. */
+[data-skin="aurum"] [data-finance-income-detail],
+[data-skin="aurum"] [data-finance-income-content],
+[data-skin="aurum"] [data-finance-income-filters] {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+[data-skin="aurum"] [data-finance-income-detail] > *,
+[data-skin="aurum"] [data-finance-income-content] > *,
+[data-skin="aurum"] [data-finance-income-filters] > * { min-width: 0; }
+[data-skin="aurum"] [data-income-kind-filter] { flex-wrap: wrap; }
+[data-skin="aurum"] [data-income-service-name] { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  [data-skin="aurum"] [data-finance-income-filters] > div:first-child,
+  [data-skin="aurum"] [data-finance-income-filters] > div:first-child > div { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  [data-skin="aurum"] [data-finance-income-filters] :is(input, select) { min-width: 0; max-width: 100%; }
+  [data-skin="aurum"] [data-finance-income-detail] > div:first-child > div:first-child { flex-wrap: wrap; }
+}

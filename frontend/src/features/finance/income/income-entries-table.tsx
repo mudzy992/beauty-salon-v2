@@ -100,7 +100,7 @@ export function IncomeEntriesTable({
             ) : (
               <ul className="space-y-0.5">
                 {serviceNames.map((name, index) => (
-                  <li key={`${name}-${index}`} className="truncate">
+                  <li key={`${name}-${index}`} data-income-service-name className="truncate">
                     {name}
                   </li>
                 ))}
@@ -163,8 +163,8 @@ export function IncomeEntriesTable({
             </Button>
           </div>
         ) : (
-          <span className="text-xs text-content-strong">
-            —
+          <span className="relative text-xs text-content-strong">
+            <span aria-hidden="true">—</span>
             <span className="sr-only">{t('finance.incomeList.noActions')}</span>
           </span>
         ),
