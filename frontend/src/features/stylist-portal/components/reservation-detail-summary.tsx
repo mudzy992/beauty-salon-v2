@@ -31,7 +31,7 @@ export const ReservationDetailSummary = ({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-3">
+      <div data-stylist-detail-heading className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-content">
             {t('stylistPortal.reservationDetail.title')}
@@ -47,7 +47,7 @@ export const ReservationDetailSummary = ({
           {t('stylistPortal.reservationDetail.refresh')}
         </Button>
       </div>
-      <Card className="p-4">
+      <Card data-stylist-detail-summary className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate font-semibold text-content">

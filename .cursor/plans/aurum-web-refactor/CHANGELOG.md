@@ -787,3 +787,5 @@ Vlasnik je tražio da se odmah pređe na stylist ekrane, a zatim javne. Dodana s
 ## M2 · popunjeni raspored i detalj stiliste · u toku
 
 Dodaje se 18 mjerenja za izolovanu fiksuru potvrđenog termina: popunjeni raspored, detalj i otvoreni dijalog otkazivanja, u Aurum light/dark × 320 CSS px, 200% rem i text-spacing. Asertuju se učitani podaci, tema i ruta; dialog se zatvara Escapeom bez mutacija. Ovo ne pokriva sve statuse, akcije, podatke, niti stvarni browser zoom; CI je potreban za rezultat.
+
+**Prvi CI popunjenog termina:** `992e4ff` / `44694947607` = 4/5; check anotacije bilježe prelijevanje popunjenog rasporeda na 323px i detalja na 352px pri viewportu 320px. Isti detalj iza otvorenog dijaloga također prelijeva; svi nalazi koje su anotacije prikazale javljaju se u oba režima osim što nisu svi slučajevi dijaloga zasebno anotirani. Testovi nisu oslabljeni. Aurum-only korekcija dozvoljava prelamanje kartice, punog naziva i akcija; dodatno se asertuje da naziv nije odsječen. Lokalno build, E2E typecheck, lint (6 ranijih upozorenja), 17 ciljnih source testova i docs gates prolaze; rendered CI predstoji.

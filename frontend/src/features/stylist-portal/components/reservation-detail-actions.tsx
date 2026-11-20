@@ -84,7 +84,7 @@ export const ReservationDetailActions = ({
   }
 
   return (
-    <Card className="space-y-3 p-4">
+    <Card data-stylist-detail-actions className="space-y-3 p-4">
       <p className="font-semibold text-content">{t('stylistPortal.reservationDetail.actions')}</p>
       {canStaffConfirm ? (
         <Button

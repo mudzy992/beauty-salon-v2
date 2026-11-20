@@ -168,7 +168,7 @@ export const StylistSchedulePage = () => {
                 const completeHref = `/stylist/schedule/${r.id}?action=complete`
 
                 return (
-                  <Card key={r.id} className="p-4">
+                  <Card key={r.id} data-stylist-schedule-card className="p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <Link to={detailHref} className="block">

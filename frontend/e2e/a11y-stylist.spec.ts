@@ -596,6 +596,13 @@ for (const mode of ['light', 'dark'] as const) {
           if (lost.length) reportStylist(`M2 reservation ${mode} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
           expect(lost, `${state} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
         }
+        if (state !== 'cancel-dialog') {
+          const serviceName = page.locator(state === 'schedule' ? '[data-stylist-schedule-card] .truncate' : '[data-stylist-detail-summary] .truncate')
+          await expect(serviceName).toHaveText('Svečana frizura i njega kose')
+          const textGeometry = await serviceName.evaluate(el => ({ overflow: getComputedStyle(el).overflowX, width: el.clientWidth, scroll: el.scrollWidth }))
+          expect(textGeometry.overflow).not.toBe('hidden')
+          expect(textGeometry.scroll - textGeometry.width).toBeLessThanOrEqual(1)
+        }
         if (state === 'cancel-dialog') {
           await page.keyboard.press('Escape')
           await expect(page.getByRole('dialog')).toBeHidden()
