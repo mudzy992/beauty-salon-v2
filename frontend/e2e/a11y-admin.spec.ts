@@ -2756,8 +2756,9 @@ for (const mode of ['light', 'dark'] as const) {
           const dialog = page.getByRole('dialog', { name: /potvrdi brisanje|confirm deletion|potvrda|confirmation/i })
           await expect(dialog).toBeVisible()
           await expect(dialog).toContainText(state === 'blog-comment' ? /obrisati komentar|delete.*comment/i : state === 'gallery-image' ? /obrisati sliku|delete.*image/i : /obrisati recenziju|delete.*review/i)
-          const settled = await settleAnimations(page)
-          expect(settled?.stillRunning).toBe(0)
+          // Nested dialogs can start a new finite transition after the first snapshot.
+          // Wait for an actually idle animation set; a timeout still fails the test.
+          await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
           if (adjustment === '320px') {
             const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
             if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 admin content ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
