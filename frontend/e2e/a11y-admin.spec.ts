@@ -2664,6 +2664,15 @@ for (const mode of ['light', 'dark'] as const) {
             }
             expect(widths.viewport).toBe(320)
             expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+            if (state === 'expense-book') {
+              const region = page.getByRole('region', { name: /stavke knjige rashoda|expense book entries/i })
+              await expect(region).toHaveAttribute('tabindex', '0')
+              await expect(region.locator('.sr-only').filter({ hasText: /nema priloga|no attachments/i })).toHaveCount(1)
+              await region.focus()
+              await expect(region).toBeFocused()
+              await page.keyboard.press('ArrowRight')
+              await expect.poll(() => region.evaluate(el => el.scrollLeft)).toBeGreaterThan(0)
+            }
             if (state === 'expense-dialog') {
               const box = await page.getByRole('dialog').boundingBox()
               expect(box).not.toBeNull()
