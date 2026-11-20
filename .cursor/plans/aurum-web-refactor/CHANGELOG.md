@@ -783,3 +783,7 @@ Vlasnik je tražio da se odmah pređe na stylist ekrane, a zatim javne. Dodana s
 **Nastavak — popunjena radna knjiga:** 18 novih testova obuhvata fiksurni unos u listi, njegov detalj i otvoreni drawer novog unosa, po oba Aurum režima i tri mjere (320 CSS px / 200% rem / text-spacing). Ruta, tema, podatak i prisutnost drawer polja se asertuju; na 320px dodatno se provjerava okvir drawera. Ostale detalje, podatke i interakcije tek treba pregledati; rezultat novog segmenta čeka CI.
 
 **CI popunjene radne knjige:** `e934b6c` / `44690776680` = **5/5**, rendered suite **701 prošlo / 0 palo / 0 preskočeno**. Svih 18 novih mjerenja prolazi za fiksurnu listu, detalj i otvoreni drawer u oba Aurum režima; dokaz je ograničen na tu fiksuru, definisane mjere i početno stanje obrasca. Nije pregledan stvarni zoom, svi inputi i opcije drawera, promjene podataka, druge rute s ID-ovima ni čitači ekrana. Ručni pregled i dalji sistematski rad ostaju otvoreni; nema merge/deploy.
+
+## M2 · popunjeni raspored i detalj stiliste · u toku
+
+Dodaje se 18 mjerenja za izolovanu fiksuru potvrđenog termina: popunjeni raspored, detalj i otvoreni dijalog otkazivanja, u Aurum light/dark × 320 CSS px, 200% rem i text-spacing. Asertuju se učitani podaci, tema i ruta; dialog se zatvara Escapeom bez mutacija. Ovo ne pokriva sve statuse, akcije, podatke, niti stvarni browser zoom; CI je potreban za rezultat.
