@@ -51,6 +51,8 @@ export const PublicLayout = () => {
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileMenuTrigger = useRef<HTMLButtonElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
+  const [headerTall, setHeaderTall] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -71,6 +73,22 @@ export const PublicLayout = () => {
     'true'
   const maintenanceMessage =
     getSetting('public_maintenance_message', '').trim() || t('shell.maintenanceMessage')
+
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    // A sticky header that grows with user text can cover focused controls and pointer targets.
+    // Let an unusually tall header scroll away; restore stickiness when space permits.
+    const update = () => setHeaderTall(header.getBoundingClientRect().height > window.innerHeight * 0.3)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(header)
+    window.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [loading, maintenanceOn])
 
   const activePath = location.pathname
   const navItems = useMemo(() => {
@@ -152,7 +170,7 @@ export const PublicLayout = () => {
       {/* WCAG 2.4.1 Bypass blocks — javni layout dosad NIJE imao skip-link (imao ga je samo
           admin/stylist shell), pa je prvi Tab išao na logo. axe: 2.4.1. */}
       <SkipLink />
-      <header data-aurum-shell="header" className="sticky top-0 z-50 border-b border-line/60 bg-surface/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/70">
+      <header ref={headerRef} data-aurum-shell="header" data-header-tall={headerTall ? '' : undefined} className="sticky top-0 z-50 border-b border-line/60 bg-surface/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/70">
         {/* WCAG 1.4.10 Reflow — red se MORA moći prelomiti. Bez `flex-wrap` (i `min-w-0`
             na nav-u) flex-stavka se ne skuplja ispod širine svog sadržaja, pa pri 200%
             veličine teksta red probija kontejner: izmjereno **755px** horizontalnog skrola

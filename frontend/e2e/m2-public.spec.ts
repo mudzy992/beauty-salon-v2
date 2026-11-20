@@ -566,6 +566,10 @@ for (const mode of ['light', 'dark'] as const) {
             const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
             await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
             await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            const header = page.locator('[data-aurum-shell="header"]')
+            const headerHeight = await header.evaluate(el => el.getBoundingClientRect().height)
+            expect(headerHeight).toBeGreaterThan(900 * 0.3)
+            await expect.poll(() => header.evaluate(el => getComputedStyle(el).position)).toBe('static')
           } else await page.addStyleTag({ content: TEXT_SPACING })
           await settleAnimations(page)
           const after = await page.evaluate(clippedSnapshot)
@@ -590,6 +594,10 @@ for (const mode of ['light', 'dark'] as const) {
         expect(requests[1]).toEqual(requests[0])
         await expect(note).toHaveValue('M2 retry note')
         expect(new URL(page.url()).pathname).toBe('/rezervacija')
+        if (adjustment === 'text-200') {
+          await page.evaluate(() => { document.documentElement.style.removeProperty('font-size') })
+          await expect.poll(() => page.locator('[data-aurum-shell="header"]').evaluate(el => getComputedStyle(el).position)).toBe('sticky')
+        }
       })
     }
   }

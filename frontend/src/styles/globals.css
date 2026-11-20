@@ -2031,3 +2031,6 @@
   text-overflow: clip;
   overflow-wrap: anywhere;
 }
+
+/* A large Aurum public header must not obscure the content when text grows. */
+[data-skin="aurum"] [data-aurum-shell="header"][data-header-tall] { position: static; }
