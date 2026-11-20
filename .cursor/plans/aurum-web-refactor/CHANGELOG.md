@@ -821,3 +821,5 @@ Novi paket dodaje 72 fiksurne provjere: popunjena lista obavijesti, preference s
 ## M2 · booking i token stanja · u toku
 
 Dodano 108 fiksurnih provjera u BS/EN i Aurum light/dark: booking greška pri učitavanju datuma, dostupni datumi, greška termina, dostupni/zauzeti termini i popunjeni sažetak s dugom i loyaltyjem; zatim token detalj s predloženom promjenom, istekli token i uspješna/neuspjela odjava kampanje. Svako stanje se provjerava na 320 CSS px te simuliranih 200% root teksta i text-spacing, uz asertovanje jezika, rute i ključnih podataka. Unsubscribe POST je izolovan fiksurom; rezervacija se ne šalje. Testovi nisu stvarni zoom niti dokazuju sva stanja, korisničke podatke, mutacije ili potpunu pristupačnost. Lokalni E2E typecheck i ESLint prolaze; čeka se CI.
+
+**Prvi CI `44729461242` (`0dc9ce1`): 4/5.** Vidljive anotacije pokazuju pad novog testa odjave: brojač fiksure je provjeren odmah nakon klika, prije asinhronog zahtjeva (0 umjesto 1). Potpuni log je nedostupan, pa se ostala stanja iz ovog runa ne proglašavaju potvrđenim. Test sada čeka da tačno jedan zahtjev stigne, zadržava provjeru tokena i očekivanog odgovora/stanja. Čeka se novi cijeli CI.

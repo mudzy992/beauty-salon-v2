@@ -396,7 +396,7 @@ for (const mode of ['light', 'dark'] as const) {
             await expect(page.locator('[data-aurum-page="reservation-view"] [role="alert"]')).toContainText(language === 'bs' ? 'Termin nije pronađen' : 'appointment was not found')
           } else {
             await page.getByRole('button', { name: /odjavi me|unsubscribe me/i }).click()
-            expect(unsubscriptions).toBe(1)
+            await expect.poll(() => unsubscriptions).toBe(1)
             await expect(page.locator('[data-aurum-page="unsubscribe"] h1')).toHaveText(state === 'unsubscribe-success'
               ? (language === 'bs' ? 'Odjava je završena' : 'You are unsubscribed')
               : (language === 'bs' ? 'Odjavu trenutno nije moguće završiti' : 'We could not complete the unsubscribe right now'))
