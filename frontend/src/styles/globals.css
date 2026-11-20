@@ -1956,3 +1956,12 @@
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge="warning"] { background: hsl(var(--warn-bg)); border-color: hsl(var(--warn-fg)); }
 [data-skin="aurum"] [data-analytics-hub] [data-ui-badge="danger"] { background: hsl(var(--bad-bg)); border-color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-analytics-hub] :is([data-ui-badge="secondary"], [data-ui-badge="brand"]) { background: hsl(var(--surface-muted)); border-color: hsl(var(--line)); }
+
+/* Keep sample email content readable inside its rounded preview at large text sizes. */
+[data-skin="aurum"] [data-email-preview] { overflow-wrap: anywhere; }
+[data-skin="aurum"] [data-email-preview-code] {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

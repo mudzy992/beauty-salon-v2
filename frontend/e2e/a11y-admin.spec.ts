@@ -2575,6 +2575,21 @@ for (const mode of ['light', 'dark'] as const) {
             if (newlyClipped.length) reportAdmin(`M2 settings ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
             expect(newlyClipped, `${state} ${mode} ${language} ${adjustment}: newly clipped elements`).toEqual([])
           }
+          if (state === 'email-templates') {
+            const preview = page.locator('[data-email-preview]')
+            const code = page.locator('[data-email-preview-code]')
+            await expect(code).toHaveText('123456')
+            const bounds = await preview.evaluate(el => {
+              const codeEl = el.querySelector('[data-email-preview-code]')!
+              const outer = el.getBoundingClientRect()
+              const inner = codeEl.getBoundingClientRect()
+              return { previewOverflow: el.scrollWidth - el.clientWidth, codeOverflow: codeEl.scrollWidth - codeEl.clientWidth, left: inner.left - outer.left, right: inner.right - outer.right }
+            })
+            expect(bounds.previewOverflow, JSON.stringify(bounds)).toBeLessThanOrEqual(1)
+            expect(bounds.codeOverflow, JSON.stringify(bounds)).toBeLessThanOrEqual(1)
+            expect(bounds.left, JSON.stringify(bounds)).toBeGreaterThanOrEqual(-1)
+            expect(bounds.right, JSON.stringify(bounds)).toBeLessThanOrEqual(1)
+          }
           if (state === 'smtp-dialog') {
             await page.keyboard.press('Escape')
             await expect(page.getByRole('dialog')).toBeHidden()
