@@ -2378,3 +2378,94 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// M2 populated analytics: overview, stylist profile, all client tabs and two detail dialogs.
+// Fixtures are read-only; 320 CSS px and simulated text adjustments are not browser zoom.
+const M2_ANALYTICS_STATES = ['overview', 'stylist', 'reservations', 'manual', 'debts', 'reviews', 'reservation-dialog', 'review-dialog'] as const
+for (const mode of ['light', 'dark'] as const) {
+  for (const state of M2_ANALYTICS_STATES) {
+    for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+      test(`M2 analytics populated ${mode} ${state} ${adjustment}`, async ({ page }) => {
+        await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await configureAurumTheme(page, mode)
+        await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
+        await page.route('**/api/stylists/fixture-stylist/analytics**', route => route.fulfill({ json: populatedStylistAnalyticsFixture }))
+        const client = {
+          ...populatedClientAnalyticsFixture,
+          reservations: [{ ...populatedClientAnalyticsFixture.reservations[0], clientNotes: 'Napomena rezervacije' }],
+          reviews: [{ ...populatedClientAnalyticsFixture.reviews[0], comment: 'Odličan tretman' }],
+        }
+        await page.route('**/api/users/fixture-client/analytics**', route => route.fulfill({ json: client }))
+        await page.route('**/api/client-debts?**', route => route.fulfill({ json: [clientDebtFixture] }))
+        const tab = state === 'overview' ? null : state === 'stylist' ? 'stylists' : 'clients'
+        const path = tab === null ? '/admin/analytics' : tab === 'stylists'
+          ? '/admin/analytics?tab=stylists&stylistId=fixture-stylist'
+          : '/admin/analytics?tab=clients&userId=fixture-client'
+        await page.goto(path, { waitUntil: 'networkidle' })
+        const url = new URL(page.url())
+        expect(url.pathname).toBe('/admin/analytics')
+        expect(url.searchParams.get('tab')).toBe(tab)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        if (state === 'overview') {
+          await expect(page.locator('[data-analytics-hub]')).toContainText('Test Trošak')
+        } else if (state === 'stylist') {
+          await expect(page.getByRole('heading', { name: 'Primjer Stilista' })).toBeVisible()
+          await expect(page.locator('[data-analytics-hub]')).toContainText('Adis Hodžić')
+        } else {
+          await expect(page.getByRole('heading', { name: 'Primjer Klijent' })).toBeVisible()
+          const isReviews = state === 'reviews' || state === 'review-dialog'
+          if (state === 'manual') await page.getByRole('tab', { name: /manuelni prihodi|manual entries/i }).click()
+          if (state === 'debts') await page.getByRole('tab', { name: /dugovanja|debts/i }).click()
+          if (isReviews) await page.getByRole('tab', { name: /recenzije|reviews/i }).click()
+          const panel = page.getByRole('tabpanel')
+          const expected = state === 'manual' ? 'Dopuna porudžbine' : state === 'debts' ? '25' : isReviews ? 'Odličan tretman' : 'Žensko šišanje'
+          await expect(panel).toContainText(expected)
+          if (state === 'reservation-dialog') {
+            await page.getByRole('table', { name: /tabela rezervacija klijenta|client reservations/i }).getByRole('button', { name: /detalji|details/i }).click()
+            await expect(page.getByRole('dialog')).toContainText('Napomena rezervacije')
+          } else if (state === 'review-dialog') {
+            await page.getByRole('button', { name: /otvori detalje recenzije|review details/i }).click()
+            await expect(page.getByRole('dialog')).toContainText('Odličan tretman')
+          }
+        }
+        const settled = await settleAnimations(page)
+        expect(settled).not.toBeNull()
+        expect(settled?.stillRunning).toBe(0)
+        if (adjustment === '320px') {
+          const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+          if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 analytics ${mode} ${state} 320`, JSON.stringify(widths))
+          expect(widths.viewport).toBe(320)
+          expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+          if (state.endsWith('-dialog')) {
+            const box = await page.getByRole('dialog').boundingBox()
+            expect(box).not.toBeNull()
+            expect(box!.x).toBeGreaterThanOrEqual(-1)
+            expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+          }
+        } else {
+          const before = await page.evaluate(clippedSnapshot)
+          if (adjustment === 'text-200') {
+            const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+            await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+            await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+          } else {
+            await page.addStyleTag({ content: M2_TEXT_SPACING })
+          }
+          await settleAnimations(page)
+          const after = await page.evaluate(clippedSnapshot)
+          const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+          if (newlyClipped.length) reportAdmin(`M2 analytics ${mode} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+          expect(newlyClipped, `${state} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+        }
+      })
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 analytics populated') && info.status !== info.expectedStatus) {
+    reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2200))
+  }
+})
