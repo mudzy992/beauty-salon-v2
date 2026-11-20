@@ -502,3 +502,83 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// An uncertain booking submission is isolated and retried with the same idempotency key.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+      test(`M2 booking failed-submit ${mode} ${language} ${adjustment}`, async ({ page }) => {
+        await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.addInitScript(({ selectedMode, locale }) => {
+          localStorage.removeItem('nejra.theme')
+          localStorage.setItem('nejra.theme.mode', selectedMode)
+          localStorage.setItem('APP_LOCALE', locale)
+          localStorage.setItem('token', 'test-fixture-token')
+        }, { selectedMode: mode, locale: language })
+        await page.route('**/api/settings/public', async route => {
+          const response = await route.fetch()
+          if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+          const rows = await response.json() as Array<{ key: string; value: string }>
+          await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        })
+        await page.route('**/api/users/profile', route => route.fulfill({ json: { id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
+        await page.route('**/api/services**', route => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
+        await page.route('**/api/reservations/availability/dates**', route => route.fulfill({ json: [{ date: new URL(route.request().url()).searchParams.get('fromDate'), available: true }] }))
+        await page.route('**/api/reservations/availability/slots**', route => route.fulfill({ json: [{ startTime: '23:59', endTime: '23:59', availableStylistCount: 1 }] }))
+        await page.route('**/api/client-debts/me', route => route.fulfill({ json: [] }))
+        await page.route('**/api/loyalty/client/me**', route => route.fulfill({ json: { enabled: false } }))
+        const requests: { key: string | undefined; payload: unknown }[] = []
+        await page.route('**/api/reservations', route => {
+          expect(route.request().method()).toBe('POST')
+          requests.push({ key: route.request().headers()['idempotency-key'], payload: route.request().postDataJSON() })
+          return route.fulfill({ status: 503, json: {} })
+        })
+        await page.goto('/rezervacija', { waitUntil: 'networkidle' })
+        expect(new URL(page.url()).pathname).toBe('/rezervacija')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        await expect(page.locator('html')).toHaveAttribute('lang', language)
+        await page.locator('#public-service-search').focus()
+        await page.getByRole('button', { name: /Svečana frizura/ }).first().click()
+        const date = page.locator('[data-reserve-calendar] button[aria-pressed="false"]:not([disabled])')
+        await expect(date).toHaveCount(1)
+        await date.click()
+        await page.locator('[data-reserve-slot]').filter({ hasText: '23:59' }).first().click()
+        const note = page.locator('#reservation-notes')
+        await note.fill('M2 retry note')
+        const submit = page.locator('[data-aurum-page="reserve"] button[type="submit"]')
+        await submit.click()
+        await expect.poll(() => requests.length).toBe(1)
+        await expect(submit).toBeEnabled()
+        await expect(note).toHaveValue('M2 retry note')
+        await expect(page.getByText(language === 'bs' ? 'Greška.' : 'Error.', { exact: true }).first()).toBeVisible()
+        expect(requests[0].key).toBeTruthy()
+        expect(requests[0].payload).toMatchObject({ serviceIds: ['book-test'], startTime: '23:59', clientNotes: 'M2 retry note' })
+        await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
+        if (adjustment === '320px') {
+          const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+          if (widths.scroll > widths.viewport + 1) report(`M2 booking failed-submit ${mode} ${language}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+          expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+        } else {
+          const before = await page.evaluate(clippedSnapshot)
+          if (adjustment === 'text-200') {
+            const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+            await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+            await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+          } else await page.addStyleTag({ content: TEXT_SPACING })
+          await settleAnimations(page)
+          const after = await page.evaluate(clippedSnapshot)
+          const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+          if (lost.length) report(`M2 booking failed-submit ${mode} ${language} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+          expect(lost).toEqual([])
+        }
+        await submit.click()
+        await expect.poll(() => requests.length).toBe(2)
+        expect(requests[1]).toEqual(requests[0])
+        await expect(note).toHaveValue('M2 retry note')
+        expect(new URL(page.url()).pathname).toBe('/rezervacija')
+      })
+    }
+  }
+}

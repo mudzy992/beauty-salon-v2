@@ -83,8 +83,8 @@ export default function Debtors({ embedded = false }: Props) {
   const currentPage = query.data?.page ?? page
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+    <div data-debt-list className="space-y-4">
+      <div data-debt-header className="flex items-start justify-between gap-3">
         <div>
           {embedded ? (
             <p className="text-sm text-content-strong ">{t('debtors.description')}</p>
@@ -141,10 +141,11 @@ export default function Debtors({ embedded = false }: Props) {
               return (
                 <li
                   key={d.id}
+                  data-debt-row
                   className="flex items-start justify-between gap-3 rounded-md border border-line p-3"
                 >
                   <div className="min-w-0">
-                    <div className="truncate font-semibold text-content">
+                    <div data-debt-client className="truncate font-semibold text-content">
                       {clientName}
                     </div>
                     <div className="mt-0.5 text-xs text-content-strong ">

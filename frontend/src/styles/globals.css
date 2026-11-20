@@ -2016,3 +2016,18 @@
   min-width: 0;
   max-width: 100%;
 }
+
+/* Debt rows keep the full client and reference visible in Aurum. */
+[data-skin="aurum"] [data-debt-list] :is([data-debt-header], [data-debt-row]) { flex-wrap: wrap; }
+[data-skin="aurum"] [data-debt-row] > div:first-child {
+  flex: 1 1 10rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-skin="aurum"] [data-debt-row] > div:last-child { max-width: 100%; }
+[data-skin="aurum"] [data-debt-client] {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}

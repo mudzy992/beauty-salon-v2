@@ -2818,3 +2818,69 @@ for (const mode of ['light', 'dark'] as const) {
 test.afterEach(async ({}, info) => {
   if (info.title.startsWith('M2 admin content') && info.status !== info.expectedStatus) reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
 })
+
+// Populated debtor list, including a server-side search, at the Finance deep link.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['list', 'search'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 admin debts ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await configureAurumTheme(page, mode)
+          await page.addInitScript(locale => localStorage.setItem('APP_LOCALE', locale), language)
+          const debt = { id: 'debt-1', amount: 125.5, createdAt: '2026-01-02T10:00:00Z', status: 'OPEN', client: { id: 'c1', username: 'amela', firstName: 'Amela', lastName: 'Dugoprezime-Testiranje' }, stylistProfile: { id: 's1', user: { username: 'ana', firstName: 'Ana', lastName: 'Test' } }, service: { id: 's', name: 'Svečana frizura i njega kose' }, reservation: { id: 'r', publicReferenceCode: 'M2-DEBT-001', reservationDate: '2026-01-02', startTime: '10:00', endTime: '11:00' } }
+          const other = { ...debt, id: 'debt-2', amount: 10, client: { id: 'c2', username: 'drugi', firstName: 'Drugi', lastName: 'Klijent' }, reservation: null }
+          const queries: string[] = []
+          await page.route('**/api/client-debts/all?**', route => {
+            const params = new URL(route.request().url()).searchParams
+            expect(params.get('status')).toBe('OPEN')
+            const q = params.get('q') || ''
+            queries.push(q)
+            const items = q ? [debt] : [debt, other]
+            return route.fulfill({ json: { items, total: items.length, totalAmount: q ? 125.5 : 135.5, page: 0, pageSize: 20 } })
+          })
+          await page.goto('/admin/finance?tab=debtors', { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).searchParams.get('tab')).toBe('debtors')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          const root = page.locator('[data-debt-list]')
+          await expect(root).toContainText('M2-DEBT-001')
+          await expect(root.getByText('Amela Dugoprezime-Testiranje')).toBeVisible()
+          if (state === 'search') {
+            await root.locator('#q').fill('Amela')
+            await expect.poll(() => queries.includes('Amela')).toBe(true)
+            await expect(root.getByText('Drugi Klijent')).toHaveCount(0)
+            await expect(root).toContainText(/125[,.]50/)
+          } else await expect(root.getByText('Drugi Klijent')).toBeVisible()
+          await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 admin debts ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: M2_TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (lost.length) reportAdmin(`M2 admin debts ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+            expect(lost).toEqual([])
+          }
+          const metrics = await root.locator('[data-debt-client]').first().evaluate(el => ({ overflow: getComputedStyle(el).overflowX, width: el.clientWidth, scroll: el.scrollWidth }))
+          expect(metrics.overflow).toBe('visible')
+          expect(metrics.scroll - metrics.width, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 admin debts') && info.status !== info.expectedStatus) reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+})

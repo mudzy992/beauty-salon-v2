@@ -819,3 +819,96 @@ for (const mode of ['light', 'dark'] as const) {
 test.afterEach(async ({}, info) => {
   if (info.title.startsWith('M2 stylist reschedule') && info.status !== info.expectedStatus) reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
 })
+
+// Populated stylist debts and stats; repayment dialog is opened but never submitted.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['debts', 'repay-dialog', 'stats'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 stylist finance ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await page.addInitScript(({ selectedMode, locale }) => {
+            localStorage.removeItem('nejra.theme')
+            localStorage.setItem('nejra.theme.mode', selectedMode)
+            localStorage.setItem('APP_LOCALE', locale)
+          }, { selectedMode: mode, locale: language })
+          await page.route('**/api/settings/public', async route => {
+            const response = await route.fetch()
+            if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+            const rows = await response.json() as Array<{ key: string; value: string }>
+            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+          })
+          const debt = { id: 'debt-1', amount: 125.5, createdAt: '2026-01-02T10:00:00Z', client: { id: 'c1', username: 'amela', firstName: 'Amela', lastName: 'Dugoprezime-Testiranje' }, service: { id: 's', name: 'Svečana frizura i njega kose' }, reservation: { id: 'r', publicReferenceCode: 'M2-DEBT-001', reservationDate: '2026-01-02', startTime: '10:00', endTime: '11:00' } }
+          const mutations: string[] = []
+          page.on('request', request => { if (/\/api\/client-debts(?:\/|\?|$)/.test(request.url()) && request.method() !== 'GET') mutations.push(request.method()) })
+          await page.route('**/api/client-debts/stylist/me', route => route.fulfill({ json: [debt] }))
+          await page.route('**/api/stylists/me', route => route.fulfill({ json: { id: 'stylist-profile' } }))
+          await page.route('**/api/reservations?**', route => route.fulfill({ json: [{ id: 'r1', status: 'COMPLETED' }, { id: 'r2', status: 'CONFIRMED' }] }))
+          await page.route('**/api/daily-log?**', route => route.fulfill({ json: [{ id: 'log-1', status: 'COMPLETED', actualPrice: 125.5, tipAmount: 5 }] }))
+          const path = state === 'stats' ? '/stylist/stats' : '/stylist/debts'
+          await page.goto(path, { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe(path)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          const root = page.locator('[data-debt-list]')
+          const dialog = page.getByRole('dialog')
+          if (state === 'stats') {
+            await expect(page.getByText(/125[,.]50 KM/)).toBeVisible()
+            await expect(page.getByText(/5[,.]00 KM/)).toBeVisible()
+            await expect(page.getByText(/prihod \(dnevnik\)|workbook revenue/i)).toBeVisible()
+          } else {
+            await expect(root.getByText('Amela Dugoprezime-Testiranje')).toBeVisible()
+            await expect(root).toContainText('M2-DEBT-001')
+            await expect(root).toContainText(/125[,.]50/)
+            if (state === 'repay-dialog') {
+              await root.getByRole('button', { name: /naplati dug|repay debt/i }).click()
+              await expect(dialog).toBeVisible()
+              await expect(dialog.locator('#repayDate')).not.toHaveValue('')
+              await dialog.locator('#repayNote').fill('M2 repayment note')
+            }
+          }
+          await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportStylist(`M2 stylist finance ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+            if (state === 'repay-dialog') {
+              const box = await dialog.boundingBox()
+              expect(box).not.toBeNull()
+              expect(box!.x).toBeGreaterThanOrEqual(-1)
+              expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+            }
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: STYLIST_TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (lost.length) reportStylist(`M2 stylist finance ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+            expect(lost).toEqual([])
+          }
+          if (state === 'repay-dialog') {
+            await page.keyboard.press('Escape')
+            await expect(dialog).toBeHidden()
+          }
+          if (state !== 'stats') {
+            const metrics = await root.locator('[data-debt-client]').evaluate(el => ({ overflow: getComputedStyle(el).overflowX, width: el.clientWidth, scroll: el.scrollWidth }))
+            expect(metrics.overflow).toBe('visible')
+            expect(metrics.scroll - metrics.width, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
+          }
+          expect(mutations).toEqual([])
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 stylist finance') && info.status !== info.expectedStatus) reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+})

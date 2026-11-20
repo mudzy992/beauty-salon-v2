@@ -94,8 +94,8 @@ export const StylistDebtsPage = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+    <div data-debt-list className="space-y-4">
+      <div data-debt-header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-content">{t('stylistPortal.debts.title')}</h1>
           <p className="text-sm text-content-strong">{t('stylistPortal.debts.description')}</p>
@@ -138,9 +138,9 @@ export const StylistDebtsPage = () => {
                       ? t('stylistPortal.debts.manualEntryReference', { date: formatDateOnly(d.manualEntry.date, locale) })
                       : '—'
               return (
-                <div key={d.id} className="rounded-md border border-line p-3 flex items-start justify-between gap-3">
+                <div key={d.id} data-debt-row className="rounded-md border border-line p-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-content truncate">{clientName}</div>
+                    <div data-debt-client className="font-semibold text-content truncate">{clientName}</div>
                     <div className="text-xs text-content-strong mt-0.5">
                       {d.service?.name ? `${d.service.name} · ` : ''}
                       {ref}
