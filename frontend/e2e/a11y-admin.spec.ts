@@ -2606,3 +2606,87 @@ test.afterEach(async ({}, info) => {
     reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2200))
   }
 })
+
+// M2: populated expense book and its editable estimated-date dialog; no writes.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['expense-book', 'expense-dialog'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 finance populated ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await configureAurumTheme(page, mode)
+          await page.addInitScript(locale => localStorage.setItem('APP_LOCALE', locale), language)
+          const field = { id: 'field-1', fieldName: 'Iznos test', fieldType: 'NUMBER', isRequired: true, sortOrder: 0, defaultValue: null }
+          const category = { id: 'category-1', name: 'Test kategorija', isActive: true, isFixed: true, templateId: 'template-1', template: { id: 'template-1', name: 'Test', fields: [field], requiresAttachmentPerItem: false } }
+          const expense = { id: 'expense-1', title: 'Test rashod', expenseDate: '2026-03-01T00:00:00.000Z', dateEstimated: true, totalAmount: 30, notes: 'M2 fixture notes', createdAt: '2026-03-02T00:00:00.000Z', category, fieldValues: [{ id: 'value-1', fieldId: 'field-1', value: '30' }], attachments: [] }
+          const book = { id: 'book-1', year: 2026, month: 3, isClosed: false, openedAt: '2026-03-01T00:00:00Z', closedAt: null, expenses: [expense], totalExpenses: 30, lockEvents: [] }
+          const mutations: string[] = []
+          page.on('request', request => {
+            if (/\/api\/(expenses|expense-books)(?:\/|\?|$)/.test(request.url()) && request.method() !== 'GET') mutations.push(request.method())
+          })
+          await page.route('**/api/expense-books', route => route.fulfill({ json: [book] }))
+          await page.route('**/api/expense-books/book-1', route => route.fulfill({ json: book }))
+          await page.route('**/api/expense-categories', route => route.fulfill({ json: [category] }))
+          await page.goto('/admin/finance?tab=expense', { waitUntil: 'networkidle' })
+          const url = new URL(page.url())
+          expect(url.pathname).toBe('/admin/finance')
+          expect(url.searchParams.get('tab')).toBe('expense')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          await page.getByRole('button', { name: /otvori knjigu.*2026|open book.*2026/i }).click()
+          await expect(page.getByText(/procijenjeno|estimated/i)).toBeVisible()
+          const trigger = page.getByRole('button', { name: /uredi rashod test rashod|edit expense test rashod/i })
+          await expect(trigger).toBeVisible()
+          if (state === 'expense-dialog') {
+            await trigger.click()
+            const dialog = page.getByRole('dialog')
+            await expect(dialog).toBeVisible()
+            await expect(dialog.getByLabel(/datum rashoda|expense date/i)).toHaveValue('2026-03-01')
+          }
+          const settled = await settleAnimations(page)
+          expect(settled).not.toBeNull()
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 finance ${mode} ${language} ${state} 320`, JSON.stringify(widths))
+            expect(widths.viewport).toBe(320)
+            expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+            if (state === 'expense-dialog') {
+              const box = await page.getByRole('dialog').boundingBox()
+              expect(box).not.toBeNull()
+              expect(box!.x).toBeGreaterThanOrEqual(-1)
+              expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+            }
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else {
+              await page.addStyleTag({ content: M2_TEXT_SPACING })
+            }
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) reportAdmin(`M2 finance ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped, `${state} ${mode} ${language} ${adjustment}: newly clipped elements`).toEqual([])
+          }
+          if (state === 'expense-dialog') {
+            await page.keyboard.press('Escape')
+            await expect(page.getByRole('dialog')).toBeHidden()
+          }
+          expect(mutations).toEqual([])
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 finance populated') && info.status !== info.expectedStatus) {
+    reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+  }
+})

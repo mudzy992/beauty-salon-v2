@@ -618,3 +618,112 @@ test.afterEach(async ({}, info) => {
     reportStylist(`M2 reservation failure ${info.title}`, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
   }
 })
+
+// M2: inbox rejection, no-show and rescheduling dialogs with read-only fixtures.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['inbox-reject', 'no-show', 'reorder'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 stylist dialogs ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await page.addInitScript(({ selectedMode, locale }) => {
+            localStorage.removeItem('nejra.theme')
+            localStorage.setItem('nejra.theme.mode', selectedMode)
+            localStorage.setItem('APP_LOCALE', locale)
+          }, { selectedMode: mode, locale: language })
+          await page.route('**/api/settings/public', async intercepted => {
+            const response = await intercepted.fetch()
+            if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+            const rows = await response.json() as Array<{ key: string; value: string }>
+            await intercepted.fulfill({ response, json: [
+              ...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)),
+              { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+            ] })
+          })
+          const name = 'Svečana frizura i posebna njega za dugu kosu'
+          const reservation = {
+            id: 'm2-stylist', clientId: 'client-test', serviceId: 'service-test',
+            reservationDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+            startTime: '12:00', endTime: '13:00', status: state === 'inbox-reject' ? 'STYLIST_REVIEW' : 'CONFIRMED',
+            confirmedStylistId: 'stylist-profile', clientNotes: 'M2 stylist notes',
+            service: { id: 'service-test', name, durationMinutes: 60, price: 45 },
+            client: { id: 'client-test', firstName: 'Test', lastName: 'Klijent' },
+            stylistResponses: [{ stylistProfileId: 'stylist-profile', status: 'LOCKED', lockExpiresAt: null, hasLockedOnce: true }],
+          }
+          const mutations: string[] = []
+          page.on('request', request => {
+            if (/\/api\/reservations(?:\/|\?|$)/.test(request.url()) && request.method() !== 'GET') mutations.push(request.method())
+          })
+          await page.route('**/api/stylists/me', route => route.fulfill({ json: { id: 'stylist-profile' } }))
+          await page.route('**/api/reservations?**', route => route.fulfill({ json: [reservation] }))
+          await page.route('**/api/reservations/m2-stylist', route => route.fulfill({ json: reservation }))
+          await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+          const path = state === 'inbox-reject' ? '/stylist/inbox' : '/stylist/schedule/m2-stylist'
+          await page.goto(path, { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe(path)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          const trigger = page.getByRole('button', { name: state === 'inbox-reject' ? /^(odbij|reject)$/i : state === 'no-show' ? /no-show/i : /reorder/i })
+          await expect(trigger).toBeVisible()
+          await trigger.click()
+          const dialog = page.getByRole('dialog')
+          await expect(dialog).toBeVisible()
+          if (state === 'inbox-reject') {
+            await expect(dialog.locator('#rejectionReason')).toBeVisible()
+            await dialog.locator('#rejectionReason').fill('M2 reason')
+          } else if (state === 'no-show') {
+            await expect(dialog.locator('#noShowReason')).toBeVisible()
+            await dialog.locator('#noShowReason').fill('M2 reason')
+          } else {
+            await expect(dialog.locator('#reorderStart')).toHaveValue('12:00')
+            await expect(dialog.locator('#reorderEnd')).toHaveValue('13:00')
+          }
+          const settled = await settleAnimations(page)
+          expect(settled).not.toBeNull()
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportStylist(`M2 stylist dialogs ${mode} ${language} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.viewport).toBe(320)
+            expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+            const box = await dialog.boundingBox()
+            expect(box).not.toBeNull()
+            expect(box!.x).toBeGreaterThanOrEqual(-1)
+            expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else {
+              await page.addStyleTag({ content: STYLIST_TEXT_SPACING })
+            }
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) reportStylist(`M2 stylist dialogs ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped, `${state} ${mode} ${language} ${adjustment}: newly clipped elements`).toEqual([])
+          }
+          await page.keyboard.press('Escape')
+          await expect(dialog).toBeHidden()
+          if (state === 'inbox-reject') {
+            const service = page.getByText(name, { exact: true })
+            const metrics = await service.evaluate(el => ({ overflow: getComputedStyle(el).overflowX, width: el.clientWidth, scroll: el.scrollWidth }))
+            expect(metrics.overflow).not.toBe('hidden')
+            expect(metrics.scroll - metrics.width).toBeLessThanOrEqual(1)
+          }
+          expect(mutations).toEqual([])
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 stylist dialogs') && info.status !== info.expectedStatus) {
+    reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+  }
+})

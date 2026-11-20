@@ -220,7 +220,7 @@ export const StylistInboxPage = () => {
           const isPenalized = !!until && until.getTime() > Date.now()
 
           return (
-            <Card key={r.id} className="p-4">
+            <Card key={r.id} data-stylist-inbox-card className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-content truncate">

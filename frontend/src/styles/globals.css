@@ -386,6 +386,7 @@
   /* Populated cards and detail actions must also fit; retain the full service name. */
   [data-skin="aurum"] [data-stylist-schedule-card] { min-width: 0; }
   [data-skin="aurum"] [data-stylist-schedule-card] .truncate,
+  [data-skin="aurum"] [data-stylist-inbox-card] .truncate,
   [data-skin="aurum"] [data-stylist-detail-summary] .truncate {
     overflow: visible;
     white-space: normal;
@@ -393,6 +394,7 @@
     overflow-wrap: anywhere;
   }
   [data-skin="aurum"] [data-stylist-detail-heading],
+  [data-skin="aurum"] [data-stylist-inbox-card] > div:first-child,
   [data-skin="aurum"] [data-stylist-detail-summary] > div:first-child { flex-wrap: wrap; }
   [data-skin="aurum"] [data-stylist-detail-heading] > div { min-width: 0; }
   [data-skin="aurum"] [data-stylist-detail-actions] button {
