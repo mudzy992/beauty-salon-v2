@@ -912,3 +912,84 @@ for (const mode of ['light', 'dark'] as const) {
 test.afterEach(async ({}, info) => {
   if (info.title.startsWith('M2 stylist finance') && info.status !== info.expectedStatus) reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
 })
+
+// Direct stylist booking with a populated client and gender-filtered service list.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['selected', 'missing-gender'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 stylist direct ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await page.addInitScript(({ selectedMode, locale }) => {
+            localStorage.removeItem('nejra.theme')
+            localStorage.setItem('nejra.theme.mode', selectedMode)
+            localStorage.setItem('APP_LOCALE', locale)
+          }, { selectedMode: mode, locale: language })
+          await page.route('**/api/settings/public', async route => {
+            const response = await route.fetch()
+            if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+            const rows = await response.json() as Array<{ key: string; value: string }>
+            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+          })
+          const name = 'Amela Dugoprezime Test Klijent'
+          const service = 'Svečana frizura i detaljna njega duge kose'
+          const mutations: string[] = []
+          page.on('request', request => { if (/\/api\/reservations(?:\/|\?|$)/.test(request.url()) && request.method() !== 'GET') mutations.push(request.method()) })
+          await page.route('**/api/reservations**', route => route.request().method() === 'GET' ? route.fallback() : route.abort())
+          await page.route('**/api/users/clients?**', route => route.fulfill({ json: { items: [{ id: 'direct-client', username: 'amela', firstName: 'Amela', lastName: 'Dugoprezime Test Klijent', gender: state === 'selected' ? 'FEMALE' : null }] } }))
+          await page.route('**/api/services?**', route => route.fulfill({ json: [{ id: 'direct-service', name: service, durationMinutes: 60, price: 50, gender: 'FEMALE' }, { id: 'other-service', name: 'Muški test servis', durationMinutes: 30, price: 20, gender: 'MALE' }] }))
+          const path = '/stylist/schedule/new'
+          await page.goto(path, { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe(path)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          await page.locator('#stylist-direct-booking-client').fill('Amela')
+          const client = page.getByRole('button', { name: new RegExp(name) })
+          await expect(client).toBeVisible()
+          await client.click()
+          await expect(client).toHaveAttribute('aria-pressed', 'true')
+          const submit = page.getByRole('button', { name: /kreiraj termin|create appointment/i })
+          if (state === 'selected') {
+            const choice = page.getByRole('button', { name: new RegExp(service) })
+            await expect(choice).toBeVisible()
+            await expect(page.getByText('Muški test servis')).toHaveCount(0)
+            await choice.click()
+            await expect(choice).toHaveAttribute('aria-pressed', 'true')
+            await expect(page.locator('#stylist-direct-booking-end')).toHaveValue('10:00')
+            await page.locator('#stylist-direct-booking-note').fill('M2 stylist direct note')
+            await expect(submit).toBeEnabled()
+          } else {
+            await expect(submit).toBeDisabled()
+            await expect(page.getByText(service)).toHaveCount(0)
+            await expect(page.getByText(/klijent nema definisan spol|client.*gender.*not/i)).toBeVisible()
+          }
+          await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) reportStylist(`M2 stylist direct ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: STYLIST_TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (lost.length) reportStylist(`M2 stylist direct ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+            expect(lost).toEqual([])
+          }
+          expect(mutations).toEqual([])
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 stylist direct') && info.status !== info.expectedStatus) reportStylist(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+})

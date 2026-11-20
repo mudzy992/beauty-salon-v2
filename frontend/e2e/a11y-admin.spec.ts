@@ -2884,3 +2884,84 @@ for (const mode of ['light', 'dark'] as const) {
 test.afterEach(async ({}, info) => {
   if (info.title.startsWith('M2 admin debts') && info.status !== info.expectedStatus) reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
 })
+
+// Income book with automatic and manual entries; edit dialog is cancelled without writes.
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of ['book', 'edit'] as const) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 income book ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await configureAurumTheme(page, mode)
+          await page.addInitScript(locale => localStorage.setItem('APP_LOCALE', locale), language)
+          const service = { id: 'service-income', name: 'Svečana frizura i njega kose', price: 50 }
+          const stylist = { id: 'stylist-income', user: { username: 'ana', firstName: 'Ana', lastName: 'Test' } }
+          const manual = { id: 'income-manual', date: '2026-03-02T00:00:00Z', serviceId: service.id, stylistProfileId: stylist.id, clientId: null, amount: 50, tipAmount: 5, notes: 'M2 income note', createdAt: '2026-03-02T00:00:00Z', updatedAt: '2026-03-02T00:00:00Z', service, stylistProfile: stylist }
+          const auto = { id: 'income-auto', amount: 25, tipAmount: 0, date: '2026-03-01', dailyLogEntryId: 'daily-1', dailyLogEntry: { id: 'daily-1', date: '2026-03-01', actualPrice: 25, tipAmount: 0, notes: null, status: 'COMPLETED', isManual: false, service: { name: 'Pranje kose' }, stylistProfile: stylist } }
+          const book = { id: 'income-book-1', year: 2026, month: 3, totalRevenue: 75, totalTips: 5, openedAt: '2026-03-01T00:00:00Z', closedAt: null, entries: [auto], manualEntries: [manual], lockEvents: [], manualAudits: [] }
+          const mutations: string[] = []
+          page.on('request', request => { if (/\/api\/income-books(?:\/|\?|$)/.test(request.url()) && request.method() !== 'GET') mutations.push(request.method()) })
+          await page.route('**/api/income-books**', route => route.request().method() === 'GET' ? route.fallback() : route.abort())
+          await page.route('**/api/income-books', route => route.request().method() === 'GET' ? route.fulfill({ json: [book] }) : route.abort())
+          await page.route('**/api/income-books/income-book-1', route => route.request().method() === 'GET' ? route.fulfill({ json: book }) : route.abort())
+          await page.route('**/api/income-books/income-book-1/integrity', route => route.fulfill({ json: { bookId: book.id, isLocked: false, missingCount: 0, orphanedCount: 0, isHealthy: true, missing: [], orphaned: [] } }))
+          await page.route('**/api/stylists/admin?**', route => route.fulfill({ json: [stylist] }))
+          await page.route('**/api/stylists/admin/stylist-income/services?**', route => route.fulfill({ json: [{ service }] }))
+          await page.goto('/admin/finance?tab=income', { waitUntil: 'networkidle' })
+          expect(new URL(page.url()).pathname).toBe('/admin/finance')
+          expect(new URL(page.url()).searchParams.get('tab')).toBe('income')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          await page.getByRole('button', { name: /otvori knjigu.*2026|open book.*2026/i }).click()
+          const table = page.getByRole('table', { name: /stavke knjige prihoda|income book entries/i })
+          await expect(table).toContainText('Svečana frizura i njega kose')
+          await expect(table).toContainText('Pranje kose')
+          const trigger = table.getByRole('button', { name: /uredi ručni prihod|edit manual income entry/i })
+          await expect(trigger).toBeVisible()
+          const dialog = page.getByRole('dialog')
+          if (state === 'edit') {
+            await trigger.click()
+            await expect(dialog).toBeVisible()
+            await expect(dialog.locator('#manual-date')).toHaveValue('2026-03-02')
+            await expect(dialog.locator('#manual-notes')).toHaveValue('M2 income note')
+          }
+          await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth, outside: Array.from(document.body.querySelectorAll('*')).map(el => { const r = el.getBoundingClientRect(); return { tag: el.tagName, cls: String(el.className).slice(0, 90), right: Math.round(r.right), text: (el.textContent || '').trim().slice(0, 35) } }).filter(x => x.right > document.documentElement.clientWidth + 1).slice(0, 15) }))
+            if (widths.scroll > widths.viewport + 1) reportAdmin(`M2 income book ${mode} ${language} ${state}`, JSON.stringify(widths))
+            expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+            if (state === 'edit') {
+              const box = await dialog.boundingBox()
+              expect(box).not.toBeNull()
+              expect(box!.x).toBeGreaterThanOrEqual(-1)
+              expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+            }
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else await page.addStyleTag({ content: M2_TEXT_SPACING })
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (lost.length) reportAdmin(`M2 income book ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+            expect(lost).toEqual([])
+          }
+          if (state === 'edit') {
+            await page.keyboard.press('Escape')
+            await expect(dialog).toBeHidden()
+          }
+          expect(mutations).toEqual([])
+        })
+      }
+    }
+  }
+}
+
+test.afterEach(async ({}, info) => {
+  if (info.title.startsWith('M2 income book') && info.status !== info.expectedStatus) reportAdmin(info.title, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
+})
