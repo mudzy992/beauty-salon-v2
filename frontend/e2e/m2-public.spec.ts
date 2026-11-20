@@ -273,3 +273,160 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// Booking and token links: fixture-driven states, in both supported UI languages.
+// These metrics do not replace browser zoom or a manual accessibility review.
+const M2_BOOKING_TOKEN_STATES = [
+  'date-error', 'dates', 'slot-error', 'slots', 'summary',
+  'token-reservation', 'token-expired', 'unsubscribe-success', 'unsubscribe-failed',
+] as const
+for (const mode of ['light', 'dark'] as const) {
+  for (const language of ['bs', 'en'] as const) {
+    for (const state of M2_BOOKING_TOKEN_STATES) {
+      for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+        test(`M2 booking-token ${mode} ${language} ${state} ${adjustment}`, async ({ page }) => {
+          await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+          await page.emulateMedia({ reducedMotion: 'reduce' })
+          await page.addInitScript(({ selectedMode, locale }) => {
+            localStorage.removeItem('nejra.theme')
+            localStorage.setItem('nejra.theme.mode', selectedMode)
+            localStorage.setItem('APP_LOCALE', locale)
+          }, { selectedMode: mode, locale: language })
+          await page.route('**/api/settings/public', async intercepted => {
+            const response = await intercepted.fetch()
+            if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+            const rows = await response.json() as Array<{ key: string; value: string }>
+            await intercepted.fulfill({ response, json: [
+              ...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)),
+              { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+            ] })
+          })
+          const booking = ['date-error', 'dates', 'slot-error', 'slots', 'summary'].includes(state)
+          let unsubscriptions = 0
+          if (booking) {
+            await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+            await page.route('**/api/users/profile', route => route.fulfill({ json: {
+              id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z',
+              email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true,
+              isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'],
+            } }))
+            await page.route('**/api/services**', route => route.fulfill({ json: [{
+              id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE',
+              subcategory: { name: 'Kosa', category: { name: 'Žene' } },
+            }] }))
+            await page.route('**/api/reservations/availability/dates**', route => {
+              if (state === 'date-error') return route.fulfill({ status: 503, json: {} })
+              const date = new URL(route.request().url()).searchParams.get('fromDate')!
+              return route.fulfill({ json: [{ date, available: true }] })
+            })
+            await page.route('**/api/reservations/availability/slots**', route => state === 'slot-error'
+              ? route.fulfill({ status: 503, json: {} })
+              : route.fulfill({ json: [
+                { startTime: '23:59', endTime: '23:59', availableStylistCount: 1 },
+                { startTime: '23:58', endTime: '23:59', availableStylistCount: 0, holdState: 'pending_hold' },
+              ] }))
+            await page.route('**/api/client-debts/me', route => route.fulfill({ json: [{ amount: 20 }] }))
+            await page.route('**/api/loyalty/client/me**', route => route.fulfill({ json: {
+              enabled: true, redeemEnabled: true, hasAccount: true, points: 100, tier: 'Gold', service: { id: 'book-test', maxDiscountPercent: 10 },
+            } }))
+          } else if (state.startsWith('token-')) {
+            await page.route('**/api/public/reservations/by-token/m2-test-token', route => state === 'token-expired'
+              ? route.fulfill({ status: 410, json: {} })
+              : route.fulfill({ json: {
+                publicReferenceCode: 'M2-2026-001', reservationDate: '2026-11-20', startTime: '10:00', endTime: '11:00',
+                status: 'CONFIRMED', serviceName: 'Svečana frizura i profesionalna njega kose', stylistName: 'Ana Test',
+                clientNotes: 'M2 napomena termina', cancelReason: null, cancelledAt: null, rescheduleStatus: 'PENDING',
+                rescheduleProposedStartTime: '12:00', rescheduleProposedEndTime: '13:00',
+              } }))
+          } else {
+            await page.route('**/api/notifications/campaigns/unsubscribe', route => {
+              expect(route.request().method()).toBe('POST')
+              expect(route.request().postDataJSON()).toEqual({ token: 'm2-test-token' })
+              unsubscriptions++
+              return state === 'unsubscribe-failed'
+                ? route.fulfill({ status: 503, json: {} })
+                : route.fulfill({ json: { ok: true, unsubscribed: true } })
+            })
+          }
+          const path = booking ? '/rezervacija' : state.startsWith('token-') ? '/moj-termin/m2-test-token' : '/unsubscribe?token=m2-test-token'
+          await page.goto(path, { waitUntil: 'networkidle' })
+          const url = new URL(page.url())
+          expect(url.pathname).toBe(booking ? '/rezervacija' : state.startsWith('token-') ? '/moj-termin/m2-test-token' : '/unsubscribe')
+          if (state.startsWith('unsubscribe-')) expect(url.searchParams.get('token')).toBe('m2-test-token')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+          await expect(page.locator('html')).toHaveAttribute('lang', language)
+          if (booking) {
+            await page.locator('#public-service-search').focus()
+            await page.getByRole('button', { name: /Svečana frizura/ }).first().click()
+            await expect(page.locator('[data-reserve-selected-item]')).toContainText('Svečana frizura')
+            if (state === 'date-error') {
+              await expect(page.locator('[data-aurum-page="reserve"] [role="alert"]')).toBeVisible()
+            } else {
+              const date = page.locator('[data-reserve-calendar] button[aria-pressed="false"]:not([disabled])')
+              await expect(date).toHaveCount(1)
+              if (state !== 'dates') {
+                await date.click()
+                await expect(page.locator('[data-reserve-calendar] button[aria-pressed="true"]')).toBeVisible()
+                if (state === 'slot-error') {
+                  await expect(page.locator('[data-aurum-page="reserve"] [role="alert"]')).toBeVisible()
+                } else {
+                  const slot = page.locator('[data-reserve-slot]').filter({ hasText: '23:59' }).first()
+                  await expect(slot).toBeEnabled()
+                  await expect(page.locator('[data-reserve-slot]').filter({ hasText: '23:58' })).toBeDisabled()
+                  if (state === 'summary') {
+                    await slot.click()
+                    await expect(page.locator('#reservation-notes')).toBeVisible()
+                    await expect(page.locator('#loyalty-discount-percent')).toBeVisible()
+                    await expect(page.getByRole('checkbox')).toBeVisible()
+                    await page.locator('#reservation-notes').fill('M2 booking notes')
+                    await page.locator('#loyalty-discount-percent').fill('5')
+                    await page.getByRole('checkbox').check()
+                    await expect(page.locator('[data-aurum-page="reserve"] button[type="submit"]')).toBeEnabled()
+                  }
+                }
+              }
+            }
+          } else if (state === 'token-reservation') {
+            await expect(page.locator('[data-aurum-page="reservation-view"]')).toContainText('M2-2026-001')
+            await expect(page.locator('[data-aurum-page="reservation-view"]')).toContainText('M2 napomena termina')
+            await expect(page.locator('[data-aurum-page="reservation-view"]')).toContainText('12:00')
+          } else if (state === 'token-expired') {
+            await expect(page.locator('[data-aurum-page="reservation-view"] [role="alert"]')).toBeVisible()
+            await expect(page.locator('[data-aurum-page="reservation-view"] [role="alert"]')).toContainText(language === 'bs' ? 'Termin nije pronađen' : 'appointment was not found')
+          } else {
+            await page.getByRole('button', { name: /odjavi me|unsubscribe me/i }).click()
+            expect(unsubscriptions).toBe(1)
+            await expect(page.locator('[data-aurum-page="unsubscribe"] h1')).toHaveText(state === 'unsubscribe-success'
+              ? (language === 'bs' ? 'Odjava je završena' : 'You are unsubscribed')
+              : (language === 'bs' ? 'Odjavu trenutno nije moguće završiti' : 'We could not complete the unsubscribe right now'))
+            if (state === 'unsubscribe-failed') await expect(page.getByRole('button', { name: /pokušaj ponovo|try again/i })).toBeVisible()
+          }
+          const settled = await settleAnimations(page)
+          expect(settled).not.toBeNull()
+          expect(settled?.stillRunning).toBe(0)
+          if (adjustment === '320px') {
+            const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            if (widths.scroll > widths.viewport + 1) report(`M2 booking-token ${mode} ${language} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+            expect(widths.viewport).toBe(320)
+            expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+          } else {
+            const before = await page.evaluate(clippedSnapshot)
+            if (adjustment === 'text-200') {
+              const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+              await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+              await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+            } else {
+              await page.addStyleTag({ content: TEXT_SPACING })
+            }
+            await settleAnimations(page)
+            const after = await page.evaluate(clippedSnapshot)
+            const newlyClipped = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+            if (newlyClipped.length) report(`M2 booking-token ${mode} ${language} ${state} ${adjustment}`, JSON.stringify(newlyClipped.slice(0, 8)))
+            expect(newlyClipped, `${state} ${mode} ${language} ${adjustment}: newly clipped elements`).toEqual([])
+          }
+        })
+      }
+    }
+  }
+}
