@@ -2010,3 +2010,9 @@
 }
 [data-skin="aurum"] [data-gallery-image-meta] :is(p, button) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-gallery-image-meta] > div:first-child { flex: 1 1 8rem; }
+[data-skin="aurum"] [data-gallery-image-meta] > div:last-child {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+}

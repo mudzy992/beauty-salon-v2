@@ -2793,6 +2793,20 @@ for (const mode of ['light', 'dark'] as const) {
               expect(metrics.scroll - metrics.width, JSON.stringify(metrics)).toBeLessThanOrEqual(1)
             }
           }
+          if (state === 'gallery-image') {
+            const meta = page.locator('[data-gallery-image-meta]')
+            const dimensions = await meta.evaluate(el => {
+              const parent = el.parentElement!.parentElement!.getBoundingClientRect()
+              return [...el.querySelectorAll('p, button')].map(child => {
+                const rect = child.getBoundingClientRect()
+                return { left: rect.left - parent.left, right: rect.right - parent.right }
+              })
+            })
+            for (const bounds of dimensions) {
+              expect(bounds.left, JSON.stringify(dimensions)).toBeGreaterThanOrEqual(-1)
+              expect(bounds.right, JSON.stringify(dimensions)).toBeLessThanOrEqual(1)
+            }
+          }
           expect(writes).toEqual([])
         })
       }
