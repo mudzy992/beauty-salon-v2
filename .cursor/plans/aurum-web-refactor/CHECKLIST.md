@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Novi M2 paket:** `794f0b9` / CI `44760046621` **5/5, rendered 1127/1127**. Potvrđeno 96 fiksurnih kombinacija za admin blog komentar/galeriju/recenziju s potvrdama, parametrizirani stylist preview/confirm/retry i token otkazivanje/retry u BS/EN, oba Aurum režima, 320 CSS px i simuliranom 200% root tekstu/text-spacingu. Korisnik je prijavio da je stvarni browser prošao, bez specifikacije browsera, tema ili obima; to ne zatvara sve M2 slučajeve ni ručni text-spacing. Detalji i preostali rad: `CHANGELOG.md`.
+
 > **Naknadna korisnička potvrda:** korisnik je rekao „Stvarni browser prošao.“ Browser, režim, zum, obuhvaćene rute i text-spacing nisu specificirani; ne proširivati ovu potvrdu na sve M2 slučajeve niti tvrditi da je text-spacing ručno provjeren.
 
 ## Najnoviji M2 dokaz — CI `44740804314`
