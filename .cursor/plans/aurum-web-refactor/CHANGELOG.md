@@ -795,3 +795,7 @@ Dodaje se 18 mjerenja za izolovanu fiksuru potvrđenog termina: popunjeni raspor
 ## M2 · popunjeni javni detalji · u toku
 
 Dodano 12 provjera za fiksurni detalj usluge s prije/poslije sadržajem i blog članak s komentarom, u Aurum light/dark × 320 CSS px / 200% rem / text-spacing. Asertuju se stvarni URL, tema i učitan sadržaj. PublicFeatureGate ostaje netaknut; blog flag se uključuje samo u izolovanom odgovoru postavki. Testovi ne pokrivaju sve javne detalje, podvrste sadržaja ni stvarni browser zoom; CI tek predstoji.
+
+**CI javnih detalja:** `df9f78a` / `44698049861` = **5/5**, rendered suite **731 prošlo / 0 palo / 0 preskočeno**. Svih 12 mjerenja fiksurnog detalja usluge i blog članka s komentarom prolazi; to nije dokaz drugih sadržaja, svih interakcija ni stvarnog zooma.
+
+**Nastavak javnih stanja:** 12 novih mjerenja za odabranu uslugu u javnoj rezervaciji (izolovani klijent) i otvoreni lightbox galerije, u dva Aurum režima × tri M2 mjere. Testovi asertuju odabir i kalendar, odnosno učitanu sliku, Escape i povrat fokusa; bez slanja rezervacije. Rezultat čeka CI; nisu obuhvaćene sve faze obrasca ili sve slike.

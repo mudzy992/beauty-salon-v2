@@ -180,3 +180,96 @@ for (const mode of ['light', 'dark'] as const) {
     }
   }
 }
+
+// Interactive public states: selected booking service and gallery lightbox.
+for (const mode of ['light', 'dark'] as const) {
+  for (const state of ['booking-selected', 'gallery-lightbox'] as const) {
+    for (const adjustment of ['320px', 'text-200', 'text-spacing'] as const) {
+      test(`M2 public interactive ${mode} ${state} ${adjustment}`, async ({ page }) => {
+        await page.setViewportSize(adjustment === '320px' ? { width: 320, height: 720 } : { width: 1280, height: 900 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.addInitScript(selectedMode => {
+          localStorage.removeItem('nejra.theme')
+          localStorage.setItem('nejra.theme.mode', selectedMode)
+        }, mode)
+        await page.route('**/api/settings/public', async intercepted => {
+          const response = await intercepted.fetch()
+          if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
+          const rows = await response.json() as Array<{ key: string; value: string }>
+          const settings: Record<string, string> = { theme_active_skin: 'aurum', theme_default_mode: mode, public_feature_gallery: 'true' }
+          await intercepted.fulfill({ response, json: [
+            ...rows.filter(row => !(row.key in settings)),
+            ...Object.entries(settings).map(([key, value]) => ({ key, value })),
+          ] })
+        })
+        if (state === 'booking-selected') {
+          await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
+          await page.route('**/api/users/profile', route => route.fulfill({ json: {
+            id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z',
+            email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true,
+            isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'],
+          } }))
+          await page.route('**/api/services**', route => route.fulfill({ json: [{
+            id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE',
+            subcategory: { name: 'Kosa', category: { name: 'Žene' } },
+          }] }))
+          await page.route('**/api/reservations/availability/dates**', route => route.fulfill({ json: [] }))
+        } else {
+          const category = { id: 'gallery-test', name: 'Frizure', sortOrder: 0, _count: { images: 1 }, images: [{ id: 'image-test', sortOrder: 0, upload: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }] }
+          await page.route('**/api/gallery/categories**', route => route.fulfill({ json: new URL(route.request().url()).pathname.endsWith('/gallery-test') ? category : [category] }))
+          await page.route('**/api/daily-log/before-after**', route => route.fulfill({ json: { items: [], hasMore: false, nextOffset: 0 } }))
+        }
+        const path = state === 'booking-selected' ? '/rezervacija' : '/galerija'
+        await page.goto(path, { waitUntil: 'networkidle' })
+        expect(new URL(page.url()).pathname).toBe(path)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+        if (state === 'booking-selected') {
+          await page.locator('#public-service-search').focus()
+          await page.getByRole('button', { name: /Svečana frizura/ }).first().click()
+          await expect(page.locator('[data-reserve-selected-item]')).toBeVisible()
+          await expect(page.locator('[data-reserve-calendar]')).toBeVisible()
+        } else {
+          const trigger = page.getByRole('button', { name: /Frizure/ }).first()
+          await trigger.focus()
+          await page.keyboard.press('Enter')
+          await expect(page.locator('[data-aurum-lightbox] img')).toBeVisible()
+        }
+        const settled = await settleAnimations(page)
+        expect(settled).not.toBeNull()
+        expect(settled?.stillRunning).toBe(0)
+        if (adjustment === '320px') {
+          const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+          if (widths.scroll > widths.viewport + 1) report(`M2 public interactive ${mode} ${state} 320`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
+          expect(widths.viewport).toBe(320)
+          expect(widths.scroll - widths.viewport).toBeLessThanOrEqual(1)
+          if (state === 'gallery-lightbox') {
+            const box = await page.locator('[data-aurum-lightbox]').boundingBox()
+            expect(box).not.toBeNull()
+            expect(box!.x).toBeGreaterThanOrEqual(-1)
+            expect(box!.x + box!.width).toBeLessThanOrEqual(321)
+          }
+        } else {
+          const before = await page.evaluate(clippedSnapshot)
+          if (adjustment === 'text-200') {
+            const base = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))
+            await page.evaluate(size => { document.documentElement.style.fontSize = `${size * 2}px` }, base)
+            await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize))).toBeCloseTo(base * 2, 2)
+          } else {
+            await page.addStyleTag({ content: TEXT_SPACING })
+          }
+          await settleAnimations(page)
+          const after = await page.evaluate(clippedSnapshot)
+          const lost = Object.keys(after).filter(key => !(key in before)).map(key => ({ element: key, ...after[key] }))
+          if (lost.length) report(`M2 public interactive ${mode} ${state} ${adjustment}`, JSON.stringify(lost.slice(0, 8)))
+          expect(lost, `${state} ${mode} ${adjustment}: newly clipped elements`).toEqual([])
+        }
+        if (state === 'gallery-lightbox') {
+          await page.keyboard.press('Escape')
+          await expect(page.locator('[data-aurum-lightbox]')).toBeHidden()
+          await expect(page.getByRole('button', { name: /Frizure/ }).first()).toBeFocused()
+        }
+      })
+    }
+  }
+}
