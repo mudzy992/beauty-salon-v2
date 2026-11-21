@@ -91,6 +91,15 @@ const ServiceAutocomplete = ({
   const [addingMore, setAddingMore] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const addMoreRef = useRef<HTMLButtonElement>(null)
+
+  const focusAfterUpdate = (trigger: HTMLElement, target: 'search' | 'add') => {
+    requestAnimationFrame(() => {
+      const active = document.activeElement
+      if (active !== document.body && active !== trigger) return
+      ;(target === 'search' ? inputRef.current : addMoreRef.current)?.focus()
+    })
+  }
 
   const filtered = useMemo(() => {
     if (!query.trim()) return services
@@ -114,13 +123,14 @@ const ServiceAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const selectService = (svc: ServiceOption) => {
+  const selectService = (svc: ServiceOption, trigger: HTMLButtonElement) => {
     const exists = selected.some((x) => x.id === svc.id)
     const next = exists ? selected : [...selected, svc]
     onSelect(next)
     setOpen(false)
     setQuery('')
     setAddingMore(false)
+    focusAfterUpdate(trigger, 'add')
   }
 
   if (selected.length > 0) {
@@ -133,15 +143,18 @@ const ServiceAutocomplete = ({
             {selected.map((s) => (
               <div key={s.id} data-reserve-selected-item className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-content">{s.name}</div>
+                  <div data-reserve-service-name className="truncate text-sm font-semibold text-content">{s.name}</div>
                   <div className="mt-0.5 text-xs text-content-strong">{s.durationMinutes} min</div>
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={() => {
-                    onSelect(selected.filter((x) => x.id !== s.id))
+                  aria-label={`${t('public.reserve.removeService')} — ${s.name}`}
+                  onClick={(event) => {
+                    const next = selected.filter((x) => x.id !== s.id)
+                    onSelect(next)
+                    focusAfterUpdate(event.currentTarget, next.length ? 'add' : 'search')
                   }}
                 >
                   {t('public.reserve.removeService')}
@@ -161,10 +174,11 @@ const ServiceAutocomplete = ({
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => {
+            ref={addMoreRef}
+            onClick={(event) => {
               setAddingMore(true)
               setOpen(true)
-              requestAnimationFrame(() => inputRef.current?.focus())
+              focusAfterUpdate(event.currentTarget, 'search')
             }}
           >
             {t('public.reserve.addMoreServices')}
@@ -173,11 +187,12 @@ const ServiceAutocomplete = ({
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => {
+            onClick={(event) => {
               onSelect([])
               setQuery('')
               setOpen(false)
               setAddingMore(false)
+              focusAfterUpdate(event.currentTarget, 'search')
             }}
           >
             {t('public.reserve.clearServices')}
@@ -198,6 +213,12 @@ const ServiceAutocomplete = ({
                   setOpen(true)
                 }}
                 onFocus={() => setOpen(true)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && open) {
+                    event.preventDefault()
+                    setOpen(false)
+                  }
+                }}
                 className="pl-9"
               />
               {loading ? (
@@ -217,7 +238,7 @@ const ServiceAutocomplete = ({
                         key={s.id}
                         type="button"
                         className="w-full text-left px-3 py-3 hover:bg-surface-sunken border-b border-line last:border-b-0"
-                        onClick={() => selectService(s)}
+                        onClick={(event) => selectService(s, event.currentTarget)}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
@@ -258,6 +279,12 @@ const ServiceAutocomplete = ({
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && open) {
+              event.preventDefault()
+              setOpen(false)
+            }
+          }}
           className="pl-9"
         />
         {loading ? (
@@ -277,8 +304,8 @@ const ServiceAutocomplete = ({
                   key={s.id}
                   type="button"
                   className="w-full text-left px-3 py-3 hover:bg-surface-sunken border-b border-line last:border-b-0"
-                  onClick={() => {
-                    selectService(s)
+                  onClick={(event) => {
+                    selectService(s, event.currentTarget)
                   }}
                 >
                   <div className="flex items-center justify-between gap-4">

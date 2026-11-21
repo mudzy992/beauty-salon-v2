@@ -30,3 +30,7 @@ Zapisivati datum, commit, uređaj/viewport, browser, ulogu, rutu, jezik, temu, p
 ### Klijentska lista: fiksurna automatizacija, nije zamjena za ručni pregled
 
 Na `/moje-rezervacije` je lokalno prošlo 60 izolovanih BS/EN Aurum light/dark kombinacija: popunjena lista, dijalog otkazivanja, simulirani uspjeh, odbijanje prijedloga s greškom i retry učitavanja, pri 320 px, simuliranom 200% root tekstu i text-spacing overrideu. Duga napomena se u Aurumu više ne odsijeca; `aria-describedby` povezuje referencu, status i detalje. Escape vraća fokus na okidač, a simulirani uspjeh na naslov kada je okidač nedostupan. Provjeriti ručno stvarni zoom, redoslijed i vidljivost fokusa, čitač ekrana te oba prikaza dijaloga; fiksura ne vrši stvarnu rezervacijsku transakciju i ne zatvara M2.
+
+### Booking s više usluga
+
+U izolovanoj sesiji provjeriti pretragu, Tab do rezultata, Enter, Escape, dodavanje, zasebna dugmad za uklanjanje i čišćenje te promjenu usluge nakon izbora termina. Posebno provjeriti da fokus i sadržaj ostaju vidljivi pri skrolu ispod sticky headera, s dugačkim nazivima, oba jezika i realnim zoom/text-spacing postavkama. Fiksurnih 72 slučaja i izresci kartice su u [ciljanom pregledu](16_ciljani-vizuelni-pregled.md); izresci su namjerno snimljeni bez sticky ponašanja headera i nisu dokaz ručnog pregleda ni stvarne rezervacije.

@@ -38,6 +38,11 @@ const PUBLIC_ROUTES = [
 for (const route of PUBLIC_ROUTES) {
   test(`axe: ${route.name} (${route.path})`, async ({ page }) => {
     await page.goto(route.path, { waitUntil: 'networkidle' })
+    if (route.path === '/rezervacija') {
+      // Guest access redirects; do not misrepresent the login scan as a booking-page audit.
+      await expect(page).toHaveURL(/\/login(?:\?.*)?$/)
+      process.stdout.write('::notice title=Gostujući axe /rezervacija::Konačna ruta je /login; autentificirani booking provjerava se zasebnim fiksurama.\n')
+    }
     // Čeka završetak animacija PRIJE analize: `app-logo-reveal` kreće od `opacity: 0.01`
     // (globals.css), pa axe mjeren u tom trenu vidi gotovo nevidljiv tekst i prijavi
     // `color-contrast` — to je bio flake na `/` (run `42907958179`: violations 1, a

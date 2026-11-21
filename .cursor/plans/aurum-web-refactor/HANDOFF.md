@@ -1,5 +1,7 @@
 # HANDOFF — Aurum web refaktor
 
+> **M2 širi booking paket, lokalno:** 72/72 kombinacije s dvije usluge i fokusnim tokovima, te 126/126 ranijih `booking` slučajeva i 1/1 gostujući axe login redirect. Popravka fokusa, opisa uklanjanja i punih naziva; sticky header pri nekim pozicijama pokriva dio sadržaja, potrebno ručno testiranje. Stvarne rezervacije nisu dirane. Detalji i ograničenja u `16_ciljani-vizuelni-pregled.md`; CI ovog paketa tek slijedi.
+
 > **M2 dalji parcijalni pregled:** tri preostala selektora analitičke legende pregledana su lokalno u podrazumijevanom Aurum light i u Classic light (17,55:1 / 20,01:1); CI tema nije zabilježena. Dva uzorka pod `/rezervacija` ostaju nerazriješena u CI kontekstu; to nije pregled cijelog booking toka ni svih čvorova. [CI hero testa 44929350606](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44929350606) 5/5, rendered 1431/0/0. Ograničenja i dokazi: `16_ciljani-vizuelni-pregled.md`.
 
 > **M2 novi lokalni hero pregled:** `/blog`, `/galerija`, `/kontakt`, šest ranije nepotpunih uzoraka na BS Aurum light/dark fiksuri; 12/12 lokalnih BS/EN testova na crnoj/bijeloj podlozi. Ostaje pet prethodno zabilježenih uzoraka i širi ručni/AT pregled. CI ovog testa tek slijedi; auth [CI 44927850035](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44927850035) je 5/5, rendered 1419/0/0. Detalji i snimci u `16_ciljani-vizuelni-pregled.md`.

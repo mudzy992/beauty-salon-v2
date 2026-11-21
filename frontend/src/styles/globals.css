@@ -1504,6 +1504,15 @@
   border-color: hsl(var(--line));
   color: hsl(var(--text));
 }
+/* Keep selected service names and their removal controls readable at narrow widths. */
+[data-skin="aurum"] [data-reserve-selected-item] { flex-wrap: wrap; }
+[data-skin="aurum"] [data-reserve-selected-item] > div { flex: 1 1 10rem; }
+[data-skin="aurum"] [data-reserve-service-name] {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 [data-skin="aurum"] [data-aurum-page="reserve"] [data-reserve-calendar] button[aria-pressed="false"] {
   color: hsl(var(--text));
   background: hsl(var(--surface));
