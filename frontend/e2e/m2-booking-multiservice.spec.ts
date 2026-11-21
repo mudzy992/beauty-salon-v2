@@ -1,4 +1,6 @@
-import { expect, test, type Locator } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test, type Locator, type Page } from '@playwright/test'
+import { AXE_RULE_TAGS, assertableViolations } from './axe-coverage.mjs'
 import { clippedSnapshot, overflowingElements } from './dom-metrics.mjs'
 import { settleAnimations } from './settle'
 
@@ -13,6 +15,17 @@ function report(title: string, detail: string) {
 test.afterEach(async ({}, info) => {
   if (info.status !== info.expectedStatus) report(`M2 multi-service ${info.title}`, info.errors.map(error => error.message || String(error)).join(' | ').slice(0, 2000))
 })
+
+async function scanBooking(page: Page, state: string) {
+  const results = await new AxeBuilder({ page }).include('[data-aurum-page="reserve"]').withTags(AXE_RULE_TAGS).analyze()
+  const findings = {
+    violations: results.violations.map(({ id, impact, nodes }) => ({ id, impact, targets: nodes.map(node => node.target) })),
+    incomplete: results.incomplete.map(({ id, nodes }) => ({ id, targets: nodes.map(node => node.target) })),
+  }
+  await test.info().attach(`axe-${state.replace(/ /g, '-')}`, { body: JSON.stringify(findings, null, 2), contentType: 'application/json' })
+  const blocking = assertableViolations(results.violations).filter(violation => violation.impact === 'critical' || violation.impact === 'serious')
+  expect(blocking, `${state}: ${JSON.stringify(blocking.map(violation => ({ id: violation.id, nodes: violation.nodes.map(node => node.target) })))}`).toEqual([])
+}
 
 async function expectFocusUnobscured(target: Locator) {
   await expect.poll(() => target.evaluate(el => {
@@ -118,6 +131,7 @@ for (const mode of ['light', 'dark'] as const) {
             expect(size.scrollWidth - size.width, JSON.stringify(size)).toBeLessThanOrEqual(1)
             expect(size.scrollHeight - size.height, JSON.stringify(size)).toBeLessThanOrEqual(1)
           }
+          if (state === 'selected' && adjustment === '320-spacing') await scanBooking(page, 'two selected services')
           if (state === 'change-after-slot') {
             const day = root.locator('[data-reserve-calendar] button[aria-pressed="false"]:not([disabled])')
             await expect(day).toHaveCount(1)
@@ -129,6 +143,7 @@ for (const mode of ['light', 'dark'] as const) {
             await page.keyboard.press('Enter')
             await expect(root.locator('#reservation-notes')).toBeVisible()
             expect(slotQueries).toContain('service-one,service-two')
+            if (adjustment === '320-spacing') await scanBooking(page, 'booking summary')
           }
           if (state === 'remove-one' || state === 'remove-last' || state === 'change-after-slot') {
             const remove = items.nth(0).getByRole('button')
