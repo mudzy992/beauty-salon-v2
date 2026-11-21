@@ -26,3 +26,7 @@ p { margin-bottom: 2em !important; }
 Pregledati sadržaj, oznake i poruke, vidljivost i upotrebljivost kontrola, preklapanja, odsijecanje te dijaloge i njihove skrol regije; po potrebi proći tastaturom. Zabilježiti i ukloniti override nakon pregleda. Ne unositi stvarne klijentske podatke niti izvršavati stvarne finansijske radnje. Automatizovani CSS override i diferencijalna DOM mjera nisu dokaz ovog vizuelnog i interaktivnog pregleda.
 
 Zapisivati datum, commit, uređaj/viewport, browser, ulogu, rutu, jezik, temu, postavku, rezultat, dokaz i otvorene nalaze. Nijedna stavka se ne smatra prolazom dok nije stvarno pregledana. Korisnik je prijavio da je stvarni browser prošao, ali bez tačnog obima i bez potvrde ručnog text-spacinga; to ne zamjenjuje ovaj zapis. Kontrast prijavljen od rendered axe-a: STOP i odluka vlasnika prije izmjene palete; ne slabiti testove.
+
+### Klijentska lista: fiksurna automatizacija, nije zamjena za ručni pregled
+
+Na `/moje-rezervacije` je lokalno prošlo 60 izolovanih BS/EN Aurum light/dark kombinacija: popunjena lista, dijalog otkazivanja, simulirani uspjeh, odbijanje prijedloga s greškom i retry učitavanja, pri 320 px, simuliranom 200% root tekstu i text-spacing overrideu. Duga napomena se u Aurumu više ne odsijeca; `aria-describedby` povezuje referencu, status i detalje. Escape vraća fokus na okidač, a simulirani uspjeh na naslov kada je okidač nedostupan. Provjeriti ručno stvarni zoom, redoslijed i vidljivost fokusa, čitač ekrana te oba prikaza dijaloga; fiksura ne vrši stvarnu rezervacijsku transakciju i ne zatvara M2.

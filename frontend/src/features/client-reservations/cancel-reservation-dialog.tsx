@@ -16,6 +16,7 @@ type CancelReservationDialogProps = {
   onReasonChange: (value: string) => void
   onConfirm: () => void
   onOpenChange: (open: boolean) => void
+  onCloseAutoFocus?: (event: Event) => void
 }
 
 export const CancelReservationDialog = ({
@@ -31,10 +32,12 @@ export const CancelReservationDialog = ({
   onReasonChange,
   onConfirm,
   onOpenChange,
+  onCloseAutoFocus,
 }: CancelReservationDialogProps) => (
   <ResponsiveDialog
     open={open}
     onOpenChange={onOpenChange}
+    onCloseAutoFocus={onCloseAutoFocus}
     title={title}
     description={description}
     footer={

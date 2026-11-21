@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../components/ui/button'
@@ -24,7 +25,7 @@ type MyReservationCardProps = {
   onConfirmAttendance: (r: Reservation) => void
   onAcceptReschedule: (r: Reservation) => void
   onDeclineReschedule: (r: Reservation) => void
-  onCancel: (r: Reservation) => void
+  onCancel: (r: Reservation, trigger: HTMLButtonElement) => void
 }
 
 export const MyReservationCard = ({
@@ -37,6 +38,7 @@ export const MyReservationCard = ({
   onCancel,
 }: MyReservationCardProps) => {
   const { t, i18n } = useTranslation()
+  const descriptionId = useId()
   const locale = getIntlLocale(i18n.language)
   const busy = busyId === r.id
   const stylist = getClientReservationStylistLabel(r)
@@ -58,6 +60,7 @@ export const MyReservationCard = ({
           type="button"
           className="w-full text-left space-y-4 rounded-xl transition hover:bg-surface-sunken/80 -m-2 p-2"
           onClick={() => onOpenDetail(r)}
+          aria-describedby={`${r.publicReferenceCode ? `${descriptionId}-reference ` : ''}${descriptionId}-status ${descriptionId}-details`}
           aria-label={t('public.myReservations.openDetailsNamed', {
             service: servicesLabel,
             date: formatReservationDate(r.reservationDate, locale),
@@ -69,21 +72,21 @@ export const MyReservationCard = ({
               {servicesLabel}
             </p>
             {r.publicReferenceCode ? (
-              <p className="text-xs text-content-muted mt-0.5">{r.publicReferenceCode}</p>
+              <p id={`${descriptionId}-reference`} className="text-xs text-content-muted mt-0.5">{r.publicReferenceCode}</p>
             ) : null}
           </div>
-          <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-content-strong">
+          <span id={`${descriptionId}-status`} className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-medium text-content-strong">
             {statusKey ? t(statusKey) : r.status}
           </span>
         </div>
 
-        <div className="grid gap-1.5 text-sm text-content-strong">
+        <div id={`${descriptionId}-details`} className="grid gap-1.5 text-sm text-content-strong">
           <p>
             <time dateTime={r.reservationDate.slice(0, 10)}>{formatReservationDate(r.reservationDate, locale)}</time> · {r.startTime} – {r.endTime}
           </p>
           {stylist ? <p className="text-content-muted">{t('public.myReservations.stylistLabel', { name: stylist })}</p> : null}
           {r.clientNotes ? (
-            <p className="text-content-muted line-clamp-2">{r.clientNotes}</p>
+            <p data-client-reservation-notes className="text-content-muted line-clamp-2">{r.clientNotes}</p>
           ) : null}
         </div>
         </button>
@@ -142,7 +145,7 @@ export const MyReservationCard = ({
               variant="ghost"
               className="text-rose-700 hover:text-rose-800"
               disabled={busy}
-              onClick={() => onCancel(r)}
+              onClick={(event) => onCancel(r, event.currentTarget)}
               aria-label={t('public.myReservations.cancelReservationNamed', {
                 service: servicesLabel,
                 date: formatReservationDate(r.reservationDate, locale),

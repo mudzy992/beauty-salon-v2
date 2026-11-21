@@ -2063,3 +2063,11 @@
   }
   [data-skin="aurum"] [data-token-detail-row] > span { min-width: 0; text-align: left; overflow-wrap: anywhere; }
 }
+
+/* Client notes have no complete counterpart on the detail page; keep them readable. */
+[data-skin="aurum"] [data-client-reservation-notes] {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}

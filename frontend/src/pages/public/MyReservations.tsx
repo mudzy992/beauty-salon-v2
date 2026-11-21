@@ -33,6 +33,8 @@ export default function MyReservations() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null)
   const [cancelReason, setCancelReason] = useState('')
+  const cancelTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const pageTitleRef = useRef<HTMLHeadingElement | null>(null)
 
   useEffect(() => {
     if (!isReady) return
@@ -149,7 +151,8 @@ export default function MyReservations() {
                 t('public.myReservations.toastRescheduleDeclined'),
               )
             }
-            onCancel={(row) => {
+            onCancel={(row, trigger) => {
+              cancelTriggerRef.current = trigger
               setCancelReason('')
               setCancelTarget(row)
             }}
@@ -163,7 +166,7 @@ export default function MyReservations() {
     <div data-aurum-page="my-reservations" className={`bg-surface min-h-screen pb-20 ${isAurum ? publicAurum.page : ''}`}>
       <div data-aurum-page-hero className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
-          <h1 className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.myReservations.title')}</h1>
+          <h1 ref={pageTitleRef} tabIndex={-1} className={`${publicHeader.title} ${isAurum ? publicAurum.heading : ''}`}>{t('public.myReservations.title')}</h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {t('public.myReservations.subtitle')}
           </p>
@@ -218,6 +221,16 @@ export default function MyReservations() {
         dismissLabel={t('common.cancel')}
         onReasonChange={setCancelReason}
         onConfirm={() => void handleConfirmCancel()}
+        onCloseAutoFocus={(event) => {
+          const trigger = cancelTriggerRef.current
+          cancelTriggerRef.current = null
+          // Do not pull focus back if the user has already moved it elsewhere.
+          const active = document.activeElement
+          event.preventDefault()
+          if (active && active !== document.body && !active.closest('[role="dialog"]')) return
+          const target = trigger?.isConnected && !trigger.disabled ? trigger : pageTitleRef.current
+          target?.focus()
+        }}
         onOpenChange={(open) => {
           if (!open) {
             setCancelTarget(null)
