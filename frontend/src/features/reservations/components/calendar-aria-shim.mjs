@@ -34,6 +34,20 @@
 /** Jedan prolaz popravke nad datim korijenom. */
 export function applyCalendarAriaShim(root) {
   if (!root) return
+  // The month layout overlays events beside date cells rather than nesting them
+  // in a real table. Its library-provided table/row/cell roles therefore have
+  // invalid ownership and cannot convey the event's date. Expose a named group
+  // instead; date and event buttons carry their full dates in their own names.
+  for (const el of root.querySelectorAll('.rbc-month-view[role="table"]')) {
+    el.setAttribute('role', 'group')
+  }
+  for (const el of root.querySelectorAll('.rbc-month-view[role="group"]')) {
+    const label = root.getAttribute('data-calendar-month-label') || 'Month View'
+    if (el.getAttribute('aria-label') !== label) el.setAttribute('aria-label', label)
+  }
+  for (const el of root.querySelectorAll('.rbc-month-view .rbc-month-header[role="row"], .rbc-month-view .rbc-month-row[role="rowgroup"], .rbc-month-view .rbc-date-cell[role="cell"]')) {
+    el.removeAttribute('role')
+  }
   for (const el of root.querySelectorAll('.rbc-row-content[role="row"]')) {
     el.removeAttribute('role')
   }
@@ -69,7 +83,7 @@ export function observeCalendarAriaShim(root) {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['role', 'tabindex'],
+    attributeFilter: ['role', 'tabindex', 'aria-label', 'data-calendar-month-label'],
   })
   return () => observer.disconnect()
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 
 import { useIsMobile } from '../../../../hooks/use-is-mobile'
 import {
@@ -35,14 +35,41 @@ export function ResponsiveDialog({
   onCloseAutoFocus,
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile()
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const fallbackRef = useRef<HTMLElement | null>(null)
+  const pathRef = useRef('')
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  const handleOpenAutoFocus = (event: Event) => {
+    const active = document.activeElement
+    triggerRef.current = active instanceof HTMLElement && active !== document.body ? active : null
+    fallbackRef.current = document.querySelector<HTMLElement>('main[tabindex="-1"]')
+    pathRef.current = window.location.pathname
+    onOpenAutoFocus?.(event)
+  }
+  const handleCloseAutoFocus = (event: Event) => {
+    onCloseAutoFocus?.(event)
+    if (event.defaultPrevented) return
+    // Navigation and deliberate focus changes must not be overridden by cleanup.
+    const active = document.activeElement
+    event.preventDefault()
+    if (window.location.pathname !== pathRef.current) return
+    if (active && active !== document.body && !contentRef.current?.contains(active)) return
+    const trigger = triggerRef.current
+    if (trigger?.isConnected && !trigger.matches(':disabled') && trigger.getClientRects().length > 0) trigger.focus()
+    else if (fallbackRef.current?.isConnected) fallbackRef.current.focus()
+    triggerRef.current = null
+    fallbackRef.current = null
+  }
 
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent
           side="right"
-          onOpenAutoFocus={onOpenAutoFocus}
-          onCloseAutoFocus={onCloseAutoFocus}
+          ref={contentRef}
+          onOpenAutoFocus={handleOpenAutoFocus}
+          onCloseAutoFocus={handleCloseAutoFocus}
           className="flex h-full w-full max-w-full flex-col gap-0 p-0"
         >
           <div className="border-b border-line px-4 py-3 ">
@@ -68,7 +95,7 @@ export function ResponsiveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className ?? 'max-w-2xl'} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent ref={contentRef} className={className ?? 'max-w-2xl'} onOpenAutoFocus={handleOpenAutoFocus} onCloseAutoFocus={handleCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? (

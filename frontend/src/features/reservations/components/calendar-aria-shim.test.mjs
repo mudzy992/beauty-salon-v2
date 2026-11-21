@@ -149,7 +149,7 @@ test('MutationObserver ponavlja popravku nakon što rbc re-renderuje i vrati svo
 test('šim je povezan na kontejner kalendara u ReservationScheduleru', () => {
   assert.match(scheduler, /useCalendarAriaShim\(calendarShellRef\)/)
   assert.match(scheduler, /const calendarShellRef = useRef<HTMLDivElement \| null>\(null\)/)
-  assert.match(scheduler, /<div ref=\{calendarShellRef\} className="rounded-xl border border-line overflow-hidden">/)
+  assert.match(scheduler, /<div ref=\{calendarShellRef\} className="rounded-xl border border-line overflow-hidden" data-calendar-month-label=\{messages\.month\}>/)
   assert.match(scheduler, /header: SchedulerColumnHeader as any,/)
 })
 
@@ -171,4 +171,30 @@ test('scrollable-region-focusable se u jsdomu NE može dokazati — nema raspore
   const { counts, incomplete } = await scan(root)
   assert.equal(counts['scrollable-region-focusable'], 0)
   assert.equal(incomplete.includes('scrollable-region-focusable'), false)
+})
+
+test('month overlay is a labelled group, not an invalid table; other tables remain intact', async () => {
+  const root = makeDom(`<div id="cal" data-calendar-month-label="Mjesec">
+    <div class="rbc-month-view" role="table" aria-label="Month View">
+      <div class="rbc-month-header" role="row"><div>Mon</div></div>
+      <div class="rbc-month-row" role="rowgroup"><div class="rbc-row-content" role="row">
+        <div class="rbc-row"><div class="rbc-date-cell" role="cell"><button>2 March</button></div></div>
+        <div class="rbc-addons-dnd-row-body"><button>4 March appointment</button></div>
+      </div></div>
+    </div>
+    <div role="table"><div role="rowgroup"><div role="row"><div role="cell">valid</div></div></div></div>
+  </div>`)
+  const disconnect = observeCalendarAriaShim(root)
+  const month = root.querySelector('.rbc-month-view')
+  assert.equal(month.getAttribute('role'), 'group')
+  assert.equal(month.getAttribute('aria-label'), 'Mjesec')
+  assert.equal(month.querySelectorAll('[role="row"], [role="rowgroup"], [role="cell"]').length, 0)
+  assert.equal(root.querySelector('div[role="table"] [role="cell"]').textContent, 'valid')
+  assert.deepEqual((await scan(root)).counts, { 'aria-required-children': 0, 'aria-required-parent': 0, 'scrollable-region-focusable': 0 })
+  root.setAttribute('data-calendar-month-label', 'Month')
+  month.setAttribute('role', 'table')
+  await new Promise(resolve => setTimeout(resolve, 0))
+  assert.equal(month.getAttribute('role'), 'group')
+  assert.equal(month.getAttribute('aria-label'), 'Month')
+  disconnect()
 })

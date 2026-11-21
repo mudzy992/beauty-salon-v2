@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
@@ -41,6 +41,9 @@ export default function ReservationsCalendar() {
   const toast = useAppToast()
 
   const [loading, setLoading] = useState(true)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const requestSequence = useRef(0)
+  const retryButton = useRef<HTMLButtonElement>(null)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [reservationLoadError, setReservationLoadError] = useState(false)
   const [stylists, setStylists] = useState<StylistProfile[]>([])
@@ -75,18 +78,26 @@ export default function ReservationsCalendar() {
   }, [activeDate, view])
 
   const loadReservations = useCallback(async (opts?: { silent?: boolean }) => {
-    const silent = opts?.silent === true
-    if (!silent) setLoading(true)
-    setReservationLoadError(false)
+    const requestId = ++requestSequence.current
+    if (opts?.silent !== true) setLoading(true)
     try {
       const items = await fetchAllReservationPages<Reservation>(range)
-      setReservations(items)
+      if (requestId === requestSequence.current) {
+        setReservations(items)
+        // The retry control disappears on success; don't leave focus on the document body.
+        if (document.activeElement === retryButton.current) document.getElementById('calendar-main')?.focus()
+        setReservationLoadError(false)
+      }
     } catch (err) {
+      if (requestId !== requestSequence.current) return
       setReservationLoadError(true)
       const apiErr = resolveAdminApiError(getErrorMessage(err, ''), 'common.error', getErrorCode(err))
       toast.error(t(apiErr.key, apiErr.values))
     } finally {
-      if (!silent) setLoading(false)
+      if (requestId === requestSequence.current) {
+        setHasLoaded(true)
+        setLoading(false)
+      }
     }
   }, [range, t, toast])
 
@@ -193,6 +204,7 @@ export default function ReservationsCalendar() {
           </div>
           {reservationLoadError ? (
             <Button
+              ref={retryButton}
               type="button"
               variant="outline"
               onClick={() => void loadReservations()}
@@ -206,15 +218,16 @@ export default function ReservationsCalendar() {
           </Button>
         </header>
 
-        <main id="calendar-main" tabIndex={-1} data-admin-calendar-main className="min-h-[28rem] flex-1 rounded-xl border border-line bg-surface shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-focus-ring  ">
-          {loading ? (
-            <div role="status" aria-live="polite" className="flex h-full items-center justify-center text-content-strong">
-              <span className="sr-only">{t('common.loading')}</span>
+        <div role="status" aria-live="polite" className="sr-only">{loading ? t('common.loading') : ''}</div>
+        <main id="calendar-main" tabIndex={-1} data-admin-calendar-main data-route-main aria-busy={loading} className="min-h-[28rem] flex-1 rounded-xl border border-line bg-surface shadow-sm">
+          {loading && hasLoaded ? <div aria-hidden="true" className="p-3 text-sm text-content-strong">{t('common.loading')}</div> : null}
+          {!hasLoaded ? (
+            <div className="flex h-full items-center justify-center text-content-strong">
               <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             </div>
           ) : (
             <ReservationScheduler
-              reservations={reservations}
+              reservations={reservationLoadError ? [] : reservations}
               stylists={stylists}
               loading={loading}
               view={view}

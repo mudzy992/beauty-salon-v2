@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { Check, Loader2, X } from 'lucide-react'
 import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
@@ -38,6 +39,15 @@ export function ManualEntryDialog({
 }: ManualEntryDialogProps) {
   const { t, i18n } = useTranslation()
   const f = useManualEntryForm({ open, year, month, editing })
+  const clientSearchRef = useRef<HTMLInputElement>(null)
+  const removeClientRef = useRef<HTMLButtonElement>(null)
+  const pendingClientFocus = useRef<'search' | 'remove' | null>(null)
+  useLayoutEffect(() => {
+    const target = pendingClientFocus.current
+    pendingClientFocus.current = null
+    if (target === 'search') clientSearchRef.current?.focus()
+    if (target === 'remove') removeClientRef.current?.focus()
+  }, [f.selectedClient])
   const formatAmount = (value: number | string) =>
     formatLocalizedAmount(value, i18n.language)
 
@@ -133,10 +143,14 @@ export function ManualEntryDialog({
               >
                 <span className="text-sm">{getPersonName(f.selectedClient)}</span>
                 <Button
+                  ref={removeClientRef}
                   variant="ghost"
                   size="icon"
                   aria-label={t('finance.manualEntry.removeClient')}
-                  onClick={() => f.selectClient(null)}
+                  onClick={(event) => {
+                    if (document.activeElement === event.currentTarget) pendingClientFocus.current = 'search'
+                    f.selectClient(null)
+                  }}
                 >
                   <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </Button>
@@ -147,6 +161,7 @@ export function ManualEntryDialog({
               <Label htmlFor="manual-client">{t('finance.manualEntry.client')}</Label>
               <Input
                 id="manual-client"
+                ref={clientSearchRef}
                 value={f.clientQuery}
                 onChange={(event) => f.setClientQuery(event.target.value)}
                 placeholder={t('finance.manualEntry.searchClient')}
@@ -158,7 +173,10 @@ export function ManualEntryDialog({
                       <button
                         type="button"
                         className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted"
-                        onClick={() => f.selectClient(client)}
+                        onClick={(event) => {
+                          if (document.activeElement === event.currentTarget) pendingClientFocus.current = 'remove'
+                          f.selectClient(client)
+                        }}
                       >
                         {getPersonName(client)}
                         <Check className="h-3.5 w-3.5 text-content-strong" aria-hidden="true" />

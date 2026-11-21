@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **M1/M3 nastavak:** novi kalendarski i finance keyboard/focus paket lokalno 231/231, uz ciljane regresije; CI nove promjene čeka potvrdu. M1/M3 su i dalje otvoreni za preostale tokove i stvarni ručni pregled; opseg i granice u `17_m1_m3_izvjestaj.md`.
+
 > **M1/M3 u toku:** početni paket lokalno 144/144 novih fiksura, 60/60 klijentskih i 14/14 ciljnih stylist regresija; popravljeni izbor fotografija tastaturom, povrat fokusa i ugniježđene navigacijske kontrole. CI koda `a8e2e74` 5/5, rendered 1661/0/0; M1/M3 nisu zatvoreni. Cjeloviti radni opseg, rezultati, ograničenja i sljedeći koraci su u `17_m1_m3_izvjestaj.md`.
 
 > **M2 završen na osnovu korisnikove potvrde i fiksura:** korisnik je prijavio Brave i Edge na Windowsu, sve rute, uloge, jezike i teme, bez preklapanja, odsijecanja ili nedostupnih kontrola, te izričito potvrdio 200% i 400% browser zoom, text-spacing override i verziju `718fbe0`. Viewport, verzije browsera i pojedinačna stanja nisu navedeni; nije nezavisan audit. Za `718fbe0` [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) **5/5, rendered 1505/0/0**. 320px je pokriveno automatizovanim fiksurama; M1/M3/M4/M5/M6 i nepotpuni axe nalazi ne zatvaraju se ovim. Detalji: `15_rucni-pregled.md` i `CHANGELOG.md`. Stariji statusi u nastavku su historijski.

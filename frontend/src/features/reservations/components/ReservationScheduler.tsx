@@ -82,6 +82,38 @@ const SchedulerEventContent = ({ event }: { event: SchedulerEvent }) => {
   )
 }
 
+// react-big-calendar's agenda event cell only has an onClick handler. A native
+// button makes the same selection available to keyboard users; its click bubbles
+// to the library's cell handler in exactly the same way as a pointer click.
+const SchedulerAgendaEvent = ({ event }: { event: SchedulerEvent }) => {
+  const { i18n } = useTranslation()
+  return (
+    <button type="button" className="w-full rounded-sm p-1 text-left">
+      <span className="sr-only">{event.start.toLocaleDateString(i18n.language, { dateStyle: 'full' })} </span>
+      <SchedulerEventContent event={event} />
+    </button>
+  )
+}
+
+// Month cells also lack a tab stop. Stop keydown propagation so the native
+// button's click is the only activation sent to the parent event handler.
+const SchedulerMonthEvent = ({ event }: { event: SchedulerEvent }) => {
+  const { i18n } = useTranslation()
+  return (
+    <button type="button" className="w-full rounded-sm p-1 text-left" onKeyDown={event => event.stopPropagation()}>
+      <span className="sr-only">{event.start.toLocaleDateString(i18n.language, { dateStyle: 'full' })} </span>
+      <SchedulerEventContent event={event} />
+    </button>
+  )
+}
+
+function SchedulerMonthDateHeader({ date, label, drilldownView, onDrillDown }: { date: Date; label: string; drilldownView?: string; onDrillDown: () => void }) {
+  const { i18n } = useTranslation()
+  const fullDate = date.toLocaleDateString(i18n.language, { dateStyle: 'full' })
+  if (!drilldownView) return <span>{label}<span className="sr-only"> {fullDate}</span></span>
+  return <button type="button" className="rbc-button-link" aria-label={`${label} — ${fullDate}`} onClick={onDrillDown}>{label}</button>
+}
+
 type ServiceOption = {
   id: string
   name: string
@@ -212,7 +244,7 @@ export const ReservationScheduler = (props: Props) => {
   const toast = useAppToast()
 
   const locales = useMemo(() => ({ 'en-US': enUS, 'bs-BA': bs }), [])
-  const currentLang = (String((t as any)?.i18n?.language ?? 'bs') || 'bs').toLowerCase()
+  const currentLang = (i18n.resolvedLanguage ?? i18n.language ?? 'bs').toLowerCase()
   const localeKey = currentLang.startsWith('en') ? 'en-US' : 'bs-BA'
 
   const localizer = useMemo(
@@ -273,6 +305,15 @@ export const ReservationScheduler = (props: Props) => {
   }, [props.reservations, props.selectedStylistIds, t])
 
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const drawerTrigger = useRef<HTMLElement | null>(null)
+  const drawerContent = useRef<HTMLDivElement>(null)
+  const drawerPath = useRef('')
+  const createButton = useRef<HTMLButtonElement>(null)
+  const rememberDrawerTrigger = () => {
+    const active = document.activeElement
+    drawerTrigger.current = active instanceof HTMLElement && active !== document.body ? active : null
+    drawerPath.current = window.location.pathname
+  }
   const [drawerMode, setDrawerMode] = useState<'details' | 'create'>('details')
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null)
   const [cancelReason, setCancelReason] = useState('')
@@ -454,6 +495,7 @@ export const ReservationScheduler = (props: Props) => {
   )
 
   const openCreate = (slot?: SlotInfo) => {
+    rememberDrawerTrigger()
     const start = slot?.start instanceof Date ? slot.start : new Date(props.date)
     const end = slot?.end instanceof Date ? slot.end : new Date(props.date)
     const preselectedStylistId =
@@ -478,6 +520,7 @@ export const ReservationScheduler = (props: Props) => {
   }
 
   const openDetails = (r: Reservation) => {
+    rememberDrawerTrigger()
     setActiveReservation(r)
     setCancelReason('')
     setCancelling(false)
@@ -538,7 +581,7 @@ export const ReservationScheduler = (props: Props) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => openCreate()}>
+            <Button ref={createButton} type="button" variant="outline" size="sm" onClick={() => openCreate()}>
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               {t('reservations.calendar.toolbar.newAppointment')}
             </Button>
@@ -561,6 +604,7 @@ export const ReservationScheduler = (props: Props) => {
             <div className="inline-flex max-w-full flex-wrap rounded-md border border-line">
               <button
                 type="button"
+                aria-pressed={props.view === 'dayGridMonth'}
                 className={props.view === 'dayGridMonth' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('dayGridMonth')}
               >
@@ -568,6 +612,7 @@ export const ReservationScheduler = (props: Props) => {
               </button>
               <button
                 type="button"
+                aria-pressed={props.view === 'timeGridWeek'}
                 className={props.view === 'timeGridWeek' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('timeGridWeek')}
               >
@@ -575,6 +620,7 @@ export const ReservationScheduler = (props: Props) => {
               </button>
               <button
                 type="button"
+                aria-pressed={props.view === 'timeGridDay'}
                 className={props.view === 'timeGridDay' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('timeGridDay')}
               >
@@ -582,6 +628,7 @@ export const ReservationScheduler = (props: Props) => {
               </button>
               <button
                 type="button"
+                aria-pressed={props.view === 'agenda'}
                 className={props.view === 'agenda' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('agenda')}
               >
@@ -598,6 +645,7 @@ export const ReservationScheduler = (props: Props) => {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
+                aria-pressed={props.selectedStylistIds.length === 0}
                 className={props.selectedStylistIds.length === 0 ? 'rounded-full bg-content px-3 py-1 text-xs font-semibold text-surface' : 'rounded-full border border-line px-3 py-1 text-xs text-content-strong'}
                 onClick={() => props.onSelectedStylistIdsChange([])}
               >
@@ -607,6 +655,7 @@ export const ReservationScheduler = (props: Props) => {
                 <button
                   key={r.id}
                   type="button"
+                  aria-pressed={props.selectedStylistIds.includes(r.id)}
                   className={
                     props.selectedStylistIds.includes(r.id)
                       ? 'rounded-full bg-content px-3 py-1 text-xs font-semibold text-surface'
@@ -654,7 +703,7 @@ export const ReservationScheduler = (props: Props) => {
       </div>
 
       <div className="p-3">
-        <div ref={calendarShellRef} className="rounded-xl border border-line overflow-hidden">
+        <div ref={calendarShellRef} className="rounded-xl border border-line overflow-hidden" data-calendar-month-label={messages.month}>
           <DragAndDropCalendar
             localizer={localizer}
             culture={localeKey}
@@ -669,7 +718,8 @@ export const ReservationScheduler = (props: Props) => {
               if (v === Views.DAY) props.onViewChange('timeGridDay')
               if (v === Views.AGENDA) props.onViewChange('agenda')
             }}
-            events={events}
+            // Do not expose events from the previous range while the new range is loading.
+            events={props.loading ? [] : events}
             startAccessor="start"
             endAccessor="end"
             resourceAccessor="resourceId"
@@ -711,6 +761,8 @@ export const ReservationScheduler = (props: Props) => {
             eventPropGetter={eventPropGetter as any}
             components={{
               event: SchedulerEventContent as any,
+              agenda: { event: SchedulerAgendaEvent as any },
+              month: { event: SchedulerMonthEvent as any, dateHeader: SchedulerMonthDateHeader as any },
               header: SchedulerColumnHeader as any,
             }}
             style={{ height: 'calc(100dvh - 260px)' }}
@@ -719,7 +771,16 @@ export const ReservationScheduler = (props: Props) => {
       </div>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerContent side="right" className="flex flex-col">
+        <DrawerContent ref={drawerContent} side="right" className="flex flex-col" onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          if (window.location.pathname !== drawerPath.current) return
+          const active = document.activeElement
+          if (active && active !== document.body && !drawerContent.current?.contains(active)) return
+          const trigger = drawerTrigger.current
+          if (trigger?.isConnected && !trigger.matches(':disabled')) trigger.focus()
+          else if (createButton.current?.isConnected) createButton.current.focus()
+          else document.getElementById('calendar-main')?.focus()
+        }}>
           <div className="h-full overflow-y-auto p-5">
             <DialogTitle className="mb-1 text-lg font-semibold text-content">
               {drawerMode === 'create'

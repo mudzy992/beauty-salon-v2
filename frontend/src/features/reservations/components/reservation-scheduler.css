@@ -45,8 +45,31 @@
   padding: 4px 6px;
 }
 
+/* Off-month dates remain actionable and need readable text on the library's
+   fixed light-grey off-range background in either application theme. */
+.rbc-month-view .rbc-date-cell.rbc-off-range {
+  color: #374151;
+}
+
 .rbc-selected {
   outline: 2px solid rgba(212, 168, 67, 0.45);
   outline-offset: 1px;
+}
+
+/* Event backgrounds are deliberately light for every status in both themes.
+   Inset the dark focus outline so the calendar's clipping cannot hide it. */
+.rbc-event:focus-visible,
+.rbc-month-view .rbc-event button:focus-visible,
+.rbc-agenda-event-cell button:focus-visible {
+  outline: 3px solid #111827;
+  outline-offset: -3px;
+}
+
+@media (forced-colors: active) {
+  .rbc-event:focus-visible,
+  .rbc-month-view .rbc-event button:focus-visible,
+  .rbc-agenda-event-cell button:focus-visible {
+    outline-color: Highlight;
+  }
 }
 
