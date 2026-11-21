@@ -26,7 +26,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'],
           } })
           if (path === '/api/reservations') return route.fulfill({ json: [] })
-          return route.fallback()
+          return route.fulfill({ json: {} })
         })
         await page.goto('/admin/finance', { waitUntil: 'networkidle' })
         await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')

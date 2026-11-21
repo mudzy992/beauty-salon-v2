@@ -39,7 +39,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           if (path === '/api/reservations') return route.fulfill({ json: [reservation] })
           if (path === '/api/reservations/reservation-test') return route.fulfill({ json: reservation })
           if (path === '/api/client-debts') return route.fulfill({ json: [] })
-          return route.fallback()
+          return route.fulfill({ json: {} })
         })
         await page.goto(action === 'not-found' ? '/m1-nonexistent-route' : '/stylist/schedule', { waitUntil: 'networkidle' })
         await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')

@@ -39,7 +39,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
                   actualPrice: 45, tipAmount: 5, notes: 'Test fixture',
                 } })
                 if (path === '/api/stylists/me') return route.fulfill({ json: { id: 'stylist-profile' } })
-                return route.fallback()
+                return route.fulfill({ json: {} })
               }
               const entry: { method: string; path: string; body?: unknown } = { method: request.method(), path }
               if (path.endsWith('/images')) entry.body = request.postDataJSON()

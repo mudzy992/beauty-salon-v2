@@ -49,7 +49,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             if (path === '/api/expense-categories') return route.fulfill({ json: [category] })
             if (path === '/api/stylists/admin') return route.fulfill({ json: [stylist] })
             if (path === '/api/stylists/admin/stylist-income/services') return route.fulfill({ json: [{ service }] })
-            return route.fallback()
+            return route.fulfill({ json: {} })
           })
           await page.goto(`/admin/finance?tab=${kind}`, { waitUntil: 'networkidle' })
           expect(new URL(page.url()).pathname).toBe('/admin/finance')
