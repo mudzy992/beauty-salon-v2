@@ -188,7 +188,7 @@ export const AdminLayout = () => {
           </div>
         </aside>
         {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark; tabIndex=-1 ga čini fokusabilnim. */}
-        <main id="main" tabIndex={-1} className="min-w-0 outline-none">
+        <main id="main" tabIndex={-1} data-route-main className="min-w-0">
           <Outlet />
         </main>
       </div>

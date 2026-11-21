@@ -2098,3 +2098,18 @@
   overflow: visible;
   overflow-wrap: anywhere;
 }
+
+/* The dashboard route landmark receives keyboard focus after navigation and
+   from the skip link. Keep its indicator inside the content and below chrome. */
+[data-route-main] {
+  scroll-margin-top: 6rem;
+}
+[data-route-main]:focus-visible {
+  outline: 3px solid var(--focus-ring, var(--brand-primary-ring, #632238));
+  outline-offset: -3px;
+}
+@media (forced-colors: active) {
+  [data-route-main]:focus-visible {
+    outline-color: Highlight;
+  }
+}

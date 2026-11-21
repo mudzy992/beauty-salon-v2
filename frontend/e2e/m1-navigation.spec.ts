@@ -59,7 +59,25 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         expect(await target.evaluate(el => el.matches(':focus-visible'))).toBe(true)
         await page.keyboard.press('Enter')
         await expect.poll(() => new URL(page.url()).pathname).toBe(destination)
-        if (action === 'payment') await expect(page.getByRole('dialog')).toBeVisible()
+        if (action === 'payment') {
+          const dialog = page.getByRole('dialog')
+          await expect(dialog).toBeVisible()
+          await expect.poll(() => dialog.evaluate(el => el.contains(document.activeElement))).toBe(true)
+        } else if (action !== 'not-found') {
+          const main = page.locator('#main')
+          await expect(main).toBeFocused()
+          expect(await main.evaluate(el => el.matches(':focus-visible'))).toBe(true)
+          const outline = await main.evaluate(el => ({ style: getComputedStyle(el).outlineStyle, color: getComputedStyle(el).outlineColor, width: getComputedStyle(el).outlineWidth }))
+          expect(outline.style).not.toBe('none')
+          expect(outline.color).not.toBe('rgba(0, 0, 0, 0)')
+          expect(parseFloat(outline.width)).toBeGreaterThan(0)
+          const visibility = await main.evaluate(el => {
+            const rect = el.getBoundingClientRect()
+            const header = document.querySelector('header')?.getBoundingClientRect()
+            return { top: rect.top, headerBottom: header?.bottom ?? 0 }
+          })
+          expect(visibility.top).toBeGreaterThanOrEqual(visibility.headerBottom - 1)
+        }
         expect(writes).toEqual([])
       })
     }

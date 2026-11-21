@@ -172,7 +172,7 @@ export default function StylistLayout() {
       </header>
 
       {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark. */}
-      <main id="main" tabIndex={-1} className="mx-auto max-w-[1600px] px-4 py-4 outline-none">
+      <main id="main" tabIndex={-1} data-route-main className="mx-auto max-w-[1600px] px-4 py-4">
         <Outlet />
       </main>
     </div>
