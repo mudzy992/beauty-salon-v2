@@ -114,7 +114,7 @@ export default function Register() {
           className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-surface-inverse/90 to-transparent" />
-        <div className="absolute bottom-12 left-12 right-12 text-white">
+        <div data-aurum-auth-copy className="absolute bottom-12 left-12 right-12 text-white">
           <div className="text-4xl font-light mb-4">
             {getSetting('public_register_title', t('auth.registerBannerTitle'))}
           </div>

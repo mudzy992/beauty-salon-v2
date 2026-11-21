@@ -1014,6 +1014,24 @@
 [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-auth-banner] > [class*="bg-gradient"] {
   background-image: linear-gradient(to top, var(--nejra-hero-page), transparent);
 }
+/* Configurable copy needs its own contrast and must grow the banner when it wraps. */
+[data-skin="aurum"] [data-aurum-auth-copy] {
+  background-color: var(--nejra-hero-page);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1024px) {
+  [data-skin="aurum"] [data-aurum-auth-banner] { display: flex; align-items: flex-end; }
+  [data-skin="aurum"] [data-aurum-auth-banner] > img { position: absolute; inset: 0; }
+  [data-skin="aurum"] [data-aurum-auth-copy] {
+    position: relative;
+    inset: auto;
+    width: calc(100% - 6rem);
+    min-width: 0;
+    margin: 3rem;
+  }
+}
 
 /* OnboardingShell: tačkice koraka, savjet i jedna zlatna primarna akcija. */
 [data-skin="aurum"] [data-aurum-auth-page] [data-aurum-progress] [class*="bg-brand-gold-ring"] {
