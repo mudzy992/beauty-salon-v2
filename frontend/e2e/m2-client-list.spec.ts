@@ -106,7 +106,10 @@ for (const mode of ['light', 'dark'] as const) {
             expect(dimensions.scroll - dimensions.height, JSON.stringify(dimensions)).toBeLessThanOrEqual(1)
             if (state === 'cancel-dialog' || state === 'cancel-success') {
               const cancel = root.getByRole('button', { name: /otkaži rezervaciju —|cancel reservation —/i })
-              await cancel.focus()
+              if (state === 'cancel-dialog') {
+                for (let i = 0; i < 100 && !(await cancel.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab')
+              } else await cancel.focus()
+              await expect(cancel).toBeFocused()
               await page.keyboard.press('Enter')
               const dialog = page.getByRole('dialog')
               await expect(dialog).toBeVisible()
@@ -139,6 +142,37 @@ for (const mode of ['light', 'dark'] as const) {
             expect(lost).toEqual([])
           }
           if (state === 'cancel-dialog') {
+            const dialog = page.getByRole('dialog')
+            const reason = dialog.locator('#cancel-reason')
+            const dismiss = dialog.getByRole('button', { name: /^odustani$|^cancel$/i })
+            const confirm = dialog.getByRole('button', { name: /^otkaži rezervaciju$|^cancel reservation$/i })
+            const visited = new Set<string>()
+            for (let i = 0; i < 8; i++) {
+              await page.keyboard.press('Tab')
+              const within = await dialog.evaluate(el => el.contains(document.activeElement))
+              expect(within, 'Tab must stay inside the open modal').toBe(true)
+              const focused = page.locator(':focus')
+              expect(await focused.evaluate(el => el.matches(':focus-visible'))).toBe(true)
+              const unobscured = await focused.evaluate(el => {
+                const rect = el.getBoundingClientRect()
+                const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+                return Boolean(hit && (hit === el || el.contains(hit)))
+              })
+              expect(unobscured, 'focused modal control center must be visible and unobscured').toBe(true)
+              if (await reason.evaluate(el => el === document.activeElement)) visited.add('reason')
+              if (await dismiss.evaluate(el => el === document.activeElement)) visited.add('dismiss')
+              if (await confirm.evaluate(el => el === document.activeElement)) visited.add('confirm')
+            }
+            expect([...visited].sort()).toEqual(['confirm', 'dismiss', 'reason'])
+            const reverse = new Set<string>()
+            for (let i = 0; i < 8; i++) {
+              await page.keyboard.press('Shift+Tab')
+              expect(await dialog.evaluate(el => el.contains(document.activeElement)), 'Shift+Tab must stay inside the open modal').toBe(true)
+              if (await reason.evaluate(el => el === document.activeElement)) reverse.add('reason')
+              if (await dismiss.evaluate(el => el === document.activeElement)) reverse.add('dismiss')
+              if (await confirm.evaluate(el => el === document.activeElement)) reverse.add('confirm')
+            }
+            expect([...reverse].sort()).toEqual(['confirm', 'dismiss', 'reason'])
             await page.keyboard.press('Escape')
             await expect(page.getByRole('dialog')).toBeHidden()
             await expect(root.getByRole('button', { name: /otkaži rezervaciju —|cancel reservation —/i })).toBeFocused()

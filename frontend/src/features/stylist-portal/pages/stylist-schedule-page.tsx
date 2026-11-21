@@ -131,9 +131,9 @@ export const StylistSchedulePage = () => {
         >
           {t('stylistPortal.schedule.refresh')}
         </Button>
-        <Link to="/stylist/schedule/new">
-          <Button type="button">{t('stylistPortal.schedule.directBooking')}</Button>
-        </Link>
+        <Button asChild>
+          <Link to="/stylist/schedule/new">{t('stylistPortal.schedule.directBooking')}</Link>
+        </Button>
       </div>
 
       {isFetching ? (
@@ -189,17 +189,13 @@ export const StylistSchedulePage = () => {
                             ? t('reservations.statuses.CANCELLED_UNCONFIRMED_ATTENDANCE')
                             : t(`reservations.statuses.${r.status}`, { defaultValue: r.status })}
                         </Badge>
-                        <Link to={detailHref}>
-                          <Button type="button" variant="outline" size="sm">
-                            {t('common.details')}
-                          </Button>
-                        </Link>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to={detailHref}>{t('common.details')}</Link>
+                        </Button>
                         {r.status === 'IN_PROGRESS' ? (
-                          <Link to={completeHref}>
-                            <Button type="button" size="sm">
-                              {t('stylistPortal.schedule.payment')}
-                            </Button>
-                          </Link>
+                          <Button asChild size="sm">
+                            <Link to={completeHref}>{t('stylistPortal.schedule.payment')}</Link>
+                          </Button>
                         ) : null}
                       </div>
                     </div>

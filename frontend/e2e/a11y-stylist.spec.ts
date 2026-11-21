@@ -394,10 +394,10 @@ for (const mode of ['light', 'dark'] as const) {
           if (route.path === '/stylist/schedule') {
             const heading = page.locator('[data-stylist-schedule-heading]')
             await expect(heading.getByRole('heading', { name: /raspored|schedule/i })).toBeVisible()
-            for (const action of [/osvježi|refresh/i, /direktna rezervacija|direct booking/i]) {
-              const button = heading.getByRole('button', { name: action })
-              await expect(button).toBeVisible()
-              const bounds = await button.boundingBox()
+            for (const [role, action] of [['button', /osvježi|refresh/i], ['link', /direktna rezervacija|direct booking/i]] as const) {
+              const control = heading.getByRole(role, { name: action })
+              await expect(control).toBeVisible()
+              const bounds = await control.boundingBox()
               expect(bounds).not.toBeNull()
               expect(bounds!.x).toBeGreaterThanOrEqual(0)
               expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(321)

@@ -13,9 +13,9 @@ export default function NotFound() {
         <AuthCardHeader />
         <h1 className="text-6xl font-semibold text-content-strong">404</h1>
         <div className="text-lg text-content-strong">{t('common.pageNotFound')}</div>
-        <Link to="/">
-          <Button size="lg" data-aurum-cta="primary">{t('common.backHome')}</Button>
-        </Link>
+        <Button asChild size="lg" data-aurum-cta="primary">
+          <Link to="/">{t('common.backHome')}</Link>
+        </Button>
       </div>
     </div>
   )

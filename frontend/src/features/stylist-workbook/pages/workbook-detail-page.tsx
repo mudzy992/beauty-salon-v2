@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useState } from 'react'
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { isAxiosError } from 'axios'
@@ -44,6 +44,20 @@ export const WorkbookDetailPage = () => {
 
   const [acting, setActing] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const beforeFileRef = useRef<HTMLInputElement>(null)
+  const afterFileRef = useRef<HTMLInputElement>(null)
+  const beforeButtonRef = useRef<HTMLButtonElement>(null)
+  const afterButtonRef = useRef<HTMLButtonElement>(null)
+  const focusAfterUpload = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (uploading || !focusAfterUpload.current) return
+    const trigger = focusAfterUpload.current
+    focusAfterUpload.current = null
+    const active = document.activeElement
+    // Disabling the trigger can drop focus to body. Do not override a user's later move.
+    if (trigger.isConnected && (active === document.body || active === beforeFileRef.current || active === afterFileRef.current)) trigger.focus()
+  }, [uploading])
 
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -61,6 +75,9 @@ export const WorkbookDetailPage = () => {
     e.target.value = ''
     if (!file) return
     if (!entry) return
+    const trigger = isBefore ? beforeButtonRef.current : afterButtonRef.current
+    const active = document.activeElement
+    if (active === trigger || active === e.target || active === document.body) focusAfterUpload.current = trigger
     setUploading(true)
     try {
       const upload = await uploadDailyLogImage(file)
@@ -192,11 +209,9 @@ export const WorkbookDetailPage = () => {
               ? t('stylistWorkbook.refreshing')
               : t('stylistWorkbook.refresh')}
           </Button>
-          <Link to="/stylist/workbook">
-            <Button type="button" variant="outline">
-              {t('common.back')}
-            </Button>
-          </Link>
+          <Button asChild variant="outline">
+            <Link to="/stylist/workbook">{t('common.back')}</Link>
+          </Button>
         </div>
       </div>
 
@@ -372,34 +387,32 @@ export const WorkbookDetailPage = () => {
 
           {canComplete ? (
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              <label className="inline-flex">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => void handleUpload(true, e)}
-                  disabled={uploading}
-                />
-                <Button type="button" variant="outline" size="sm" disabled={uploading}>
-                  {uploading
-                    ? t('stylistWorkbook.detail.uploading')
-                    : t('stylistWorkbook.detail.addBefore')}
-                </Button>
-              </label>
-              <label className="inline-flex">
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => void handleUpload(false, e)}
-                  disabled={uploading}
-                />
-                <Button type="button" variant="outline" size="sm" disabled={uploading}>
-                  {uploading
-                    ? t('stylistWorkbook.detail.uploading')
-                    : t('stylistWorkbook.detail.addAfter')}
-                </Button>
-              </label>
+              <input
+                ref={beforeFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void handleUpload(true, e)}
+                disabled={uploading}
+              />
+              <Button ref={beforeButtonRef} type="button" variant="outline" size="sm" disabled={uploading} onClick={() => beforeFileRef.current?.click()}>
+                {uploading
+                  ? t('stylistWorkbook.detail.uploading')
+                  : t('stylistWorkbook.detail.addBefore')}
+              </Button>
+              <input
+                ref={afterFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void handleUpload(false, e)}
+                disabled={uploading}
+              />
+              <Button ref={afterButtonRef} type="button" variant="outline" size="sm" disabled={uploading} onClick={() => afterFileRef.current?.click()}>
+                {uploading
+                  ? t('stylistWorkbook.detail.uploading')
+                  : t('stylistWorkbook.detail.addAfter')}
+              </Button>
               {uploading ? (
                 <div role="status" aria-live="polite" className="text-xs text-content-muted flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
