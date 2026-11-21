@@ -1,6 +1,8 @@
 # Ručni pregled novog identiteta — radni protokol
 
-**Status: puni interaktivni pregled nije izvršen.** Naknadno je u sandboxu pokrenut izolovani Chromium s fiksurama; ograničena vizuelna procjena statičnih snimaka zabilježena je u [ciljanom pregledu](16_ciljani-vizuelni-pregled.md). Ona nije zamjena za korisnikov interaktivni pregled, čitač ekrana ni stvarne sistemske postavke; prijavljeni admin/stylist tokovi za pun pregled traže izolovanu bazu i račune. Automatizovani a11y-e2e i source provjere također nisu zamjena. Ne koristiti stvarne klijentske podatke.
+**Korisnikov M2 izvještaj:** korisnik je prijavio Brave i Edge na Windowsu, sve rute, uloge, jezike i teme, uredan ishod bez preklapanja, odsijecanja ili nedostupnih kontrola. Naknadno je izričito potvrdio stvarni browser zoom na 200% i 400%, text-spacing override i pregled verzije s popravkom `718fbe0`. Viewport, verzije browsera, pojedinačna stanja i vrijeme pregleda nisu navedeni. Ovo je korisnikov izvještaj, ne nezavisno provjeren audit. M2 se zatvara na osnovu te potvrde i automatizovanih 320px fiksura; čitač ekrana, sistemski forced-colors i druge nepokrivene provjere ostaju zasebno otvorene.
+
+Sandbox je koristio izolovani Chromium s fiksurama; ograničena vizuelna procjena statičnih snimaka zabilježena je u [ciljanom pregledu](16_ciljani-vizuelni-pregled.md). Ona nije zamjena za čitač ekrana ni stvarne sistemske postavke. Automatizovani a11y-e2e i source provjere također nisu zamjena. Ne koristiti stvarne klijentske podatke.
 
 Za svaki identitet (classic, Aurum light i Aurum dark), jezik BS/EN i relevantnu ulogu, na izolovanom testnom okruženju:
 
@@ -25,7 +27,7 @@ p { margin-bottom: 2em !important; }
 
 Pregledati sadržaj, oznake i poruke, vidljivost i upotrebljivost kontrola, preklapanja, odsijecanje te dijaloge i njihove skrol regije; po potrebi proći tastaturom. Zabilježiti i ukloniti override nakon pregleda. Ne unositi stvarne klijentske podatke niti izvršavati stvarne finansijske radnje. Automatizovani CSS override i diferencijalna DOM mjera nisu dokaz ovog vizuelnog i interaktivnog pregleda.
 
-Zapisivati datum, commit, uređaj/viewport, browser, ulogu, rutu, jezik, temu, postavku, rezultat, dokaz i otvorene nalaze. Nijedna stavka se ne smatra prolazom dok nije stvarno pregledana. Korisnik je prijavio da je stvarni browser prošao, ali bez tačnog obima i bez potvrde ručnog text-spacinga; to ne zamjenjuje ovaj zapis. Kontrast prijavljen od rendered axe-a: STOP i odluka vlasnika prije izmjene palete; ne slabiti testove.
+Zapisivati datum, commit, uređaj/viewport, browser, ulogu, rutu, jezik, temu, postavku, rezultat, dokaz i otvorene nalaze. Nijedna stavka se ne smatra prolazom dok nije stvarno pregledana. Najnovija korisnička prijava i njena ograničenja su na početku ovog dokumenta. Kontrast prijavljen od rendered axe-a: STOP i odluka vlasnika prije izmjene palete; ne slabiti testove.
 
 ### Klijentska lista: fiksurna automatizacija, nije zamjena za ručni pregled
 

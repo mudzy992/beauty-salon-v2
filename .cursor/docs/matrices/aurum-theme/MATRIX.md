@@ -1,5 +1,7 @@
 # MATRIX — Aurum theme / skin sustav
 
+> **Aktuelni M2 status:** završen na osnovu korisnikove prijave pregleda u Brave i Edge na Windowsu (200%/400%, text-spacing, sve rute/uloge/jezici/teme, verzija `718fbe0`) i automatizovanih 320px fiksura. [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) 5/5, rendered 1505/0/0. Prijava nije nezavisni audit; viewport i pojedinačna stanja nisu specificirani. Ostaju zasebne provjere tastature, čitača ekrana, stvarnog forced-colors i reduced-motion te nepotpuni axe nalazi. Detalji: `.cursor/plans/aurum-web-refactor/15_rucni-pregled.md`. Stariji statusi ispod su historijski.
+
 > **Najnoviji M2 dokaz:** `2c98530` / CI `44920510427` **5/5, rendered 1343 prošlo / 0 palo / 0 preskočeno**. 48 fiksurnih token-proposal stanja (BS/EN, oba Aurum režima, 320 CSS px/200% root/text-spacing), uključujući nepotpun odgovor, retry i gost/prijavljeni prikaz; 320px + spacing i automatizovani Tab/Enter uz forced-colors emulaciju. Ispravljen razlomljeni tekst oznaka. Vizuelno su pregledani ciljani statični snimci i šest uzoraka legende analitike; ostali nepotpuni kontrastni uzorci i širi stvarni ručni/AT pregled ostaju otvoreni. Fiksure ne dokazuju stvarne transakcije. Detalji: `.cursor/plans/aurum-web-refactor/16_ciljani-vizuelni-pregled.md`.
 
 > **Najnoviji M2 paket:** `99240d0` / CI `44825519292` **5/5, rendered 1247 prošlo / 0 palo / 0 preskočeno**. 48 dodatnih fiksurnih kombinacija: popunjena knjiga prihoda i edit dijalog bez spremanja; direktna stylist rezervacija s odabirom klijenta/usluge ili nedostajućim spolom, bez slanja. BS/EN, Aurum light/dark, 320 CSS px / simulirani 200% root / text-spacing. Ispravljen overflow knjige na 320px; automatizacija nije ručni pregled ni dokaz stvarne finansijske transakcije. Ručni protokol je dopunjen, ali ručni text-spacing i širi pristupni pregled ostaju otvoreni.
@@ -34,7 +36,7 @@
 | Tema i javni prikazi | `theme-policy.spec.ts` + CI `44567932983` 5/5 | Testirane su izričito navedene javne rute/stanja, ne sve kombinacije svih ruta. |
 | Admin Aurum light/dark axe | `a11y-admin.spec.ts`: 15 ruta po režimu + 4 AnalyticsHub child proofs; CI `44567932983` | Automatska provjera početnih/izabranih stanja, ne potpuni WCAG audit; axe može prijaviti incomplete. |
 | Admin reflow | 15 ruta × 2 režima, 320 CSS px, početno stanje; `7081698` / CI `44567932983`, suite 493/493 | Mjeri širinu dokumenta, ne unutrašnji gubitak sadržaja ili sve panele; nije stvarni 400% zoom. |
-| Ručna provjera | M1, M2 (uklj. 200%/400% i text-spacing), M4, M5 | Otvoreno; nisu dokazani ni ukupni AA/AAA ni stvarni rad s čitačem ekrana. |
+| Ručna provjera | M1, M4, M5 | Otvoreno; M2 zaključen po korisnikovoj prijavi i fiksurama, ali nisu dokazani ukupni AA/AAA ni rad s čitačem ekrana. |
 
 ---
 

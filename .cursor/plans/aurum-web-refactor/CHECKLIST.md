@@ -1,6 +1,8 @@
 # CHECKLIST — Aurum web refaktor
 
-> **Aktuelni M2 dokaz:** `39ee738` / [CI 44938406334](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44938406334) **5/5, rendered 1503/0/0**; osam lokalnih scoped axe skenova popunjenog bookinga nije prijavilo violations ni incomplete. Naknadno je lokalno popravljen konkretan slučaj fokusa pod sticky headerom i prošlo 200/200 ciljanih testova; CI te popravke još slijedi. M2 ostaje 🟡: potrebni su specificirani rezultati stvarnog 200%/400% browser zooma i ručnog text-spacing pregleda u relevantnim tokovima. Fiksure, root-font simulacija i viewport 320px nisu zamjena za taj pregled. Detalji u `16_ciljani-vizuelni-pregled.md`.
+> **M2 završen na osnovu korisnikove potvrde i fiksura:** korisnik je prijavio Brave i Edge na Windowsu, sve rute, uloge, jezike i teme, bez preklapanja, odsijecanja ili nedostupnih kontrola, te izričito potvrdio 200% i 400% browser zoom, text-spacing override i verziju `718fbe0`. Viewport, verzije browsera i pojedinačna stanja nisu navedeni; nije nezavisan audit. Za `718fbe0` [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) **5/5, rendered 1505/0/0**. 320px je pokriveno automatizovanim fiksurama; M1/M3/M4/M5/M6 i nepotpuni axe nalazi ne zatvaraju se ovim. Detalji: `15_rucni-pregled.md` i `CHANGELOG.md`. Stariji statusi u nastavku su historijski.
+
+> **Prethodni M2 dokaz:** `39ee738` / [CI 44938406334](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44938406334) **5/5, rendered 1503/0/0**; osam lokalnih scoped axe skenova popunjenog bookinga nije prijavilo violations ni incomplete. Naknadna popravka fokusa pod sticky headerom prošla je 200/200 ciljanih lokalnih testova i CI naveden u aktuelnom statusu iznad. Fiksure, root-font simulacija i viewport 320px nisu zamjena za korisnikov stvarni pregled. Detalji u `16_ciljani-vizuelni-pregled.md`.
 
 > **Najnoviji M2 dokaz:** `2c98530` / CI `44920510427` **5/5, rendered 1343 prošlo / 0 palo / 0 preskočeno**. 48 fiksurnih token-proposal stanja (BS/EN, oba Aurum režima, 320 CSS px/200% root/text-spacing), uključujući nepotpun odgovor, retry i gost/prijavljeni prikaz; 320px + spacing i automatizovani Tab/Enter uz forced-colors emulaciju. Ispravljen razlomljeni tekst oznaka. Vizuelno su pregledani ciljani statični snimci i šest uzoraka legende analitike; ostali nepotpuni kontrastni uzorci i širi stvarni ručni/AT pregled ostaju otvoreni. Fiksure ne dokazuju stvarne transakcije. Detalji: `.cursor/plans/aurum-web-refactor/16_ciljani-vizuelni-pregled.md`.
 
@@ -137,7 +139,7 @@ Ovaj blok ima prednost nad starijim „Ažurirani status“ i arhivom ispod: lig
 | # | Provjera | Status | Gdje se dokazuje |
 |---|---|---|---|
 | M1 | Tastatura end-to-end: CRUD, filteri, dijalozi, kalendar, upload, izvoz | 🟡 | S11 ručna checklista + `test:tab-traversal` |
-| M2 | Zoom 200% / 400%, reflow 320 px, text-spacing override | 🟡 | S11 `test:dom-metrics` + ručno |
+| M2 | Zoom 200% / 400%, reflow 320 px, text-spacing override | ✅ | korisnička potvrda za `718fbe0` (Brave/Edge, Windows) + automatizovane 320px fiksure; ograničenja u `15_rucni-pregled.md` |
 | M3 | Fokus: prsten 3:1, `2.4.11` sticky, povratak nakon dijaloga/brisanja/rute | 🟡 | S11 axe + ručno |
 | M4 | Čitač ekrana (NVDA/VoiceOver) nad 3 stanja teme | 🟡 | nema ga u sandboxu → ostaje 🟡 s razlogom |
 | M5 | `forced-colors` / high contrast | 🟡 | S11 ručno |

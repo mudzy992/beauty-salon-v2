@@ -1,5 +1,7 @@
 # MATRIX — Pokrivenost ruta Aurum refaktorom
 
+> **Aktuelni M2 status:** završen na osnovu korisnikove prijave pregleda u Brave i Edge na Windowsu (200%/400%, text-spacing, sve rute/uloge/jezici/teme, verzija `718fbe0`) i automatizovanih 320px fiksura. [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) 5/5, rendered 1505/0/0. Prijava nije nezavisni audit; viewport i pojedinačna stanja nisu specificirani. Ostaju zasebne provjere tastature, čitača ekrana, stvarnog forced-colors i reduced-motion te nepotpuni axe nalazi. Detalji: `.cursor/plans/aurum-web-refactor/15_rucni-pregled.md`. Stariji statusi ispod su historijski.
+
 > **Najnoviji M2 dokaz:** `2c98530` / CI `44920510427` **5/5, rendered 1343 prošlo / 0 palo / 0 preskočeno**. 48 fiksurnih token-proposal stanja (BS/EN, oba Aurum režima, 320 CSS px/200% root/text-spacing), uključujući nepotpun odgovor, retry i gost/prijavljeni prikaz; 320px + spacing i automatizovani Tab/Enter uz forced-colors emulaciju. Ispravljen razlomljeni tekst oznaka. Vizuelno su pregledani ciljani statični snimci i šest uzoraka legende analitike; ostali nepotpuni kontrastni uzorci i širi stvarni ručni/AT pregled ostaju otvoreni. Fiksure ne dokazuju stvarne transakcije. Detalji: `.cursor/plans/aurum-web-refactor/16_ciljani-vizuelni-pregled.md`.
 
 > **Najnoviji M2 paket:** `99240d0` / CI `44825519292` **5/5, rendered 1247 prošlo / 0 palo / 0 preskočeno**. 48 dodatnih fiksurnih kombinacija: popunjena knjiga prihoda i edit dijalog bez spremanja; direktna stylist rezervacija s odabirom klijenta/usluge ili nedostajućim spolom, bez slanja. BS/EN, Aurum light/dark, 320 CSS px / simulirani 200% root / text-spacing. Ispravljen overflow knjige na 320px; automatizacija nije ručni pregled ni dokaz stvarne finansijske transakcije. Ručni protokol je dopunjen, ali ručni text-spacing i širi pristupni pregled ostaju otvoreni.
@@ -50,7 +52,7 @@ Svaki red: `a11y-admin.spec.ts` provjerava Aurum light i dark axe, a dodatno mje
 | Stylist portal | `a11y-stylist.spec.ts` pokriva navedene rute s prijavljenim nalogom; parametrizirani detalji nisu dio tog sweepa. Ne tvrditi isti M2 obuhvat kao za 15 admin ruta. |
 | Admin detalji i tabovi | `services/:serviceId/work-gallery`, postavke i finansije sa svim query tabovima, dijalozi i različiti podaci nisu iscrpno pokriveni 320px sweepom. Redirect nije zaseban renderirani ekran. |
 | O4 potvrde | Svih 13 ranijih tokova ima interaktivne fiksure; `5407b13` / CI `44579698293` 5/5, 503/503 ukupno. Novi tokovi su testirani na desktop prikazu, korisničke deaktivacije i na 320px; nisu dokaz svih uređaja, jezika ili ručnog čitača ekrana. |
-| Ručno | M1, stvarni 200%/400% zoom i text-spacing (M2), M4 čitač ekrana i M5 forced-colors ostaju otvoreni. |
+| Ručno | M2 zaključen po korisnikovoj potvrdi i fiksurama; M1, M4 čitač ekrana i M5 forced-colors ostaju otvoreni. |
 
 ---
 
