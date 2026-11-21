@@ -1,0 +1,17 @@
+# Ciljani vizuelni pregled fiksura — M2 i nepotpuni kontrast
+
+Ovaj zapis opisuje pregled **statičnih snimaka** i izmjerenih CSS vrijednosti, ne punu interaktivnu provjeru u korisnikovom pregledniku, čitačem ekrana ili stvarnim sistemskim forced-colors režimom. Podaci i sesije su isključivo izolovane fiksure, bez stvarnih klijenata i bez finansijskih transakcija. Pregled ne zatvara cijeli M2 ili WCAG audit.
+
+## Legenda analitike: dio prethodno nepotpunih axe nalaza
+
+- Ruta `/admin/analytics`, BS, Aurum light i dark, Chromium 153.0.8010.0, viewport 1440 × 900 CSS px, sintetizovan admin i popunjena fiksura grafikona. Uočeni CI uzorci: `.legend-item-0 > .recharts-legend-item-text`, `.legend-item-1 > .recharts-legend-item-text`, `.legend-item-2 > .recharts-legend-item-text`. Axe je prijavio da ne može utvrditi pozadinu jer čvor sadrži sliku.
+- Vizuelno pregledani [light snimak](evidence/analytics-legend-light.png) i [dark snimak](evidence/analytics-legend-dark.png): tekst sve tri legende na površini kartice je čitljiv i bez vidljivog preklapanja na tim snimcima. U DOM-u su posredni preci prozirni, bez pozadinske slike i s opacity 1 do neprozirne površine kartice.
+- Izračun kontrasta izmjerenih boja: light `rgb(31,24,16)` na `rgb(255,255,255)` = **17,55:1**; dark `rgb(245,237,224)` na `rgb(26,21,16)` = **15,60:1**. Za ove tekstualne legende na datoj fiksuri obje vrijednosti prelaze 4,5:1. Ovo ne presuđuje kontrast grafičkih oznaka, drugih podataka, drugih ruta niti svih axe `incomplete` nalaza.
+- Ranije prikazan broj 21 je broj **zabilježenih uzoraka** (do tri po ruti i pravilu), ne nužno ukupan broj nepotpunih čvorova. Potpuni uzorci novog CI-ja tek trebaju pregled; nepotpune nalaze ne pretvarati automatski u prolaz.
+
+## Token detalj: text-spacing i forced-colors simulacija
+
+- Ruta `/moj-termin/m2-proposal-token`, BS, gost, izolovana fiksura popunjenog prijedloga i napomene; Chromium 153.0.8010.0, 320 × 720 CSS px, Aurum light/dark, `prefers-reduced-motion: reduce`; CSS override iz `15_rucni-pregled.md` primijenjen automatizirano prije snimanja.
+- Prije popravke statični snimci pokazali su da se oznake „Usluga“, „Datum“ i „Vrijeme“ lome slovo po slovo iako sam test širine nije prijavio overflow. Nakon `a5fdda3` redovi u Aurumu prelaze u jednu kolonu. Pregledani [light](evidence/token-spacing-light.png) i [dark](evidence/token-spacing-dark.png) snimci pokazuju cijele oznake, vrijednosti, napomenu i akcije; novo lokalno mjerenje provjerava širinu i visinu oznaka u 48 fiksurnih kombinacija. Classic stil nije promijenjen.
+- Pregledan je i [snimak Chromiumove emulacije forced-colors](evidence/token-forced-colors.png) za dark postavku uz isti spacing; sadržaj i obrisi akcija na snimku su vidljivi. Dodatna automatizovana Tab/Enter provjera gosta za BS/EN i oba režima došla je do prijave s vidljivim CSS outlineom pri emuliranim forced-colors i reduced-motion (lokalno 4/4). Emulacija nije stvarni OS high-contrast pregled, a ovaj statični snimak ne dokazuje fokus niti čitač ekrana.
+- Preostaje ručni interaktivni pregled kroz stvarni browser i uređaj, oba jezika, ostale rute/stanja, fokus i redoslijed tastature, čitač ekrana, sistemski forced-colors i stvarni reduced-motion/zoom. Korisnikova prethodna potvrda browsera nema specificiran opseg.

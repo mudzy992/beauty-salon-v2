@@ -141,6 +141,26 @@ for (const mode of ['light', 'dark'] as const) {
             await expect(proposalTitle).toBeVisible()
             await expect.poll(() => requests).toBe(2)
           } else expect(requests).toBe(1)
+          if (state === 'guest' && adjustment === '320px') {
+            // Real Tab traversal in Chromium, with emulated forced colors; this is not
+            // a substitute for a human keyboard or operating-system contrast review.
+            await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' })
+            const proposalLink = proposalTitle.locator('..').getByRole('link')
+            for (let i = 0; i < 30 && !(await proposalLink.evaluate(el => el === document.activeElement)); i++) {
+              await page.keyboard.press('Tab')
+            }
+            await expect(proposalLink).toBeFocused()
+            const focus = await proposalLink.evaluate(el => ({
+              visible: el.matches(':focus-visible'),
+              outlineStyle: getComputedStyle(el).outlineStyle,
+              outlineWidth: parseFloat(getComputedStyle(el).outlineWidth),
+            }))
+            expect(focus.visible).toBe(true)
+            expect(focus.outlineStyle).not.toBe('none')
+            expect(focus.outlineWidth).toBeGreaterThanOrEqual(2)
+            await page.keyboard.press('Enter')
+            await expect(page).toHaveURL(/\/login$/)
+          }
           expect(mutations).toEqual([])
         })
       }

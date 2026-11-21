@@ -1,6 +1,6 @@
 # Ručni pregled novog identiteta — radni protokol
 
-**Status: nije izvršen.** U ovom sandboxu nema instaliranog preglednika niti pristupa njegovom download CDN-u; korisnikov preglednik nije sandbox, a prijavljeni admin/stylist tokovi traže izolovanu bazu i račune. Automatizovani a11y-e2e i source provjere nisu zamjena za ovaj pregled. Ne koristiti stvarne klijentske podatke.
+**Status: puni interaktivni pregled nije izvršen.** Naknadno je u sandboxu pokrenut izolovani Chromium s fiksurama; ograničena vizuelna procjena statičnih snimaka zabilježena je u [ciljanom pregledu](16_ciljani-vizuelni-pregled.md). Ona nije zamjena za korisnikov interaktivni pregled, čitač ekrana ni stvarne sistemske postavke; prijavljeni admin/stylist tokovi za pun pregled traže izolovanu bazu i račune. Automatizovani a11y-e2e i source provjere također nisu zamjena. Ne koristiti stvarne klijentske podatke.
 
 Za svaki identitet (classic, Aurum light i Aurum dark), jezik BS/EN i relevantnu ulogu, na izolovanom testnom okruženju:
 
