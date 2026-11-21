@@ -344,8 +344,10 @@ export function formatIncompleteDetails(agg) {
   for (const { rule, criteria } of TRACKED_RULES) {
     const samples = agg.totals[rule]?.incompleteNodes ?? []
     if (!samples.length) continue
-    lines.push(`${criteria.join('/')} ${rule} — ${samples.length} nepotpunih čvorova:`)
-    for (const s of samples.slice(0, 6)) {
+    // These are capped samples per route, not the total number of incomplete nodes.
+    // Show every recorded sample; chunkWorkflowMessage splits long CI annotations.
+    lines.push(`${criteria.join('/')} ${rule} — ${samples.length} uzoraka nepotpunih čvorova (do ${MAX_INCOMPLETE_NODES_PER_RULE} po ruti):`)
+    for (const s of samples) {
       lines.push(`  ${s.route} | ${s.target} | ${s.html} | ${s.message}`)
     }
   }

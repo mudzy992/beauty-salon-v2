@@ -878,3 +878,9 @@ Pripremljen `frontend/e2e/m2-reservation-detail.spec.ts`: 48 fiksurnih kombinaci
 
 
 **Naknadna validacija:** GitHub veza obnovljena i `c5b23b1` pushan. CI `44830561289` 4/5: šest BS provjera iznosa nije prošlo zbog različitih Node/Chromium ICU formata (zarez/točka), bez utvrđenog pada prikaza. `28b819c` računa očekivano formatiranje u Chromiumu i zadržava provjeru svih pet konkretnih iznosa i njihovih redova. [CI 44832762454](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44832762454) **5/5, rendered 1295 prošlo / 0 palo / 0 preskočeno**, check `136621552753`. Prethodni CI `44827817777` također uspješan. Ovo je automatizovana fiksura, ne stvarna transakcija niti ručni pregled.
+
+## M2 · Token prikaz prijedloga i dijagnostika kontrasta — provjera u toku
+
+Dodano 48 fiksurnih slučajeva za token prikaz predloženog termina: gost i prijavljeni klijent, nepotpun termin te neispravan odgovor i tastaturni retry; BS/EN × Aurum light/dark × 320 CSS px / simulirani 200% root / text-spacing. Nema potvrđivanja, odbijanja niti pisanja. Izolovani lokalni Chromium uz mock API: **48/48**; nije stvarni backend niti ručni AT pregled. CI potvrda slijedi.
+
+`axe-coverage.mjs` sada ispisuje sve zabilježene nepotpune uzorke, umjesto samo prvih šest, s podjelom anotacija po dužini. Dosadašnji broj 21 znači **zabilježene uzorke**, najviše tri po ruti i pravilu, ne nužno ukupan broj nepotpunih DOM čvorova. Postojeći test opisa promijenjen je samo zbog tačnijeg natpisa; garancija broja i prenosa cilja/poruke ostaje, uz novi test za svih 10 ruta i podjelu bez gubitka. Lokalno **40/40** node testova, E2E typecheck i ciljani lint. Ovo poboljšava dijagnostiku, ne mijenja axe presudu niti zatvara ručnu procjenu.

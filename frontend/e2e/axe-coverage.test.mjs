@@ -293,9 +293,24 @@ test('zapis i zbir nose nepotpune čvorove do anotacije', () => {
     assert.equal(agg.totals['label-content-name-mismatch'].incompleteNodes[0].route, '/')
 
     const details = formatIncompleteDetails(agg)
-    assert.match(details, /2\.5\.3 label-content-name-mismatch — 1 nepotpunih čvorova:/)
+    assert.match(details, /2\.5\.3 label-content-name-mismatch — 1 uzoraka nepotpunih čvorova \(do 3 po ruti\):/)
     assert.match(details, /BS/, 'vidljivi tekst mora stići do anotacije')
     assert.match(details, /Prebaci jezik/, 'pristupačno ime mora stići do anotacije')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('formatIncompleteDetails uključuje sve zabilježene uzorke iz više ruta', () => {
+  const dir = tempDir()
+  try {
+    for (let i = 0; i < 10; i += 1) {
+      recordAxeCoverage('admin', `/admin/route-${i}`, axeReportWithNodes('color-contrast', [NODE(`Label${i}`, `Target${i}`)]), dir)
+    }
+    const details = formatIncompleteDetails(aggregateCoverage(dir))
+    assert.match(details, /10 uzoraka nepotpunih čvorova \(do 3 po ruti\)/)
+    for (let i = 0; i < 10; i += 1) assert.ok(details.includes(`/admin/route-${i}`), `nedostaje ruta ${i}`)
+    assert.equal(chunkWorkflowMessage(details).join('\n'), details)
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
