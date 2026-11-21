@@ -1,6 +1,6 @@
 # HANDOFF — Aurum web refaktor
 
-> **M1/M3 u toku:** početni paket lokalno 144/144 novih fiksura, 60/60 klijentskih i 14/14 ciljnih stylist regresija; popravljeni izbor fotografija tastaturom, povrat fokusa i ugniježđene navigacijske kontrole. CI ovog paketa još nije potvrđen; M1/M3 nisu zatvoreni. Cjeloviti radni opseg, rezultati, ograničenja i sljedeći koraci su u `17_m1_m3_izvjestaj.md`.
+> **M1/M3 u toku:** početni paket lokalno 144/144 novih fiksura, 60/60 klijentskih i 14/14 ciljnih stylist regresija; popravljeni izbor fotografija tastaturom, povrat fokusa i ugniježđene navigacijske kontrole. CI koda `a8e2e74` 5/5, rendered 1661/0/0; M1/M3 nisu zatvoreni. Cjeloviti radni opseg, rezultati, ograničenja i sljedeći koraci su u `17_m1_m3_izvjestaj.md`.
 
 > **M2 završen prema korisnikovoj potvrdi i automatizovanim fiksurama:** korisnik je prijavio Brave i Edge na Windowsu, sve rute, uloge, jezike i teme, bez preklapanja, odsijecanja i nedostupnih kontrola; izričito je potvrdio 200%/400% browser zoom, text-spacing override i verziju `718fbe0`. Viewport, verzije browsera i pojedinačna stanja nisu specificirani. [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) za `718fbe0` **5/5, rendered 1505/0/0**. Izvještaj nije nezavisni audit niti dokaz screen readera, OS forced-colors, svih interaktivnih stanja ili stvarnih transakcija. Detalji: `15_rucni-pregled.md`. Stariji statusi ispod su historijski.
 
