@@ -2053,3 +2053,13 @@
   [data-skin="aurum"] [data-finance-income-filters] :is(input, select) { min-width: 0; max-width: 100%; }
   [data-skin="aurum"] [data-finance-income-detail] > div:first-child > div:first-child { flex-wrap: wrap; }
 }
+
+/* The secure reservation view must not squeeze field names into single letters. */
+@media (max-width: 639px) {
+  [data-skin="aurum"] [data-token-detail-row] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+  [data-skin="aurum"] [data-token-detail-row] > span { min-width: 0; text-align: left; overflow-wrap: anywhere; }
+}

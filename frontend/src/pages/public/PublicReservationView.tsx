@@ -155,11 +155,11 @@ export default function PublicReservationView() {
                 </p>
               </div>
               <div className="grid gap-3 text-sm">
-                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                <div data-token-detail-row className="flex justify-between gap-4 border-b border-line pb-2">
                   <span className="text-content-muted">{t('public.reservationView.service')}</span>
                   <span className="font-medium text-content text-right">{data.serviceName}</span>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                <div data-token-detail-row className="flex justify-between gap-4 border-b border-line pb-2">
                   <span className="text-content-muted">{t('public.reservationView.date')}</span>
                   <span className="font-medium text-content"><time dateTime={data.reservationDate.slice(0, 10)}>{formatReservationDate(data.reservationDate, locale, {
                     weekday: 'long',
@@ -168,18 +168,18 @@ export default function PublicReservationView() {
                     year: 'numeric',
                   })}</time></span>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                <div data-token-detail-row className="flex justify-between gap-4 border-b border-line pb-2">
                   <span className="text-content-muted">{t('public.reservationView.time')}</span>
                   <span className="font-medium text-content">
                     {data.startTime} – {data.endTime}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4 border-b border-line pb-2">
+                <div data-token-detail-row className="flex justify-between gap-4 border-b border-line pb-2">
                   <span className="text-content-muted">{t('public.reservationView.status')}</span>
                   <span className="font-medium text-content">{statusKey ? t(statusKey) : data.status}</span>
                 </div>
                 {data.stylistName ? (
-                  <div className="flex justify-between gap-4 border-b border-line pb-2">
+                  <div data-token-detail-row className="flex justify-between gap-4 border-b border-line pb-2">
                     <span className="text-content-muted">{t('public.reservationView.stylist')}</span>
                     <span className="font-medium text-content text-right">{data.stylistName}</span>
                   </div>

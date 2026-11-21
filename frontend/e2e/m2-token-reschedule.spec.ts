@@ -103,6 +103,21 @@ for (const mode of ['light', 'dark'] as const) {
             const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
             if (widths.scroll > widths.viewport + 1) report(`M2 token proposal ${mode} ${language} ${state}`, JSON.stringify({ ...widths, offenders: await page.evaluate(overflowingElements, 1) }))
             expect(widths.scroll - widths.viewport, JSON.stringify(widths)).toBeLessThanOrEqual(1)
+            // The combination caught labels wrapping into individual letters even though
+            // the document width and differential clipping metrics both passed.
+            await page.addStyleTag({ content: SPACING })
+            await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1, { timeout: 10_000 }).toBe(0)
+            if (state !== 'invalid-retry') {
+              const labels = root.locator('[data-token-detail-row] > span:first-child')
+              await expect(labels).toHaveCount(5)
+              const measured = await labels.evaluateAll(elements => elements.map(el => ({
+                text: el.textContent, height: el.getBoundingClientRect().height,
+                line: parseFloat(getComputedStyle(el).lineHeight),
+              })))
+              for (const label of measured) expect(label.height, JSON.stringify(label)).toBeLessThanOrEqual(label.line + 1)
+            }
+            const spacedWidths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }))
+            expect(spacedWidths.scroll - spacedWidths.viewport, JSON.stringify(spacedWidths)).toBeLessThanOrEqual(1)
           } else {
             const before = await page.evaluate(clippedSnapshot)
             if (adjustment === 'text-200') {
