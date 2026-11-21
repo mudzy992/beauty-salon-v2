@@ -570,6 +570,7 @@ for (const mode of ['light', 'dark'] as const) {
             const headerHeight = await header.evaluate(el => el.getBoundingClientRect().height)
             expect(headerHeight).toBeGreaterThan(900 * 0.3)
             await expect.poll(() => header.evaluate(el => getComputedStyle(el).position)).toBe('static')
+            await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--public-header-offset'))).toBe('0px')
           } else await page.addStyleTag({ content: TEXT_SPACING })
           await settleAnimations(page)
           const after = await page.evaluate(clippedSnapshot)
@@ -596,7 +597,13 @@ for (const mode of ['light', 'dark'] as const) {
         expect(new URL(page.url()).pathname).toBe('/rezervacija')
         if (adjustment === 'text-200') {
           await page.evaluate(() => { document.documentElement.style.removeProperty('font-size') })
-          await expect.poll(() => page.locator('[data-aurum-shell="header"]').evaluate(el => getComputedStyle(el).position)).toBe('sticky')
+          const header = page.locator('[data-aurum-shell="header"]')
+          await expect.poll(() => header.evaluate(el => getComputedStyle(el).position)).toBe('sticky')
+          await expect.poll(async () => {
+            const height = await header.evaluate(el => el.getBoundingClientRect().height)
+            const offset = await page.evaluate(() => parseFloat(document.documentElement.style.getPropertyValue('--public-header-offset')))
+            return Math.abs(height - offset)
+          }).toBeLessThan(1)
         }
       })
     }

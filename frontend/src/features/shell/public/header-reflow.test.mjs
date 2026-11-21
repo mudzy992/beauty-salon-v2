@@ -6,7 +6,11 @@ const layout = readFileSync(new URL('./public-layout.tsx', import.meta.url), 'ut
 const css = readFileSync(new URL('../../../styles/globals.css', import.meta.url), 'utf8')
 
 test('Aurum public header adapts to its actual height and restores on resize', () => {
-  assert.match(layout, /header\.getBoundingClientRect\(\)\.height > window\.innerHeight \* 0\.3/)
+  assert.match(layout, /const height = header\.getBoundingClientRect\(\)\.height/)
+  assert.match(layout, /const tall = height > window\.innerHeight \* 0\.3/)
+  assert.match(layout, /if \(skin === 'aurum'\) document\.documentElement\.style\.setProperty\('--public-header-offset', `\$\{tall \? 0 : height\}px`\)/)
+  assert.match(layout, /document\.documentElement\.style\.removeProperty\('--public-header-offset'\)/)
+  assert.match(css, /scroll-padding-top: calc\(var\(--public-header-offset, var\(--header-height\)\) \+ 1rem\)/)
   assert.match(layout, /new ResizeObserver\(update\)/)
   assert.match(layout, /window\.addEventListener\('resize', update\)/)
   assert.match(layout, /observer\.disconnect\(\)/)

@@ -131,7 +131,31 @@ for (const mode of ['light', 'dark'] as const) {
             expect(size.scrollWidth - size.width, JSON.stringify(size)).toBeLessThanOrEqual(1)
             expect(size.scrollHeight - size.height, JSON.stringify(size)).toBeLessThanOrEqual(1)
           }
-          if (state === 'selected' && adjustment === '320-spacing') await scanBooking(page, 'two selected services')
+          if (state === 'selected' && adjustment === '320-spacing') {
+            await scanBooking(page, 'two selected services')
+            const firstRemove = items.nth(0).getByRole('button')
+            const secondRemove = items.nth(1).getByRole('button')
+            await expect(page.locator('[data-aurum-shell="header"]')).toHaveCSS('position', 'sticky')
+            await page.keyboard.press('Shift+Tab')
+            await expect(secondRemove).toBeFocused()
+            await firstRemove.evaluate(el => {
+              const header = document.querySelector('[data-aurum-shell="header"]')!
+              const rect = el.getBoundingClientRect()
+              const bottom = header.getBoundingClientRect().bottom
+              window.scrollBy(0, rect.top + rect.height / 2 - bottom + 5)
+            })
+            await expectFocusUnobscured(secondRemove)
+            expect(await firstRemove.evaluate(el => {
+              const rect = el.getBoundingClientRect()
+              return Boolean(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.closest('[data-aurum-shell="header"]'))
+            })).toBe(true)
+            await page.keyboard.press('Shift+Tab')
+            await expect(firstRemove).toBeFocused()
+            await expectFocusUnobscured(firstRemove)
+            await page.keyboard.press('Tab')
+            await page.keyboard.press('Tab')
+            await expect(add).toBeFocused()
+          }
           if (state === 'change-after-slot') {
             const day = root.locator('[data-reserve-calendar] button[aria-pressed="false"]:not([disabled])')
             await expect(day).toHaveCount(1)

@@ -771,3 +771,29 @@ for (const { skin, mode } of [
     })
   }
 }
+
+// The measured public-header offset belongs only to the Aurum public shell.
+for (const skin of ['aurum', 'classic'] as const) {
+  test(`public header scroll offset lifecycle ${skin}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await configure(page, skin, 'light')
+    await page.goto('/', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-skin', skin)
+    const header = page.locator('[data-aurum-shell="header"]')
+    await expect(header).toHaveCSS('position', 'sticky')
+    const offset = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--public-header-offset'))
+    if (skin === 'aurum') {
+      await expect.poll(async () => {
+        const height = await header.evaluate(el => el.getBoundingClientRect().height)
+        return Math.abs(parseFloat(await offset()) - height)
+      }).toBeLessThan(1)
+    } else await expect.poll(offset).toBe('')
+    await header.locator('a[href="/login"]').click()
+    await expect(page).toHaveURL(/\/login$/)
+    await expect.poll(offset).toBe('')
+    await page.goBack()
+    await expect(page.locator('[data-aurum-shell="header"]')).toBeVisible()
+    if (skin === 'aurum') await expect.poll(async () => parseFloat(await offset())).toBeGreaterThan(0)
+    else await expect.poll(offset).toBe('')
+  })
+}

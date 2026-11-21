@@ -25,6 +25,7 @@ import { getUploadUrl } from '../../../utils/uploadUrl'
 import { userInitials } from '../../../utils/user-initials.mjs'
 import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
 import { ThemeSwitcher } from '../theme/theme-switcher'
+import { useTheme } from '../theme/theme-context'
 import { labelWithVisibleText } from '../../../components/a11y/label-in-name.mjs';
 
 type PublicFeatureFlag = 'public_feature_blog' | 'public_feature_gallery' | 'public_feature_reviews'
@@ -48,6 +49,7 @@ export const PublicLayout = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { getSetting, settings, loading } = useSettings()
+  const { skin } = useTheme()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const mobileMenuTrigger = useRef<HTMLButtonElement>(null)
@@ -79,7 +81,14 @@ export const PublicLayout = () => {
     if (!header) return
     // A sticky header that grows with user text can cover focused controls and pointer targets.
     // Let an unusually tall header scroll away; restore stickiness when space permits.
-    const update = () => setHeaderTall(header.getBoundingClientRect().height > window.innerHeight * 0.3)
+    const update = () => {
+      const height = header.getBoundingClientRect().height
+      const tall = height > window.innerHeight * 0.3
+      setHeaderTall(tall)
+      // Native focus scrolling must account for the actual sticky header, not the
+      // smaller fixed dashboard offset. A tall Aurum header is already static.
+      if (skin === 'aurum') document.documentElement.style.setProperty('--public-header-offset', `${tall ? 0 : height}px`)
+    }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(header)
@@ -87,8 +96,9 @@ export const PublicLayout = () => {
     return () => {
       observer.disconnect()
       window.removeEventListener('resize', update)
+      document.documentElement.style.removeProperty('--public-header-offset')
     }
-  }, [loading, maintenanceOn])
+  }, [loading, maintenanceOn, skin])
 
   const activePath = location.pathname
   const navItems = useMemo(() => {
