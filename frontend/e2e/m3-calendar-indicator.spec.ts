@@ -28,6 +28,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           localStorage.setItem('APP_LOCALE', 'en')
         }, theme === 'dark' ? 'dark' : 'light')
         const stylist = { id: 's', isActive: true, user: { firstName: 'Ana', lastName: 'Test' } }
+        let reservationRequests = 0
         const reservation = { id: 'res', reservationDate: '2026-03-04', startTime: '12:00', endTime: '13:00', status, clientNotes: null, cancelReason: null, createdAt: '2026-03-01T12:00:00Z', confirmedStylist: stylist, service: { id: 'svc', name: 'Test usluga', durationMinutes: 60, price: 50 }, client: { id: 'c', firstName: 'Test', lastName: 'Klijent' } }
         await page.route('**/api/**', route => {
           const request = route.request(), path = new URL(request.url()).pathname
@@ -35,21 +36,31 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
           if (path === '/api/stylists') return route.fulfill({ json: [stylist] })
-          if (path === '/api/reservations') return route.fulfill({ json: [reservation] })
+          if (path === '/api/reservations') {
+            reservationRequests++
+            return route.fulfill({ json: [reservation] })
+          }
           return route.fulfill({ json: {} })
         })
         await page.goto('/admin/reservations/calendar', { waitUntil: 'networkidle' })
         await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('#calendar-main')).toHaveAttribute('aria-busy', 'false')
         if (view !== 'week') {
           const viewButton = page.getByRole('button', { name: view === 'agenda' ? /^agenda$/i : /^month$/i })
           for (let i = 0; i < 80 && !(await viewButton.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab')
           await expect(viewButton).toBeFocused()
+          const previousRequests = reservationRequests
           await page.keyboard.press('Enter')
+          await expect(viewButton).toHaveAttribute('aria-pressed', 'true')
+          await expect.poll(() => reservationRequests).toBeGreaterThan(previousRequests)
+          await expect(page.locator('#calendar-main')).toHaveAttribute('aria-busy', 'false')
         }
         const target = view === 'week' ? page.locator('.rbc-event').first() : view === 'month' ? page.locator('.rbc-month-view .rbc-event button').first() : page.locator('.rbc-agenda-event-cell button').first()
         await expect(target).toBeVisible()
         for (let i = 0; i < 160 && !(await target.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab')
         await expect(target).toBeFocused()
+        // Let Chromium apply :focus-visible and paint after the Tab transition.
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
         const result = await target.evaluate((el, viewKind) => {
           const style = getComputedStyle(el)
           const surface = viewKind === 'week' ? el : viewKind === 'month' ? el.closest('.rbc-event')! : el.closest('tr')!
@@ -57,12 +68,19 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           const top = document.elementFromPoint(x, y)
           return { visible: el.matches(':focus-visible'), outline: style.outlineColor, width: style.outlineWidth, offset: style.outlineOffset, style: style.outlineStyle, background: getComputedStyle(surface).backgroundColor, centerHit: !!top && (top === el || el.contains(top)) }
         }, view)
-        expect(result.visible).toBe(true)
-        expect(result.style).toBe('solid')
-        expect(parseFloat(result.width)).toBeGreaterThanOrEqual(3)
-        expect(parseFloat(result.offset)).toBeLessThanOrEqual(-3)
-        expect(contrast(result.outline, result.background)).toBeGreaterThanOrEqual(3)
-        expect(result.centerHit).toBe(true)
+        try {
+          expect(result.visible).toBe(true)
+          expect(result.style).toBe('solid')
+          expect(parseFloat(result.width)).toBeGreaterThanOrEqual(3)
+          expect(parseFloat(result.offset)).toBeLessThanOrEqual(-3)
+          expect(contrast(result.outline, result.background)).toBeGreaterThanOrEqual(3)
+          expect(result.centerHit).toBe(true)
+        } catch (error) {
+          // This fixture has no personal data. Keep bounded diagnostics available
+          // in CI annotations even if the platform cannot download the log archive.
+          console.log(`::error title=M3 calendar focus ${theme} ${status} ${view}::${JSON.stringify(result)}`)
+          throw error
+        }
         if (status === 'CONFIRMED') {
           const scope = view === 'week' ? '.rbc-time-view' : view === 'month' ? '.rbc-month-view' : '.rbc-agenda-view'
           const axe = await new AxeBuilder({ page }).include(scope).withTags(AXE_RULE_TAGS).analyze()
