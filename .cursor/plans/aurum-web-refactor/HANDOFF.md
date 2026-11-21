@@ -1,5 +1,7 @@
 # HANDOFF — Aurum web refaktor
 
+> **M2 dalji parcijalni pregled:** tri preostala selektora analitičke legende pregledana su lokalno u podrazumijevanom Aurum light i u Classic light (17,55:1 / 20,01:1); CI tema nije zabilježena. Dva uzorka pod `/rezervacija` ostaju nerazriješena u CI kontekstu; to nije pregled cijelog booking toka ni svih čvorova. [CI hero testa 44929350606](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44929350606) 5/5, rendered 1431/0/0. Ograničenja i dokazi: `16_ciljani-vizuelni-pregled.md`.
+
 > **M2 novi lokalni hero pregled:** `/blog`, `/galerija`, `/kontakt`, šest ranije nepotpunih uzoraka na BS Aurum light/dark fiksuri; 12/12 lokalnih BS/EN testova na crnoj/bijeloj podlozi. Ostaje pet prethodno zabilježenih uzoraka i širi ručni/AT pregled. CI ovog testa tek slijedi; auth [CI 44927850035](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44927850035) je 5/5, rendered 1419/0/0. Detalji i snimci u `16_ciljani-vizuelni-pregled.md`.
 
 > **M2 lokalni napredak, CI nepotvrđen:** klijentska lista `cb8d7db` lokalno 60/60; [CI 44925142490](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44925142490) potvrđen 5/5, rendered 1403 passed / 0 failed / 0 skipped. Zatim auth banner: 16 lokalnih fiksura kontrasta i reflowa, tamna podloga za podesivi tekst u Aurumu; četiri uzorka login/register lokalno pregledana, 11 od ranijih 21 ostaje, uključujući dva `/rezervacija` dok se ne potvrdi CI cilj. Detalji i ograničenja u `16_ciljani-vizuelni-pregled.md` i `CHANGELOG.md`; ne proglašavati M2 gotovim.

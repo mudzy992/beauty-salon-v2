@@ -907,3 +907,9 @@ Lokalni pregled izdvojio je četiri prethodno nepotpuna uzorka naslova i podnasl
 Na `/blog`, `/galerija` i `/kontakt` ciljano je vizuelno i konzervativnim mjerenjem podloge pregledano šest ranije zabilježenih nepotpunih uzoraka, BS, Aurum light/dark, fallback slika, 1440 × 900. U fiksuri najniži izračun bio je 14,31:1. Nova regresija koristi bijelu i crnu testnu podlogu iza postojećih slojeva, BS/EN i oba režima: **12/12 lokalno**; nema transakcija ili izmjene stvarnih postavki. Ovo nisu sva stanja ili sve slike, axe `incomplete` se ne mijenja, a pet ranije zabilježenih uzoraka još nije lokalno procijenjeno. Podaci, metode, snimci i ograničenja su u `16_ciljani-vizuelni-pregled.md`. CI za ovaj novi test nije još pokrenut.
 
 **Potvrda auth paketa:** `2dc11c7` / [CI 44927850035](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44927850035) **5/5**, rendered check `136917772501`: **1419 passed / 0 failed / 0 skipped**. CI nije zamjena za stvarne fotografije, uređaje ili AT pregled.
+
+## M2 · Dodatni lokalni pregled legende
+
+U izolovanoj fiksuri analitike, s podrazumijevanim praznim postavkama (Aurum light) i izričito odabranim Classic light, tri teksta legende imaju redom **17,55:1** i **20,01:1** na neprozirnoj površini; pregledani su i statični izresci. Tri selektora iz ranijeg podrazumijevanog uzorka su lokalno procijenjena u oba konteksta, ali konkretna aktivna tema CI zapisa nije zabilježena. Dva uzorka pod `/rezervacija` i dalje su nerazriješena u CI kontekstu, a booking ekran, svi čvorovi i širi ručni/AT pregled nisu pokriveni ovim dokazom. Detalji u `16_ciljani-vizuelni-pregled.md`.
+
+**CI potvrda javnog hero paketa:** `4dbee1d` / [CI 44929350606](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44929350606) **5/5**, rendered check `136922352871`: **1431 passed / 0 failed / 0 skipped**. To ne proširuje opseg fiksurnih provjera na stvarni OS, sve slike ili druge viewportove.
