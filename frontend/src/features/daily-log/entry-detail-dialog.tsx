@@ -25,6 +25,7 @@ import { formatDailyLogDate, LoyaltyDiscountLine } from './entry-table-helpers'
 import { getDailyLogStatusVariant } from './entry-status-label'
 import type { DailyLogEntry } from './types'
 import { getStylistName } from './types'
+import { useDailyLogDialogReturnFocus } from './use-dialog-return-focus'
 
 type Props = {
   entry: DailyLogEntry | null
@@ -39,6 +40,7 @@ export const DailyLogEntryDetailDialog = ({
 }: Props) => {
   const isMobile = useIsMobile()
   const { t, i18n } = useTranslation()
+  const { contentRef, onOpenAutoFocus, onCloseAutoFocus } = useDailyLogDialogReturnFocus(open)
   if (!entry) return null
 
   const title =
@@ -207,7 +209,7 @@ export const DailyLogEntryDetailDialog = ({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent side="right" className="max-w-lg overflow-y-auto p-4">
+        <DrawerContent ref={contentRef} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus} side="right" className="max-w-lg overflow-y-auto p-4">
           <DialogTitle className="mb-4 text-lg font-semibold">{title}</DialogTitle>
           {body}
         </DrawerContent>
@@ -217,7 +219,7 @@ export const DailyLogEntryDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent ref={contentRef} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus} className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

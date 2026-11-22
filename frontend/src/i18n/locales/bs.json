@@ -2126,6 +2126,7 @@
       "client": "Klijent",
       "searchClient": "Pretražite klijenta...",
       "services": "Servisi",
+      "removeSelectedService": "{{name}} × — Ukloni uslugu",
       "searchService": "Pretražite servis...",
       "date": "Datum",
       "status": "Status",

@@ -24,11 +24,23 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.goto('/admin/reservations/calendar', { waitUntil: 'networkidle' })
         await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
         await expect(page.locator('html')).toHaveAttribute('lang', language)
-        await page.keyboard.press('Tab')
-        await expect(page.locator('a[href="#calendar-main"]')).toBeFocused()
-        await page.keyboard.press('Enter')
+        const skip = page.locator('a[href="#calendar-main"]')
         const main = page.locator('#calendar-main')
+        // The initial route is lazy loaded: networkidle/html language can settle
+        // while the calendar is still absent. Still require the first real Tab.
+        await expect(skip).toBeAttached()
+        await expect(main).toHaveAttribute('aria-busy', 'false')
+        await page.keyboard.press('Tab')
+        try {
+          await expect(skip).toBeFocused()
+        } catch (error) {
+          const active = await page.evaluate(() => ({ tag: document.activeElement?.tagName, id: document.activeElement?.id, href: document.activeElement?.getAttribute('href') }))
+          console.log(`::error title=M3 calendar skip ${theme} ${language} ${colors}::${JSON.stringify(active)}`)
+          throw error
+        }
+        await page.keyboard.press('Enter')
         await expect(main).toBeFocused()
+        await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
         const indicator = await main.evaluate(el => {
           const style = getComputedStyle(el)
           return { visible: el.matches(':focus-visible'), style: style.outlineStyle, color: style.outlineColor, width: style.outlineWidth, offset: style.outlineOffset }

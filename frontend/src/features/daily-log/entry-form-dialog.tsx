@@ -19,6 +19,7 @@ import type {
   StylistOption,
 } from './types'
 import { defaultUnitPrice } from './form-helpers'
+import { useDailyLogDialogReturnFocus } from './use-dialog-return-focus'
 
 type Props = {
   open: boolean
@@ -230,6 +231,18 @@ export const DailyLogEntryFormDialog = (props: Props) => {
     setShowClientDropdown(false)
   }
 
+  const { contentRef, onOpenAutoFocus, onCloseAutoFocus } = useDailyLogDialogReturnFocus(open)
+
+  // Radix listens for Escape at the document level, before input onKeyDown.
+  // Close an open picker first; a subsequent Escape may dismiss the dialog.
+  const onEscapeKeyDown = (event: KeyboardEvent) => {
+    const active = document.activeElement
+    if (
+      (active?.id === 'dailylog-client' && showClientDropdown && filteredClients.length > 0) ||
+      (active?.id === 'dailylog-services' && showServiceDropdown && filteredServices.length > 0)
+    ) event.preventDefault()
+  }
+
   const fields = (
     <>
       {/* 3.3.1/3.3.3: trajni sažetak s linkovima na polja, umjesto prolaznog toasta. */}
@@ -288,7 +301,7 @@ export const DailyLogEntryFormDialog = (props: Props) => {
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent side="right" className="max-w-lg overflow-y-auto p-4">
+        <DrawerContent ref={contentRef} side="right" onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus} onEscapeKeyDown={onEscapeKeyDown} className="max-w-lg overflow-y-auto p-4">
           <DialogTitle className="mb-4 text-lg font-semibold">
             {editId ? t('dailyLog.editEntry') : t('dailyLog.newEntry')}
           </DialogTitle>
@@ -300,7 +313,7 @@ export const DailyLogEntryFormDialog = (props: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent ref={contentRef} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus} onEscapeKeyDown={onEscapeKeyDown} className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editId ? t('dailyLog.editEntry') : t('dailyLog.newEntry')}</DialogTitle>
         </DialogHeader>

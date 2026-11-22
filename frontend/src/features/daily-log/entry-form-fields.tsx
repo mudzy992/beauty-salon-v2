@@ -1,7 +1,7 @@
 import { FieldError, fieldErrorProps } from '../forms/field-error'
 import { Select } from '../../components/ui/select'
 import { DAILY_LOG_FIELD } from './field-ids'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, Loader2, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount, formatLocalizedNumber } from '../../i18n/locale-utils.mjs'
@@ -113,12 +113,23 @@ export const DailyLogEntryFormFields = ({
 }: Props) => {
   const { t, i18n } = useTranslation()
   // Tastaturska navigacija kroz listbox (2.1.1): samo UI stanje, ne dira poslovno stanje.
-  const [clientActiveIdx, setClientActiveIdx] = useState(-1)
-  const [serviceActiveIdx, setServiceActiveIdx] = useState(-1)
+  const [clientActiveId, setClientActiveId] = useState<string | null>(null)
+  const [serviceActiveId, setServiceActiveId] = useState<string | null>(null)
+  const serviceInputRef = useRef<HTMLInputElement>(null)
+  const clientActiveIdx = filteredClients.findIndex(client => client.id === clientActiveId)
+  const serviceActiveIdx = filteredServices.findIndex(service => service.id === serviceActiveId)
+  useEffect(() => {
+    if (showClientDropdown && clientActiveIdx >= 0)
+      document.getElementById(`dailylog-client-opt-${clientActiveId}`)?.scrollIntoView({ block: 'nearest' })
+  }, [showClientDropdown, clientActiveIdx, clientActiveId])
+  useEffect(() => {
+    if (showServiceDropdown && serviceActiveIdx >= 0)
+      document.getElementById(`dailylog-service-opt-${serviceActiveId}`)?.scrollIntoView({ block: 'nearest' })
+  }, [showServiceDropdown, serviceActiveIdx, serviceActiveId])
   const stepIndex = (current: number, count: number, key: string): number | null => {
     if (count === 0) return null
     if (key === 'ArrowDown') return (current + 1) % count
-    if (key === 'ArrowUp') return (current - 1 + count) % count
+    if (key === 'ArrowUp') return current < 0 ? count - 1 : (current - 1 + count) % count
     if (key === 'Home') return 0
     if (key === 'End') return count - 1
     return null
@@ -166,30 +177,37 @@ export const DailyLogEntryFormFields = ({
           onChange={(e) => {
             setClientSearch(e.target.value)
             setShowClientDropdown(true)
-            setClientActiveIdx(-1)
+            setClientActiveId(null)
             setForm((prev) => ({ ...prev, clientId: '' }))
           }}
           onFocus={() => setShowClientDropdown(true)}
+          onBlur={(event) => {
+            const input = event.currentTarget
+            // Removing a popup synchronously during blur can disrupt native Tab navigation.
+            setTimeout(() => {
+              if (document.activeElement !== input) { setShowClientDropdown(false); setClientActiveId(null) }
+            }, 0)
+          }}
           onKeyDown={(e) => {
             const open = showClientDropdown && filteredClients.length > 0
-            const next = stepIndex(clientActiveIdx, open ? filteredClients.length : 0, e.key)
+            const next = stepIndex(clientActiveIdx, filteredClients.length, e.key)
             if (next !== null) {
               e.preventDefault()
               if (!open) setShowClientDropdown(true)
-              setClientActiveIdx(next)
+              setClientActiveId(filteredClients[next].id)
               return
             }
             if (e.key === 'Enter' && open && clientActiveIdx >= 0) {
               e.preventDefault()
               onSelectClient(filteredClients[clientActiveIdx])
               setShowClientDropdown(false)
-              setClientActiveIdx(-1)
+              setClientActiveId(null)
               return
             }
             if (e.key === 'Escape' && open) {
               e.preventDefault()
               setShowClientDropdown(false)
-              setClientActiveIdx(-1)
+              setClientActiveId(null)
             }
           }}
           placeholder={t('dailyLog.form.searchClient')}
@@ -199,6 +217,7 @@ export const DailyLogEntryFormFields = ({
           <ul
             id="dailylog-client-listbox"
             role="listbox"
+            tabIndex={-1}
             aria-label={t('dailyLog.form.client')}
             className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
           >
@@ -212,6 +231,7 @@ export const DailyLogEntryFormFields = ({
                 id={`dailylog-client-opt-${c.id}`}
                 role="option"
                 aria-selected={idx === clientActiveIdx}
+                data-daily-log-active-option={idx === clientActiveIdx ? '' : undefined}
                 className={
                   idx === clientActiveIdx
                     ? 'cursor-pointer bg-brand-champagne/20 px-3 py-2 text-sm'
@@ -232,6 +252,7 @@ export const DailyLogEntryFormFields = ({
       <div ref={serviceDropdownRef} className="relative mt-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
+          ref={serviceInputRef}
           id="dailylog-services"
           {...fieldErrorProps(DAILY_LOG_FIELD.services, fieldErrors[DAILY_LOG_FIELD.services])}
           className="pl-9"
@@ -249,16 +270,23 @@ export const DailyLogEntryFormFields = ({
           onChange={(e) => {
             setServiceSearch(e.target.value)
             setShowServiceDropdown(true)
-            setServiceActiveIdx(-1)
+            setServiceActiveId(null)
           }}
           onFocus={() => setShowServiceDropdown(true)}
+          onBlur={(event) => {
+            const input = event.currentTarget
+            // Removing a popup synchronously during blur can disrupt native Tab navigation.
+            setTimeout(() => {
+              if (document.activeElement !== input) { setShowServiceDropdown(false); setServiceActiveId(null) }
+            }, 0)
+          }}
           onKeyDown={(e) => {
             const open = showServiceDropdown && filteredServices.length > 0
-            const next = stepIndex(serviceActiveIdx, open ? filteredServices.length : 0, e.key)
+            const next = stepIndex(serviceActiveIdx, filteredServices.length, e.key)
             if (next !== null) {
               e.preventDefault()
               if (!open) setShowServiceDropdown(true)
-              setServiceActiveIdx(next)
+              setServiceActiveId(filteredServices[next].id)
               return
             }
             if (e.key === 'Enter' && open && serviceActiveIdx >= 0) {
@@ -269,7 +297,7 @@ export const DailyLogEntryFormFields = ({
             if (e.key === 'Escape' && open) {
               e.preventDefault()
               setShowServiceDropdown(false)
-              setServiceActiveIdx(-1)
+              setServiceActiveId(null)
             }
           }}
           placeholder={t('dailyLog.form.searchService')}
@@ -279,6 +307,7 @@ export const DailyLogEntryFormFields = ({
           <ul
             id="dailylog-service-listbox"
             role="listbox"
+            tabIndex={-1}
             aria-multiselectable="true"
             aria-label={t('dailyLog.form.services')}
             className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
@@ -293,6 +322,7 @@ export const DailyLogEntryFormFields = ({
                 id={`dailylog-service-opt-${svc.id}`}
                 role="option"
                 aria-selected={form.serviceIds.includes(svc.id)}
+                data-daily-log-active-option={idx === serviceActiveIdx ? '' : undefined}
                 className={
                   idx === serviceActiveIdx
                     ? 'cursor-pointer bg-brand-champagne/20 px-3 py-2'
@@ -318,7 +348,17 @@ export const DailyLogEntryFormFields = ({
       {selectedServices.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-2">
           {selectedServices.map((s) => (
-            <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => onToggleService(s)}>
+            <Button
+              key={s.id}
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label={t('dailyLog.form.removeSelectedService', { name: s.name })}
+              onClick={(event) => {
+                if (document.activeElement === event.currentTarget) serviceInputRef.current?.focus()
+                onToggleService(s)
+              }}
+            >
               {s.name} ×
             </Button>
           ))}

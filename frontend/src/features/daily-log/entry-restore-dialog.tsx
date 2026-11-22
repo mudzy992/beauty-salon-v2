@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalendarIcon, Info } from 'lucide-react'
 import {
@@ -13,6 +13,7 @@ import { Label } from '../../components/ui/label'
 import { Input } from '../../components/ui/input'
 import { getIntlLocale } from '../../i18n/locale-utils.mjs'
 import type { DailyLogEntry } from './types'
+import { useDailyLogDialogReturnFocus } from './use-dialog-return-focus'
 import {
   formatDateOnlyLocale,
   getSalonDateOnly,
@@ -42,8 +43,20 @@ const formatDate = (dateStr: string, language: string) => {
 
 export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props) => {
   const { t, i18n } = useTranslation()
+  const { contentRef, onOpenAutoFocus, onCloseAutoFocus } = useDailyLogDialogReturnFocus(!!entry)
   const [mode, setMode] = useState<'original' | 'new'>('original')
   const [newDate, setNewDate] = useState('')
+  const confirmRef = useRef<HTMLButtonElement>(null)
+  const wasLoading = useRef(false)
+  useEffect(() => {
+    // A failed request re-enables the button that was disabled while saving.
+    // Restore focus only when it was lost, not if the user moved it elsewhere.
+    if (wasLoading.current && !loading && entry &&
+      (document.activeElement === document.body || document.activeElement === contentRef.current)) {
+      confirmRef.current?.focus()
+    }
+    wasLoading.current = !!loading
+  }, [loading, entry, contentRef])
 
   if (!entry) return null
 
@@ -65,7 +78,7 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent ref={contentRef} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus} className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('dailyLog.restoreDialog.title')}</DialogTitle>
         </DialogHeader>
@@ -141,7 +154,7 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
           <Button variant="outline" onClick={onClose} disabled={loading}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={handleConfirm} disabled={!isValid || loading}>
+          <Button ref={confirmRef} onClick={handleConfirm} disabled={!isValid || loading}>
             {loading ? t('dailyLog.restoreDialog.restoring') : t('common.confirm')}
           </Button>
         </DialogFooter>

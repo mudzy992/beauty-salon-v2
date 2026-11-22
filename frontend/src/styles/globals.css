@@ -2113,3 +2113,13 @@
     outline-color: Highlight;
   }
 }
+
+/* Daily log comboboxes keep DOM focus in the input: the active option also
+   needs a visible indicator, distinct from the multi-selection checkmark. */
+[data-daily-log-active-option] {
+  outline: 2px solid var(--focus-ring, var(--brand-primary-ring, #632238));
+  outline-offset: -2px;
+}
+@media (forced-colors: active) {
+  [data-daily-log-active-option] { outline-color: Highlight; }
+}

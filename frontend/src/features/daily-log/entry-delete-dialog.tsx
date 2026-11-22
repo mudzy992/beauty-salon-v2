@@ -12,6 +12,7 @@ import {
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import type { DailyLogEntry } from './types'
+import { useDailyLogDialogReturnFocus } from './use-dialog-return-focus'
 
 type Props = {
   open: boolean
@@ -33,10 +34,11 @@ export const DailyLogDeleteDialog = ({
   onConfirm,
 }: Props) => {
   const { t } = useTranslation()
+  const { contentRef, onOpenAutoFocus, onCloseAutoFocus } = useDailyLogDialogReturnFocus(open)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent ref={contentRef} onOpenAutoFocus={onOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t('dailyLog.deleteDialog.title')}</DialogTitle>
         </DialogHeader>

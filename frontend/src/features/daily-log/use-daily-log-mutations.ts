@@ -21,9 +21,12 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
   const [restoring, setRestoring] = useState(false)
 
   const handleComplete = async (id: string) => {
+    const trigger = document.activeElement instanceof HTMLButtonElement ? document.activeElement : null
     try {
       await api.post(`/api/daily-log/${id}/complete`)
       success(t('dailyLog.feedback.completed'))
+      // The refresh unmounts the row. Do not override a focus move made while waiting.
+      if (trigger && document.activeElement === trigger) document.querySelector<HTMLElement>('main[tabindex="-1"]')?.focus()
       loadData()
     } catch {
       error(t('dailyLog.feedback.completeFailed'))

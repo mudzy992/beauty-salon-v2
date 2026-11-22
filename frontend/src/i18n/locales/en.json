@@ -2126,6 +2126,7 @@
       "client": "Client",
       "searchClient": "Search clients...",
       "services": "Services",
+      "removeSelectedService": "{{name}} × — Remove service",
       "searchService": "Search services...",
       "date": "Date",
       "status": "Status",
