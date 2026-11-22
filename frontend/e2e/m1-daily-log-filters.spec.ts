@@ -7,14 +7,17 @@ async function tabTo(page: Page, target: Locator, limit = 150) {
 }
 
 async function checkKeyboardFocus(target: Locator) {
+  // Let Chromium apply focus-visible styles before measuring the computed ring.
+  await target.page().evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
   const state = await target.evaluate(el => {
     const rect = el.getBoundingClientRect()
     const top = document.elementFromPoint((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2)
     return { visible: el.matches(':focus-visible'), shadow: getComputedStyle(el).boxShadow, centerHit: !!top && (top === el || el.contains(top)) }
   })
-  expect(state.visible).toBe(true)
-  expect(state.shadow).not.toBe('none')
-  expect(state.centerHit).toBe(true)
+  const diagnostic = JSON.stringify(state)
+  expect(state.visible, diagnostic).toBe(true)
+  expect(state.shadow, diagnostic).not.toBe('none')
+  expect(state.centerHit, diagnostic).toBe(true)
   // Compare the computed solid ring to its solid offset only; this is not a full pixel or adjacent-surface audit.
   const colors = state.shadow.match(/rgba?\([\d.,\s]+\)/g) ?? []
   expect(colors.length).toBeGreaterThanOrEqual(2)
@@ -28,8 +31,16 @@ async function checkKeyboardFocus(target: Locator) {
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
   }
   const offset = luminance(colors[0] ?? ''), ring = luminance(colors[1] ?? '')
-  expect((Math.max(offset, ring) + 0.05) / (Math.min(offset, ring) + 0.05)).toBeGreaterThanOrEqual(3)
+  expect((Math.max(offset, ring) + 0.05) / (Math.min(offset, ring) + 0.05), diagnostic).toBeGreaterThanOrEqual(3)
 }
+
+// CI log archives are sometimes unavailable: keep bounded, fixture-only failure details in annotations.
+test.afterEach(async ({}, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return
+  const detail = testInfo.errors.map(error => error.message ?? String(error)).join('\n').slice(0, 2200)
+  const escape = (text: string) => text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  console.log(`::error title=${escape(testInfo.title)}::${escape(detail)}`)
+})
 
 const record = (reference: string) => ({ id: reference, publicReferenceCode: reference, date: '2026-03-04', status: 'COMPLETED', actualPrice: 50, tipAmount: 0, isManual: true, notes: null, completedAt: '2026-03-04T12:00:00Z', deletedAt: null, service: { id: 'service-1', name: 'Test service', price: 50 }, stylistProfile: { id: 'stylist-1', user: { username: 'ana', firstName: 'Ana', lastName: 'Test' } } })
 

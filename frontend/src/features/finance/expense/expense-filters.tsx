@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { X } from 'lucide-react'
 import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
@@ -24,6 +25,7 @@ export function ExpenseFiltersBar({
   totalCount,
 }: ExpenseFiltersBarProps) {
   const { t } = useTranslation()
+  const searchRef = useRef<HTMLInputElement>(null)
   const isFiltered =
     JSON.stringify(filters) !== JSON.stringify(EMPTY_EXPENSE_FILTERS)
   const update = (patch: Partial<ExpenseFilters>) =>
@@ -37,6 +39,7 @@ export function ExpenseFiltersBar({
             {t('finance.filters.search')}
           </Label>
           <Input
+            ref={searchRef}
             id="expense-search"
             value={filters.search}
             onChange={(event) => update({ search: event.target.value })}
@@ -107,7 +110,10 @@ export function ExpenseFiltersBar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onChange(EMPTY_EXPENSE_FILTERS)}
+              onClick={(event) => {
+                if (document.activeElement === event.currentTarget) searchRef.current?.focus()
+                onChange(EMPTY_EXPENSE_FILTERS)
+              }}
             >
               <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
               {t('finance.filters.clear')}

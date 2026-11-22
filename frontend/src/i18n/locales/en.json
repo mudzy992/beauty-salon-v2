@@ -2326,8 +2326,8 @@
         "actions": "Actions"
       },
       "sortBy": "Sort by {{label}}",
-      "editManualEntry": "Edit manual income entry",
-      "deleteManualEntry": "Delete manual income entry"
+      "editManualEntry": "Edit manual income entry, row {{row}}: {{service}}, {{date}}, {{amount}}",
+      "deleteManualEntry": "Delete manual income entry, row {{row}}: {{service}}, {{date}}, {{amount}}"
     },
     "incomeDetail": {
       "backToList": "Back to list",

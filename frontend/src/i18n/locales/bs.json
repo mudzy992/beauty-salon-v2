@@ -2326,8 +2326,8 @@
         "actions": "Akcije"
       },
       "sortBy": "Sortiraj po {{label}}",
-      "editManualEntry": "Uredi ručni prihod",
-      "deleteManualEntry": "Obriši ručni prihod"
+      "editManualEntry": "Uredi ručni prihod, red {{row}}: {{service}}, {{date}}, {{amount}}",
+      "deleteManualEntry": "Obriši ručni prihod, red {{row}}: {{service}}, {{date}}, {{amount}}"
     },
     "incomeDetail": {
       "backToList": "Nazad na listu",

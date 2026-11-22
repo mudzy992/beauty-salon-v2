@@ -76,6 +76,16 @@ export function IncomeEntriesTable({
   }
 
 
+  // The position disambiguates otherwise identical manual entries in the current view.
+  const rowNumbers = new Map(rows.map((row, index) => [row, index + 1]))
+  const actionLabel = (key: 'finance.incomeList.editManualEntry' | 'finance.incomeList.deleteManualEntry', row: IncomeEntryRow) =>
+    t(key, {
+      row: rowNumbers.get(row),
+      service: row.serviceName,
+      date: formatIncomeDate(row.date, i18n.language),
+      amount: formatLocalizedAmount(row.amount, i18n.language),
+    })
+
   const columns: DataTableColumn<IncomeEntryRow>[] = [
     {
       key: 'date',
@@ -148,7 +158,7 @@ export function IncomeEntriesTable({
             <Button
               variant="ghost"
               size="icon"
-              aria-label={t('finance.incomeList.editManualEntry')}
+              aria-label={actionLabel('finance.incomeList.editManualEntry', row)}
               onClick={() => onEdit(row.manualEntry as IncomeBookManualEntry)}
             >
               <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -156,7 +166,7 @@ export function IncomeEntriesTable({
             <Button
               variant="ghost"
               size="icon"
-              aria-label={t('finance.incomeList.deleteManualEntry')}
+              aria-label={actionLabel('finance.incomeList.deleteManualEntry', row)}
               onClick={() => onDelete(row.manualEntry as IncomeBookManualEntry)}
             >
               <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
