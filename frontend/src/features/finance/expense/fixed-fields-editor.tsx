@@ -75,6 +75,7 @@ export function FixedFieldsEditor({
                         type="button"
                         variant="ghost"
                         size="sm"
+                        disabled={isUploading}
                         onClick={() => onClearPending(field.id)}
                       >
                         {t('finance.expenseForm.remove')}

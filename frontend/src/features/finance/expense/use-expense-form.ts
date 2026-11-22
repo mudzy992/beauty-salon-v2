@@ -89,6 +89,15 @@ export const useExpenseForm = (params: {
       lineAttachments: lineItems.map((_, i) => prev.lineAttachments[i] ?? null),
     }))
 
+  // A removed line must remove its corresponding attachment, not whichever
+  // attachment happens to occupy the same index after the array shrinks.
+  const removeLineItem = (index: number) =>
+    setForm((prev) => ({
+      ...prev,
+      lineItems: prev.lineItems.filter((_, i) => i !== index),
+      lineAttachments: prev.lineAttachments.filter((_, i) => i !== index),
+    }))
+
   const validationError = (() => {
     if (!form.categoryId) return t('finance.expenseForm.validation.categoryRequired')
     if (!form.title.trim()) return t('finance.expenseForm.validation.titleRequired')
@@ -175,6 +184,7 @@ export const useExpenseForm = (params: {
     selectCategory,
     setFieldValue,
     setLineItems,
+    removeLineItem,
     category,
     isFixed,
     requiresPerItem,

@@ -127,7 +127,7 @@ export function ExpenseDialog({
             className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={f.form.categoryId}
             onChange={(e) => f.selectCategory(e.target.value)}
-            disabled={Boolean(editing)}
+            disabled={Boolean(editing) || uploads.isUploading}
           >
             <option value="">{t('finance.expenseForm.selectCategory')}</option>
             {categories
@@ -183,6 +183,7 @@ export function ExpenseDialog({
               fields={f.templateFields}
               items={f.form.lineItems}
               onChange={f.setLineItems}
+              onRemove={f.removeLineItem}
               requiresPerItem={f.requiresPerItem}
               lineAttachments={f.form.lineAttachments}
               existingAttachments={editing?.attachments ?? []}

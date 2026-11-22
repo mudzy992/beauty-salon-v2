@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Najnoviji nastavak:** rashodi, uklanjanje stavke/priloga i fokus; lokalno 36 novih fiksura, s ranijim finance regresijama 120/120. Upisi/upload su simulirani, CI dodatka čeka potvrdu; M1/M3 i M4–M7 ostaju otvoreni. Detalji u `17_m1_m3_izvjestaj.md`.
+
 > **Najnoviji M1/M3 paket:** dnevna knjiga: 156 sintetičkih keyboard/focus slučajeva i 12 kalendarskih skip slučajeva, završni lokalni run 168/168; detalji i ograničenja u `17_m1_m3_izvjestaj.md`. CI `d02dd08` 4/5, 1891/1/0; novi CI paketa treba provjeriti. M1/M3 i M4–M7 nisu zatvoreni.
 
 > **M1/M3 nastavak:** novi kalendarski i finance keyboard/focus paket lokalno 231/231, uz ciljane regresije; Raniji CI `84c0d80` je prošao 5/5, a naknadni `d02dd08` pao je na jednom kalendarskom testu; noviji status je u bloku iznad. M1/M3 su i dalje otvoreni za preostale tokove i stvarni ručni pregled; opseg i granice u `17_m1_m3_izvjestaj.md`.

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
@@ -24,6 +25,7 @@ type Props = {
   fields: TemplateField[]
   items: LineItem[]
   onChange: (items: LineItem[]) => void
+  onRemove: (index: number) => void
   requiresPerItem?: boolean
   lineAttachments?: (PendingAtt | null)[]
   existingAttachments?: ExpenseAttachment[]
@@ -39,6 +41,7 @@ export function LineItemsEditor({
   fields,
   items,
   onChange,
+  onRemove,
   requiresPerItem = false,
   lineAttachments = [],
   existingAttachments = [],
@@ -47,6 +50,20 @@ export function LineItemsEditor({
   onClearItemAttachment,
 }: Props) {
   const { t, i18n } = useTranslation()
+  const addButtonRef = useRef<HTMLButtonElement>(null)
+  const uploadRefs = useRef<Record<number, HTMLInputElement | null>>({})
+  const clearRefs = useRef<Record<number, HTMLButtonElement | null>>({})
+  const uploadFocus = useRef<{ index: number; dialog: Element | null } | null>(null)
+  useEffect(() => {
+    if (isUploading || !uploadFocus.current) return
+    const { index, dialog } = uploadFocus.current
+    uploadFocus.current = null
+    // The file input can be disabled or replaced by the remove button. Do not
+    // override a focus move made by the user while the upload was pending.
+    if (document.activeElement === document.body || document.activeElement === dialog) {
+      ;(clearRefs.current[index] ?? uploadRefs.current[index])?.focus()
+    }
+  }, [isUploading, lineAttachments])
   const updateValue = (index: number, fieldId: string, value: string) =>
     onChange(
       items.map((item, i) =>
@@ -69,8 +86,10 @@ export function LineItemsEditor({
       <div className="flex items-center justify-between">
         <Label>{t('finance.expenseForm.lineItems')}</Label>
         <Button
+          ref={addButtonRef}
           variant="outline"
           size="sm"
+          disabled={isUploading}
           onClick={() => onChange([...items, createEmptyLineItem(fields)])}
         >
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
@@ -119,7 +138,11 @@ export function LineItemsEditor({
                     variant="ghost"
                     size="icon"
                     aria-label={t('finance.expenseForm.removeLineItem', { number: index + 1 })}
-                    onClick={() => onChange(items.filter((_, i) => i !== index))}
+                    disabled={isUploading}
+                    onClick={(event) => {
+                      if (document.activeElement === event.currentTarget) addButtonRef.current?.focus()
+                      onRemove(index)
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
                   </Button>
@@ -137,10 +160,17 @@ export function LineItemsEditor({
                       <>
                         <Badge variant="secondary">{pending.name}</Badge>
                         <Button
+                          ref={(element) => { clearRefs.current[index] = element }}
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => onClearItemAttachment?.(index)}
+                          disabled={isUploading}
+                          onClick={(event) => {
+                            if (document.activeElement === event.currentTarget) {
+                              uploadFocus.current = { index, dialog: event.currentTarget.closest('[role="dialog"]') }
+                            }
+                            onClearItemAttachment?.(index)
+                          }}
                         >
                           {t('finance.expenseForm.remove')}
                         </Button>
@@ -151,13 +181,19 @@ export function LineItemsEditor({
                       </Badge>
                     ) : (
                       <input
+                        ref={(element) => { uploadRefs.current[index] = element }}
                         type="file"
                         className="max-w-full text-xs"
                         aria-label={t('finance.expenseForm.attachmentForLine', { number: index + 1 })}
                         disabled={isUploading || !label}
                         onChange={(e) => {
                           const file = e.target.files?.[0]
-                          if (file) onUploadItem?.(index, label, file)
+                          if (file && onUploadItem) {
+                            if (document.activeElement === e.currentTarget) {
+                              uploadFocus.current = { index, dialog: e.currentTarget.closest('[role="dialog"]') }
+                            }
+                            onUploadItem(index, label, file)
+                          }
                           e.target.value = ''
                         }}
                       />
