@@ -3,6 +3,20 @@ import AxeBuilder from '@axe-core/playwright'
 import { AXE_RULE_TAGS, assertableViolations } from './axe-coverage.mjs'
 import { settleAnimations } from './settle'
 
+function contrast(foreground: string, background: string) {
+  const luminance = (color: string) => {
+    const values = (color.match(/[\d.]+/g) ?? []).map(Number)
+    expect(values.length === 3 || (values.length === 4 && values[3] === 1), `opaque RGB required: ${color}`).toBe(true)
+    const [r, g, b] = values.slice(0, 3).map(value => {
+      const v = value / 255
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const a = luminance(foreground), b = luminance(background)
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+
 async function tabTo(page: Page, target: Locator) {
   for (let i = 0; i < 150 && !(await target.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab')
   await expect(target).toBeFocused()
@@ -42,6 +56,9 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         const alpha = group.getByRole('button', { name: 'Fixture Alpha' })
         const beta = group.getByRole('button', { name: 'Fixture Beta' })
         const buttons = [all, alpha, beta]
+        const summary = page.locator('#service-catalog [aria-live="polite"]')
+        await expect(summary).toHaveCount(1)
+        await expect(summary).toHaveText(language === 'bs' ? '2 usluge' : '2 services')
         const checkState = async (selected: Locator) => {
           await expect(selected).toHaveAttribute('aria-pressed', 'true')
           for (const button of buttons) {
@@ -76,6 +93,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.keyboard.press('Enter')
         await checkFocus(alpha)
         await expect(alpha).toHaveAttribute('aria-pressed', 'true')
+        await expect(summary).toHaveText(language === 'bs' ? '1 usluga' : '1 service')
         await expect(page.getByRole('heading', { name: 'Fixture Alpha' })).toBeVisible()
         await expect(page.getByRole('heading', { name: 'Fixture Beta' })).toHaveCount(0)
         await page.keyboard.press('Tab')
@@ -92,19 +110,62 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.keyboard.press('Enter')
         await expect(page.getByRole('heading', { name: 'Fixture Alpha' })).toBeVisible()
         await expect(page.getByRole('heading', { name: 'Fixture Beta' })).toBeVisible()
+        await expect(summary).toHaveText(language === 'bs' ? '2 usluge' : '2 services')
         await checkState(all)
         if (palette === 'light') {
           await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'reduce' })
           expect(await settleAnimations(page)).not.toBeNull()
+          const counts = page.locator('[data-service-category-count]')
+          await expect(counts).toHaveCount(2)
+          for (const count of await counts.all()) {
+            const colors = await count.evaluate(el => {
+              const css = getComputedStyle(el)
+              return { foreground: css.color, background: css.backgroundColor }
+            })
+            const ratio = contrast(colors.foreground, colors.background)
+            console.log(`M7_CATEGORY_COUNT_${theme.toUpperCase()}_${language.toUpperCase()} ${JSON.stringify({ ...colors, ratio })}`)
+            expect(ratio, JSON.stringify(colors)).toBeGreaterThanOrEqual(7)
+          }
           const results = await new AxeBuilder({ page }).include('[data-aurum-page="services"]').withTags(AXE_RULE_TAGS).analyze()
           const findings = { violations: results.violations.map(({ id, nodes }) => ({ id, nodes: nodes.map(node => ({ target: node.target, html: node.html, summary: node.failureSummary })) })), incomplete: results.incomplete.map(({ id, nodes }) => ({ id, nodes: nodes.map(node => ({ target: node.target, html: node.html, summary: node.failureSummary })) })) }
           console.log(`M7_SERVICES_${theme.toUpperCase()}_${language.toUpperCase()} ${JSON.stringify(findings)}`)
           await test.info().attach('services-axe-findings', { body: JSON.stringify(findings, null, 2), contentType: 'application/json' })
           expect(results.violations.filter(item => item.id === 'heading-order')).toEqual([])
           expect(assertableViolations(results.violations)).toEqual([])
+          for (const rule of results.incomplete.filter(item => item.id === 'color-contrast' || item.id === 'color-contrast-enhanced')) {
+            expect(rule.nodes.filter(node => node.html.includes('data-service-category-count')), rule.id).toEqual([])
+          }
         }
         expect(writes).toEqual([])
       })
     }
   }
+}
+
+for (const theme of ['classic', 'dark'] as const) {
+  test(`M4 services configured catalogue heading ${theme}`, async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('nejra.theme')
+      localStorage.setItem('nejra.theme.mode', 'dark')
+      localStorage.setItem('APP_LOCALE', 'en')
+    })
+    const writes: string[] = []
+    await page.route('**/api/**', route => {
+      const req = route.request(), path = new URL(req.url()).pathname
+      if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
+      if (path === '/api/settings/public') return route.fulfill({ json: [
+        { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
+        { key: 'theme_default_mode', value: 'dark' },
+        { key: 'public_services_catalog_heading', value: 'Fixture catalogue heading' },
+      ] })
+      if (path.startsWith('/api/services')) return route.fulfill({ json: [] })
+      return route.fulfill({ json: {} })
+    })
+    await page.goto('/usluge', { waitUntil: 'networkidle' })
+    await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+    await expect(page.locator('#service-catalog h2')).toHaveCount(1)
+    await expect(page.getByRole('heading', { level: 2, name: 'Fixture catalogue heading' })).toBeVisible()
+    expect(writes).toEqual([])
+  })
 }

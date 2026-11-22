@@ -1429,7 +1429,7 @@
 [data-skin="aurum"] [data-aurum-page="services"] article > div[aria-hidden="true"] {
   display: none;
 }
-[data-skin="aurum"] [data-aurum-page="services"] [data-service-category-count] {
+[data-aurum-page="services"] [data-service-category-count] {
   position: relative;
   background-color: hsl(var(--surface));
   color: hsl(var(--text));

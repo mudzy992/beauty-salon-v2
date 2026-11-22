@@ -1007,3 +1007,7 @@ U Chromium forced-colors fiksuri reproducirano je da pozadinski ispuni ne razlik
 ## M4–M7 · Filter usluga i izvorna CI provjera
 
 Dodani forced-colors obrub odabranog filtera i zaseban fokusni obris te lokalizovani skriveni naslov kataloga kada urednički naslov nedostaje. Lokalna matrica filtera 12/12; završni kombinovani paket 30/30. Šest scoped axe skenova bez violations, Classic po dva `color-contrast` incomplete čvora. CI `a3988fd` ima frontend failure na redundant-entry koraku; lokalno reproducirano poklapanje izvornog grepa s novim progress atributom, heuristika sužena i 10/10 lokalno, bez dostupnog CI loga. Šira regresija tema 12/20 uz backend-ovisne slučajeve koji nisu dosegnuli katalog; detalji i neizvedeni OS/AT protokol u [izvještaju](19_m4_m7_protokol_i_izvjestaj.md).
+
+## M4–M7 · Ciljani kontrast brojača kataloga
+
+Classic brojači kategorija dobili su eksplicitnu površinu i boju, kao već u Aurum temama. Ciljani CSS parovi su 20,01/17,55/15,60:1, šest scoped axe skenova bez violations/incomplete. Filter 12/12, dodatni konfigurirani naslov 2/2; DOM `aria-live` promjena ne dokazuje AT najavu. Fokusna dijagnostika 40/40 nije ponovila raniji kvar; nalaz ostaje otvoren. CI za `6e53d12` u toku, novi lokalni nastavak namjerno čeka push da se ne otkaže rendered run. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).

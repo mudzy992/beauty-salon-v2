@@ -350,3 +350,7 @@ text-content border-line` **no-op za Classic, fix za Aurum**.
 ## Nastavak M4–M7: katalog i CI
 
 Filter kataloga ima forced-colors selekciju i fokus, a naslov kataloga fallback `h2`; lokalno 30/30 fokusiranih scenarija i 10/10 redundant-entry testova nakon preciziranja tekstualne heuristike. CI `a3988fd` frontend failed u redundant-entry, log nedostupan, lokalna reprodukcija identificira konflikt s progress atributom; rendered u toku. Classic axe po dva incomplete čvora brojača u BS i EN; M4/OS i booking fokusni nalaz ostaju otvoreni. Šira tema regresija 12/20 uz nepotpun lokalni backend. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
+
+## Nastavak M4–M7: brojači i CI u toku
+
+Classic brojači imaju eksplicitnu podlogu, šest ciljnih axe skenova bez violations/incomplete; CSS parovi 20,01/17,55/15,60:1, filter 12/12 i urednički naslov 2/2. Prolaz dodatne dijagnostike fokusa 40/40 nije razriješio prethodne padove. `a3988fd` CI cancelled nakon novog pusha; `6e53d12` CI `45041037682` ima četiri prošla posla, rendered još traje. Novi lokalni commit namjerno nije pushan dok rendered ne završi kako se run ne bi otkazao; zatim pushati isključivo aktuelnu granu i provjeriti novi CI. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).

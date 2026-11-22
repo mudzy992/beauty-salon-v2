@@ -185,5 +185,8 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 ## Nastavak M4–M7: status kataloga
 
 - [x] Sintetički Chromium filter kataloga: tri teme × BS/EN × dvije emulirane palete; lokalno 12/12.
-- [ ] Stvarni OS high contrast i čitač ekrana, Classic axe incomplete za brojače i intermitentni booking fokus. [Dokaz i ograničenja](19_m4_m7_protokol_i_izvjestaj.md).
+- [ ] Stvarni OS high contrast i čitač ekrana te intermitentni booking fokus; Classic brojači više nisu incomplete u ciljanoj fiksuri. [Dokaz i ograničenja](19_m4_m7_protokol_i_izvjestaj.md).
 - [ ] Potvrditi CI nakon lokalne popravke heuristike redundant-entry; `a3988fd` frontend je pao, a CI log nedostupan.
+
+- [x] Ciljana Classic fiksura brojača kategorija: eksplicitna podloga, lokalni izračun kontrasta i šest scoped axe skenova; ne obuhvata druge nepotpune nalaze.
+- [ ] Sačekati rendered posao CI `45041037682` za `6e53d12`, zatim pushati lokalni nastavak i potvrditi njegov CI; ne prekinuti prethodni run bez potrebe.
