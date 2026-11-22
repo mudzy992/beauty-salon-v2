@@ -1025,3 +1025,7 @@ Emulacija je na bijeloj sintetičkoj slici otkrila nerazlučiv bijeli razdjelnik
 ## M4/M7 · finance odgođeni izbor stiliste i kontrast
 
 CI `45054726540` za `cfd43a1` završio 4/5, rendered 2547/1: Classic EN desktop `#manual-stylist` ostao prazan; cijeli log EOF. Sintetički odgođeni lookup demonstrira moguću utrku, ali ne dokazuje uzrok CI pada. Select je disabled dok traje dohvat, status je lokalizovan i povezan, postojeći test čeka opciju. Otklonjeni raniji scoped AAA nalazi summary labela i validacije. Lokalni objedinjeni paket 65/65, šest axe skenova bez violations s po jednim `color-contrast` incomplete za opis zbog preklapanja; 20/20 ciljanih ponavljanja. Stvarni AT i neuspješan lookup/retry nisu ispitani; novi CI tek treba potvrditi. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
+
+## CI `45071941627` — prag izvornog sweepa
+
+Frontend posao je pao na `test:text-contrast-allowlist`; lokalno reproducirano: broj svijetlih sirovih paleta-klasa je 124, prethodni minimalni ratchet 125. Uklonjena je jedna `text-rose-600` upotreba u finance validaciji pri prelasku na semantičku boju; prag je precizno snižen za jedan na 124, bez promjene 4,5:1 pravila, allowliste ili izvornog skeniranja. Lokalno test 4/4. Repository, backend i mobile poslovi su prošli, rendered je još u toku u trenutku zapisa; ne zaključivati njegov rezultat. Lokalna ispravka čeka push nakon završetka rendered posla da ga ne prekine; novi CI potom treba pratiti.

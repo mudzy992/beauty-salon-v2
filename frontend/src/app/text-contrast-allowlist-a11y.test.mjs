@@ -153,7 +153,9 @@ test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u
   // tokenizuju i svjetle i dark: paleta-klase, pa se pragovi spuštaju u korak
   // (smjer je uvijek dolje; mjerenje 2026-11-18 poslije C (18/) — javni portal/auth
   // tokenizovan: scanned=126, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
-  assert.ok(scanned >= 125, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  // Manual income validation now uses the semantic content token rather than
+  // one text-rose-600 occurrence (scanned 125 → 124); all findings still run.
+  assert.ok(scanned >= 124, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
   // 2026-11-18 (komponente standardizovane): skippedDark = 48
   assert.ok(skippedDark >= 45, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 

@@ -199,3 +199,5 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 - [x] CI `45054726540` za `cfd43a1` završen: 4/5, rendered 2547/1; finance uzrok nije dokazan.
 - [ ] Pushati lokalni galerijski i finance nastavak te pratiti novi CI; potvrditi status bez poistovjećivanja lokalne reprodukcije s uzrokom ranijeg CI pada.
 - [ ] Provjeriti stvarni AT za učitavanje stilista i error/retry lookup stanje; scoped axe opis dijaloga ostaje incomplete zbog preklapanja.
+
+- [ ] CI `45071941627`: frontend ratchet 125→124 zbog uklanjanja jedne sirove klase lokalno ispravljen, rendered još traje; sačekati pa pushati i pratiti novi CI.
