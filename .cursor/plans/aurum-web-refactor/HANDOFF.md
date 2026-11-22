@@ -358,3 +358,7 @@ Classic brojači imaju eksplicitnu podlogu, šest ciljnih axe skenova bez violat
 ## CI za `6e53d12`: završen s jednim axe padom
 
 `45041037682` 4/5, rendered 2543/1: Classic booking reduce imao je 17 čvorova `color-contrast`, plus 15 uzoraka incomplete; log nedostupan. Vještačka 0,25 opacity intervencija lokalno proizvela je slične axe nalaze, ali tačan CI uzrok nije utvrđen. Sken sada čeka konkretan intro i date panel da dostignu opacity 1 i završe Web Animations, ne filtrira axe: kontrolni test dokazuje čekanje, pad pri trajnoj prozirnosti i hvatanje stvarno lošeg kontrasta. Lokalno 8/8 pa 18/18 ponovljeno prije stabilizacije kontrolne animacije. CI je sada završen, pa lokalni nastavak treba pushati nakon završnih testova; novi CI tek slijedi. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
+
+## M4–M7: galerijski slider
+
+Lokalno 39/39: emulirane boje (24), nazivi više parova (12) i tri category axe fiksure. Prije je linija bila bijela na bijelom, a dva poređenja imala isti accessible name; implementirani sistemski obrubi, indeksi i kontekst kategorije te jači Classic caption. Opis slike i jednako nazvane kategorije ostaju ograničenja. Hero ima dva incomplete čvora po galerijskom scoped skenu. `45054726540` za `cfd43a1` ima četiri prošla posla, rendered još traje; nove lokalne izmjene nisu u tom CI-ju. Ne prekinuti ga nepotrebnim pushom. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).

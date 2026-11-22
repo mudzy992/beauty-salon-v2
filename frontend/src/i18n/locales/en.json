@@ -2902,6 +2902,8 @@
       "selectedTransformation": "Transformation {{current}} of {{total}}",
       "selectTransformation": "Select a transformation",
       "sliderLabel": "Before and after photo comparison",
+      "sliderLabelIndexed": "Before and after photo comparison, {{current}} of {{total}}",
+      "sliderLabelCategory": "{{category}}: {{comparison}}",
       "positionValue": "{{position}}% revealed",
       "before": "Before",
       "after": "After"

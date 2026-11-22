@@ -2124,6 +2124,22 @@
     outline: 2px solid Highlight;
     outline-offset: 2px;
   }
+  /* Shadows disappear in forced colors; keep the before/after divider and
+     handle distinguishable against both light and dark photographs. */
+  [data-before-after-divider] {
+    width: 0;
+    border-left: 2px solid CanvasText;
+    border-right: 2px solid Canvas;
+  }
+  [data-before-after-handle] {
+    border: 2px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  [data-before-after-slider]:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
 }
 
 /* The dashboard route landmark receives keyboard focus after navigation and

@@ -2902,6 +2902,8 @@
       "selectedTransformation": "Transformacija {{current}} od {{total}}",
       "selectTransformation": "Odaberite transformaciju",
       "sliderLabel": "Poređenje fotografija prije i poslije",
+      "sliderLabelIndexed": "Poređenje fotografija prije i poslije, {{current}} od {{total}}",
+      "sliderLabelCategory": "{{category}}: {{comparison}}",
       "positionValue": "Otkriveno {{position}}%",
       "before": "Prije",
       "after": "Poslije"

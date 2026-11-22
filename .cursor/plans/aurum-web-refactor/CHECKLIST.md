@@ -191,3 +191,9 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 - [x] Ciljana Classic fiksura brojača kategorija: eksplicitna podloga, lokalni izračun kontrasta i šest scoped axe skenova; ne obuhvata druge nepotpune nalaze.
 - [x] Sačekati rendered posao CI `45041037682`: završen 2543/1; jedan Classic booking axe failure, tačan uzrok nije potvrđen.
 - [ ] Potvrditi novi CI nakon lokalne provjere stanja prije axe skena; ne tretirati to kao dokaz uzroka CI pada.
+
+## M4–M7: galerijski slider
+
+- [x] Sintetička forced-colors/tastaturna matrica, lokalno 24/24; naziv više parova 12/12 i tri category axe testa.
+- [ ] Stvarni AT/OS, sadržajni opisi fotografija i različitost imena kod jednako nazvanih kategorija; dva hero axe incomplete čvora. [Dokaz](19_m4_m7_protokol_i_izvjestaj.md).
+- [ ] Sačekati CI `45054726540` za `cfd43a1`, potom pushati galerijski nastavak i pratiti njegov CI.

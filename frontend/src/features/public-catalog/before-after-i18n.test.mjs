@@ -30,6 +30,8 @@ test('public home, before-and-after, and service-work UI keys exist in both loca
   assert.ok(keys.has('public.home.heroTitleFallback'))
   assert.ok(keys.has('public.home.featuredReviewLoadFailed'))
   assert.ok(keys.has('public.beforeAfter.sliderLabel'))
+  assert.ok(keys.has('public.beforeAfter.sliderLabelIndexed'))
+  assert.ok(keys.has('public.beforeAfter.sliderLabelCategory'))
   assert.ok(keys.has('public.home.beforeAfterLoadFailed'))
   assert.ok(keys.has('public.satisfiedClients.loadFailed'))
   assert.ok(keys.has('public.gallery.categoryLoadFailed'))

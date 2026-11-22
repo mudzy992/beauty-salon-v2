@@ -118,6 +118,13 @@ export default function PublicGallery() {
     [categories],
   )
 
+  const comparisonLabel = (index: number, category?: string) => {
+    const comparison = consentedPairs.length > 1
+      ? t('public.beforeAfter.sliderLabelIndexed', { current: index + 1, total: consentedPairs.length })
+      : t('public.beforeAfter.sliderLabel')
+    return category ? t('public.beforeAfter.sliderLabelCategory', { category, comparison }) : comparison
+  }
+
   const lightboxTriggerRef = useRef<HTMLButtonElement | null>(null)
   const handleClose = () => setLightbox(null)
 
@@ -193,7 +200,7 @@ export default function PublicGallery() {
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                  {consentedPairs.map((pair) => {
+                  {consentedPairs.map((pair, index) => {
                     const beforeSrc = getUploadUrl(pair.before.pathOriginal)
                     const afterSrc = getUploadUrl(pair.after.pathOriginal)
                     return (
@@ -202,9 +209,9 @@ export default function PublicGallery() {
                           beforeSrc={beforeSrc}
                           afterSrc={afterSrc}
                           alt={t('public.beforeAfter.comparisonLabels')}
-                          ariaLabel={t('public.beforeAfter.sliderLabel')}
+                          ariaLabel={comparisonLabel(index)}
                         />
-                        <div className="mt-2 flex justify-between text-xs font-medium text-content-muted">
+                        <div className="mt-2 flex justify-between text-xs font-medium text-content-strong">
                           <span>{t('public.beforeAfter.before')}</span>
                           <span>{t('public.beforeAfter.after')}</span>
                         </div>
@@ -245,15 +252,15 @@ export default function PublicGallery() {
                         </p>
                         {consentedPairs.length ? (
                           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-                            {consentedPairs.map((pair) => (
+                            {consentedPairs.map((pair, index) => (
                               <article key={pair.id} className="min-w-0">
                                 <BeforeAfterSlider
                                   beforeSrc={getUploadUrl(pair.before.pathOriginal)}
                                   afterSrc={getUploadUrl(pair.after.pathOriginal)}
                                   alt={t('public.beforeAfter.comparisonLabels')}
-                                  ariaLabel={t('public.beforeAfter.sliderLabel')}
+                                  ariaLabel={comparisonLabel(index, cat.name)}
                                 />
-                                <div className="mt-2 flex justify-between text-xs font-medium text-content-muted">
+                                <div className="mt-2 flex justify-between text-xs font-medium text-content-strong">
                                   <span>{t('public.beforeAfter.before')}</span>
                                   <span>{t('public.beforeAfter.after')}</span>
                                 </div>

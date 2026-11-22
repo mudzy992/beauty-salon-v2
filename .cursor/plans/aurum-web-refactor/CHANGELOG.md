@@ -1017,3 +1017,7 @@ Classic brojači kategorija dobili su eksplicitnu površinu i boju, kao već u A
 CI `45041037682` rendered **2543/1**, Classic booking s 17 contrast čvorova; stvarni uzrok nedokazan, CI log EOF. Lokalna umjetna prozirnost dala je slične nalaze, ne identičan CI dokaz. Ciljani sken sada čeka završetak dva imenovana omotača, a testovi potvrđuju da čekanje ne skriva namjerno loš kontrast niti trajnu prozirnost. Lokalno 8/8, ponavljanja 18/18 prije stabilizacije kontrolne animacije; ostali incomplete nalazi i ručni AT/OS ostaju otvoreni. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
 
 Završni zajednički paket nakon stabilizacije kontrolne animacije: **46/46** lokalno, uključujući tri ciljana booking i 12 skenova kataloga/sažetka bez violations/incomplete. Ovo ne potvrđuje uzrok izvornog CI pada niti AT/OS.
+
+## M4–M7 · Galerijski prije/poslije slider
+
+Emulacija je na bijeloj sintetičkoj slici otkrila nerazlučiv bijeli razdjelnik; forced-colors sada koristi dvobojni sistemski obrub i obrubljenu ručku. Dva slidera su imala isti pristupačni naziv: galerija za više parova dodaje redni broj, a auto-kategorija i naziv kategorije; jednako nazvane kategorije i opis sadržaja slika ostaju ograničenja. Classic captioni imali su axe AAA 5,6:1, sad koriste jači token. Lokalno **39/39**; 12 scoped galerijskih skenova bez violations ali s po dva hero incomplete, tri scoped auto-category skena bez violations/incomplete. CI `cfd43a1` još traje; stvarni AT/OS i booking fokus otvoreni. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).

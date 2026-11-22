@@ -68,6 +68,7 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
+      data-before-after-slider
       role="slider"
       aria-label={ariaLabel ?? t('public.beforeAfter.sliderLabel')}
       aria-valuemin={0}
@@ -126,11 +127,12 @@ export function BeforeAfterSlider({
       </div>
       {/* Slider handle – vertikalna linija */}
       <div
+        data-before-after-divider
         className="absolute top-0 h-full w-px bg-white/90 shadow-[0_0_0_1px_rgba(15,23,42,0.12)] -translate-x-1/2 pointer-events-none z-[2]"
         style={{ left: `${position}%` }}
       >
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="h-10 w-10 rounded-full bg-white/95 shadow-soft ring-1 ring-line flex items-center justify-center">
+          <div data-before-after-handle className="h-10 w-10 rounded-full bg-white/95 shadow-soft ring-1 ring-line flex items-center justify-center">
             <ChevronsLeftRight className="h-4 w-4 text-content-strong" />
           </div>
         </div>
