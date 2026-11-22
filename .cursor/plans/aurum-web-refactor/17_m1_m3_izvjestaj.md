@@ -148,3 +148,7 @@ Prije dopune naziva ikona finance + invoice run **144/144** (96 finance + 48 inv
 ## Otvoren nalaz — fokus izvan viewporta nakon izbora usluge
 
 U izolovanim booking fiksurama pri simuliranom 200% root tekstu fokus se povremeno nalazi na „Dodaj još“, ali njegov centar ostaje ispod viewporta: izmjereno y=921,5 i y=1018,5 pri visini 900px. U tri šira runa po dva slučaja padaju; ciljano ponavljanje 10/10 i 20/20 nije razriješilo varijabilan uzrok. Dodana je geometrijska dijagnostika, ali aplikacijski uzrok i popravka nisu potvrđeni. [Detalji i sintetički snimak](19_m4_m7_protokol_i_izvjestaj.md#otvoren-nalaz-fokusiranog-dugmeta-u-booking-regresiji). Ovaj nalaz ostaje otvoren uz stvarni M1/M3 pregled.
+
+## Finance izbor stiliste — CI i kontrolisano učitavanje
+
+[CI 45054726540](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45054726540) za `cfd43a1` 4/5, rendered 2547/1: `m1-finance-create-keyboard` Classic EN desktop, očekivan `stylist-1`, vrijednost prazna. Potpuni log EOF, uzrok nepoznat. U kontrolisanoj fiksuri odgođeni lookup je prije izmjene ostavljao prazan select aktivnim; ovo je moguća utrka, ne dokaz CI uzroka. Select se sada onemogućava tokom inicijalnog učitavanja i dobija lokalizovani status/opis; postojeći test čeka opciju prije tastaturnog izbora. Sintetička GET fiksura bez upisa, nije stvarni AT ni test neuspjelog dohvaćanja/retry. Ponavljanje Classic EN scenarija i kontrolisanog učitavanja 20/20; objedinjeni finansijski, galerijski i booking paket 65/65. M1/M3 ostaju otvoreni. [M7 nalazi](19_m4_m7_protokol_i_izvjestaj.md).

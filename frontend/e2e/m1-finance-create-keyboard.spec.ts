@@ -63,6 +63,8 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         const save = dialog.getByRole('button', { name: /^sačuvaj$|^save$/i })
         await expect(save).toBeDisabled()
         const stylistSelect = dialog.locator('#manual-stylist')
+        await expect(stylistSelect.locator('option[value="stylist-1"]')).toHaveCount(1)
+        await expect(stylistSelect).toBeEnabled()
         await tabTo(page, stylistSelect, 40)
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('Enter')

@@ -2573,6 +2573,7 @@
       "save": "Save",
       "date": "Date",
       "stylist": "Stylist",
+      "loadingStylists": "Loading stylists…",
       "selectStylist": "— Select a stylist —",
       "service": "Service",
       "selectService": "— Select a service —",

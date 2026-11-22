@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef } from 'react'
-import { Check, Loader2, X } from 'lucide-react'
+import { useId, useLayoutEffect, useRef } from 'react'
+import { AlertCircle, Check, Loader2, X } from 'lucide-react'
 import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
@@ -39,6 +39,7 @@ export function ManualEntryDialog({
 }: ManualEntryDialogProps) {
   const { t, i18n } = useTranslation()
   const f = useManualEntryForm({ open, year, month, editing })
+  const stylistLoadingId = useId()
   const clientSearchRef = useRef<HTMLInputElement>(null)
   const removeClientRef = useRef<HTMLButtonElement>(null)
   const pendingClientFocus = useRef<'search' | 'remove' | null>(null)
@@ -90,6 +91,8 @@ export function ManualEntryDialog({
             <Select
               id="manual-stylist"
               className={selectClass}
+              disabled={f.isLoadingStylists}
+              aria-describedby={f.isLoadingStylists ? stylistLoadingId : undefined}
               value={f.form.stylistProfileId}
               onChange={(event) =>
                 f.update({ stylistProfileId: event.target.value, serviceId: '' })
@@ -102,6 +105,11 @@ export function ManualEntryDialog({
                 </option>
               ))}
             </Select>
+            {f.isLoadingStylists ? (
+              <p id={stylistLoadingId} role="status" className="text-xs text-content-strong">
+                {t('finance.manualEntry.loadingStylists')}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -201,15 +209,15 @@ export function ManualEntryDialog({
           />
           <div className="mt-1 grid gap-1 rounded-md bg-surface-muted p-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-content-strong">{t('finance.manualEntry.servicePrice')}</span>
+              <span className="text-content">{t('finance.manualEntry.servicePrice')}</span>
               <span className="tabular-nums">{formatAmount(f.servicePrice)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-content-strong">{t('finance.summary.tips')}</span>
+              <span className="text-content">{t('finance.summary.tips')}</span>
               <span className="tabular-nums">{formatAmount(f.tipAmount)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-content-strong">{t('finance.manualEntry.unpaid')}</span>
+              <span className="text-content">{t('finance.manualEntry.unpaid')}</span>
               <span
                 className={`tabular-nums ${f.debtAmount > 0 ? 'text-warn-foreground' : ''}`}
               >
@@ -260,7 +268,8 @@ export function ManualEntryDialog({
         </div>
 
         {f.validationError ? (
-          <p role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+          <p role="alert" className="flex items-start gap-2 border-l-4 border-danger pl-2 text-xs text-content">
+            <AlertCircle className="h-4 w-4 shrink-0 text-danger" aria-hidden="true" />
             {f.validationError}
           </p>
         ) : null}

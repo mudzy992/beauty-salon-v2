@@ -94,3 +94,11 @@ Zajednički Playwright paket imena i slidera **39/39**: 24 forced-colors slučaj
 ## Zapis izvršavanja
 
 Za svaku kombinaciju navesti: datum i verziju, OS/browser/AT, temu, jezik i ulogu; ruta i stanje; radnju i očekivanje; stvarni rezultat ili `nije izvedeno`; dokaz bez ličnih podataka; nalaz, ozbiljnost, reprodukciju i status popravke. Ovaj protokol je zasad **neizveden** i ne zatvara M4–M6 niti cjelokupan M7.
+
+## Finance odgođeni lookup i ciljani AAA nalazi
+
+[CI 45054726540](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45054726540) za `cfd43a1` završen **4/5**, rendered **2547/1**. Classic EN desktop `m1-finance-create-keyboard` očekivao je `stylist-1`, ali select je ostao prazan; log EOF i tačan uzrok nije utvrđen. Kontrolisani odgođeni GET za stiliste pokazao je da je prije promjene select bio aktivan i bez opcija. To demonstrira moguću utrku, ne rekonstrukciju CI okolnosti. Sada je tokom učitavanja disabled, status BS/EN povezan `aria-describedby`, a nakon odgovora status i opis se uklanjaju i izbor je moguć tastaturom. Postojeća fiksura čeka da opcija postoji. Nije provjeren neuspješan lookup/retry niti stvarna najava čitačem ekrana.
+
+Pri šest scoped skenova otvorenog dijaloga za vrijeme odgođenog odgovora, axe AAA prije je prijavio Classic sažetak 6,73:1 na tri labela i validaciju 4,69:1 light / 6,73:1 dark; BS i EN. Sažetak sada koristi jači tekst, validacija jači tekst uz simbol i obrub. Nakon toga svih šest skenova nema violations (uključujući AAA); svaki i dalje ima po jedan `color-contrast` **incomplete** za opis dijaloga jer axe ne može utvrditi podlogu zbog preklapanja. Nije prolaz niti potpuna procjena kontrasta. Status, uklanjanje opisa, izbor i scoped axe provjeravaju se kroz tri teme × dva jezika; svi GET podaci su sintetički, upisi blokirani.
+
+Poslije izmjena objedinjena finance/galerija/booking regresija **65/65**, dodatnih **20/20** ponavljanja Classic EN desktop scenarija i kontrolisanog lookup-a; build, E2E typecheck i ciljani lint, finance i galerijski source testovi te WCAG source testovi prolaze. Ovi rezultati ne obuhvataju cijelu aplikaciju, stvarni OS, AT, transakcije ili trenutno neriješeni intermitentni booking fokus. Novi CI treba pratiti nakon pusha.
