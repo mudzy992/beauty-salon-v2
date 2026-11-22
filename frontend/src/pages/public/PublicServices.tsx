@@ -221,7 +221,7 @@ export default function PublicServices() {
                     ) : null}
                   </div>
                 </div>
-                <fieldset className="min-w-0">
+                <fieldset data-service-category-filter className="min-w-0">
                   <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-content-strong">
                     {t('public.servicesPage.categoryFilter')}
                   </legend>
@@ -367,7 +367,11 @@ export default function PublicServices() {
         <div className="mb-9 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div className="max-w-2xl">
             {editorial('catalog_eyebrow') ? <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-rose-text">{editorial('catalog_eyebrow')}</p> : null}
-            {editorial('catalog_heading') ? <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-content sm:text-4xl">{editorial('catalog_heading')}</h2> : null}
+            {editorial('catalog_heading') ? (
+              <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-content sm:text-4xl">{editorial('catalog_heading')}</h2>
+            ) : (
+              <h2 className="sr-only">{t('public.nav.services')}</h2>
+            )}
             {editorial('catalog_description') ? <p className="mt-3 max-w-xl text-sm leading-6 text-content-strong sm:text-base">{editorial('catalog_description')}</p> : null}
           </div>
           <div className="flex shrink-0 items-center gap-3 text-sm text-content-strong">

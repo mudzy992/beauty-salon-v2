@@ -346,3 +346,7 @@ text-content border-line` **no-op za Classic, fix za Aurum**.
 
 **Nije dirati:** `frontend/src/features/dashboard/aurum-stat-grid.tsx` (untracked WIP), `/backend`,
 `/mobile`, `ci.yml`, `package-lock.json`. Automatski axe NE dokazuje vizuelnu standardizaciju.
+
+## Nastavak M4–M7: katalog i CI
+
+Filter kataloga ima forced-colors selekciju i fokus, a naslov kataloga fallback `h2`; lokalno 30/30 fokusiranih scenarija i 10/10 redundant-entry testova nakon preciziranja tekstualne heuristike. CI `a3988fd` frontend failed u redundant-entry, log nedostupan, lokalna reprodukcija identificira konflikt s progress atributom; rendered u toku. Classic axe po dva incomplete čvora brojača u BS i EN; M4/OS i booking fokusni nalaz ostaju otvoreni. Šira tema regresija 12/20 uz nepotpun lokalni backend. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).

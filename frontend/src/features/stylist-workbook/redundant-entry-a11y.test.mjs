@@ -60,6 +60,18 @@ const nemaKoraka = (src, ime) => {
   }
 }
 
+// A progress marker's attribute can compare the step without gating any content.
+// This is still a source-level heuristic, not a parser or rendered proof.
+const hasStepContentGate = (src) => /\bstep\s*===/.test(
+  src.replace(/\bdata-reserve-progress-state=\{[^{}]*\}/g, ''),
+)
+
+test('progress state attribute is not a content gate; conditional content is', () => {
+  assert.equal(hasStepContentGate("<div data-reserve-progress-state={step === s ? 'current' : 'upcoming'} />"), false)
+  assert.equal(hasStepContentGate('<div>{step === 2 ? <section /> : null}</div>'), true)
+  assert.equal(hasStepContentGate('<div>{step===3 && <section />}</div>'), true)
+})
+
 // ── 1. Kandidati iz matrice NISU višekoračni ──────────────────────────────────────
 
 test('category-wizard-dialog je jedan dijalog, ne čarobnjak s koracima', () => {
@@ -82,7 +94,7 @@ test('javna rezervacija: brojač koraka postoji, ali NE uslovljava sadržaj', ()
   assert.ok(publicReserve.includes('role="progressbar"'), 'brojač nije izložen kao progressbar')
   // Ključno: nijedna sekcija se NE gate-uje po `step`. Vidi se ono što je odabrano
   // (progresivno otkrivanje), pa nema „koraka" kroz koje se prolazi dvaput.
-  assert.ok(!publicReserve.includes('step ==='), 'neki sadržaj se ipak gate-uje po step ===')
+  assert.ok(!hasStepContentGate(publicReserve), 'neki sadržaj se ipak gate-uje po step ===')
   // Sekcije se otkrivaju po ODABIRU, ne po brojaču:
   for (const uslov of ['selectedServices.length > 0 ?', 'selectedDate ?', 'selectedSlot ?']) {
     assert.ok(publicReserve.includes(uslov), `sekcija nije uslovljena sa '${uslov}'`)

@@ -181,3 +181,9 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 ## 6. Baseline kvar koji se rješava u S0
 
 `frontend/scripts/design-reference.test.mjs` → `ENOENT: docs/design/referentni-prijedlog-v2.html`. Izmjereno: **197 PASS / 1 FAIL** od 198 `test:*` skripti; sve Python provjere i build zeleni. CI na grani je zato crven prije rada; **nema pusha prije S0**.
+
+## Nastavak M4–M7: status kataloga
+
+- [x] Sintetički Chromium filter kataloga: tri teme × BS/EN × dvije emulirane palete; lokalno 12/12.
+- [ ] Stvarni OS high contrast i čitač ekrana, Classic axe incomplete za brojače i intermitentni booking fokus. [Dokaz i ograničenja](19_m4_m7_protokol_i_izvjestaj.md).
+- [ ] Potvrditi CI nakon lokalne popravke heuristike redundant-entry; `a3988fd` frontend je pao, a CI log nedostupan.

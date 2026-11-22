@@ -2115,6 +2115,15 @@
   [data-reserve-slot][aria-pressed='true'] {
     border: 3px solid Highlight;
   }
+  /* Category selection must survive loss of background fills; keyboard focus
+     is a separate outer outline, including when the selected button has focus. */
+  [data-service-category-filter] button[aria-pressed='true'] {
+    border: 3px solid Highlight;
+  }
+  [data-service-category-filter] button:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
 }
 
 /* The dashboard route landmark receives keyboard focus after navigation and
