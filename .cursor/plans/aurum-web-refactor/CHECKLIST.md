@@ -189,4 +189,5 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 - [ ] Potvrditi CI nakon lokalne popravke heuristike redundant-entry; `a3988fd` frontend je pao, a CI log nedostupan.
 
 - [x] Ciljana Classic fiksura brojača kategorija: eksplicitna podloga, lokalni izračun kontrasta i šest scoped axe skenova; ne obuhvata druge nepotpune nalaze.
-- [ ] Sačekati rendered posao CI `45041037682` za `6e53d12`, zatim pushati lokalni nastavak i potvrditi njegov CI; ne prekinuti prethodni run bez potrebe.
+- [x] Sačekati rendered posao CI `45041037682`: završen 2543/1; jedan Classic booking axe failure, tačan uzrok nije potvrđen.
+- [ ] Potvrditi novi CI nakon lokalne provjere stanja prije axe skena; ne tretirati to kao dokaz uzroka CI pada.

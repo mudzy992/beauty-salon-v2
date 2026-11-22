@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { AXE_RULE_TAGS, assertableViolations } from './axe-coverage.mjs'
+import { waitForBookingVisualReadiness } from './booking-visual-readiness'
 
 function contrast(foreground: string, background: string) {
   const luminance = (color: string) => {
@@ -64,6 +65,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
       const { scrolls } = await read()
       expect(scrolls).toEqual([{ behavior: preference === 'reduce' ? 'auto' : 'smooth', block: 'start' }])
       if (preference === 'reduce') {
+        await waitForBookingVisualReadiness(page)
         const results = await new AxeBuilder({ page }).include('[data-aurum-page="reserve"]').withTags(AXE_RULE_TAGS).analyze()
         const findings = { violations: results.violations.map(({ id, nodes }) => ({ id, targets: nodes.map(node => node.target) })), incomplete: results.incomplete.map(({ id, nodes }) => ({ id, nodes: nodes.map(node => ({ target: node.target, summary: node.failureSummary })) })) }
         const progress = await page.locator('[data-aurum-progress] > div > div:first-child').evaluateAll(elements => elements.map(el => ({ text: el.textContent, color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor })))

@@ -354,3 +354,7 @@ Filter kataloga ima forced-colors selekciju i fokus, a naslov kataloga fallback 
 ## Nastavak M4–M7: brojači i CI u toku
 
 Classic brojači imaju eksplicitnu podlogu, šest ciljnih axe skenova bez violations/incomplete; CSS parovi 20,01/17,55/15,60:1, filter 12/12 i urednički naslov 2/2. Prolaz dodatne dijagnostike fokusa 40/40 nije razriješio prethodne padove. `a3988fd` CI cancelled nakon novog pusha; `6e53d12` CI `45041037682` ima četiri prošla posla, rendered još traje. Novi lokalni commit namjerno nije pushan dok rendered ne završi kako se run ne bi otkazao; zatim pushati isključivo aktuelnu granu i provjeriti novi CI. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).
+
+## CI za `6e53d12`: završen s jednim axe padom
+
+`45041037682` 4/5, rendered 2543/1: Classic booking reduce imao je 17 čvorova `color-contrast`, plus 15 uzoraka incomplete; log nedostupan. Vještačka 0,25 opacity intervencija lokalno proizvela je slične axe nalaze, ali tačan CI uzrok nije utvrđen. Sken sada čeka konkretan intro i date panel da dostignu opacity 1 i završe Web Animations, ne filtrira axe: kontrolni test dokazuje čekanje, pad pri trajnoj prozirnosti i hvatanje stvarno lošeg kontrasta. Lokalno 8/8 pa 18/18 ponovljeno prije stabilizacije kontrolne animacije. CI je sada završen, pa lokalni nastavak treba pushati nakon završnih testova; novi CI tek slijedi. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
