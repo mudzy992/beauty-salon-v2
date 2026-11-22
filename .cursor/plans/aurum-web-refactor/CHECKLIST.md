@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Najnoviji M1/M3 nastavak:** filteri dnevne knjige, odgođeni odgovori i retry; reproducirana i popravljena dva problema sa zastarjelim odgovorima i gubitak fokusa. Lokalno 100/100 plus dodatnih 12/12, 216 prethodnih dnevničkih slučajeva prošlo u široj regresiji. CI `da8062b` 5/5, rendered 2240/0/0 uz 15 nepotpunih axe uzoraka; CI novog paketa čeka potvrdu. M1/M3 nisu završeni. Stvarni pregled prema `18_m1_m3_manualni_protokol.md` nije izvršen; detalji u `17_m1_m3_izvjestaj.md`.
+
 > **Najnoviji M1/M3 nastavak:** reset dijaloga vraćanja dnevne knjige i tastaturno uređivanje/vraćanje: 60 novih sintetičkih slučajeva, matrica s ranijim testovima 192/192 i buduće rezervacije zasebno 24/24. CI novog paketa na čekanju; M1/M3 i M4–M7 ostaju otvoreni. Ograničenja u `17_m1_m3_izvjestaj.md`.
 
 > **M1/M3 nastavak:** fiksni i zajednički prilozi rashoda, 96 novih sintetičkih slučajeva; završno sa ranijim stavkama 132/132, prethodno s finance regresijama 216/216. CI koda na čekanju; M1/M3 i M4–M7 ostaju otvoreni. Detalji u `17_m1_m3_izvjestaj.md`.

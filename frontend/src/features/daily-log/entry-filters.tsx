@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Select } from '../../components/ui/select'
 
@@ -20,6 +21,7 @@ type Props = {
   onStylistFilterChange: (v: string) => void
   onIncludeDeletedChange: (v: boolean) => void
   onReset: () => void
+  resetRef: Ref<HTMLButtonElement>
 }
 
 export const resetDailyLogFilters = (): {
@@ -48,6 +50,7 @@ export const DailyLogEntryFilters = ({
   onStylistFilterChange,
   onIncludeDeletedChange,
   onReset,
+  resetRef,
 }: Props) => {
   const { t } = useTranslation()
   return (
@@ -110,7 +113,7 @@ export const DailyLogEntryFilters = ({
           {t('dailyLog.list.includeDeleted')}
         </Label>
       </div>
-      <Button type="button" size="sm" variant="outline" onClick={onReset}>
+      <Button ref={resetRef} type="button" size="sm" variant="outline" onClick={onReset}>
         {t('dailyLog.list.resetFilters')}
       </Button>
     </div>

@@ -54,7 +54,8 @@ export const DailyLogEntryTable = ({
   if (loading) {
     return (
       <Card className="overflow-hidden">
-        <div className="flex justify-center p-10">
+        <div className="flex justify-center p-10" role="status">
+          <span className="sr-only">{t('common.loading')}</span>
           <Loader2
             className="h-8 w-8 animate-spin text-content-muted"
             aria-hidden="true"

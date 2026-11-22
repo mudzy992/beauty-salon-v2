@@ -21,6 +21,12 @@ export const useDailyLogData = () => {
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
   const clientLoadGeneration = useRef(0)
+  const dataLoadGeneration = useRef(0)
+
+  useEffect(() => () => {
+    // Ignore responses arriving after unmount (also invalidates the first StrictMode pass).
+    dataLoadGeneration.current += 1
+  }, [])
 
   const loadClients = useCallback(async (q = '', clientId?: string) => {
     const generation = ++clientLoadGeneration.current
@@ -44,6 +50,7 @@ export const useDailyLogData = () => {
   }, [])
 
   const loadData = useCallback(() => {
+    const generation = ++dataLoadGeneration.current
     setLoading(true)
     setLoadError(false)
     const params: Record<string, string> = {}
@@ -54,14 +61,18 @@ export const useDailyLogData = () => {
     api
       .get<DailyLogEntry[]>('/api/daily-log', { params })
       .then((r) => {
+        if (generation !== dataLoadGeneration.current) return
         setEntries(Array.isArray(r.data) ? r.data : [])
         setLoadError(false)
       })
       .catch(() => {
+        if (generation !== dataLoadGeneration.current) return
         setEntries([])
         setLoadError(true)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (generation === dataLoadGeneration.current) setLoading(false)
+      })
   }, [fromDate, toDate, stylistFilter, includeDeleted])
 
   useEffect(() => {

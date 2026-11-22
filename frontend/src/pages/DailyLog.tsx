@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -29,6 +29,7 @@ export default function DailyLog() {
     toast,
   })
   const [detailEntry, setDetailEntry] = useState<DailyLogEntry | null>(null)
+  const resetFiltersRef = useRef<HTMLButtonElement>(null)
   const editClient = useMemo(
     () =>
       form.editId
@@ -79,6 +80,7 @@ export default function DailyLog() {
         onStylistFilterChange={data.setStylistFilter}
         onIncludeDeletedChange={data.setIncludeDeleted}
         onReset={data.handleResetFilters}
+        resetRef={resetFiltersRef}
       />
       {data.loadError ? (
         <div
@@ -86,7 +88,15 @@ export default function DailyLog() {
           role="alert"
         >
           <span>{t('dailyLog.list.boundedRangeError')}</span>
-          <Button type="button" variant="outline" size="sm" onClick={data.loadData}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(event) => {
+              if (document.activeElement === event.currentTarget) resetFiltersRef.current?.focus()
+              data.loadData()
+            }}
+          >
             {t('common.retry')}
           </Button>
         </div>
