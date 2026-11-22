@@ -8,6 +8,7 @@ const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
 const source = readFileSync(new URL('./manual-entry-dialog.tsx', import.meta.url), 'utf8')
+const servicePickerSource = readFileSync(new URL('./manual-entry-service-picker.tsx', import.meta.url), 'utf8')
 const formSource = readFileSync(new URL('./use-manual-entry-form.ts', import.meta.url), 'utf8')
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>
@@ -17,7 +18,7 @@ const leafPaths = (value, prefix) =>
   )
 const getPath = (resource, key) => key.split('.').reduce((value, part) => value?.[part], resource)
 const translationKeys = new Set(
-  [source, formSource].flatMap((text) => [...text.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)),
+  [source, formSource, servicePickerSource].flatMap((text) => [...text.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)),
 )
 
 test('manual-income dialog and validation keys exist with BS/EN parity', () => {
@@ -61,7 +62,7 @@ test('manual income form preserves debt rules, dynamic data, and payload contrac
   assert.match(formSource, /form\.debtHandling === 'CREATE_DEBT' && debtAmount > 0 && !canCreateDebt/)
   assert.match(formSource, /date: form\.date,[\s\S]*serviceId: form\.serviceId,[\s\S]*stylistProfileId: form\.stylistProfileId \|\| undefined,[\s\S]*clientId: form\.clientId \|\| undefined,[\s\S]*paidAmount,[\s\S]*debtHandling: form\.debtHandling,[\s\S]*notes: form\.notes\.trim\(\) \|\| undefined/)
   assert.match(source, /\{getPersonName\(stylist\.user\)\}/)
-  assert.match(source, /\{service\.name\} · \{formatAmount\(service\.price \?\? 0\)\}/)
+  assert.match(servicePickerSource, /\{service\.name\} · \{formatAmount\(service\.price \?\? 0\)\}/)
   assert.match(source, /\{getPersonName\(client\)\}/)
   assert.match(source, /value=\{f\.form\.date\}[\s\S]*onChange=\{\(event\) => f\.update\(\{ date: event\.target\.value \}\)\}/)
   assert.match(source, /onClick=\{\(\) => onSubmit\(f\.toPayload\(\)\)\}/)

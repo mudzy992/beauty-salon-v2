@@ -204,3 +204,9 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 
 - [x] CI `45071941627`: frontend ratchet 125→124 lokalno ispravljen i pushan; rendered otkazan novim pushom.
 - [ ] Pratiti CI nakon pusha naknadnog lookup recovery nastavka; novi push može otkazati prethodni rendered posao.
+
+## M1/M4/M7 · ručni prihod: usluge stiliste
+
+- [x] Sintetički loading/503/retry, promjena stiliste i test uređivanja s nedostupnim cijenama; detalji u [izvještaju](19_m4_m7_protokol_i_izvjestaj.md).
+- [ ] Razmotriti postojeći slučaj kada uspješno učitana lista ne sadrži uslugu već pohranjenog unosa; pravila za historijske/neaktivne usluge i backend treba provjeriti prije promjene.
+- [ ] Pratiti CI `45074650488` za `f7689a0`; nakon završetka pushati i provjeriti lokalni nastavak za usluge.

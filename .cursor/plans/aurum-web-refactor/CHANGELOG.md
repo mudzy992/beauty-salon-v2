@@ -1033,3 +1033,7 @@ Frontend posao je pao na `test:text-contrast-allowlist`; lokalno reproducirano: 
 ## M4 · oporavak od greške dohvaćanja stilista
 
 Sintetički 503 prethodno je ostavio prazan aktivan select bez poruke. Dodani lokalizovani alert/opis, disabled kontrola i tastaturni retry s očuvanjem ili nenadjačavanjem fokusa; postojeći keširani rezultati se ne blokiraju zbog pozadinskog neuspjeha. Lokalno **54/54** novih i prethodnih finance testova, šest scoped axe error skenova bez violations ali po jedan incomplete opisa dijaloga zbog preklapanja; nisu stvarni AT ili backend. CI `45071941627` prekinut novim pushom, `45073812256` rendered u toku, ostala četiri posla success u trenutku zapisa. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
+
+## M1/M4 · greška dohvaćanja usluga stiliste
+
+Lokalno dodani status/greška/retry i izolacija kasnog odgovora prethodnog stiliste. Pri uređivanju dok nema usluga spremanje je blokirano, a iznosi označeni nedostupnim; kontrolisana fiksura prije guarda pokazala aktivno Save. Regresija prije zadnjeg preciziranja pending stanja 102/102, poslije 24/24 ciljano; šest scoped error axe skenova bez violations s po jednim contrast incomplete. CI `45074650488` za prethodni commit ima četiri uspješna posla, rendered u toku; lokalni nastavak ne pripada tom runu. Nisu ispitani stvarni backend/AT niti slučaj historijske usluge koje nema u uspješno dohvaćenoj listi. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).

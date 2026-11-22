@@ -10,6 +10,7 @@ import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { ResponsiveDialog } from '../components/responsive-dialog'
 import { useManualEntryForm } from './use-manual-entry-form'
+import { ManualEntryServicePicker } from './manual-entry-service-picker'
 import { getPersonName } from '../finance.utils'
 import type { IncomeBookManualEntry, ManualEntryPayload } from '../finance.types'
 
@@ -94,7 +95,7 @@ export function ManualEntryDialog({
           </Button>
           <Button
             onClick={() => onSubmit(f.toPayload())}
-            disabled={isSaving || Boolean(f.validationError)}
+            disabled={isSaving || f.servicesUnavailable || Boolean(f.validationError)}
           >
             {isSaving ? (
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -161,27 +162,19 @@ export function ManualEntryDialog({
           </div>
         </div>
 
-        <div className="grid gap-1">
-          <Label htmlFor="manual-service">{t('finance.manualEntry.service')}</Label>
-          <Select
-            id="manual-service"
-            className={selectClass}
-            value={f.form.serviceId}
-            onChange={(event) => f.update({ serviceId: event.target.value })}
-            disabled={!f.form.stylistProfileId || f.isLoadingServices}
-          >
-            <option value="">
-              {f.form.stylistProfileId
-                ? t('finance.manualEntry.selectService')
-                : t('finance.manualEntry.selectStylistFirst')}
-            </option>
-            {f.services.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.name} · {formatAmount(service.price ?? 0)}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <ManualEntryServicePicker
+          key={f.form.stylistProfileId || 'no-stylist'}
+          open={open}
+          stylistId={f.form.stylistProfileId}
+          value={f.form.serviceId}
+          services={f.services}
+          isLoading={f.isLoadingServices}
+          hasError={f.hasServiceLoadError}
+          retry={f.retryServices}
+          onChange={(serviceId) => f.update({ serviceId })}
+          formatAmount={formatAmount}
+          selectClass={selectClass}
+        />
 
         <div className="grid gap-1">
           {f.selectedClient ? (
@@ -258,24 +251,24 @@ export function ManualEntryDialog({
           <div className="mt-1 grid gap-1 rounded-md bg-surface-muted p-2 text-xs">
             <div className="flex justify-between">
               <span className="text-content">{t('finance.manualEntry.servicePrice')}</span>
-              <span className="tabular-nums">{formatAmount(f.servicePrice)}</span>
+              <span className="tabular-nums">{f.servicesUnavailable ? t('finance.manualEntry.amountUnavailable') : formatAmount(f.servicePrice)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-content">{t('finance.summary.tips')}</span>
-              <span className="tabular-nums">{formatAmount(f.tipAmount)}</span>
+              <span className="tabular-nums">{f.servicesUnavailable ? t('finance.manualEntry.amountUnavailable') : formatAmount(f.tipAmount)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-content">{t('finance.manualEntry.unpaid')}</span>
               <span
                 className={`tabular-nums ${f.debtAmount > 0 ? 'text-warn-foreground' : ''}`}
               >
-                {formatAmount(f.debtAmount)}
+                {f.servicesUnavailable ? t('finance.manualEntry.amountUnavailable') : formatAmount(f.debtAmount)}
               </span>
             </div>
           </div>
         </div>
 
-        {f.debtAmount > 0 ? (
+        {!f.servicesUnavailable && f.debtAmount > 0 ? (
           <fieldset className="grid gap-2">
             <legend className="text-sm font-medium">{t('finance.manualEntry.unpaidAmount')}</legend>
             <div className="flex gap-2">
