@@ -28,12 +28,28 @@ async function scanBooking(page: Page, state: string) {
 }
 
 async function expectFocusUnobscured(target: Locator) {
-  await expect.poll(() => target.evaluate(el => {
+  const sample = () => target.evaluate(el => {
     const rect = el.getBoundingClientRect()
     const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2
     const hit = document.elementFromPoint(x, y)
-    return Boolean(hit && (hit === el || el.contains(hit)))
-  }), { message: 'Focused control must not be covered or outside the viewport' }).toBe(true)
+    const header = document.querySelector('[data-aurum-shell="header"]')?.getBoundingClientRect()
+    return {
+      unobscured: Boolean(hit && (hit === el || el.contains(hit))),
+      focused: document.activeElement === el,
+      center: { x, y },
+      viewport: { width: innerWidth, height: innerHeight },
+      scrollY,
+      headerBottom: header?.bottom ?? null,
+      scrollPaddingTop: getComputedStyle(document.documentElement).scrollPaddingTop,
+      hitTag: hit?.tagName ?? null,
+    }
+  })
+  try {
+    await expect.poll(async () => (await sample()).unobscured, { message: 'Focused control must not be covered or outside the viewport' }).toBe(true)
+  } catch (error) {
+    const detail = await sample()
+    throw new Error(`Focused control coverage: ${JSON.stringify(detail)}\n${String(error)}`)
+  }
 }
 
 // All writes are aborted; availability and client data are isolated test fixtures.

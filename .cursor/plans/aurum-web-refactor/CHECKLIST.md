@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Najnoviji M4–M7 nastavak:** rezervacija ima zasebne oznake koraka i odabranih datuma/termina u emuliranim sistemskim bojama; provjerava se i JS širenje datuma; lokalni fokusirani skup 36/36. CI `60bf38f` 5/5, 2514/0/0, 15 nepotpunih axe uzoraka. **Otvoren nalaz:** u simuliranom 200% tekstu fokus na „Dodaj još“ povremeno ostaje ispod viewporta; uzrok nije potvrđen. M4/M5 i stvarni OS reduced-motion ostaju otvoreni. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).
+
 > **Najnoviji M4–M7 nastavak:** CI `b2fcf97` 5/5, 2496/0/0, uz 15 incomplete uzoraka. Ispravljen reduced-motion automatski scroll i AAA kontrast brojeva koraka rezervacije; lokalno 90/90 i dodatno 36/36. M4/M5 i stvarni OS reduced-motion ostaju otvoreni; [dokazi i neizvedeni protokol](19_m4_m7_protokol_i_izvjestaj.md). CI nove dopune na čekanju.
 
 > **Najnoviji M1/M3 nastavak:** pregled fakture rashoda, povrat fokusa i razlučivi nazivi „još stavki“; 48 novih fiksura, s finance/delete matricom 216/216. Prethodni CI 4/5, dva finance scenarija pala s nepoznatim uzrokom; lokalno ponovljeni 10/10, nova dijagnostika dodana. CI ove dopune na čekanju; M1/M3 i M4–M7 ostaju otvoreni. Detalji u `17_m1_m3_izvjestaj.md`.

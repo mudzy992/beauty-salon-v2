@@ -850,6 +850,7 @@ export default function PublicReserve() {
               {[1, 2, 3, 4].map((s) => (
                 <div key={s} aria-hidden="true" className="flex items-center">
                   <div
+                    data-reserve-progress-state={step === s ? 'current' : step > s ? 'completed' : 'upcoming'}
                     className={[
                       'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition',
                       step >= s ? 'bg-surface-inverse text-white' : 'bg-surface-muted text-content',
@@ -858,7 +859,7 @@ export default function PublicReserve() {
                     {step > s ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : s}
                   </div>
                   {s < 4 ? (
-                    <div className={step > s ? 'h-0.5 w-10 bg-surface-inverse' : 'h-0.5 w-10 bg-surface-muted'} />
+                    <div data-reserve-progress-connector className={step > s ? 'h-0.5 w-10 bg-surface-inverse' : 'h-0.5 w-10 bg-surface-muted'} />
                   ) : null}
                 </div>
               ))}

@@ -2099,6 +2099,24 @@
   overflow-wrap: anywhere;
 }
 
+/* Preserve booking progress and selected date/slot when system colors replace fills. */
+@media (forced-colors: active) {
+  [data-reserve-progress-state] {
+    border: 1px solid CanvasText;
+  }
+  [data-reserve-progress-state='current'] {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+  [data-reserve-progress-connector] {
+    border-top: 1px solid CanvasText;
+  }
+  [data-reserve-calendar] button[aria-pressed='true'],
+  [data-reserve-slot][aria-pressed='true'] {
+    border: 3px solid Highlight;
+  }
+}
+
 /* The dashboard route landmark receives keyboard focus after navigation and
    from the skip link. Keep its indicator inside the content and below chrome. */
 [data-route-main] {
