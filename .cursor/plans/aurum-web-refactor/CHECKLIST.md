@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Najnoviji M1/M3 nastavak:** reset dijaloga vraćanja dnevne knjige i tastaturno uređivanje/vraćanje: 60 novih sintetičkih slučajeva, matrica s ranijim testovima 192/192 i buduće rezervacije zasebno 24/24. CI novog paketa na čekanju; M1/M3 i M4–M7 ostaju otvoreni. Ograničenja u `17_m1_m3_izvjestaj.md`.
+
 > **M1/M3 nastavak:** fiksni i zajednički prilozi rashoda, 96 novih sintetičkih slučajeva; završno sa ranijim stavkama 132/132, prethodno s finance regresijama 216/216. CI koda na čekanju; M1/M3 i M4–M7 ostaju otvoreni. Detalji u `17_m1_m3_izvjestaj.md`.
 
 > **Najnoviji nastavak:** rashodi, uklanjanje stavke/priloga i fokus; lokalno 36 novih fiksura, s ranijim finance regresijama 120/120. Upisi/upload su simulirani, CI `3dcca32` [44970652335](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44970652335) 5/5, rendered 2084/0/0; M1/M3 i M4–M7 ostaju otvoreni. Detalji u `17_m1_m3_izvjestaj.md`.

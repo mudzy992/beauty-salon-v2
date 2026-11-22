@@ -163,12 +163,14 @@ export default function DailyLog() {
         saving={form.saving}
         onConfirm={() => void mutations.handleDelete()}
       />
-      <EntryRestoreDialog
-        entry={mutations.restoreTarget}
-        onClose={() => mutations.setRestoreTarget(null)}
-        onConfirm={(id, date) => void mutations.handleRestoreConfirm(id, date)}
-        loading={mutations.restoring}
-      />
+      {mutations.restoreTarget ? (
+        <EntryRestoreDialog
+          entry={mutations.restoreTarget}
+          onClose={() => mutations.setRestoreTarget(null)}
+          onConfirm={(id, date) => void mutations.handleRestoreConfirm(id, date)}
+          loading={mutations.restoring}
+        />
+      ) : null}
     </div>
   )
 }
