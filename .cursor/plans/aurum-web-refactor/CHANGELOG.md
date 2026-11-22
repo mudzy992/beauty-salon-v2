@@ -1028,4 +1028,8 @@ CI `45054726540` za `cfd43a1` završio 4/5, rendered 2547/1: Classic EN desktop 
 
 ## CI `45071941627` — prag izvornog sweepa
 
-Frontend posao je pao na `test:text-contrast-allowlist`; lokalno reproducirano: broj svijetlih sirovih paleta-klasa je 124, prethodni minimalni ratchet 125. Uklonjena je jedna `text-rose-600` upotreba u finance validaciji pri prelasku na semantičku boju; prag je precizno snižen za jedan na 124, bez promjene 4,5:1 pravila, allowliste ili izvornog skeniranja. Lokalno test 4/4. Repository, backend i mobile poslovi su prošli, rendered je još u toku u trenutku zapisa; ne zaključivati njegov rezultat. Lokalna ispravka čeka push nakon završetka rendered posla da ga ne prekine; novi CI potom treba pratiti.
+Frontend posao je pao na `test:text-contrast-allowlist`; lokalno reproducirano: broj svijetlih sirovih paleta-klasa je 124, prethodni minimalni ratchet 125. Uklonjena je jedna `text-rose-600` upotreba u finance validaciji pri prelasku na semantičku boju; prag je precizno snižen za jedan na 124, bez promjene 4,5:1 pravila, allowliste ili izvornog skeniranja. Lokalno test 4/4. Repository, backend i mobile poslovi su prošli, rendered je još u toku u trenutku zapisa; ne zaključivati njegov rezultat. Ispravka je pushana na zahtjev; rendered je potom otkazan, a novi CI treba pratiti.
+
+## M4 · oporavak od greške dohvaćanja stilista
+
+Sintetički 503 prethodno je ostavio prazan aktivan select bez poruke. Dodani lokalizovani alert/opis, disabled kontrola i tastaturni retry s očuvanjem ili nenadjačavanjem fokusa; postojeći keširani rezultati se ne blokiraju zbog pozadinskog neuspjeha. Lokalno **54/54** novih i prethodnih finance testova, šest scoped axe error skenova bez violations ali po jedan incomplete opisa dijaloga zbog preklapanja; nisu stvarni AT ili backend. CI `45071941627` prekinut novim pushom, `45073812256` rendered u toku, ostala četiri posla success u trenutku zapisa. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).

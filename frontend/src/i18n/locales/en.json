@@ -2574,6 +2574,8 @@
       "date": "Date",
       "stylist": "Stylist",
       "loadingStylists": "Loading stylists…",
+      "stylistsLoadError": "Could not load stylists.",
+      "retryStylists": "Reload stylists",
       "selectStylist": "— Select a stylist —",
       "service": "Service",
       "selectService": "— Select a service —",

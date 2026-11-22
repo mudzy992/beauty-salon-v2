@@ -197,7 +197,10 @@ Q1 puna specifikacija · Q2 Aurum kao dodatna tema · Q3 sve web rute, bez mobil
 - [x] Sintetička forced-colors/tastaturna matrica, lokalno 24/24; naziv više parova 12/12 i tri category axe testa.
 - [ ] Stvarni AT/OS, sadržajni opisi fotografija i različitost imena kod jednako nazvanih kategorija; dva hero axe incomplete čvora. [Dokaz](19_m4_m7_protokol_i_izvjestaj.md).
 - [x] CI `45054726540` za `cfd43a1` završen: 4/5, rendered 2547/1; finance uzrok nije dokazan.
-- [ ] Pushati lokalni galerijski i finance nastavak te pratiti novi CI; potvrditi status bez poistovjećivanja lokalne reprodukcije s uzrokom ranijeg CI pada.
-- [ ] Provjeriti stvarni AT za učitavanje stilista i error/retry lookup stanje; scoped axe opis dijaloga ostaje incomplete zbog preklapanja.
+- [x] Pushani galerijski i finance nastavak, kao i ispravka CI ratcheta; raniji finance CI uzrok i dalje nije dokazan.
+- [ ] Pratiti CI `45073812256` za `c8286c6`; rendered je u toku.
+- [x] Sintetički error/retry lookup: tri teme × BS/EN × desktop/mobitel × tri fokus scenarija; obuhvaćen i neuspjeli retry.
+- [ ] Stvarni AT za učitavanje i error/retry lookup; scoped axe opis dijaloga ostaje incomplete zbog preklapanja.
 
-- [ ] CI `45071941627`: frontend ratchet 125→124 zbog uklanjanja jedne sirove klase lokalno ispravljen, rendered još traje; sačekati pa pushati i pratiti novi CI.
+- [x] CI `45071941627`: frontend ratchet 125→124 lokalno ispravljen i pushan; rendered otkazan novim pushom.
+- [ ] Pratiti CI nakon pusha naknadnog lookup recovery nastavka; novi push može otkazati prethodni rendered posao.

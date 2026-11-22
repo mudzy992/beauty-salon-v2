@@ -2574,6 +2574,8 @@
       "date": "Datum",
       "stylist": "Stilista",
       "loadingStylists": "Učitavanje stilista…",
+      "stylistsLoadError": "Stilisti se ne mogu učitati.",
+      "retryStylists": "Ponovo učitaj stiliste",
       "selectStylist": "— Odaberite stilistu —",
       "service": "Servis",
       "selectService": "— Odaberite servis —",

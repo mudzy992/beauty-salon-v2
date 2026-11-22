@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { AlertCircle, Check, Loader2, X } from 'lucide-react'
 import { Select } from '../../../components/ui/select'
 import { useTranslation } from 'react-i18next'
@@ -40,6 +40,14 @@ export function ManualEntryDialog({
   const { t, i18n } = useTranslation()
   const f = useManualEntryForm({ open, year, month, editing })
   const stylistLoadingId = useId()
+  const stylistErrorId = useId()
+  const stylistRef = useRef<HTMLSelectElement>(null)
+  const retryStylistRef = useRef<HTMLButtonElement>(null)
+  const retryInFlight = useRef(false)
+  const pendingStylistFocus = useRef(false)
+  const [retryingStylists, setRetryingStylists] = useState(false)
+  const stylistLoading = f.isLoadingStylists || retryingStylists
+  const stylistError = f.hasStylistLoadError && !stylistLoading
   const clientSearchRef = useRef<HTMLInputElement>(null)
   const removeClientRef = useRef<HTMLButtonElement>(null)
   const pendingClientFocus = useRef<'search' | 'remove' | null>(null)
@@ -49,6 +57,27 @@ export function ManualEntryDialog({
     if (target === 'search') clientSearchRef.current?.focus()
     if (target === 'remove') removeClientRef.current?.focus()
   }, [f.selectedClient])
+  useLayoutEffect(() => {
+    if (retryingStylists || !pendingStylistFocus.current) return
+    pendingStylistFocus.current = false
+    if (open && (document.activeElement === document.body || document.activeElement === retryStylistRef.current)) {
+      stylistRef.current?.focus()
+    }
+  }, [open, retryingStylists])
+  const retryStylists = async () => {
+    if (retryInFlight.current) return
+    retryInFlight.current = true
+    setRetryingStylists(true)
+    try {
+      const result = await f.retryStylists()
+      if (result.isSuccess && document.activeElement === retryStylistRef.current) {
+        pendingStylistFocus.current = true
+      }
+    } finally {
+      retryInFlight.current = false
+      setRetryingStylists(false)
+    }
+  }
   const formatAmount = (value: number | string) =>
     formatLocalizedAmount(value, i18n.language)
 
@@ -90,9 +119,10 @@ export function ManualEntryDialog({
             <Label htmlFor="manual-stylist">{t('finance.manualEntry.stylist')}</Label>
             <Select
               id="manual-stylist"
+              ref={stylistRef}
               className={selectClass}
-              disabled={f.isLoadingStylists}
-              aria-describedby={f.isLoadingStylists ? stylistLoadingId : undefined}
+              disabled={stylistLoading || stylistError}
+              aria-describedby={stylistLoading ? stylistLoadingId : stylistError ? stylistErrorId : undefined}
               value={f.form.stylistProfileId}
               onChange={(event) =>
                 f.update({ stylistProfileId: event.target.value, serviceId: '' })
@@ -105,10 +135,28 @@ export function ManualEntryDialog({
                 </option>
               ))}
             </Select>
-            {f.isLoadingStylists ? (
+            {stylistLoading ? (
               <p id={stylistLoadingId} role="status" className="text-xs text-content-strong">
                 {t('finance.manualEntry.loadingStylists')}
               </p>
+            ) : null}
+            {stylistError ? (
+              <p id={stylistErrorId} role="alert" className="text-xs text-content">
+                {t('finance.manualEntry.stylistsLoadError')}
+              </p>
+            ) : null}
+            {stylistError || retryingStylists ? (
+              <Button
+                ref={retryStylistRef}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="justify-self-start"
+                aria-disabled={retryingStylists || undefined}
+                onClick={() => void retryStylists()}
+              >
+                {t('finance.manualEntry.retryStylists')}
+              </Button>
             ) : null}
           </div>
         </div>

@@ -119,6 +119,8 @@ export const useManualEntryForm = (params: {
     selectClient,
     stylists: stylistsQuery.data ?? [],
     isLoadingStylists: stylistsQuery.isLoading,
+    hasStylistLoadError: stylistsQuery.isError && stylistsQuery.data === undefined,
+    retryStylists: stylistsQuery.refetch,
     services: servicesQuery.data ?? [],
     isLoadingServices: servicesQuery.isLoading,
     clientResults: clientsQuery.data ?? [],
