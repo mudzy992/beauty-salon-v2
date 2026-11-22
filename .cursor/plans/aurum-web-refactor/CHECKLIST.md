@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **Najnoviji M1/M3 nastavak:** pregled fakture rashoda, povrat fokusa i razlučivi nazivi „još stavki“; 48 novih fiksura, s finance/delete matricom 216/216. Prethodni CI 4/5, dva finance scenarija pala s nepoznatim uzrokom; lokalno ponovljeni 10/10, nova dijagnostika dodana. CI ove dopune na čekanju; M1/M3 i M4–M7 ostaju otvoreni. Detalji u `17_m1_m3_izvjestaj.md`.
+
 > **Najnoviji M1/M3 nastavak:** finance filteri/sortiranje i različita imena ručnih prihoda; 96/96 novih fiksura, raniji finance regresijski run 180/180, te 6 scoped axe skenova. CI `e596747` je **4/5, 2349/3/0**, tri dnevnička slučaja, puni log EOF; dijagnostika i čekanje mjerenja dodani, novi CI potreban. M1/M3 ostaju otvoreni; detalji u `17_m1_m3_izvjestaj.md`, neizvršeni ručni protokol u `18_m1_m3_manualni_protokol.md`.
 
 > **Najnoviji M1/M3 nastavak:** filteri dnevne knjige, odgođeni odgovori i retry; reproducirana i popravljena dva problema sa zastarjelim odgovorima i gubitak fokusa. Lokalno 100/100 plus dodatnih 12/12, 216 prethodnih dnevničkih slučajeva prošlo u široj regresiji. CI `da8062b` 5/5, rendered 2240/0/0 uz 15 nepotpunih axe uzoraka; CI novog paketa čeka potvrdu. M1/M3 nisu završeni. Stvarni pregled prema `18_m1_m3_manualni_protokol.md` nije izvršen; detalji u `17_m1_m3_izvjestaj.md`.

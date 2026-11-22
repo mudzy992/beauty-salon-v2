@@ -44,6 +44,8 @@ export function ExpenseTable({
 }: ExpenseTableProps) {
   const { t, i18n } = useTranslation()
   const [preview, setPreview] = useState<Expense | null>(null)
+  // Current view position distinguishes invoices even when titles are identical.
+  const rowNumbers = new Map(expenses.map((expense, index) => [expense.id, index + 1]))
 
   const columns: DataTableColumn<Expense>[] = [
     {
@@ -76,6 +78,9 @@ export function ExpenseTable({
           t('finance.expenseList.fieldFallback'),
           i18n.language,
         )
+        const moreLabel = t('finance.expenseList.moreItems', {
+          count: detailLabels.length - PREVIEW_LIMIT,
+        })
         return (
           <>
             <div className="font-medium text-content">{expense.title}</div>
@@ -92,11 +97,14 @@ export function ExpenseTable({
                     <button
                       type="button"
                       className="text-brand-gold-text hover:underline"
+                      aria-label={t('finance.expenseList.moreItemsAccessible', {
+                        label: moreLabel,
+                        title: expense.title,
+                        row: rowNumbers.get(expense.id),
+                      })}
                       onClick={() => setPreview(expense)}
                     >
-                      {t('finance.expenseList.moreItems', {
-                        count: detailLabels.length - PREVIEW_LIMIT,
-                      })}
+                      {moreLabel}
                     </button>
                   </li>
                 ) : null}
@@ -148,7 +156,7 @@ export function ExpenseTable({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={t('finance.expenseList.previewInvoice', { title: expense.title })}
+                aria-label={t('finance.expenseList.previewInvoice', { title: expense.title, row: rowNumbers.get(expense.id) })}
                 onClick={() => setPreview(expense)}
               >
                 <Eye className="h-3.5 w-3.5" aria-hidden="true" />
@@ -159,7 +167,7 @@ export function ExpenseTable({
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={t('finance.expenseList.editExpense', { title: expense.title })}
+                  aria-label={t('finance.expenseList.editExpense', { title: expense.title, row: rowNumbers.get(expense.id) })}
                   onClick={() => onEdit(expense)}
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -167,7 +175,7 @@ export function ExpenseTable({
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={t('finance.expenseList.deleteExpense', { title: expense.title })}
+                  aria-label={t('finance.expenseList.deleteExpense', { title: expense.title, row: rowNumbers.get(expense.id) })}
                   onClick={() => onDelete(expense)}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />

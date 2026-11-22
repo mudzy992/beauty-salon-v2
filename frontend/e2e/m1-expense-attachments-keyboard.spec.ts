@@ -2,6 +2,14 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { AXE_RULE_TAGS, assertableViolations } from './axe-coverage.mjs'
 
+// Only synthetic fixtures are used; preserve bounded diagnostics if CI logs are unavailable.
+test.afterEach(async ({}, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return
+  const detail = testInfo.errors.map(error => error.message ?? String(error)).join('\n').slice(0, 2200)
+  const escape = (text: string) => text.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+  console.log(`::error title=${escape(testInfo.title)}::${escape(detail)}`)
+})
+
 async function tabTo(page: Page, target: Locator, limit = 150) {
   await expect(target).toBeVisible()
   for (let i = 0; i < limit && !(await target.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press('Tab')
