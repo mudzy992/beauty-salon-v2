@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
@@ -34,6 +35,18 @@ export function FixedFieldsEditor({
   onClearPending,
 }: Props) {
   const { t, i18n } = useTranslation()
+  const uploadRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const clearRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const uploadFocus = useRef<{ fieldId: string; dialog: Element | null } | null>(null)
+  useEffect(() => {
+    if (isUploading || !uploadFocus.current) return
+    const { fieldId, dialog } = uploadFocus.current
+    uploadFocus.current = null
+    // A disabled or replaced input may lose focus. Respect intentional moves.
+    if (document.activeElement === document.body || document.activeElement === dialog) {
+      ;(clearRefs.current[fieldId] ?? uploadRefs.current[fieldId])?.focus()
+    }
+  }, [isUploading, attachments])
   const total = fields.reduce((sum, f) => sum + toNumber(values[f.id]), 0)
 
   return (
@@ -72,11 +85,18 @@ export function FixedFieldsEditor({
                     <>
                       <Badge variant="secondary">{pending.name}</Badge>
                       <Button
+                        ref={(element) => { clearRefs.current[field.id] = element }}
                         type="button"
                         variant="ghost"
                         size="sm"
+                        aria-label={t('finance.expenseForm.removeFieldAttachment', { name: field.fieldName })}
                         disabled={isUploading}
-                        onClick={() => onClearPending(field.id)}
+                        onClick={(event) => {
+                          if (document.activeElement === event.currentTarget) {
+                            uploadFocus.current = { fieldId: field.id, dialog: event.currentTarget.closest('[role="dialog"]') }
+                          }
+                          onClearPending(field.id)
+                        }}
                       >
                         {t('finance.expenseForm.remove')}
                       </Button>
@@ -87,13 +107,19 @@ export function FixedFieldsEditor({
                     </Badge>
                   ) : (
                     <input
+                      ref={(element) => { uploadRefs.current[field.id] = element }}
                       type="file"
                       className="max-w-full text-xs"
                       aria-label={t('finance.expenseForm.attachmentFor', { name: field.fieldName })}
                       disabled={isUploading}
                       onChange={(e) => {
                         const file = e.target.files?.[0]
-                        if (file) onUpload(field.id, field.fieldName, file)
+                        if (file) {
+                          if (document.activeElement === e.currentTarget) {
+                            uploadFocus.current = { fieldId: field.id, dialog: e.currentTarget.closest('[role="dialog"]') }
+                          }
+                          onUpload(field.id, field.fieldName, file)
+                        }
                         e.target.value = ''
                       }}
                     />

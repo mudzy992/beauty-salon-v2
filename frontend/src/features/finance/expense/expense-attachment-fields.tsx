@@ -1,4 +1,4 @@
-import type { ChangeEvent, Ref } from 'react'
+import { useRef, type ChangeEvent, type Ref } from 'react'
 import { Paperclip, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -25,9 +25,10 @@ export function ExpenseAttachmentFields({
   onRemovePending,
 }: Props) {
   const { t } = useTranslation()
+  const rootRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div className="grid gap-2">
+    <div ref={rootRef} className="grid gap-2">
       <Label htmlFor="expense-files">{t('finance.expenseForm.attachments')}</Label>
       {existing.length > 0 ? (
         <div className="rounded-md border border-line p-2 ">
@@ -62,7 +63,10 @@ export function ExpenseAttachmentFields({
                 variant="ghost"
                 size="icon"
                 aria-label={t('finance.expenseForm.removeAttachment', { name: upload.name })}
-                onClick={() => onRemovePending(upload.id)}
+                onClick={(event) => {
+                  if (document.activeElement === event.currentTarget) rootRef.current?.querySelector<HTMLInputElement>('#expense-files')?.focus()
+                  onRemovePending(upload.id)
+                }}
               >
                 <X className="h-3 w-3" aria-hidden="true" />
               </Button>

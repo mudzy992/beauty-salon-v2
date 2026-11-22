@@ -2539,6 +2539,8 @@
       "fixedFields": "Fixed items",
       "fieldAmount": "Amount for {{name}}",
       "attachmentFor": "Attachment for {{name}}",
+      "removeFieldAttachment": "Remove attachment for {{name}}",
+      "removeLineAttachment": "Remove attachment for item {{number}}",
       "attachmentForLine": "Attachment for line {{number}}",
       "remove": "Remove",
       "existingAttachment": "existing attachment",

@@ -164,6 +164,7 @@ export function LineItemsEditor({
                           type="button"
                           variant="ghost"
                           size="sm"
+                          aria-label={t('finance.expenseForm.removeLineAttachment', { number: index + 1 })}
                           disabled={isUploading}
                           onClick={(event) => {
                             if (document.activeElement === event.currentTarget) {

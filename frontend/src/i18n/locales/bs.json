@@ -2539,6 +2539,8 @@
       "fixedFields": "Fiksne stavke",
       "fieldAmount": "Iznos za {{name}}",
       "attachmentFor": "Prilog za {{name}}",
+      "removeFieldAttachment": "Ukloni prilog za {{name}}",
+      "removeLineAttachment": "Ukloni prilog stavke {{number}}",
       "attachmentForLine": "Prilog za stavku {{number}}",
       "remove": "Ukloni",
       "existingAttachment": "postojeći prilog",
