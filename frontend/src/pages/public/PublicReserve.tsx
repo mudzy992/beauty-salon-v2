@@ -596,7 +596,10 @@ export default function PublicReserve() {
     if (!match) return
     setSelectedServices([match])
     window.setTimeout(
-      () => dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      () => dateSectionRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      }),
       50,
     )
   }, [loadingServices, searchParams, servicesForGender, selectedServices.length, user?.gender])
@@ -849,7 +852,7 @@ export default function PublicReserve() {
                   <div
                     className={[
                       'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition',
-                      step >= s ? 'bg-surface-inverse text-white' : 'bg-surface-muted text-content-strong',
+                      step >= s ? 'bg-surface-inverse text-white' : 'bg-surface-muted text-content',
                     ].join(' ')}
                   >
                     {step > s ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : s}
