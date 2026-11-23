@@ -1,20 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSessionQuery as useQuery } from '../query/use-session-query'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search } from 'lucide-react'
 
 import api from '../api/client'
-import {
-  fetchAllAdminStylists,
-  fetchAllAdminUserRoleList,
-} from '../api/catalog'
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 
-import type { UserRow, PaginatedResponse, StylistRemovalPreview, StylistOption, ClientDebtRow } from '../features/users/user-types'
+import type { UserRow, ClientDebtRow } from '../features/users/user-types'
 import { UsersList } from '../features/users/users-list'
+import { useUsersList } from '../features/users/use-users-list'
+import { useStylistRemoval } from '../features/users/use-stylist-removal'
 import { UsersPagination } from '../features/users/users-pagination'
 import { useUserRowPresentation } from '../features/users/use-user-row-presentation'
 import { EditUserDialog } from '../features/users/edit-user-dialog'
@@ -28,8 +26,6 @@ import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-
-type RemovalMode = 'DELETE' | 'TRANSFER'
 
 const normalizeUsernameFromNames = (first: string, last: string): string => {
   const base = `${first}.${last}`
@@ -55,25 +51,11 @@ export default function Users() {
   const getRoleLabel = (roleName: string) =>
     t(`users.roleNames.${roleName}`, { defaultValue: roleName })
 
-  const [admins, setAdmins] = useState<UserRow[]>([])
-  const [stylists, setStylists] = useState<UserRow[]>([])
-  const [clients, setClients] = useState<UserRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
-  const requestSequenceRef = useRef(0)
-
-  const [clientsSearch, setClientsSearch] = useState('')
-  const [debouncedClientsSearch, setDebouncedClientsSearch] = useState('')
-
   const [saving, setSaving] = useState(false)
   const [resetLinkSendingId, setResetLinkSendingId] = useState<string | null>(null)
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
   const [debtToWriteOff, setDebtToWriteOff] = useState<string | null>(null)
   const [writeOffPending, setWriteOffPending] = useState(false)
-  const [page, setPage] = useState(0)
-  const [pageSize] = useState(20)
-  const [total, setTotal] = useState(0)
-
   const [activeTab, setActiveTab] = useState<'admins' | 'stylists' | 'clients'>('clients')
 
   const editTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -136,85 +118,10 @@ export default function Users() {
     initialPassword: string
   } | null>(null)
 
-  const removalTriggerRef = useRef<HTMLButtonElement | null>(null)
-  const removalPreviewSequence = useRef(0)
-  const [removeStylistOpen, setRemoveStylistOpen] = useState(false)
-  const [removeStylistUser, setRemoveStylistUser] = useState<UserRow | null>(null)
-  const [removalPreview, setRemovalPreview] = useState<StylistRemovalPreview | null>(null)
-  const [allStylists, setAllStylists] = useState<StylistOption[]>([])
-  const [removalSubmitting, setRemovalSubmitting] = useState(false)
-  const [financialTarget, setFinancialTarget] = useState('')
-  const [financialConfirmed, setFinancialConfirmed] = useState(false)
-
-  const [removalModes, setRemovalModes] = useState<{
-    dailyLogs: RemovalMode
-    confirmedReservations: RemovalMode
-    reservationResponses: RemovalMode
-    reviews: RemovalMode
-  }>({
-    dailyLogs: 'TRANSFER',
-    confirmedReservations: 'TRANSFER',
-    reservationResponses: 'TRANSFER',
-    reviews: 'TRANSFER',
-  })
-
-  const [removalTargets, setRemovalTargets] = useState<{
-    dailyLogs?: string
-    confirmedReservations?: string
-    reservationResponses?: string
-    reviews?: string
-  }>({})
-
-  const loadData = useCallback(() => {
-    const requestSequence = ++requestSequenceRef.current
-    setLoading(true)
-    setLoadError(false)
-    Promise.all([
-      fetchAllAdminUserRoleList<UserRow>('/api/users/system-admins'),
-      fetchAllAdminUserRoleList<UserRow>('/api/users/stylists'),
-      api.get<PaginatedResponse<UserRow>>('/api/users/clients/admin', {
-        params: { page, pageSize, q: debouncedClientsSearch.trim() || undefined },
-      }),
-      api.get<Array<{ id: string }>>('/api/users/password-reset-candidates'),
-    ])
-      .then(([admins, stylists, clientsRes, resetCandidatesRes]) => {
-        if (requestSequence !== requestSequenceRef.current) return
-        if (!clientsRes.data || !Array.isArray(clientsRes.data.items) ||
-            !Number.isSafeInteger(clientsRes.data.total) || clientsRes.data.total < 0 ||
-            !Number.isSafeInteger(clientsRes.data.page) || clientsRes.data.page < 0 ||
-            !Array.isArray(resetCandidatesRes.data)) throw new Error('Invalid users list response')
-        const resetCandidateIds = new Set(resetCandidatesRes.data.map(({ id }) => id))
-        const withResetStatus = (users: UserRow[]) =>
-          users.map((user) => ({
-            ...user,
-            mustChangePassword: resetCandidateIds.has(user.id),
-          }))
-        setAdmins(withResetStatus(admins))
-        setStylists(withResetStatus(stylists))
-        setClients(withResetStatus(clientsRes.data.items))
-        setTotal(clientsRes.data.total)
-        if (clientsRes.data.page !== page) setPage(clientsRes.data.page)
-      })
-      .catch(() => {
-        if (requestSequence !== requestSequenceRef.current) return
-        setLoadError(true)
-      })
-      .finally(() => {
-        if (requestSequence === requestSequenceRef.current) setLoading(false)
-      })
-  }, [page, pageSize, debouncedClientsSearch])
-
-  useEffect(() => {
-    loadData()
-    return () => { requestSequenceRef.current += 1 }
-  }, [loadData])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedClientsSearch(clientsSearch)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [clientsSearch])
+  const {
+    admins, stylists, clients, loading, loadError, clientsSearch, setClientsSearch,
+    page, setPage, total, totalPages, visiblePageNumbers, loadData,
+  } = useUsersList()
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], [])
 
@@ -234,22 +141,6 @@ export default function Users() {
       setWriteOffPending(false)
     }
   }
-
-  useEffect(() => {
-    setPage(0)
-  }, [debouncedClientsSearch])
-
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-
-  const visiblePageNumbers = useMemo(() => {
-    const totalPages = Math.max(1, Math.ceil(total / pageSize))
-    const current = Math.min(totalPages - 1, Math.max(0, page))
-    const windowSize = 5
-    const half = Math.floor(windowSize / 2)
-    const start = Math.max(0, Math.min(current - half, totalPages - windowSize))
-    const end = Math.min(totalPages, start + windowSize)
-    return { pages: Array.from({ length: end - start }, (_, i) => start + i), totalPages }
-  }, [page, pageSize, total])
 
   const openEdit = (u: UserRow) => {
     setEditUser(u)
@@ -479,101 +370,12 @@ export default function Users() {
     }
   }
 
-  const getTargetOptions = () => {
-    const currentStylistId = removalPreview?.stylistProfileId
-    return allStylists
-      .filter((s) => typeof s.id === 'string' && s.id.trim() !== '' && s.id !== currentStylistId && ['ACTIVE', 'PENDING'].includes(String(s.status ?? '').toUpperCase()))
-      .map((s) => ({
-        id: s.id,
-        label: [s.user?.firstName, s.user?.lastName].filter(Boolean).join(' ') || s.user?.username || s.id,
-        isPending: String(s.status ?? '').toUpperCase() !== 'ACTIVE' || s.isActive !== true || s.user?.isActive !== true,
-      }))
-  }
-
-  const removalSummary = useMemo(() => {
-    if (!removalPreview) return []
-    const c = removalPreview.counts
-    const rows = [
-      { key: 'dailyLogs', label: t('users.stylistRemoval.categories.dailyLogs'), count: c.dailyLogEntriesCount },
-      { key: 'confirmedReservations', label: t('users.stylistRemoval.categories.confirmedReservations'), count: c.confirmedReservationsCount },
-      { key: 'reservationResponses', label: t('users.stylistRemoval.categories.reservationResponses'), count: c.reservationResponsesCount },
-      { key: 'reviews', label: t('users.stylistRemoval.categories.reviews'), count: c.reviewsCount },
-    ] as const
-    return rows
-      .filter((r) => (r.count ?? 0) > 0)
-      .map((r) => {
-        const mode = removalModes[r.key]
-        const target = (removalTargets as any)[r.key] as string | undefined
-        return { key: r.key, label: r.label, count: r.count, mode, target }
-      })
-  }, [removalPreview, removalModes, removalTargets, t])
-
-  const isRemovalReady = useMemo(() => {
-    if (!removalPreview) return false
-    const financial = removalPreview.financial
-    if ((financial.clientDebtsCount > 0 || financial.manualIncomeCount > 0) && (!financialTarget || !financialConfirmed)) return false
-    if (financial.bookedDailyLogsCount > 0 && removalModes.dailyLogs === 'DELETE') return false
-    for (const row of removalSummary) {
-      if (row.mode === 'TRANSFER' && !row.target) return false
-    }
-    return true
-  }, [removalPreview, removalSummary, removalModes.dailyLogs, financialTarget, financialConfirmed])
-
-  const openRemoveStylist = async (userId: string) => {
-    const sequence = ++removalPreviewSequence.current
-    const u = [...admins, ...stylists, ...clients].find((x) => x.id === userId) ?? null
-    setRemoveStylistUser(u)
-    setRemovalPreview(null)
-    setAllStylists([])
-    setRemovalModes({
-      dailyLogs: 'TRANSFER',
-      confirmedReservations: 'TRANSFER',
-      reservationResponses: 'TRANSFER',
-      reviews: 'TRANSFER',
-    })
-    setRemovalTargets({})
-    setFinancialTarget('')
-    setFinancialConfirmed(false)
-    setRemoveStylistOpen(true)
-
-    try {
-      const previewRes = await api.get<StylistRemovalPreview>(`/api/users/${userId}/stylist-removal-preview`)
-      if (sequence !== removalPreviewSequence.current) return
-      const preview = previewRes.data
-      if (!preview || typeof preview.stylistProfileId !== 'string' ||
-          typeof preview.revision !== 'string' || !/^[a-f0-9]{64}$/.test(preview.revision) ||
-          !preview.counts || !preview.financial || [preview.counts.dailyLogEntriesCount, preview.counts.confirmedReservationsCount,
-            preview.counts.reservationResponsesCount, preview.counts.reviewsCount, preview.financial.clientDebtsCount,
-            preview.financial.manualIncomeCount, preview.financial.bookedDailyLogsCount].some(value => !Number.isSafeInteger(value) || value < 0)) {
-        throw new Error('Invalid stylist removal preview')
-      }
-      if (preview.financial.bookedDailyLogsCount > preview.counts.dailyLogEntriesCount) {
-        throw new Error('Inconsistent stylist removal preview')
-      }
-      const c = preview.counts
-      const hasAnyLinks =
-        (c.dailyLogEntriesCount ?? 0) > 0 ||
-        (c.confirmedReservationsCount ?? 0) > 0 ||
-        (c.reservationResponsesCount ?? 0) > 0 ||
-        (c.reviewsCount ?? 0) > 0 ||
-        preview.financial.clientDebtsCount > 0 || preview.financial.manualIncomeCount > 0
-      // Even with no linked records, role removal must be explicitly confirmed.
-      if (!hasAnyLinks) {
-        setRemovalPreview(preview)
-        return
-      }
-
-      const items = await fetchAllAdminStylists<StylistOption>()
-      if (sequence !== removalPreviewSequence.current) return
-      setAllStylists(items)
-      setRemovalPreview(preview)
-    } catch (err) {
-      if (sequence !== removalPreviewSequence.current) return
-      showApiError(err, 'users.errors.prepareStylistRemovalFailed')
-      setRemovalSubmitting(false)
-      setRemoveStylistOpen(false)
-    }
-  }
+  const {
+    removalTriggerRef, removalPreviewSequence, removeStylistOpen, setRemoveStylistOpen, removeStylistUser,
+    removalPreview, removalSubmitting, financialTarget, setFinancialTarget, financialConfirmed, setFinancialConfirmed,
+    removalModes, setRemovalModes, removalTargets, setRemovalTargets, getTargetOptions, removalSummary, isRemovalReady,
+    openRemoveStylist, handleConfirmRemoveStylist,
+  } = useStylistRemoval({ admins, stylists, clients, loadData, showApiError })
 
   const handleRemoveRole = async (userId: string, roleName: string) => {
     if (roleName === 'STYLIST') {
@@ -594,60 +396,6 @@ export default function Users() {
         }
       },
     })
-  }
-
-  const handleConfirmRemoveStylist = async () => {
-    if (!removeStylistUser || !removalPreview) return
-    const counts = removalPreview.counts
-    const payload = {
-      previewRevision: removalPreview.revision,
-      financialTargetStylistProfileId: financialTarget || undefined,
-      confirmFinancialTransfer: financialConfirmed,
-      dailyLogs: {
-        mode: counts.dailyLogEntriesCount > 0 ? removalModes.dailyLogs : 'DELETE',
-        targetStylistProfileId: removalModes.dailyLogs === 'TRANSFER' ? removalTargets.dailyLogs : undefined,
-      },
-      confirmedReservations: {
-        mode: counts.confirmedReservationsCount > 0 ? removalModes.confirmedReservations : 'DELETE',
-        targetStylistProfileId:
-          removalModes.confirmedReservations === 'TRANSFER' ? removalTargets.confirmedReservations : undefined,
-      },
-      reservationResponses: {
-        mode: counts.reservationResponsesCount > 0 ? removalModes.reservationResponses : 'DELETE',
-        targetStylistProfileId:
-          removalModes.reservationResponses === 'TRANSFER' ? removalTargets.reservationResponses : undefined,
-      },
-      reviews: {
-        mode: counts.reviewsCount > 0 ? removalModes.reviews : 'DELETE',
-        targetStylistProfileId: removalModes.reviews === 'TRANSFER' ? removalTargets.reviews : undefined,
-      },
-    } as const
-
-    const missingTarget = (key: 'dailyLogs' | 'confirmedReservations' | 'reservationResponses' | 'reviews') =>
-      payload[key].mode === 'TRANSFER' && !payload[key].targetStylistProfileId
-
-    if (
-      missingTarget('dailyLogs') ||
-      missingTarget('confirmedReservations') ||
-      missingTarget('reservationResponses') ||
-      missingTarget('reviews')
-    ) {
-      warning(t('users.validation.transferTargetRequired'))
-      return
-    }
-
-    setRemovalSubmitting(true)
-    try {
-      await api.post(`/api/users/${removeStylistUser.id}/remove-stylist-role`, payload)
-      success(t('users.toast.stylistRoleRemoved'))
-      setRemoveStylistOpen(false)
-      loadData()
-    } catch (err) {
-      if (getErrorCode(err) === 'USERS_STYLIST_PREVIEW_CHANGED') setRemoveStylistOpen(false)
-      showApiError(err, 'users.errors.stylistRemovalFailed')
-    } finally {
-      setRemovalSubmitting(false)
-    }
   }
 
   const { userColumns, renderUserCard } = useUserRowPresentation({

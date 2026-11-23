@@ -7,6 +7,8 @@ import path from 'node:path'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const catalogSource = readFileSync(path.join(here, 'catalog.ts'), 'utf8')
 const usersPageSource = readFileSync(path.join(here, '../pages/Users.tsx'), 'utf8')
+const usersListHookSource = readFileSync(path.join(here, '../features/users/use-users-list.ts'), 'utf8')
+assert.match(usersPageSource, /useUsersList\(/)
 
 test('admin system-admin and stylist user lists use bounded paginated requests', () => {
   assert.match(
@@ -22,11 +24,11 @@ test('admin system-admin and stylist user lists use bounded paginated requests',
     /fetchAllAdminUserRoleList\s*=\s*<T>\([\s\S]*?"\/api\/users\/system-admins"\s*\|\s*"\/api\/users\/stylists"[\s\S]*?fetchAllPages<T>\(path\)/,
   )
   assert.match(
-    usersPageSource,
+    usersListHookSource,
     /fetchAllAdminUserRoleList<UserRow>\('\/api\/users\/system-admins'\)/,
   )
   assert.match(
-    usersPageSource,
+    usersListHookSource,
     /fetchAllAdminUserRoleList<UserRow>\('\/api\/users\/stylists'\)/,
   )
 })

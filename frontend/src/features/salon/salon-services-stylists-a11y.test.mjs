@@ -22,6 +22,8 @@ const serviceFields = read('../services/service-fields.tsx')
 // Include extracted components; assert the rendering chain as well as the
 // original switch, file-picker and table guarantees below.
 assert.match(servicesPage, /<ServiceEditorDialog\b/)
+assert.match(servicesPage, /useServiceEditor\(\{ loadData, showApiError \}\)/)
+assert.match(servicesPage, /useServiceDeletion\(\{ categories, loadData, showApiError \}\)/)
 assert.match(editor, /<CategoryFields\b/)
 assert.match(editor, /<ServiceFields\b/)
 const services = [servicesPage, serviceCatalog, serviceTable, editor, categoryFields, serviceFields].join('\n')

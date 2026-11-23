@@ -5,6 +5,18 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · State hookovi usluga i korisnika (rad u toku)
+
+**Opseg:** `Services.tsx` 496 → 190 linija: state forme, kreiranje/uređivanje i upload preseljeni u `use-service-editor`, a preview/brisanje/spajanje u `use-service-deletion` zajedno s postojećim generacijskim i sesijskim guardovima. `Users.tsx` 799 → 547: učitavanje, debounce, paginacija i sekvenca zahtjeva u `use-users-list`; preview i transfer pri uklanjanju frizera u `use-stylist-removal`. Endpointi, payloadovi, pravila i fokusni refovi nisu namjerno mijenjani. Neki hookovi i dalje imaju 173–199 linija, a stranice Analytics/ClientAnalytics/StylistAnalytics mjere 477/821/248: S8 nije završen niti se skraćivanje smatra završnim dokazom.
+
+**Regresije:** svježi build **293,0/300 KiB**, Analytics **115,9/140 KiB**, E2E typecheck; Node **999/999**, lint 0 grešaka i 6 ranijih upozorenja. Završni mock Chromium paket **80/80**, uključujući postojeće utrke brisanja/spajanja i ranije korisničke/salonske testove, te nove: kreiranje sva tri tipa kataloga i multipart upload na 320/1280 (sintetički fajl/odgovor), zadržavanje editor podataka nakon neuspjeha i retry; stale list 200/500, loading pri novom čekanju i oporavak liste; te stale preview frizera 200/500 i ispravnu reviziju za drugog korisnika. Namjernim isključivanjem guardova negativne kontrole padaju **3/3** za listu i **2/2** za preview (pogrešna revizija odnosno zatvoren novi dijalog). Pozitivni završni run vraća originalne guardove. Nisu dokazani stvarna obrada slike, serverski upisi, otkazivanje poslanog zahtjeva ni puni audit pristupačnosti.
+
+**Source-testovi:** ugovor paginiranih admin lista i test korisničke pristupačnosti čitaju izdvojeni hook i provjeravaju da ga stranica koristi; očuvane su sekvence i pozivi. Salon/services test provjerava povezivanje oba nova hooka. Strict i18n 2813/2813, CI indeks, hygiene, 758 dokumentacijskih linkova i odabrani source kontrast prolaze; nema novih paketa.
+
+**CI:** prethodni [45193806331](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45193806331) za `7ce1538` završen **5/5 success**. Lokalni commit `e457c5a` i ovaj zahvat zahtijevaju novi CI. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Korisnički redovi i razlučive praznične akcije (rad u toku)
 
 **Opseg:** iz `Users.tsx` (1173 → 799 linija) izdvojeni su prikaz desktop kolona, kartice i akcije uloga te paginacija; stanje, učitavanje, API mutacije, fokusni refovi, debouncing i računanje stranica ostaju na stranici. Uloge, redoslijed kolona, prava i API ugovori nisu namjerno mijenjani. Razbijanje ostaje djelimično: stranica i `use-user-row-presentation.tsx` (184 linije) još prelaze planiranu veličinu, a S8 DoD nije zatvoren.

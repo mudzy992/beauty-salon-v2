@@ -12,15 +12,19 @@ const rowPresentation = readFileSync(new URL('./use-user-row-presentation.tsx', 
 const card = readFileSync(new URL('./user-card.tsx', import.meta.url), 'utf8')
 const roleActions = readFileSync(new URL('./user-role-actions.tsx', import.meta.url), 'utf8')
 const pagination = readFileSync(new URL('./users-pagination.tsx', import.meta.url), 'utf8')
+const listHook = readFileSync(new URL('./use-users-list.ts', import.meta.url), 'utf8')
 // Keep the entire rendering chain covered, not just the extracted sources.
 assert.match(page, /useUserRowPresentation\(/)
+assert.match(page, /useUsersList\(/)
+assert.match(page, /useStylistRemoval\(\{ admins, stylists, clients, loadData, showApiError \}\)/)
+assert.match(page, /<StylistRemovalDialog\b/)
 assert.match(page, /<UsersPagination\b/)
 assert.match(pagination, /aria-current=\{p === page \? 'page' : undefined\}/)
 assert.match(page, /columns=\{userColumns\} renderCard=\{renderUserCard\}/)
 assert.match(rowPresentation, /<UserCard\b/)
 assert.match(rowPresentation, /<UserRoleActions\b/)
 assert.match(card, /\{renderRoles\(u\)\}/)
-const source = [page, list, rowPresentation, card, roleActions].join('\n')
+const source = [page, list, rowPresentation, card, roleActions, listHook].join('\n')
 const dataTable = readFileSync(
   new URL('../shell/admin/ui/data-table.tsx', import.meta.url),
   'utf8',
