@@ -109,7 +109,14 @@ test('1.1.1/4.1.2: nema aria-label/aria-labelledby na <div>/<span>/<p> bez role 
 })
 
 test('1.1.1: StarRating izlaže ocjenu preko role="img" (zvjezdice su aria-hidden)', () => {
-  const src = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  const page = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  const dialog = readFileSync(new URL('../features/client-analytics/client-analytics-detail-dialog.tsx', import.meta.url), 'utf8')
+  const src = readFileSync(new URL('../features/client-analytics/star-rating.tsx', import.meta.url), 'utf8')
+  assert.match(page, /import \{ StarRating \} from '..\/features\/client-analytics\/star-rating'/)
+  assert.match(page, /<StarRating rating=\{r\.serviceRating\}/)
+  assert.match(page, /<ClientAnalyticsDetailDialog\b/)
+  assert.match(dialog, /import \{ StarRating \} from '.\/star-rating'/)
+  assert.match(dialog, /<StarRating rating=\{detailReview\.serviceRating\}/)
   assert.match(
     src,
     /<div role="img"[^>]*aria-label=\{t\('clientAnalyticsPage\.rating'/,

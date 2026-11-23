@@ -74,8 +74,8 @@ const ALLOWLIST = {
   // 2026-11-18 (Faza C (14/)): `features/settings/settings-module-page.tsx::slate-400`
   // obrisan — Search ikona sada koristi AAA token `text-content-strong` (kao Users.tsx).
   'features/shell/admin/ui/data-state.tsx::rose-500': 'ikona (AlertCircle) aria-hidden, 3.67:1 ≥ 3:1',
-  'pages/ClientAnalytics.tsx::amber-400': 'ikona zvijezde (fill) aria-hidden, ima tekstualnu alternativu',
-  'pages/ClientAnalytics.tsx::slate-200': 'neoznačena zvijezda, dekorativna',
+  'features/client-analytics/star-rating.tsx::amber-400': 'ikona zvijezde (fill) aria-hidden, ima tekstualnu alternativu',
+  'features/client-analytics/star-rating.tsx::slate-200': 'neoznačena zvijezda, dekorativna',
   'pages/Notifications.tsx::emerald-600': 'ikona u icon-only dugmetu s aria-label, 3.77:1 ≥ 3:1',
   'pages/Reviews.tsx::emerald-600': 'ikona (Check) aria-hidden, 3.77:1 ≥ 3:1',
   'pages/Reviews.tsx::slate-300': 'neoznačena zvijezda, dekorativna',

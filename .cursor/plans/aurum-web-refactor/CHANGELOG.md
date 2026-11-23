@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Klijentska analitika (rad u toku)
+
+`ClientAnalytics.tsx` 821 → 566 linija: izdvojeni su tipovi, hook za oba read zahtjeva, prikaz detalja s povratkom fokusa te ocjena zvjezdicama. URL parametri, proračuni, validacija identiteta odgovora, retry i nezavisna stanja analitike i dugovanja nisu namjerno mijenjani. Stranica još nije tanka kompozicija, kao ni Users i Analytics; S8 DoD ostaje otvoren.
+
+Mock Chromium **17/17** (tri speca): novi scenariji pokrivaju zakašnjeli 200/500 za analitiku i dugovanja pri promjeni perioda, odvojene greške i retry, detalje rezervacije i recenzije te povrat fokusa na 320/1280. Namjernim isključivanjem cleanup guardova oba stale scenarija padaju, zatim su originalni guardovi vraćeni i pozitivan paket ponovljen. Fiksure ne dokazuju rad servera ili stvarnog čitača ekrana; ovi testovi ne rade axe sken. Source test ocjene i i18n sada čitaju izdvojene module i provjeravaju veze, a ista allowlista dekorativnih zvjezdica prati premještenu komponentu.
+
+Node **999/999**, lint 0 grešaka/6 ranijih upozorenja, build **293,0/300 KiB**, Analytics **115,9/140 KiB**, E2E typecheck i pet Python provjera prolaze. CI prethodnog `2f9d5f0` [45233401354](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45233401354) pri bilježenju ima četiri uspješna posla i rendered a11y u toku; ovaj zahvat traži vlastiti CI. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · State hookovi usluga i korisnika (rad u toku)
 
 **Opseg:** `Services.tsx` 496 → 190 linija: state forme, kreiranje/uređivanje i upload preseljeni u `use-service-editor`, a preview/brisanje/spajanje u `use-service-deletion` zajedno s postojećim generacijskim i sesijskim guardovima. `Users.tsx` 799 → 547: učitavanje, debounce, paginacija i sekvenca zahtjeva u `use-users-list`; preview i transfer pri uklanjanju frizera u `use-stylist-removal`. Endpointi, payloadovi, pravila i fokusni refovi nisu namjerno mijenjani. Neki hookovi i dalje imaju 173–199 linija, a stranice Analytics/ClientAnalytics/StylistAnalytics mjere 477/821/248: S8 nije završen niti se skraćivanje smatra završnim dokazom.

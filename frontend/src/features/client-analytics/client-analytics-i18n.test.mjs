@@ -6,7 +6,12 @@ const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
 const source = readFileSync(new URL('../../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
-const literalKeys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
+const dataHook = readFileSync(new URL('./use-client-analytics-data.ts', import.meta.url), 'utf8')
+const dialog = readFileSync(new URL('./client-analytics-detail-dialog.tsx', import.meta.url), 'utf8')
+const rating = readFileSync(new URL('./star-rating.tsx', import.meta.url), 'utf8')
+assert.match(source, /useClientAnalyticsData\(\{ selectedUserId, appliedFrom, appliedTo \}\)/)
+assert.match(source, /<ClientAnalyticsDetailDialog\b[\s\S]*?detailTriggerRef=\{detailTriggerRef\}/)
+const literalKeys = new Set([source, dialog, rating].flatMap((text) => [...text.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)))
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>
     typeof child === 'object' && child !== null
@@ -36,8 +41,8 @@ test('client analytics dates and amounts follow the active locale', () => {
 })
 
 test('client analytics request and route contracts remain unchanged', () => {
-  assert.match(source, /api\.get<ClientAnalyticsData>\(`\/api\/users\/\$\{encodeURIComponent\(selectedUserId\)\}\/analytics`, \{ params \}\)/)
-  assert.match(source, /api\.get<ClientDebtRow\[]>\('\/api\/client-debts', \{ params: \{ clientId: selectedUserId \} \}\)/)
+  assert.match(dataHook, /api\.get<ClientAnalyticsData>\(`\/api\/users\/\$\{encodeURIComponent\(selectedUserId\)\}\/analytics`, \{ params \}\)/)
+  assert.match(dataHook, /api\.get<ClientDebtRow\[]>\('\/api\/client-debts', \{ params: \{ clientId: selectedUserId \} \}\)/)
   assert.match(source, /next\.set\('fromDate', dateFrom\)/)
   assert.match(source, /next\.set\('toDate', dateTo\)/)
   assert.match(source, /navigate\('\/admin\/users'\)/)

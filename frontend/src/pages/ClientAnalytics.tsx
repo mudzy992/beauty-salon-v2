@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
@@ -7,97 +7,22 @@ import {
   ArrowLeft,
   Eye,
   Loader2,
-  Star,
   TriangleAlert,
 } from 'lucide-react'
-import api from '../api/client'
+import type { ClientAnalyticsData } from '../features/client-analytics/client-analytics-types'
+import { useClientAnalyticsData } from '../features/client-analytics/use-client-analytics-data'
+import { ClientAnalyticsDetailDialog } from '../features/client-analytics/client-analytics-detail-dialog'
+import { StarRating } from '../features/client-analytics/star-rating'
 import { cn } from '../lib/cn'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import type { BadgeProps } from '../components/ui/badge'
 import { formatLocalizedAmount, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
 import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
-
-interface ManualEntry {
-  id: string
-  date: string
-  actualPrice: string | number
-  tipAmount: string | number
-  isManual: boolean
-  notes: string | null
-  status: string
-  service?: { id: string; name: string; price: number | string }
-  stylistProfile?: { user?: { firstName: string | null; lastName: string | null; username: string } }
-}
-
-interface ClientDebtRow {
-  id: string
-  amount: number | string
-  createdAt: string
-  status: 'OPEN' | 'SETTLED'
-  service?: { id: string; name: string } | null
-  reservation?: { id: string; publicReferenceCode: string; reservationDate: string; startTime: string; endTime: string } | null
-  dailyLogEntry?: { id: string; date: string; reservationId: string | null; kind: 'SERVICE' | 'DEBT_PAYMENT' } | null
-  manualEntry?: { id: string; date: string } | null
-  stylistProfile?: { user?: { firstName: string | null; lastName: string | null; username: string } }
-}
-
-interface ClientAnalyticsData {
-  fromDate: string | null
-  toDate: string | null
-  user: {
-    id: string
-    username: string
-    email: string | null
-    firstName: string | null
-    lastName: string | null
-    phone: string | null
-    isActive: boolean
-    createdAt: string
-    userRoles?: { role: { name: string } }[]
-  }
-  stats: {
-    totalReservations: number
-    completedReservations: number
-    cancelledReservations: number
-    noShowCount: number
-    totalSpent: number
-    manualEntryCount: number
-    manualSpent: number
-    avgServiceRating: number | null
-    reviewCount: number
-  }
-  penalty: { cancellationCount: number; penaltyUntil: string | null; isPenalized: boolean }
-  topServices: { name: string; count: number; totalSpent: number }[]
-  reservations: {
-    id: string
-    reservationDate: string
-    startTime: string
-    endTime: string
-    status: string
-    clientNotes: string | null
-    cancelReason: string | null
-    cancelledAt: string | null
-    service?: { id: string; name: string; price: number | string }
-    confirmedStylist?: { user?: { firstName: string | null; lastName: string | null; username: string } }
-  }[]
-  reviews: {
-    id: string
-    serviceRating: number
-    stylistRating: number | null
-    comment: string | null
-    isApproved: boolean
-    createdAt: string
-    service?: { name: string }
-    stylist?: { user?: { firstName: string | null; lastName: string | null; username: string } }
-  }[]
-  manualEntries: ManualEntry[]
-}
 
 const statusBadgeVariant: Record<string, NonNullable<BadgeProps['variant']>> = {
   PENDING: 'warning',
@@ -135,24 +60,6 @@ const SmallStatCard = ({
   </Card>
 )
 
-const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => {
-  const { t } = useTranslation()
-  return (
-    // 1.1.1: zvjezdice su aria-hidden, pa je ovaj aria-label BIO jedina alternativa —
-    // ali na <div> (role=generic) je aria-label zabranjen i AT ga ignoriše. role="img"
-    // ga čita, pa ocjena postaje stvarno izložena.
-    <div role="img" className="flex items-center gap-0.5" aria-label={t('clientAnalyticsPage.rating', { rating, max })}>
-      {Array.from({ length: max }, (_, i) => (
-        <Star
-          key={i}
-          className={cn('h-3.5 w-3.5', i < rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-content-strong')}
-          aria-hidden="true"
-        />
-      ))}
-    </div>
-  )
-}
-
 export default function ClientAnalytics() {
   const { t, i18n } = useTranslation()
   const formatDateOnly = (value: string | null | undefined) =>
@@ -177,54 +84,14 @@ export default function ClientAnalytics() {
   const selectedUserId = searchParams.get('userId')
   const appliedFrom = searchParams.get('fromDate') ?? ''
   const appliedTo = searchParams.get('toDate') ?? ''
-  const [analytics, setAnalytics] = useState<ClientAnalyticsData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '')
-  const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '')
-
   const detailTriggerRef = useRef<HTMLElement | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailReservation, setDetailReservation] = useState<ClientAnalyticsData['reservations'][0] | null>(null)
   const [detailReview, setDetailReview] = useState<ClientAnalyticsData['reviews'][0] | null>(null)
-  const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
-  const [debtsLoading, setDebtsLoading] = useState(false)
-
-  const [loadError, setLoadError] = useState(false)
-  const [debtsError, setDebtsError] = useState(false)
-  const [retryVersion, setRetryVersion] = useState(0)
-
-  useEffect(() => {
-    if (!selectedUserId) return
-    let current = true
-    setDateFrom(appliedFrom)
-    setDateTo(appliedTo)
-    setAnalytics(null)
-    setClientDebts([])
-    setLoadError(false)
-    setDebtsError(false)
-    setLoading(true)
-    setDebtsLoading(true)
-    const params = { ...(appliedFrom ? { fromDate: appliedFrom } : {}), ...(appliedTo ? { toDate: appliedTo } : {}) }
-    api.get<ClientAnalyticsData>(`/api/users/${encodeURIComponent(selectedUserId)}/analytics`, { params })
-      .then(({ data }) => {
-        if (!data || data.user?.id !== selectedUserId || !data.stats || !data.penalty ||
-            !Array.isArray(data.topServices) || !Array.isArray(data.reservations) ||
-            !Array.isArray(data.reviews) || !Array.isArray(data.manualEntries)) {
-          throw new Error('Invalid client analytics response')
-        }
-        if (current) setAnalytics(data)
-      })
-      .catch(() => { if (current) setLoadError(true) })
-      .finally(() => { if (current) setLoading(false) })
-    api.get<ClientDebtRow[]>('/api/client-debts', { params: { clientId: selectedUserId } })
-      .then(({ data }) => {
-        if (!Array.isArray(data)) throw new Error('Invalid client debt response')
-        if (current) setClientDebts(data)
-      })
-      .catch(() => { if (current) setDebtsError(true) })
-      .finally(() => { if (current) setDebtsLoading(false) })
-    return () => { current = false }
-  }, [selectedUserId, appliedFrom, appliedTo, retryVersion])
+  const {
+    analytics, loading, dateFrom, setDateFrom, dateTo, setDateTo,
+    clientDebts, debtsLoading, loadError, debtsError, setRetryVersion,
+  } = useClientAnalyticsData({ selectedUserId, appliedFrom, appliedTo })
 
   const applyDateFilter = () => {
     if (!selectedUserId || !dateFrom || !dateTo || dateFrom > dateTo) return
@@ -691,131 +558,9 @@ export default function ClientAnalytics() {
         </div>
       ) : null}
 
-      <Dialog
-        open={detailOpen}
-        onOpenChange={(open) => {
-          if (!open) closeDetail()
-        }}
-      >
-        <DialogContent data-client-analytics-dialog aria-describedby={undefined} className="max-w-2xl" onCloseAutoFocus={(event) => {
-          if (detailTriggerRef.current?.isConnected) {
-            event.preventDefault()
-            detailTriggerRef.current.focus()
-          }
-        }}>
-          {detailReservation ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>{t('clientAnalyticsPage.reservationDetails')}</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.date')}</p>
-                  <p className="font-semibold text-content">{formatDateOnly(detailReservation.reservationDate)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.time')}</p>
-                  <p className="font-semibold text-content">
-                    {detailReservation.startTime} - {detailReservation.endTime}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.service')}</p>
-                  <p className="text-content">{detailReservation.service?.name ?? '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.price')}</p>
-                  <p className="text-content">{formatLocalizedAmount(Number(detailReservation.service?.price ?? 0), i18n.language)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.stylist')}</p>
-                  <p className="text-content">{getStylistName(detailReservation.confirmedStylist)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.status')}</p>
-                  <Badge variant={statusBadgeVariant[detailReservation.status] ?? 'secondary'} className="text-[10px]">
-                    {getReservationStatusLabel(detailReservation.status)}
-                  </Badge>
-                </div>
-                {detailReservation.clientNotes ? (
-                  <div className="md:col-span-2">
-                    <p className="text-xs text-content-strong">{t('clientAnalyticsPage.clientNotes')}</p>
-                    <p className="text-content">{detailReservation.clientNotes}</p>
-                  </div>
-                ) : null}
-                {detailReservation.cancelReason ? (
-                  <div className="md:col-span-2">
-                    <p className="text-xs text-content-strong">{t('clientAnalyticsPage.cancellationReason')}</p>
-                    <p className="text-rose-600">{detailReservation.cancelReason}</p>
-                  </div>
-                ) : null}
-                {detailReservation.cancelledAt ? (
-                  <div>
-                    <p className="text-xs text-content-strong">{t('clientAnalyticsPage.cancelled')}</p>
-                    <p className="text-content">
-                      {formatInstantDate(detailReservation.cancelledAt)}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </>
-          ) : null}
-
-          {detailReview ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>{t('clientAnalyticsPage.reviewDetails')}</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.service')}</p>
-                  <p className="font-semibold text-content">{detailReview.service?.name ?? '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.stylist')}</p>
-                  <p className="text-content">{getStylistName(detailReview.stylist)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.serviceRating')}</p>
-                  <div className="flex items-center gap-2">
-                    <StarRating rating={detailReview.serviceRating} />
-                    <p className="text-sm text-content-strong">{formatLocalizedNumber(detailReview.serviceRating, i18n.language)}/5</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.stylistRating')}</p>
-                  {detailReview.stylistRating != null ? (
-                    <div className="flex items-center gap-2">
-                      <StarRating rating={detailReview.stylistRating} />
-                      <p className="text-sm text-content-strong">{formatLocalizedNumber(detailReview.stylistRating, i18n.language)}/5</p>
-                    </div>
-                  ) : (
-                    <p className="text-content">-</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.status')}</p>
-                  <Badge variant={detailReview.isApproved ? 'success' : 'warning'} className="text-[10px]">
-                    {detailReview.isApproved ? t('clientAnalyticsPage.approved') : t('clientAnalyticsPage.pending')}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('clientAnalyticsPage.date')}</p>
-                  <p className="text-content">{formatInstantDate(detailReview.createdAt)}</p>
-                </div>
-                {detailReview.comment ? (
-                  <div className="md:col-span-2">
-                    <p className="text-xs text-content-strong">{t('clientAnalyticsPage.comment')}</p>
-                    <div className="rounded-md bg-surface-muted p-3 text-sm text-content">
-                      {detailReview.comment}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <ClientAnalyticsDetailDialog detailOpen={detailOpen} closeDetail={closeDetail} detailTriggerRef={detailTriggerRef}
+        detailReservation={detailReservation} detailReview={detailReview} formatDateOnly={formatDateOnly} formatInstantDate={formatInstantDate}
+        getStylistName={getStylistName} getReservationStatusLabel={getReservationStatusLabel} statusBadgeVariant={statusBadgeVariant} />
     </div>
   )
 }
