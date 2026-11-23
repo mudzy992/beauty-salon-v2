@@ -5,6 +5,18 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Dijalog usluge i zakašnjela mutacija (rad u toku)
+
+**Šta i zašto:** prikaz dijaloga za brisanje/spajanje izdvojen je u `features/services/service-deletion-dialog.tsx`; state, API ugovor i pravila ostaju u stranici. `Services.tsx` je u ovom koraku smanjen na oko 1006 linija, a novi dijalog ima oko 209; ovo nije završeno planirano razbijanje velikih fajlova.
+
+Odvojeni kontrolisani browser test reproducirao je utrku već poslanog DELETE zahtjeva: nakon Escape i otvaranja drugog dijaloga, stari uspjeh je zatvarao novi dijalog, a greška prikazivala pogrešan preview; oba slučaja su pala prije popravke. Guard veže završetak za generaciju dijaloga i sesiju, sprječava dodatno slanje tokom aktivnog zahtjeva i odgađa osvježavanje kataloga do zatvaranja novog dijaloga. Kontrole su tokom slanja onemogućene, status na BS/EN jasno kaže da zatvaranje ne otkazuje već poslanu promjenu. Uspjeh/greška se i dalje prijavljuju u istoj aktivnoj sesiji. Već poslani server zahtjev se ne može poništiti zatvaranjem; odlazak sa stranice prije odgovora ne garantuje prikaz njegove obavijesti.
+
+**Dokazi:** mock Chromium 200/500 test **2/2** provjerava očuvanje drugog dijaloga, status, jednu poslanu mutaciju, obavijest i odgođeno osvježavanje; pozitivni 200 mock nakon osvježenja uklanja prvu uslugu iz kataloga. Zajednički paket sa 44 ostala testa je na završnom buildu imao **45/46** zbog strogog selektora u novoj asertaciji; selektor je preciziran i oba nova testa potom prolaze, a ostala 44 su već prošla na istom buildu. Raniji zajednički paket prije dodatne statusne poruke bio je **46/46**. Node **990/990**, build **292,9/300 KiB**, E2E typecheck, lint 0 grešaka / 6 ranijih upozorenja, i18n, CI indeks, repo hygiene i 758 dokumentacijskih linkova prolaze. Write odgovori su mockirani; nema dokaza realne transakcije iz ovih testova.
+
+**CI:** [45169104005](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45169104005) odnosi se na prethodni commit `6e7177e`: četiri posla prolaze, rendered a11y je pri posljednjoj provjeri u toku. Ove nove izmjene nisu u tom runu. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Utrka pregleda brisanja i CI nastavak (rad u toku)
 
 **Pregled akcije:** u sintetičkom browseru zakašnjeli uspjeh pregleda cilja A prepisivao je već prikazani konflikt cilja B, a zakašnjela greška uklanjala B pregled; oba testa prije popravke padaju. Server provjerava `impactToken` i konflikte u transakciji, ali korisnički prikaz i omogućavanje akcije ne smiju zavisiti samo od toga. Generacijski guard sada odbacuje zastarjele odgovore i greške te ne završava novi loading iz starog zahtjeva; invalidira pregled i pri promjeni režima/cilja, pražnjenju cilja, zatvaranju dijaloga i unmountu. Prije popravke zatvaranja putem Cancel dodatna negativna kontrola hvata zakašnjelu pogrešnu toast poruku; nakon popravke ona se ne pojavljuje. Ovo štiti učitavanje pregleda, ne dokazuje sve utrke već poslanih mutacija.

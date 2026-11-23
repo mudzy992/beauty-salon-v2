@@ -1378,6 +1378,7 @@
       "targetService": "Target service",
       "chooseTarget": "Choose a service…",
       "loadingImpact": "Loading linked-record preview…",
+      "mutationPending": "A service change has been submitted. Closing this dialog will not cancel it.",
       "impactFailed": "The preview could not be loaded. No changes were made.",
       "retryImpact": "Reload preview",
       "impactTitle": "Records affected by this action",

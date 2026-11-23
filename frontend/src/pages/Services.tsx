@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
-import { ServiceDeletionImpactView } from '../features/services/service-deletion-impact'
+import { ServiceDeletionDialog } from '../features/services/service-deletion-dialog'
 import { ServiceTable } from '../features/services/service-table'
 import type { Service } from '../features/services/service-types'
 import type { ServiceDeletionImpact, ServiceMutationAction } from '../features/services/service-deletion-types'
@@ -23,6 +23,7 @@ import {
 import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
+import { useAuthStore } from '../stores/auth.store'
 
 import {
   Accordion,
@@ -128,8 +129,20 @@ export default function Services() {
   const [deletionTargetId, setDeletionTargetId] = useState('')
   const [deletionConfirmationName, setDeletionConfirmationName] = useState('')
   const deletionPreviewGeneration = useRef(0)
+  const deletionDialogGeneration = useRef(0)
+  const deletionOpenRef = useRef(false)
+  const deletionMutationInFlight = useRef(false)
+  const deletionRefreshPending = useRef(false)
+  const deletionMounted = useRef(false)
 
-  useEffect(() => () => { deletionPreviewGeneration.current += 1 }, [])
+  useEffect(() => {
+    deletionMounted.current = true
+    return () => {
+      deletionMounted.current = false
+      deletionPreviewGeneration.current += 1
+      deletionDialogGeneration.current += 1
+    }
+  }, [])
 
   const invalidateDeletionPreview = () => {
     deletionPreviewGeneration.current += 1
@@ -177,6 +190,19 @@ export default function Services() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  const closeServiceDeletion = () => {
+    deletionOpenRef.current = false
+    deletionDialogGeneration.current += 1
+    invalidateDeletionPreview()
+    setDeletionOpen(false)
+    // A previous mutation may have completed while a newer dialog was open.
+    // Refresh only after it closes, so its contents and focus are not lost.
+    if (deletionRefreshPending.current) {
+      deletionRefreshPending.current = false
+      loadData()
+    }
+  }
 
   const getDialogTitle = () => {
     if (modalMode === 'category')
@@ -369,6 +395,8 @@ export default function Services() {
   }
 
   const openServiceDeletion = (service: Service) => {
+    deletionOpenRef.current = true
+    deletionDialogGeneration.current += 1
     setDeletionService(service)
     setDeletionAction('DELETE_LINKED_RECORDS')
     setDeletionTargetId('')
@@ -380,7 +408,12 @@ export default function Services() {
   }
 
   const handleServiceMutation = async () => {
-    if (!deletionService || !deletionImpact) return
+    if (!deletionService || !deletionImpact || deletionMutationInFlight.current) return
+    deletionMutationInFlight.current = true
+    const dialogGeneration = deletionDialogGeneration.current
+    const sessionVersion = useAuthStore.getState().sessionVersion
+    const stillMountedInSession = () => deletionMounted.current && useAuthStore.getState().sessionVersion === sessionVersion
+    const sameDialog = () => stillMountedInSession() && deletionOpenRef.current && deletionDialogGeneration.current === dialogGeneration
     setDeletionSaving(true)
     try {
       await api.delete(`/api/services/${deletionService.id}`, {
@@ -393,27 +426,30 @@ export default function Services() {
             : {}),
         },
       })
-      success(
-        t(
-          deletionAction === 'MERGE'
-            ? 'services.toast.serviceMerged'
-            : 'services.toast.serviceDeleted',
-        ),
-      )
-      setDeletionOpen(false)
-      setDeletionService(null)
-      setDeletionImpact(null)
-      loadData()
+      if (!stillMountedInSession()) return
+      success(t(deletionAction === 'MERGE' ? 'services.toast.serviceMerged' : 'services.toast.serviceDeleted'))
+      if (sameDialog()) {
+        deletionRefreshPending.current = false
+        closeServiceDeletion()
+        setDeletionService(null)
+        loadData()
+      } else if (deletionOpenRef.current) {
+        deletionRefreshPending.current = true
+      } else {
+        loadData()
+      }
     } catch (err) {
+      if (!stillMountedInSession()) return
       showApiError(err, 'services.errors.deleteServiceFailed')
-      if (deletionService) {
+      if (sameDialog()) {
         void loadDeletionImpact(
           deletionService.id,
           deletionAction === 'MERGE' ? deletionTargetId : undefined,
         )
       }
     } finally {
-      setDeletionSaving(false)
+      deletionMutationInFlight.current = false
+      if (deletionMounted.current) setDeletionSaving(false)
     }
   }
 
@@ -938,184 +974,32 @@ export default function Services() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deletionOpen} onOpenChange={(nextOpen) => {
-        if (!nextOpen) invalidateDeletionPreview()
-        setDeletionOpen(nextOpen)
-      }}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('services.deletion.title')}</DialogTitle>
-          </DialogHeader>
-          {deletionService ? (
-            <div className="space-y-5">
-              <p className="text-sm leading-6 text-content-strong ">
-                {t('services.deletion.description', {
-                  service: deletionService.name,
-                })}
-              </p>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  aria-pressed={deletionAction === 'DELETE_LINKED_RECORDS'}
-                  onClick={() => selectDeletionAction('DELETE_LINKED_RECORDS')}
-                  className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'DELETE_LINKED_RECORDS' ? 'border-rose-400 bg-rose-50 dark:bg-rose-950/30' : 'border-line'}`}
-                >
-                  <span className="block text-sm font-semibold text-rose-700 dark:text-rose-300">
-                    {t('services.deletion.deleteMode')}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-content-strong ">
-                    {t('services.deletion.deleteModeDescription')}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={deletionAction === 'MERGE'}
-                  onClick={() => selectDeletionAction('MERGE')}
-                  className={`rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring ${deletionAction === 'MERGE' ? 'border-brand-gold-ring bg-amber-50 dark:bg-amber-950/20' : 'border-line'}`}
-                >
-                  <span className="block text-sm font-semibold text-content">
-                    {t('services.deletion.mergeMode')}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-content-strong ">
-                    {t('services.deletion.mergeModeDescription')}
-                  </span>
-                </button>
-              </div>
-
-              {deletionAction === 'MERGE' ? (
-                <div>
-                  <Label htmlFor="service-merge-target">
-                    {t('services.deletion.targetService')}
-                  </Label>
-                  <Select
-                    id="service-merge-target"
-                    className="mt-1"
-                    value={deletionTargetId}
-                    onChange={(event) => {
-                      const targetId = event.target.value
-                      setDeletionTargetId(targetId)
-                      invalidateDeletionPreview()
-                      if (targetId)
-                        void loadDeletionImpact(deletionService.id, targetId)
-                    }}
-                  >
-                    <option value="">
-                      {t('services.deletion.chooseTarget')}
-                    </option>
-                    {availableMergeTargets.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              ) : null}
-
-              {deletionLoading ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="rounded-xl border border-line p-4 text-sm text-content-strong "
-                >
-                  <Loader2
-                    className="mr-2 inline h-4 w-4 animate-spin"
-                    aria-hidden="true"
-                  />
-                  {t('services.deletion.loadingImpact')}
-                </div>
-              ) : deletionLoadError ? (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200"
-                >
-                  <p>{t('services.deletion.impactFailed')}</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() =>
-                      void loadDeletionImpact(
-                        deletionService.id,
-                        deletionAction === 'MERGE'
-                          ? deletionTargetId
-                          : undefined,
-                      )
-                    }
-                  >
-                    {t('services.deletion.retryImpact')}
-                  </Button>
-                </div>
-              ) : deletionImpact ? (
-                <ServiceDeletionImpactView
-                  impact={deletionImpact}
-                  action={deletionAction}
-                  hasMergeConflicts={hasMergeConflicts}
-                  hasProcessingOutboxEvents={hasProcessingOutboxEvents}
-                />
-              ) : null}
-
-              <div>
-                <Label htmlFor="service-delete-confirmation">
-                  {t('services.deletion.confirmNameLabel')}
-                </Label>
-                <Input
-                  id="service-delete-confirmation"
-                  className="mt-1"
-                  autoComplete="off"
-                  value={deletionConfirmationName}
-                  onChange={(event) =>
-                    setDeletionConfirmationName(event.target.value)
-                  }
-                  placeholder={t('services.deletion.confirmNamePlaceholder', {
-                    service: deletionService.name,
-                  })}
-                />
-              </div>
-            </div>
-          ) : null}
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => { invalidateDeletionPreview(); setDeletionOpen(false) }}
-              disabled={deletionSaving}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type="button"
-              variant={
-                deletionAction === 'DELETE_LINKED_RECORDS'
-                  ? 'danger'
-                  : 'default'
-              }
-              onClick={() => void handleServiceMutation()}
-              disabled={
-                deletionSaving ||
-                deletionLoading ||
-                !deletionImpact ||
-                deletionConfirmationName.trim() !== deletionService?.name ||
-                (deletionAction === 'MERGE' &&
-                  (!deletionTargetId || hasMergeConflicts)) ||
-                (deletionAction === 'DELETE_LINKED_RECORDS' &&
-                  hasProcessingOutboxEvents)
-              }
-            >
-              {deletionSaving ? (
-                <Loader2
-                  className="mr-2 h-4 w-4 animate-spin"
-                  aria-hidden="true"
-                />
-              ) : null}
-              {deletionAction === 'MERGE'
-                ? t('services.deletion.confirmMerge')
-                : t('services.deletion.confirmDelete')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ServiceDeletionDialog
+        deletionOpen={deletionOpen}
+        deletionService={deletionService}
+        deletionImpact={deletionImpact}
+        deletionAction={deletionAction}
+        deletionTargetId={deletionTargetId}
+        deletionConfirmationName={deletionConfirmationName}
+        deletionSaving={deletionSaving}
+        deletionLoading={deletionLoading}
+        deletionLoadError={deletionLoadError}
+        availableMergeTargets={availableMergeTargets}
+        hasMergeConflicts={hasMergeConflicts}
+        hasProcessingOutboxEvents={hasProcessingOutboxEvents}
+        closeServiceDeletion={closeServiceDeletion}
+        selectDeletionAction={selectDeletionAction}
+        onTargetChange={(targetId) => {
+          setDeletionTargetId(targetId)
+          invalidateDeletionPreview()
+          if (targetId && deletionService) void loadDeletionImpact(deletionService.id, targetId)
+        }}
+        onConfirmationChange={setDeletionConfirmationName}
+        onRetry={() => {
+          if (deletionService) void loadDeletionImpact(deletionService.id, deletionAction === 'MERGE' ? deletionTargetId : undefined)
+        }}
+        onConfirm={() => void handleServiceMutation()}
+      />
       <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )

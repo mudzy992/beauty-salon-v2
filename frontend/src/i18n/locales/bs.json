@@ -1378,6 +1378,7 @@
       "targetService": "Ciljna usluga",
       "chooseTarget": "Odaberite uslugu…",
       "loadingImpact": "Učitavanje pregleda povezanih zapisa…",
+      "mutationPending": "Promjena usluge je poslana. Zatvaranje ovog dijaloga je neće otkazati.",
       "impactFailed": "Pregled nije moguće učitati. Nije izvršena nikakva promjena.",
       "retryImpact": "Učitaj pregled ponovo",
       "impactTitle": "Zapisi na koje ova radnja utiče",
