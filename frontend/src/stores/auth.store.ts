@@ -31,6 +31,17 @@ type ProfilePayload = {
 }
 
 const TOKEN_KEY = 'token'
+const SESSION_REVISION_KEY = 'auth-session-revision'
+
+// Not a credential: this marker lets other tabs observe a new session even
+// when the server issues the exact same token string again.
+const writeSessionToken = (token: string | null): string => {
+  if (token) localStorage.setItem(TOKEN_KEY, token)
+  else localStorage.removeItem(TOKEN_KEY)
+  const revision = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}-${Math.random()}`
+  localStorage.setItem(SESSION_REVISION_KEY, revision)
+  return revision
+}
 
 const parseRolesFromJwt = (token: string | null): string[] => {
   if (!token) return []
@@ -89,6 +100,7 @@ interface AuthState {
   user: AuthUser | null
   isReady: boolean
   sessionVersion: number
+  storageRevision: string | null
   setToken: (token: string | null) => void
   replaceToken: (token: string) => void
   setUser: (user: AuthUser | null) => void
@@ -103,11 +115,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isReady: false,
   sessionVersion: 0,
+  storageRevision: localStorage.getItem(SESSION_REVISION_KEY),
   setToken: (token) => set((state) => ({ token, sessionVersion: state.sessionVersion + 1 })),
   replaceToken: (token) => {
-    localStorage.setItem(TOKEN_KEY, token)
+    const storageRevision = writeSessionToken(token)
     api.defaults.headers.common.Authorization = `Bearer ${token}`
-    set((state) => ({ token, sessionVersion: state.sessionVersion + 1 }))
+    set((state) => ({ token, storageRevision, sessionVersion: state.sessionVersion + 1 }))
   },
   setUser: (user) => set((state) => ({
     user,
@@ -118,9 +131,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // A click or delayed response from the old tab must not erase a newer
     // session written by another tab before its storage event is delivered.
     if (synchronizeAuthFromStorage()) return false
-    localStorage.removeItem(TOKEN_KEY)
+    const storageRevision = writeSessionToken(null)
     delete api.defaults.headers.common.Authorization
-    set((state) => ({ token: null, user: null, isReady: true, sessionVersion: state.sessionVersion + 1 }))
+    set((state) => ({ token: null, user: null, isReady: true, storageRevision, sessionVersion: state.sessionVersion + 1 }))
     window.location.assign('/')
     return true
   },
@@ -157,9 +170,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (get().sessionVersion !== sessionVersion) throw new Error('Session changed during login')
       userData = mapProfileToUser(profile.data, newToken)
     }
-    localStorage.setItem(TOKEN_KEY, newToken)
+    const storageRevision = writeSessionToken(newToken)
     api.defaults.headers.common.Authorization = `Bearer ${newToken}`
-    set((state) => ({ token: newToken, user: userData, isReady: true, sessionVersion: state.sessionVersion + 1 }))
+    set((state) => ({ token: newToken, user: userData, isReady: true, storageRevision, sessionVersion: state.sessionVersion + 1 }))
     return userData
   },
 }))
@@ -168,14 +181,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 // Always read the current value instead of applying event.newValue.
 export function synchronizeAuthFromStorage(force = false): boolean {
   const token = localStorage.getItem(TOKEN_KEY)
+  const storageRevision = localStorage.getItem(SESSION_REVISION_KEY)
   const current = useAuthStore.getState()
-  if (!force && current.token === token) return false
+  if (!force && current.token === token && current.storageRevision === storageRevision) return false
   if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`
   else delete api.defaults.headers.common.Authorization
   useAuthStore.setState((state) => ({
     token,
     user: null,
     isReady: !token,
+    storageRevision,
     sessionVersion: state.sessionVersion + 1,
   }))
   return true
@@ -183,10 +198,10 @@ export function synchronizeAuthFromStorage(force = false): boolean {
 
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
   window.addEventListener('storage', (event) => {
-    if (event.storageArea !== localStorage || (event.key !== TOKEN_KEY && event.key !== null)) return
-    // Even if the current token matches, intervening writes (A→B→A) invalidate
-    // in-flight work and cached identity. Same-value writes emit no event.
-    synchronizeAuthFromStorage(true)
+    if (event.storageArea !== localStorage || (event.key !== TOKEN_KEY && event.key !== SESSION_REVISION_KEY && event.key !== null)) return
+    // Token events can also come from older clients that do not write the
+    // revision marker. A queued A→B→A must still invalidate the old session.
+    synchronizeAuthFromStorage(event.key !== SESSION_REVISION_KEY)
   })
 }
 

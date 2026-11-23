@@ -10,6 +10,14 @@
  * zadrzi konkretan razlog u polju `message`.
  */
 export const API_ERROR_CODES = {
+  MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID: 'Odluka o objavi opisa mora biti logička vrijednost.',
+  MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED: 'Aktivna saglasnost ne obuhvata pregledani opis. Osvježite podatke.',
+  MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE: 'Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.',
+  MEDIA_CONSENT_PHOTO_NOT_FOUND: 'Fotografija nije pronađena.',
+  MEDIA_CONSENT_DESCRIPTION_CHANGED: 'Opis se promijenio. Osvježite podatke i ponovo pregledajte opis.',
+  MEDIA_CONSENT_DESCRIPTION_CONFLICT: 'Saglasnost za opis se promijenila. Osvježite podatke.',
+  MEDIA_CONSENT_CONCURRENT_CHANGE: 'Saglasnost se promijenila. Osvježite podatke.',
+  MEDIA_CONSENT_NOT_FOUND: 'Saglasnost nije pronađena.',
   FINANCE_HISTORICAL_SERVICE_UNSUPPORTED: 'Ova usluga više nije dostupna za stilistu. Unos se ne može urediti; u otključanoj knjizi možete ga obrisati.',
   FINANCE_SERVICE_UNSUPPORTED: 'Odabrana usluga nije dostupna za odabranog stilistu. Osvježite podatke i odaberite dostupnu uslugu.',
   EXPENSE_DATE_INVALID: 'Datum rashoda nije važeći kalendarski datum.',

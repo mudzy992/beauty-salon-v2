@@ -279,3 +279,49 @@ test('a token change between 401 inspection and logout prevents both deletion an
   assert.equal(store.getState().token, 'token-B')
   assert.deepEqual(redirects, [])
 })
+
+test('same-token renewal before its storage event invalidates an old 401', async () => {
+  session('token-A', 'client-A')
+  const started = deferred(), gate = deferred()
+  api.defaults.adapter = async config => {
+    started.resolve(); await gate.promise
+    throw new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', config, null, { ...response(config, {}), status: 401 })
+  }
+  const request = api.get('/api/private-read').catch(error => error)
+  await started.promise
+  const oldVersion = store.getState().sessionVersion
+  localStorage.setItem('auth-session-revision', 'another-session')
+  gate.resolve()
+  await request
+  assert.equal(localStorage.getItem('token'), 'token-A')
+  assert.equal(store.getState().token, 'token-A')
+  assert.equal(store.getState().storageRevision, 'another-session')
+  assert.equal(store.getState().sessionVersion, oldVersion + 1)
+  assert.equal(store.getState().user, null)
+  assert.deepEqual(redirects, [])
+})
+
+test('revision-only event invalidates once and ignores an already-consumed marker', () => {
+  session('token-A', 'client-A')
+  const previous = store.getState().sessionVersion
+  localStorage.setItem('auth-session-revision', 'renewed-session')
+  const notify = listeners.get('storage')
+  notify({ storageArea: localStorage, key: 'auth-session-revision', newValue: 'renewed-session' })
+  assert.equal(store.getState().sessionVersion, previous + 1)
+  assert.equal(store.getState().user, null)
+  assert.equal(store.getState().isReady, false)
+  notify({ storageArea: localStorage, key: 'auth-session-revision', newValue: 'renewed-session' })
+  assert.equal(store.getState().sessionVersion, previous + 1)
+})
+
+test('same-token renewal cancels an old action before its storage event', async () => {
+  session('token-A', 'client-A')
+  let dispatched = false
+  api.defaults.adapter = async config => { dispatched = true; return response(config, {}) }
+  localStorage.setItem('auth-session-revision', 'renewed-session')
+  await assert.rejects(api.post('/api/private-write', {}), error => error.code === 'ERR_CANCELED')
+  assert.equal(dispatched, false)
+  assert.equal(store.getState().token, 'token-A')
+  assert.equal(store.getState().user, null)
+  assert.equal(store.getState().isReady, false)
+})

@@ -630,7 +630,15 @@
     "errors": {
       "loadFailed": "Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.",
       "grantFailed": "Saglasnost nije mogla biti sačuvana.",
-      "revokeFailed": "Saglasnost nije mogla biti povučena."
+      "revokeFailed": "Saglasnost nije mogla biti povučena.",
+      "descriptionDecisionInvalid": "Odluka o objavi opisa mora biti logička vrijednost.",
+      "descriptionNotApproved": "Aktivna saglasnost ne obuhvata pregledani opis. Osvježite podatke.",
+      "reviewedDescriptionStale": "Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.",
+      "photoNotFound": "Fotografija nije pronađena.",
+      "descriptionChanged": "Opis se promijenio. Osvježite podatke i ponovo pregledajte opis.",
+      "descriptionConflict": "Saglasnost za opis se promijenila. Osvježite podatke.",
+      "concurrentChange": "Saglasnost se promijenila. Osvježite podatke.",
+      "consentNotFound": "Saglasnost nije pronađena."
     }
   },
   "appReleases": {

@@ -12,6 +12,7 @@ import {
   UploadStorageClass,
 } from '@prisma/client';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { apiError } from '../common/errors/api-error-codes';
 import { PrismaService } from '../prisma/prisma.service';
 import { toDateOnlyString } from '../common/utils/date-only';
 import { CONSENT_PHOTO_MIMES, selectBeforeAfterPair } from '../daily-log/before-after-selection';
@@ -160,7 +161,7 @@ export class MediaConsentService {
   ) {
     this.assertClient(user);
     if (publishDescription !== undefined && typeof publishDescription !== 'boolean') {
-      throw new BadRequestException('Odluka o objavi opisa mora biti logička vrijednost.');
+      throw new BadRequestException(apiError('MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID'));
     }
     if (policyVersion !== CLIENT_MEDIA_PUBLICATION_POLICY_VERSION) {
       throw new ConflictException('Verzija teksta saglasnosti nije važeća.');
@@ -190,7 +191,7 @@ export class MediaConsentService {
       (!image.isBefore && !image.isAfter) ||
       image.upload.storageClass !== UploadStorageClass.PRIVATE
     ) {
-      throw new NotFoundException('Fotografija nije pronađena.');
+      throw new NotFoundException(apiError('MEDIA_CONSENT_PHOTO_NOT_FOUND'));
     }
     if (
       image.consent &&
@@ -209,7 +210,7 @@ export class MediaConsentService {
     ) {
       if (publishDescription === true &&
           (!image.consent.approvedDescription || reviewedDescription !== image.consent.approvedDescription)) {
-        throw new ConflictException('Aktivna saglasnost ne obuhvata pregledani opis. Osvježite podatke.');
+        throw new ConflictException(apiError('MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED'));
       }
       return {
         active: true,
@@ -221,7 +222,7 @@ export class MediaConsentService {
     // A separate opt-in must match the exact text the client reviewed.
     const approvedDescription = publishDescription === true ? image.description?.trim() || null : null;
     if (publishDescription === true && (!approvedDescription || reviewedDescription !== approvedDescription)) {
-      throw new ConflictException('Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.');
+      throw new ConflictException(apiError('MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE'));
     }
 
     const reusedCopyId =
@@ -259,10 +260,10 @@ export class MediaConsentService {
             latest.dailyLogEntry.deletedAt !== null ||
             (!latest.isBefore && !latest.isAfter) ||
             latest.upload.storageClass !== UploadStorageClass.PRIVATE) {
-          throw new NotFoundException('Fotografija nije pronađena.');
+          throw new NotFoundException(apiError('MEDIA_CONSENT_PHOTO_NOT_FOUND'));
         }
         if (approvedDescription && latest.description?.trim() !== approvedDescription) {
-          throw new ConflictException('Opis se promijenio. Osvježite podatke i ponovo pregledajte opis.');
+          throw new ConflictException(apiError('MEDIA_CONSENT_DESCRIPTION_CHANGED'));
         }
         const current = await tx.dailyLogImageConsent.findUnique({
           where: { dailyLogImageId: image.id },
@@ -275,7 +276,7 @@ export class MediaConsentService {
         if (current?.clientId === user.sub && current.revokedAt === null &&
             current.policyVersion === policyVersion && current.publishedUploadId) {
           if ((current.approvedDescription ?? null) !== approvedDescription) {
-            throw new ConflictException('Saglasnost za opis se promijenila. Osvježite podatke.');
+            throw new ConflictException(apiError('MEDIA_CONSENT_DESCRIPTION_CONFLICT'));
           }
           return { record: current, usedCopy: false };
         }
@@ -283,7 +284,7 @@ export class MediaConsentService {
         if ((observed?.id ?? null) !== (current?.id ?? null) ||
             (observed?.revokedAt?.getTime() ?? null) !== (current?.revokedAt?.getTime() ?? null) ||
             (observed?.consentedAt?.getTime() ?? null) !== (current?.consentedAt?.getTime() ?? null)) {
-          throw new ConflictException('Saglasnost se promijenila. Osvježite podatke.');
+          throw new ConflictException(apiError('MEDIA_CONSENT_CONCURRENT_CHANGE'));
         }
         const record = current
           ? await tx.dailyLogImageConsent.update({
@@ -352,7 +353,7 @@ export class MediaConsentService {
       });
       if (!consent || !consent.dailyLogImage || consent.clientId !== user.sub ||
           consent.dailyLogImage.dailyLogEntry.clientId !== user.sub) {
-        throw new NotFoundException('Saglasnost nije pronađena.');
+        throw new NotFoundException(apiError('MEDIA_CONSENT_NOT_FOUND'));
       }
       if (consent.revokedAt) {
         return { revoked: true, revokedAt: consent.revokedAt.toISOString() };
@@ -408,7 +409,7 @@ export class MediaConsentService {
       consent.publishedUpload.storageClass !==
         UploadStorageClass.CONSENTED_PUBLIC
     ) {
-      throw new NotFoundException('Fotografija nije pronađena.');
+      throw new NotFoundException(apiError('MEDIA_CONSENT_PHOTO_NOT_FOUND'));
     }
     return consent.publishedUpload.id;
   }

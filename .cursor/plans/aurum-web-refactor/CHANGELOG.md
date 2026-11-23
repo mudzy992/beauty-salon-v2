@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · Nastavak nakon `a788242` · CI i obnova sesije
+
+**Šta i zašto:** CI za `a788242` pokazao je da obje izolovane PostgreSQL baze uspješno primjenjuju migracije, ali backend brava broja literalnih grešaka i mobilni test permission alerta nisu prošli. Nove consent greške prebačene su u postojeći registar kodova, uz očuvane HTTP statuse i BS poruke, mapiranje kodova i BS/EN ključeve. Brava od 439 nije povećana. Mobilni source test sada prihvata dodatne `beforeDescription` i `afterDescription` zavisnosti callbacka; provjera da odbijena dozvola prekida rad prije pickera ostaje nepromijenjena.
+
+Obnova istog tokena u drugom tabu prethodno nije proizvodila token `storage` događaj. Uz token se sada upisuje neosjetljivi revizijski marker, pa se drugi tab invalidira i kada je token isti. Novi mock browser test prije popravke pada, nakon popravke prolazi; dodani su i store/Axios testovi za događaj, odgođeni 401 i odjavu prije događaja. Kompatibilnost sa starim tabovima koji pišu samo token se zadržava. `localStorage` i dalje nema atomsku compare-and-swap zaštitu; već poslani zahtjevi mogu uspjeti nakon promjene sesije i ostali async tokovi nisu time automatski pokriveni.
+
+**Provjere:** backend registar **7/7**, backend unit **838/838**, build; frontend Node **990/990**, build **292,8/300 KiB**, E2E typecheck, BS/EN, CI indeks i repo hygiene; mobilni Node **386/386**, TypeScript i iOS JS bundle. Mock browser auth/session **21/21** uključujući cross-tab **5/5**; testirani backend HTTP slučaj ima dodatnu asertaciju koda, ali nakon te izmjene nije lokalno ponovo pokrenut s PostgreSQL-om. CI [45158952236](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45158952236): frontend i hygiene prolaze, backend i mobile padaju na navedenim koracima, a a11y je još bio u toku pri posljednjoj provjeri. Rezultati su vezani za taj commit, ne za ovaj nastavak. Nema mergea ni deploya.
+
+---
+
 ## 2026-11-18 · Više tabova, privatni obrasci i booking fokus (rad u toku)
 
 **Šta i zašto:** stvarna dva Chromium taba su prije popravke zadržavala stilistu A nakon prijave B i odjave u drugom tabu. Store sluša `storage` i čita trenutno stanje umjesto zastarjele vrijednosti događaja, briše identitet i skriva zaštićeni sadržaj do novog profila. Axios prije slanja provjerava neslaganje storagea i odbija stari zahtjev umjesto da ga pošalje s novim tokenom; odgovor i zasebni login fallback također provjeravaju storage. Zakašnjeli 401 i odjava ne smiju obrisati poznati noviji token; pozivaoci ne preusmjeravaju ako odjava nije uspjela.
@@ -17,7 +27,7 @@ Ponovljen je stvarni fokusni pad na svježem buildu: **7/15** sintetičkih Class
 
 **Izmjene testova:** source test promjene lozinke usklađen je s novim `isCurrent` guardom: i dalje zahtijeva sprečavanje zakašnjele navigacije, a dodatno provjerava zaštitu rotacije tokena i verziju sesije; stvarni negativni i normalni tok su browser-testirani. Fokusni hit-test nije oslabljen; dodana je samo dijagnostika geometrije te zaseban negativno kontrolisan test prije framea.
 
-**Ograničenja:** isti token zapisan ponovo u drugom tabu ne generiše `storage` događaj; `localStorage` nema atomsku compare-and-swap zaštitu između konkurentnih tabova. Već poslani server zahtjev može uspjeti i nakon promjene korisnika. Nisu dokazani svi ostali async tokovi, stvarni backend/browser lifecycle, socket/backend, migration deploy, mobilni uređaji/AT ni puni CI. Nije rađen deploy ni merge.
+**Ograničenja te međufaze:** isti token zapisan ponovo u drugom tabu nije generisao `storage` događaj (naknadna zaštita opisana je iznad); `localStorage` nema atomsku compare-and-swap zaštitu između konkurentnih tabova. Već poslani server zahtjev može uspjeti i nakon promjene korisnika. Nisu dokazani svi ostali async tokovi, stvarni backend/browser lifecycle, socket/backend, migration deploy, mobilni uređaji/AT ni puni CI. Nije rađen deploy ni merge.
 
 ---
 

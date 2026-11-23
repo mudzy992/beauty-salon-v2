@@ -121,3 +121,36 @@ for (const oldStatus of [200, 401]) {
     } finally { gate.release() }
   })
 }
+
+test('same-token renewal in another tab invalidates the previous session and its cache', async ({ page, context }) => {
+  const gate = deferred()
+  let renewed = false, refreshes = 0
+  await context.route(url => url.pathname.startsWith('/api/') || url.pathname === '/auth/login', async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/auth/login') { renewed = true; return route.fulfill({ json: { access_token: 'token-A', user: profile('stylist-A') } }) }
+    if (path === '/api/users/profile') {
+      if (renewed) { refreshes++; await gate.promise }
+      return route.fulfill({ json: profile('stylist-A') })
+    }
+    if (path === '/api/client-debts/stylist/me') return route.fulfill({ json: debt(renewed ? 'Renewed' : 'A') })
+    if (path === '/api/settings/public') return route.fulfill({ json: [] })
+    return route.fulfill({ json: {} })
+  })
+  try {
+    await initialize(page)
+    const second = await context.newPage()
+    await second.goto('/stylist/debts')
+    await expect(second.getByText('Private A Fixture')).toBeVisible()
+    await page.evaluate(async () => {
+      const path = '/src/stores/auth.store.ts'
+      const { useAuthStore } = await import(/* @vite-ignore */ path)
+      await useAuthStore.getState().login('stylist-A', 'synthetic')
+    })
+    await expect.poll(async () => (await getSession(second)).isReady).toBe(false)
+    expect(await getSession(second)).toEqual({ token: 'token-A', user: null, isReady: false })
+    await expect(second.getByText('Private A Fixture')).toHaveCount(0)
+    gate.release()
+    await expect(second.getByText('Private Renewed Fixture')).toBeVisible()
+    expect(refreshes).toBeGreaterThan(0)
+  } finally { gate.release() }
+})

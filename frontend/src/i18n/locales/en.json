@@ -630,7 +630,15 @@
     "errors": {
       "loadFailed": "Unable to load consent details right now. Please try again.",
       "grantFailed": "Unable to save consent.",
-      "revokeFailed": "Unable to revoke consent."
+      "revokeFailed": "Unable to revoke consent.",
+      "descriptionDecisionInvalid": "The description publication choice must be a boolean value.",
+      "descriptionNotApproved": "The active consent does not cover the reviewed description. Refresh the details.",
+      "reviewedDescriptionStale": "The description changed or is unavailable. Refresh the details and review it again.",
+      "photoNotFound": "The photo was not found.",
+      "descriptionChanged": "The description changed. Refresh the details and review it again.",
+      "descriptionConflict": "The description consent changed. Refresh the details.",
+      "concurrentChange": "The consent changed. Refresh the details.",
+      "consentNotFound": "The consent was not found."
     }
   },
   "appReleases": {

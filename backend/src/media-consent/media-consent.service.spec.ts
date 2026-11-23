@@ -318,7 +318,13 @@ describe('MediaConsentService', () => {
 
   it('rejects a stale description before creating a public derivative', async () => {
     prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Drugačiji opis' }));
-    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, true, 'Stari opis')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, true, 'Stari opis')).rejects.toMatchObject({
+      response: {
+        code: 'MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE',
+        message: 'Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.',
+      },
+      status: 409,
+    });
     expect(uploads.createConsentDerivative).not.toHaveBeenCalled();
     expect(tx.dailyLogImageConsent.create).not.toHaveBeenCalled();
   });

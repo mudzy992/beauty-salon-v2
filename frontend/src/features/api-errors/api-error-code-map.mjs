@@ -10,6 +10,14 @@
  * Parnost s backend registrom cuva `test:api-error-code-parity`.
  */
 export const API_ERROR_CODE_TO_KEY = {
+  MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID: 'mediaConsent.errors.descriptionDecisionInvalid',
+  MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED: 'mediaConsent.errors.descriptionNotApproved',
+  MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE: 'mediaConsent.errors.reviewedDescriptionStale',
+  MEDIA_CONSENT_PHOTO_NOT_FOUND: 'mediaConsent.errors.photoNotFound',
+  MEDIA_CONSENT_DESCRIPTION_CHANGED: 'mediaConsent.errors.descriptionChanged',
+  MEDIA_CONSENT_DESCRIPTION_CONFLICT: 'mediaConsent.errors.descriptionConflict',
+  MEDIA_CONSENT_CONCURRENT_CHANGE: 'mediaConsent.errors.concurrentChange',
+  MEDIA_CONSENT_NOT_FOUND: 'mediaConsent.errors.consentNotFound',
   FINANCE_HISTORICAL_SERVICE_UNSUPPORTED: 'finance.manualEntry.historicalServiceUnsupported',
   FINANCE_SERVICE_UNSUPPORTED: 'finance.manualEntry.serviceUnsupported',
   EXPENSE_DATE_INVALID: 'finance.expenseForm.dateInvalid',

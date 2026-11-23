@@ -1429,7 +1429,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     expect(findPair((await feed()).body)?.before.description).toBeNull();
     await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: description }).expect(409);
     await request(getHttpServer(app!)).delete(`/api/media/consents/${imageId}`).set('Authorization', `Bearer ${clientToken}`).expect(200);
-    await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: 'Stari opis' }).expect(409);
+    const staleDescription = await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: 'Stari opis' }).expect(409);
+    expect(staleDescription.body).toMatchObject({ code: 'MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE', message: 'Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.' });
     await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: description }).expect(201);
     expect(findPair((await feed()).body)?.before.description).toBe(description);
     await prisma!.dailyLogImage.update({ where: { id: imageId }, data: { description: 'Izmijenjeni privatni opis' } });
