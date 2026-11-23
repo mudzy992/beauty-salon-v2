@@ -249,11 +249,18 @@ test('1.4.3 ispravljeno: statusni tekstovi više ne koriste emerald-600 / amber-
   const cases = [
     ['features/stylist-portal/pages/stylist-direct-booking-page.tsx', /text-warn-foreground/, /text-sm text-amber-600/],
     ['features/stylist-workbook/pages/workbook-new-entry-page.tsx', /text-ok-foreground/, /text-xs text-emerald-600/],
-    ['pages/Users.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
+    ['features/users/edit-user-dialog.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
+    ['features/users/create-user-dialog.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
   ]
   for (const [f, must, mustNot] of cases) {
     const src = readFileSync(join(SRC, f), 'utf8')
     assert.match(src, must, `${f}: nedostaje semantički token`)
     assert.doesNotMatch(src, mustNot, `${f}: sirova niskokontrastna klasa se vratila`)
   }
+  // Both original Users username-availability messages moved into rendered
+  // dialogs; retain the old prohibition for the remaining page as well.
+  const usersPage = readFileSync(join(SRC, 'pages/Users.tsx'), 'utf8')
+  assert.match(usersPage, /<EditUserDialog\b/)
+  assert.match(usersPage, /<CreateUserDialog\b/)
+  assert.doesNotMatch(usersPage, /text-xs text-emerald-600/)
 })

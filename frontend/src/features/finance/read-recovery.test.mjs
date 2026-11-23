@@ -33,9 +33,11 @@ test('expense category loading and errors are visible and retryable without hidi
 
 test('client debt editor uses client-scoped query state and invalidates it after write-off', async () => {
   const page = await source('../../pages/Users.tsx')
+  const dialog = await source('../users/edit-user-dialog.tsx')
   assert.match(page, /queryKey: \['client-debts', editUser\?\.id \?\? ''\]/)
-  assert.match(page, /clientDebtsQuery\.isError/)
-  assert.match(page, /clientDebtsQuery\.refetch\(\)/)
+  assert.match(page, /<EditUserDialog[\s\S]*?clientDebtsQuery=\{clientDebtsQuery\}/)
+  assert.match(dialog, /clientDebtsQuery\.isError/)
+  assert.match(dialog, /clientDebtsQuery\.refetch\(\)/)
   assert.match(page, /queryClient\.invalidateQueries\(\{\s*queryKey: \['client-debts', editUser\.id\]/)
-  assert.match(page, /\(clientDebtsQuery\.data \?\? \[\]\)\.length === 0/)
+  assert.match(dialog, /\(clientDebtsQuery\.data \?\? \[\]\)\.length === 0/)
 })

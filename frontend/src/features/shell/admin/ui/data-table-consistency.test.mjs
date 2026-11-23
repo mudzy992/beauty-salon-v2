@@ -124,7 +124,7 @@ const ALLOWED = {
   },
   // 2026-11-17 (Faza C (9/) pilot): radno vrijeme stiliste je isti obrazac kao Salon —
   // `opacity-60` za neradne dane (funkcionalni razlog, dokumentiran u DataTable docblocku).
-  'pages/Stylists.tsx': {
+  'features/salon/stylist-working-hours.tsx': {
     rowClassName: 1,
   },
 }

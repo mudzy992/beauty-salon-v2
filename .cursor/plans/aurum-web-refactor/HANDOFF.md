@@ -1,6 +1,6 @@
 # HANDOFF — Aurum web refaktor
 
-> **Najnoviji S8 nastavak:** korisnik je izričito odobrio šire razbijanje admin fajlova prema S8 planu, uz očuvanje API-ja i testova. Rad je započet, ali S8 nije završen: Users i Services su još veliki, a ostali ekrani i DoD čekaju nastavak. Najnoviji detalji i testovi su na vrhu `CHANGELOG.md`; prethodni navodi o neodobrenom S8 u ovom historijskom dokumentu više ne važe. Nema merge/deploya.
+> **Najnoviji S8 nastavak:** korisnik je odobrio šire razbijanje admin fajlova. U većem zahvatu izdvojeni su dijalozi korisnika, kataloga i praznika, upravljanje stilistima i učitavanje galerije. `Stylists.tsx` je 136, `ServiceWorkGallery.tsx` 128 linija; Users 1173, Services 681 i Salon 632 ostaju veliki, a neki izdvojeni moduli prelaze planirani okvir ~100–150. S8 nije završen: ostaju dalje razbijanje, pregled preostalih kriterija i završni dokazi. Prethodni CI `d570e3a` je 5/5; detalji i ograničenja novog zahvata su na vrhu `CHANGELOG.md`. Stariji navodi o neodobrenom S8 ovdje više ne važe. Nema merge/deploya.
 
 > **Najnoviji M4–M7 nastavak:** rezervacija ima zasebne oznake koraka i odabranih datuma/termina u emuliranim sistemskim bojama; provjerava se i JS širenje datuma; lokalni fokusirani skup 36/36. CI `60bf38f` 5/5, 2514/0/0, 15 nepotpunih axe uzoraka. **Otvoren nalaz:** u simuliranom 200% tekstu fokus na „Dodaj još“ povremeno ostaje ispod viewporta; uzrok nije potvrđen. M4/M5 i stvarni OS reduced-motion ostaju otvoreni. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).
 

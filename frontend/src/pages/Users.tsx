@@ -4,14 +4,12 @@ import { useSessionQuery as useQuery } from '../query/use-session-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
-  BadgeCheck,
   Loader2,
   Mail,
   Pencil,
   Plus,
   Search,
   Trash2,
-  UserRound,
   Eye,
   X,
 } from 'lucide-react'
@@ -23,25 +21,24 @@ import {
 } from '../api/catalog'
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
-import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
 
 import type { DataTableColumn } from '../features/shell/admin/ui/data-table'
 import type { UserRow, PaginatedResponse, StylistRemovalPreview, StylistOption, ClientDebtRow } from '../features/users/user-types'
 import { UsersList } from '../features/users/users-list'
+import { EditUserDialog } from '../features/users/edit-user-dialog'
+import { CreateUserDialog } from '../features/users/create-user-dialog'
+import { StylistRemovalDialog } from '../features/users/stylist-removal-dialog'
 import { ErrorState } from '../features/shell/admin/ui/data-state'
-import { Alert, AlertDescription } from '../components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Select } from '../components/ui/select'
 import { Card } from '../components/ui/card'
 import { ConfirmDialog } from '../features/finance/components/confirm-dialog'
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,7 +46,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
-import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 
 const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT', 'STYLIST'] as const
@@ -89,7 +85,7 @@ const initials = (firstName?: string | null, lastName?: string | null, username?
 }
 
 export default function Users() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { success, error, warning } = useAppToast()
   const showApiError = (err: unknown, fallbackKey: string) => {
     const message = getErrorMessage(err, '')
@@ -1100,465 +1096,23 @@ export default function Users() {
         </>
       )}
 
-      {/* Remove STYLIST role */}
-      <Dialog open={removeStylistOpen} onOpenChange={(open) => {
-        if (!open && removalSubmitting) return
-        if (!open) removalPreviewSequence.current += 1
-        setRemoveStylistOpen(open)
-      }}>
-        <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
-          if (removalTriggerRef.current?.isConnected) {
-            event.preventDefault()
-            removalTriggerRef.current.focus()
-          }
-        }}>
-          <DialogHeader>
-            <DialogTitle>{t('users.stylistRemoval.title')}</DialogTitle>
-          </DialogHeader>
+      <StylistRemovalDialog removeStylistOpen={removeStylistOpen} removalSubmitting={removalSubmitting}
+        removalTriggerRef={removalTriggerRef} removalPreview={removalPreview} removeStylistUser={removeStylistUser}
+        financialTarget={financialTarget} setFinancialTarget={setFinancialTarget} financialConfirmed={financialConfirmed} setFinancialConfirmed={setFinancialConfirmed}
+        getTargetOptions={getTargetOptions} removalModes={removalModes} setRemovalModes={setRemovalModes} removalTargets={removalTargets} setRemovalTargets={setRemovalTargets}
+        removalSummary={removalSummary} isRemovalReady={isRemovalReady}
+        onOpenChange={(open) => { if (!open && removalSubmitting) return; if (!open) removalPreviewSequence.current += 1; setRemoveStylistOpen(open) }}
+        onConfirm={() => void handleConfirmRemoveStylist()} />
 
-          {!removalPreview ? (
-            <div role="status" aria-live="polite" className="flex justify-center py-10 text-content-strong">
-              <span className="sr-only">{t('common.loading')}</span>
-              <Loader2 className="h-7 w-7 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-content-strong ">
-                {t('users.stylistRemoval.stylist', { username: removeStylistUser?.username ?? '' })}
-              </p>
+      <EditUserDialog editOpen={editOpen} setEditOpen={setEditOpen} saving={saving} editTriggerRef={editTriggerRef}
+        editUser={editUser} formData={formData} setFormData={setFormData} setEditIsUsernameManuallyEdited={setEditIsUsernameManuallyEdited}
+        initialUsername={initialUsername} initialEmail={initialEmail} editUsernameStatus={editUsernameStatus} getUserRoles={getUserRoles}
+        clientDebtsQuery={clientDebtsQuery} setDebtToWriteOff={setDebtToWriteOff} onSave={() => void handleSave()} />
 
-              {(removalPreview.financial.clientDebtsCount > 0 || removalPreview.financial.manualIncomeCount > 0) ? (
-                <div className="space-y-3 rounded-md border border-amber-300 p-4 dark:border-amber-700">
-                  <p className="text-sm font-medium">{t('users.stylistRemoval.financialWarning', {
-                    debts: removalPreview.financial.clientDebtsCount,
-                    income: removalPreview.financial.manualIncomeCount,
-                  })}</p>
-                  <div className="space-y-2">
-                    <Label htmlFor="users-financial-transfer-target">{t('users.stylistRemoval.financialTarget')}</Label>
-                    <Select id="users-financial-transfer-target" aria-required="true"
-                      
-                      value={financialTarget}
-                      onChange={(e) => { setFinancialTarget(e.target.value); setFinancialConfirmed(false) }}>
-                      <option value="">{t('users.stylistRemoval.chooseTarget')}</option>
-                      {getTargetOptions().map((option) => (
-                        <option key={option.id} value={option.id} disabled={option.isPending}>{option.label}{option.isPending ? ` ${t('users.stylistRemoval.pendingOption')}` : ''}</option>
-                      ))}
-                    </Select>
-                    {!getTargetOptions().some(option => !option.isPending) ? (
-                      <p className="text-sm text-content-strong">{t('users.stylistRemoval.noFinancialTarget')}</p>
-                    ) : null}
-                  </div>
-                  <label className="flex items-start gap-2 text-sm">
-                    <input type="checkbox" className="mt-1" checked={financialConfirmed} onChange={(e) => setFinancialConfirmed(e.target.checked)} />
-                    <span>{t('users.stylistRemoval.financialConfirm')}</span>
-                  </label>
-                </div>
-              ) : null}
-              {removalPreview.financial.bookedDailyLogsCount > 0 ? (
-                <Alert variant="warning">
-                  <AlertDescription>{t('users.stylistRemoval.bookedLogs', { count: removalPreview.financial.bookedDailyLogsCount })}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              {([
-                { key: 'dailyLogs', label: t('users.stylistRemoval.categories.dailyLogs'), count: removalPreview.counts.dailyLogEntriesCount },
-                { key: 'confirmedReservations', label: t('users.stylistRemoval.categories.confirmedReservations'), count: removalPreview.counts.confirmedReservationsCount },
-                { key: 'reservationResponses', label: t('users.stylistRemoval.categories.reservationResponses'), count: removalPreview.counts.reservationResponsesCount },
-                { key: 'reviews', label: t('users.stylistRemoval.categories.reviews'), count: removalPreview.counts.reviewsCount },
-              ] as const).map((row) => {
-                if (row.count <= 0) return null
-                const opts = getTargetOptions()
-                const mode = removalModes[row.key]
-                return (
-                  <fieldset key={row.key} className="rounded-md border border-line p-4 ">
-                    <legend className="px-1 font-medium text-content">{row.label}</legend>
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <Badge variant="secondary">{row.count}</Badge>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      <label className="inline-flex cursor-pointer items-center gap-2">
-                        <input
-                          type="radio"
-                          name={`${row.key}-mode`}
-                          value="TRANSFER"
-                          checked={mode === 'TRANSFER'}
-                          onChange={() => setRemovalModes((prev) => ({ ...prev, [row.key]: 'TRANSFER' }))}
-                        />
-                        <span>{t('users.stylistRemoval.transfer')}</span>
-                      </label>
-                      <label className="inline-flex cursor-pointer items-center gap-2">
-                        <input
-                          type="radio"
-                          name={`${row.key}-mode`}
-                          value="DELETE"
-                          checked={mode === 'DELETE'}
-                          onChange={() => setRemovalModes((prev) => ({ ...prev, [row.key]: 'DELETE' }))}
-                        />
-                        <span>{t('users.stylistRemoval.delete')}</span>
-                      </label>
-                    </div>
-
-                    {mode === 'TRANSFER' ? (
-                      <div className="mt-3 space-y-2">
-                        <Label htmlFor={`users-stylist-removal-target-${row.key}`}>{t('users.stylistRemoval.target')}</Label>
-                        <Select id={`users-stylist-removal-target-${row.key}`}
-                          
-                          value={(removalTargets as any)[row.key] ?? ''}
-                          onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
-                        >
-                          <option value="">{t('users.stylistRemoval.chooseTarget')}</option>
-                          {opts.map((o) => (
-                            <option key={o.id} value={o.id} disabled={o.isPending}>
-                              {o.label}
-                              {o.isPending ? ` ${t('users.stylistRemoval.pendingOption')}` : ''}
-                            </option>
-                          ))}
-                        </Select>
-                        {opts.some((o) => o.isPending) ? (
-                          <p className="text-xs text-amber-700 dark:text-amber-300">
-                            {t('users.stylistRemoval.pendingWarning')}
-                          </p>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{t('users.stylistRemoval.deleteWarning')}</p>
-                    )}
-                  </fieldset>
-                )
-              })}
-
-              {removalSummary.length > 0 ? (
-                <div className="rounded-md border border-line p-4 ">
-                  <p className="mb-2 font-medium text-content">{t('users.stylistRemoval.summary')}</p>
-                  <div className="space-y-1 text-sm">
-                    {removalSummary.map((r) => (
-                      <div key={r.label} className="flex items-center justify-between gap-3">
-                        <span className="text-content-strong">
-                          {r.label} ({r.count})
-                        </span>
-                        <span className={r.mode === 'DELETE' ? 'font-medium text-rose-700 dark:text-rose-300' : 'font-medium text-blue-700 dark:text-blue-300'}>
-                          {r.mode === 'DELETE' ? t('users.stylistRemoval.deleteSummary') : t('users.stylistRemoval.transferSummary')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <Alert>
-                <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                <p className="mb-1 font-medium leading-none tracking-tight">{t('users.stylistRemoval.noteTitle')}</p>
-                <AlertDescription>
-                  {t('users.stylistRemoval.note')}
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" disabled={removalSubmitting} onClick={() => { removalPreviewSequence.current += 1; setRemoveStylistOpen(false) }}>
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              data-users-remove-action
-              className="border-rose-200 text-rose-900 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-950/20"
-              onClick={() => void handleConfirmRemoveStylist()}
-              disabled={!removalPreview || !isRemovalReady || removalSubmitting}
-            >
-              {removalSubmitting ? t('users.stylistRemoval.removing') : t('users.stylistRemoval.confirm')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit user */}
-      <Dialog open={editOpen} onOpenChange={(open) => { if (open || !saving) setEditOpen(open) }}>
-        <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
-          if (editTriggerRef.current?.isConnected) {
-            event.preventDefault()
-            editTriggerRef.current.focus()
-          }
-        }}>
-          <DialogHeader>
-            <DialogTitle>{t('users.editUserTitle', { username: editUser?.username ?? '' })}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="users-username">{t('users.username')}</Label>
-              <Input id="users-username" aria-required="true"
-                value={formData.username}
-                onChange={(e) => {
-                  setEditIsUsernameManuallyEdited(true)
-                  setFormData((p) => ({ ...p, username: e.target.value }))
-                }}
-              />
-              {editUsernameStatus.loading ? <p className="text-xs text-content-strong">{t('users.usernameAvailability.checking')}</p> : null}
-              {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() === initialUsername.trim() ? (
-                <p className="text-xs text-blue-600">{t('users.usernameAvailability.current')}</p>
-              ) : null}
-              {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() !== initialUsername.trim() ? (
-                <p className="text-xs text-ok-foreground">{t('users.usernameAvailability.available')}</p>
-              ) : null}
-              {!editUsernameStatus.loading && editUsernameStatus.available === false ? (
-                <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p>
-              ) : null}
-
-              {editUsernameStatus.suggestions.length > 0 && editUsernameStatus.available === false ? (
-                <Alert className="mt-2">
-                  <UserRound className="h-4 w-4" aria-hidden="true" />
-                  <p className="mb-1 font-medium leading-none tracking-tight">{t('users.usernameAvailability.suggestions')}</p>
-                  <AlertDescription>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {editUsernameStatus.suggestions.map((item) => (
-                        <Button
-                          key={item}
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditIsUsernameManuallyEdited(true)
-                            setFormData((p) => ({ ...p, username: item }))
-                          }}
-                        >
-                          {item}
-                        </Button>
-                      ))}
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="users-email" className="mb-0">{t('users.email')}</Label>
-                {formData.email.trim().length > 0 ? (
-                  <Badge
-                    variant={formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? 'success' : 'warning'}
-                    className="text-[10px]"
-                  >
-                    {formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? t('users.status.emailVerified') : t('users.status.emailUnverified')}
-                  </Badge>
-                ) : null}
-              </div>
-              <Input id="users-email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="users-auth-first-name">{t('auth.firstName')}</Label>
-              <Input id="users-auth-first-name" aria-required="true" value={formData.firstName} onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="users-auth-last-name">{t('auth.lastName')}</Label>
-              <Input id="users-auth-last-name" aria-required="true" value={formData.lastName} onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="users-phone">{t('users.phone')}</Label>
-              <Input id="users-phone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="users-gender">
-                {t('users.gender.label')}
-                {editUser && getUserRoles(editUser).includes('CLIENT') ? <span className="ml-1 text-rose-600">*</span> : null}
-              </Label>
-              <Select id="users-gender" aria-required={Boolean(editUser && getUserRoles(editUser).includes('CLIENT'))}
-                
-                value={formData.gender}
-                onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value as any }))}
-              >
-                <option value="">{t('users.gender.choose')}</option>
-                <option value="FEMALE">{t('users.gender.female')}</option>
-                <option value="MALE">{t('users.gender.male')}</option>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3  md:col-span-2">
-              <div className="space-y-0.5">
-                <p id="users-active-label" className="text-sm font-medium text-content">{t('users.form.active')}</p>
-                <p className="text-xs text-content-strong">{t('users.form.inactiveHint')}</p>
-              </div>
-              <Switch aria-labelledby="users-active-label" checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
-            </div>
-
-            {editUser && getUserRoles(editUser).includes('CLIENT') ? (
-              <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">{t('users.debts.title')}</Label>
-                  {clientDebtsQuery.isLoading ? (
-                    <span role="status" className="text-xs text-content-strong">
-                      {t('users.debts.loading')}
-                    </span>
-                  ) : null}
-                </div>
-
-                {clientDebtsQuery.isLoading ? null : clientDebtsQuery.isError ? (
-                  <div
-                    role="alert"
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200"
-                  >
-                    <span>{t('finance.states.errorTitle')}</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void clientDebtsQuery.refetch()}
-                    >
-                      {t('finance.states.retry')}
-                    </Button>
-                  </div>
-                ) : (clientDebtsQuery.data ?? []).length === 0 ? (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200">
-                    {t('users.debts.none')}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {(clientDebtsQuery.data ?? []).map((d) => (
-                      <div
-                        key={d.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface p-3 text-sm  "
-                      >
-                        <div className="min-w-0">
-                          <div className="font-medium text-content">
-                            {formatLocalizedAmount(d.amount, i18n.language)}
-                            {d.service?.name ? <span className="ml-2 text-xs text-content-strong">• {d.service.name}</span> : null}
-                          </div>
-                          {d.note ? <div className="mt-1 text-xs text-content-strong ">{d.note}</div> : null}
-                          {d.createdBy?.username ? (
-                            <div className="mt-1 text-xs text-content-strong ">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
-                          ) : null}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDebtToWriteOff(d.id)}
-                        >
-                          {t('users.debts.writeOff')}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setEditOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleSave()} disabled={saving}>
-              {saving ? t('common.saving') : t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create user */}
-      <Dialog open={createOpen} onOpenChange={(open) => { if (open || !saving) setCreateOpen(open) }}>
-        <DialogContent data-users-dialog className="max-w-2xl" onCloseAutoFocus={(event) => {
-          if (transitioningToCredentials.current) {
-            event.preventDefault()
-          } else if (createTriggerRef.current?.isConnected) {
-            event.preventDefault()
-            createTriggerRef.current.focus()
-          }
-        }}>
-          <DialogHeader>
-            <DialogTitle>{t('users.newUser')}</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="users-auth-first-name-2">{t('auth.firstName')}</Label>
-              <Input id="users-auth-first-name-2" aria-required="true" value={createData.firstName} onChange={(e) => setCreateData((p) => ({ ...p, firstName: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="users-auth-last-name-2">{t('auth.lastName')}</Label>
-              <Input id="users-auth-last-name-2" aria-required="true" value={createData.lastName} onChange={(e) => setCreateData((p) => ({ ...p, lastName: e.target.value }))} />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="users-users-username-2">{t('users.username')}</Label>
-              <Input id="users-users-username-2"
-                value={createData.username}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setIsUsernameManuallyEdited(value.trim().length > 0)
-                  setCreateData((p) => ({ ...p, username: value }))
-                }}
-              />
-              {usernameStatus.loading ? <p className="text-xs text-content-strong">{t('users.usernameAvailability.checking')}</p> : null}
-              {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-ok-foreground">{t('users.usernameAvailability.available')}</p> : null}
-              {!usernameStatus.loading && usernameStatus.available === false ? <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p> : null}
-            </div>
-
-            {usernameStatus.suggestions.length > 0 && usernameStatus.available === false ? (
-              <div className="md:col-span-2">
-                <Alert>
-                  <UserRound className="h-4 w-4" aria-hidden="true" />
-                  <p className="mb-1 font-medium leading-none tracking-tight">{t('users.usernameAvailability.suggestions')}</p>
-                  <AlertDescription>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {usernameStatus.suggestions.map((item) => (
-                        <Button
-                          key={item}
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setIsUsernameManuallyEdited(true)
-                            setCreateData((p) => ({ ...p, username: item }))
-                          }}
-                        >
-                          {item}
-                        </Button>
-                      ))}
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              </div>
-            ) : null}
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="users-form-role">{t('users.form.role')}</Label>
-              <Input id="users-form-role" value={getRoleLabel('CLIENT')} readOnly />
-              <p className="text-xs text-content-strong">
-                {t('users.form.roleNote')}
-              </p>
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="users-create-gender">{t('users.gender.label')}</Label>
-              <Select id="users-create-gender" aria-required="true"
-                
-                value={createData.gender}
-                onChange={(e) => setCreateData((p) => ({ ...p, gender: e.target.value as any }))}
-              >
-                <option value="">{t('users.gender.choose')}</option>
-                <option value="FEMALE">{t('users.gender.female')}</option>
-                <option value="MALE">{t('users.gender.male')}</option>
-              </Select>
-            </div>
-
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" disabled={saving} onClick={() => setCreateOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleCreate()} disabled={saving}>
-              {saving ? t('common.saving') : t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateUserDialog createOpen={createOpen} setCreateOpen={setCreateOpen} saving={saving}
+        transitioningToCredentials={transitioningToCredentials} createTriggerRef={createTriggerRef}
+        createData={createData} setCreateData={setCreateData} setIsUsernameManuallyEdited={setIsUsernameManuallyEdited}
+        usernameStatus={usernameStatus} getRoleLabel={getRoleLabel} onCreate={() => void handleCreate()} />
 
       {/* Credentials */}
       <Dialog

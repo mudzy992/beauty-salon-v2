@@ -3,13 +3,27 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
-const salon = read('../../pages/Salon.tsx')
+const salonPage = read('../../pages/Salon.tsx')
+const holidayDialog = read('./holiday-dialog.tsx')
+assert.match(salonPage, /<HolidayDialog\b/)
+const salon = [salonPage, holidayDialog].join('\n')
 const servicesPage = read('../../pages/Services.tsx')
 const serviceTable = read('../services/service-table.tsx')
-// Include the extracted table and verify the page still renders it. The
-// caption/scope and responsive-table checks below cover both files together.
-const services = `${servicesPage}\n${serviceTable}`
-const stylists = read('../../pages/Stylists.tsx')
+const editor = read('../services/service-editor-dialog.tsx')
+const categoryFields = read('../services/category-fields.tsx')
+const serviceFields = read('../services/service-fields.tsx')
+// Include extracted components; assert the rendering chain as well as the
+// original switch, file-picker and table guarantees below.
+assert.match(servicesPage, /<ServiceEditorDialog\b/)
+assert.match(editor, /<CategoryFields\b/)
+assert.match(editor, /<ServiceFields\b/)
+const services = [servicesPage, serviceTable, editor, categoryFields, serviceFields].join('\n')
+const stylistsPage = read('../../pages/Stylists.tsx')
+const stylistEditor = read('./stylist-editor-dialog.tsx')
+const stylistWorkingHours = read('./stylist-working-hours.tsx')
+assert.match(stylistEditor, /<StylistWorkingHours\b/)
+assert.match(stylistsPage, /<StylistEditorDialog\b/)
+const stylists = [stylistsPage, stylistEditor, stylistWorkingHours].join('\n')
 const css = read('../../index.css')
 const runtimeCss = read('../../styles/globals.css')
 

@@ -18,7 +18,7 @@ import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { HolidayDialog } from '../features/salon/holiday-dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Switch } from '../components/ui/switch'
@@ -624,50 +624,8 @@ export default function Salon() {
         </div>
       </Card>
 
-      <Dialog open={holidayOpen} onOpenChange={setHolidayOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t(editHoliday ? 'salon.holidayForm.editTitle' : 'salon.holidayForm.newTitle')}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="salon-holiday-form-date">{t('salon.holidayForm.date')}</Label>
-                <Input id="salon-holiday-form-date" type="date" value={holForm.date} onChange={(e) => setHolForm((p) => ({ ...p, date: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="salon-holiday-form-name">{t('salon.holidayForm.name')}</Label>
-                <Input id="salon-holiday-form-name" value={holForm.name} onChange={(e) => setHolForm((p) => ({ ...p, name: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salon-holiday-form-message">{t('salon.holidayForm.message')}</Label>
-              <Textarea id="salon-holiday-form-message" rows={3} value={holForm.message} onChange={(e) => setHolForm((p) => ({ ...p, message: e.target.value }))} />
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-md border border-line p-3 ">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium text-content">{t('salon.holidayForm.sendPush')}</p>
-                <p className="text-xs text-content-strong">{t('salon.holidayForm.sendPushHint')}</p>
-              </div>
-              <Switch
-                aria-label={t('salon.holidayForm.sendPush')}
-                checked={holForm.sendPush}
-                onCheckedChange={(checked) => setHolForm((p) => ({ ...p, sendPush: checked }))}
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setHolidayOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleSaveHoliday()} disabled={saving}>
-              {saving ? t('common.saving') : t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <HolidayDialog holidayOpen={holidayOpen} setHolidayOpen={setHolidayOpen} isEditing={Boolean(editHoliday)}
+        holForm={holForm} setHolForm={setHolForm} saving={saving} onSave={() => void handleSaveHoliday()} />
       <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </div>
   )

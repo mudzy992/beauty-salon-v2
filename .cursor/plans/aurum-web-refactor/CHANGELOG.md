@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Širi refaktor korisnika, kataloga, salona i frizera (rad u toku)
+
+**Opseg:** izdvojeni su dijalozi kreiranja/uređivanja korisnika i uklanjanja uloge stiliste; dijalog uređivanja kataloga s posebnim poljima kategorije/podkategorije i usluge; dijalog praznika; te upravljanje stilistima, njihov editor i tabela radnog vremena. Iz galerije radova izdvojen je hook učitavanja/paginacije. Poslovni tokovi, API putanje, obračuni, prevodi i rute nisu namjerno mijenjani. Prije → poslije: `Users.tsx` 1619 → 1173, `Services.tsx` 1006 → 681, `Salon.tsx` 674 → 632, `Stylists.tsx` 520 → 136, `ServiceWorkGallery.tsx` 226 → 128 linija. Posljednje dvije stranice sada su tanke kompozicije, ali neki njihovi moduli ostaju oko 166–170 linija; ostale tri stranice i kompletan S8 DoD su još otvoreni.
+
+**Regresije:** svježi build **293,0/300 KiB**, Analytics **115,9/140 KiB**, E2E typecheck, Node **990/990**, lint 0 grešaka i 6 ranijih upozorenja. Chromium fiksure **56/56**, uključujući osam novih: uređivanje korisnika i jednokratna lozinka te transfer pri uklanjanju uloge na 320/1280 px, slanje profila/radnog vremena/usluga stiliste, spremanje praznika, izmjene svih triju tipova kataloga, te galerija retry/paginacija/tastaturni slider. Obuhvaćeni su tačni simulirani request payloadovi, nije testirana stvarna mutacija/baza; tabele usluga uključuju postojeće axe provjere i poznate parcijalno zaklonjene čvorove na 640 px. Izvorni testovi kontrasta, oporavka dugova, pristupačnosti kontrola/tabela i DataTable izuzetka ažurirani su na nove lokacije; uz provjeru veze s roditeljskim komponentama zadržavaju ranije garancije. Nema novih paketa.
+
+**CI:** prethodni [45174526163](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45174526163) na `d570e3a` završen je **5/5**, nakon otkazivanja `45169104005` pri ranijem pushu. CI ovog refaktora još ne postoji u trenutku bilježenja. Nije rađen merge/deploy.
+
+---
+
 ## 2026-11-18 · S8 · Odobrenje i lista korisnika (rad u toku)
 
 Korisnik je izričito odobrio nastavak šireg razbijanja velikih admin fajlova prema S8 planu uz očuvanje API-ja i testova. Iz `Users.tsx` (1719 linija prije, 1619 poslije) izdvojeni su postojeći `UsersList` i tipovi u `features/users/`; obrada podataka, kolone, akcije i njihov redoslijed ostaju u stranici. Ovo je početak, ne završetak razbijanja niti S8 DoD.

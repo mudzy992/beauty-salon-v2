@@ -1,5 +1,4 @@
 import {
-  type ChangeEvent,
   useCallback,
   useEffect,
   useRef,
@@ -9,6 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ServiceDeletionDialog } from '../features/services/service-deletion-dialog'
 import { ServiceTable } from '../features/services/service-table'
+import { ServiceEditorDialog } from '../features/services/service-editor-dialog'
+import type { ModalMode } from '../features/services/service-form-types'
 import type { Service } from '../features/services/service-types'
 import type { ServiceDeletionImpact, ServiceMutationAction } from '../features/services/service-deletion-types'
 
@@ -20,8 +21,6 @@ import {
   fetchAllAdminServices,
   fetchAllAdminServiceSubcategories,
 } from '../api/catalog'
-import { MediaImage } from '../components/media-image'
-import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { useAuthStore } from '../stores/auth.store'
 
@@ -34,19 +33,7 @@ import {
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Select } from '../components/ui/select'
 import { Card } from '../components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../components/ui/dialog'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Switch } from '../components/ui/switch'
-import { Textarea } from '../components/ui/textarea'
 
 interface Subcategory {
   id: string
@@ -67,7 +54,6 @@ interface Category {
   subcategories?: Subcategory[]
 }
 
-type ModalMode = 'category' | 'subcategory' | 'service'
 
 
 export default function Services() {
@@ -659,320 +645,9 @@ export default function Services() {
         </Card>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          className={modalMode === 'service' ? 'max-w-2xl' : 'max-w-lg'}
-        >
-          <DialogHeader>
-            <DialogTitle>{getDialogTitle()}</DialogTitle>
-          </DialogHeader>
-
-          {modalMode === 'category' ? (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="services-common-name">{t('common.name')}</Label>
-                <Input id="services-common-name"
-                  className="mt-1"
-                  value={catForm.name}
-                  onChange={(e) =>
-                    setCatForm({ ...catForm, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="services-common-description">{t('common.description')}</Label>
-                <Textarea id="services-common-description"
-                  className="mt-1"
-                  value={catForm.description}
-                  onChange={(e) =>
-                    setCatForm({ ...catForm, description: e.target.value })
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="services-sort-order">{t('services.sortOrder')}</Label>
-                  <Input id="services-sort-order"
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={catForm.sortOrder}
-                    onChange={(e) =>
-                      setCatForm({
-                        ...catForm,
-                        sortOrder: Number(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3 md:pt-7">
-                  <Label className="mb-0">
-                    {t('services.status.categoryActive')}
-                  </Label>
-                  <Switch
-                    aria-label={t('services.aria.categoryActiveToggle')}
-                    checked={catForm.isActive}
-                    onCheckedChange={(checked) =>
-                      setCatForm({ ...catForm, isActive: checked })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {modalMode === 'subcategory' ? (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="services-common-name-2">{t('common.name')}</Label>
-                <Input id="services-common-name-2"
-                  className="mt-1"
-                  value={subForm.name}
-                  onChange={(e) =>
-                    setSubForm({ ...subForm, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="services-common-description-2">{t('common.description')}</Label>
-                <Textarea id="services-common-description-2"
-                  className="mt-1"
-                  value={subForm.description}
-                  onChange={(e) =>
-                    setSubForm({ ...subForm, description: e.target.value })
-                  }
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="services-services-sort-order-2">{t('services.sortOrder')}</Label>
-                  <Input id="services-services-sort-order-2"
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={subForm.sortOrder}
-                    onChange={(e) =>
-                      setSubForm({
-                        ...subForm,
-                        sortOrder: Number(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3 md:pt-7">
-                  <Label className="mb-0">
-                    {t('services.status.categoryActive')}
-                  </Label>
-                  <Switch
-                    aria-label={t('services.aria.subcategoryActiveToggle')}
-                    checked={subForm.isActive}
-                    onCheckedChange={(checked) =>
-                      setSubForm({ ...subForm, isActive: checked })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {modalMode === 'service' ? (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="services-service-name">{t('services.serviceName')}</Label>
-                <Input id="services-service-name"
-                  className="mt-1"
-                  value={svcForm.name}
-                  onChange={(e) =>
-                    setSvcForm({ ...svcForm, name: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="services-short-description">{t('services.shortDescription')}</Label>
-                <Textarea id="services-short-description"
-                  className="mt-1"
-                  value={svcForm.shortDescription}
-                  onChange={(e) =>
-                    setSvcForm({ ...svcForm, shortDescription: e.target.value })
-                  }
-                  rows={2}
-                />
-              </div>
-              <div>
-                <Label>{t('services.heroImage')}</Label>
-                <MediaImage
-                  src={getUploadUrl(svcForm.heroImage)}
-                  alt={t('services.heroImage')}
-                  className="mt-2 max-h-32 w-full rounded-md object-cover"
-                />
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={svcFileRef}
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) void handleUploadHeroImage(file)
-                  }}
-                />
-                <div className="mt-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => svcFileRef.current?.click()}
-                    disabled={uploadingImg}
-                  >
-                    {uploadingImg ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : null}
-                    {svcForm.heroImage
-                      ? t('services.changeImage')
-                      : t('services.uploadImage')}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="services-duration">{t('services.duration')}</Label>
-                  <Input id="services-duration"
-                    className="mt-1"
-                    type="number"
-                    min={5}
-                    max={480}
-                    step={5}
-                    value={svcForm.durationMinutes}
-                    onChange={(e) =>
-                      setSvcForm({
-                        ...svcForm,
-                        durationMinutes: Number(e.target.value) || 15,
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="services-price">{t('services.price')}</Label>
-                  <Input id="services-price"
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={svcForm.price}
-                    onChange={(e) =>
-                      setSvcForm({
-                        ...svcForm,
-                        price: Number(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="services-gender">{t('services.gender')}</Label>
-                  <Select id="services-gender"
-                    className="mt-1"
-                    value={svcForm.gender}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                      setSvcForm({
-                        ...svcForm,
-                        gender: e.target.value as 'MALE' | 'FEMALE',
-                      })
-                    }
-                  >
-                    <option value="FEMALE">{t('users.gender.female')}</option>
-                    <option value="MALE">{t('users.gender.male')}</option>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="services-services-sort-order-3">{t('services.sortOrder')}</Label>
-                  <Input id="services-services-sort-order-3"
-                    className="mt-1"
-                    type="number"
-                    min={0}
-                    value={svcForm.sortOrder}
-                    onChange={(e) =>
-                      setSvcForm({
-                        ...svcForm,
-                        sortOrder: Number(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">
-                    {t('services.status.serviceActive')}
-                  </Label>
-                  <Switch
-                    aria-label={t('services.aria.serviceActiveToggle')}
-                    checked={svcForm.isActive}
-                    onCheckedChange={(checked) =>
-                      setSvcForm({ ...svcForm, isActive: checked })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">{t('services.loyalty')}</Label>
-                  <Switch
-                    aria-label={t('services.aria.loyaltyToggle')}
-                    checked={svcForm.loyaltyEnabled}
-                    onCheckedChange={(checked) =>
-                      setSvcForm({ ...svcForm, loyaltyEnabled: checked })
-                    }
-                  />
-                </div>
-              </div>
-
-              {svcForm.loyaltyEnabled ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="services-max-discount">{t('services.maxDiscount')}</Label>
-                    <Input id="services-max-discount"
-                      className="mt-1"
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={svcForm.loyaltyMaxDiscountPercent}
-                      onChange={(e) =>
-                        setSvcForm({
-                          ...svcForm,
-                          loyaltyMaxDiscountPercent:
-                            Number(e.target.value) || 0,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setOpen(false)}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saving}
-            >
-              {saving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {saving ? t('common.saving') : t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ServiceEditorDialog open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving}
+        catForm={catForm} subForm={subForm} svcForm={svcForm} setCatForm={setCatForm} setSubForm={setSubForm} setSvcForm={setSvcForm}
+        svcFileRef={svcFileRef} uploadingImg={uploadingImg} handleUploadHeroImage={handleUploadHeroImage} onSave={() => void handleSave()} />
 
       <ServiceDeletionDialog
         deletionOpen={deletionOpen}
