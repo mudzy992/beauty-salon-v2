@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Select } from '../components/ui/select'
 import {
   Bar,
@@ -20,62 +20,11 @@ import {
   parseDateOnly,
 } from '../../../shared/business-date.mjs'
 import { formatLocalizedAmount, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
-import api from '../api/client'
+import { useAnalyticsDashboard } from '../features/analytics/use-analytics-dashboard'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-
-interface MonthlyFinance {
-  year: number
-  month: number
-  label: string
-  income: number
-  expenses: number
-  tips: number
-}
-
-interface StylistPerformance {
-  stylistProfileId: string
-  stylistName: string
-  completedCount: number
-  revenue: number
-  tips: number
-}
-
-interface TopServiceRow {
-  serviceId: string
-  serviceName: string
-  count: number
-  revenue: number
-}
-
-interface PeriodExpenseCategoryRow {
-  categoryId: string
-  categoryName: string
-  total: number
-}
-
-interface PeriodFinance {
-  servicesRevenue: number
-  tips: number
-  totalIncome: number
-  expensesByCategory: PeriodExpenseCategoryRow[]
-  totalExpenses: number
-  netProfit: number
-}
-
-interface AnalyticsDashboard {
-  monthlyFinance: MonthlyFinance[]
-  stylistPerformance: StylistPerformance[]
-  topServices: TopServiceRow[]
-  conversionRate: number | null
-  totalPending: number
-  totalCompleted: number
-  fromDate: string
-  toDate: string
-  periodFinance: PeriodFinance
-}
 
 type PeriodPreset = '12' | 'thisMonth' | 'lastMonth' | 'custom'
 
@@ -105,48 +54,10 @@ const StatCard = ({ title, value, hint }: { title: string; value: string; hint?:
 
 export default function Analytics() {
   const { t, i18n } = useTranslation()
-  const [data, setData] = useState<AnalyticsDashboard | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { data, loading, loadError, load, lastParams } = useAnalyticsDashboard()
   const [period, setPeriod] = useState<PeriodPreset>('12')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
-
-  const requestSequence = useRef(0)
-  const lastParams = useRef<Record<string, string>>({ monthsBack: '12' })
-  const [loadError, setLoadError] = useState(false)
-
-  const load = useCallback((params: Record<string, string>) => {
-    const sequence = ++requestSequence.current
-    lastParams.current = params
-    setLoading(true)
-    setLoadError(false)
-    setData(null)
-    api
-      .get<AnalyticsDashboard>('/api/analytics/dashboard', { params })
-      .then((res) => {
-        if (sequence !== requestSequence.current) return
-        const value = res.data
-        if (!value || !value.periodFinance || !Array.isArray(value.monthlyFinance) ||
-            !Array.isArray(value.stylistPerformance) || !Array.isArray(value.topServices) ||
-            !Array.isArray(value.periodFinance.expensesByCategory) ||
-            !parseDateOnly(value.fromDate) || !parseDateOnly(value.toDate) ||
-            ![value.periodFinance.servicesRevenue, value.periodFinance.tips, value.periodFinance.totalIncome,
-              value.periodFinance.totalExpenses, value.periodFinance.netProfit, value.totalPending, value.totalCompleted].every(Number.isFinite) ||
-            (value.conversionRate !== null && !Number.isFinite(value.conversionRate)) ||
-            !value.monthlyFinance.every(row => Number.isInteger(row.year) && Number.isInteger(row.month) && row.month >= 1 && row.month <= 12 && [row.income, row.expenses, row.tips].every(Number.isFinite)) ||
-            !value.periodFinance.expensesByCategory.every(row => Number.isFinite(row.total)) ||
-            !value.stylistPerformance.every(row => [row.completedCount, row.revenue, row.tips].every(Number.isFinite)) ||
-            !value.topServices.every(row => [row.count, row.revenue].every(Number.isFinite))) throw new Error('Invalid analytics response')
-        setData(value)
-      })
-      .catch(() => { if (sequence === requestSequence.current) setLoadError(true) })
-      .finally(() => { if (sequence === requestSequence.current) setLoading(false) })
-  }, [])
-
-  useEffect(() => {
-    load({ monthsBack: '12' })
-    return () => { requestSequence.current += 1 }
-  }, [load])
 
   // 1.1.1: graf mora imati tekstualnu alternativu s kljucnim brojevima.
   //

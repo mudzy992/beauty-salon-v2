@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Učitavanje analitičkog pregleda (rad u toku)
+
+`Analytics.tsx` 477 → 388 linija: tipovi dashboarda i postojeći read/validacija/sequence/retry premješteni su u `use-analytics-dashboard`; preset logika, izračun grafikona i tabela ostaju nepromijenjeni u stranici. Source test API ugovora prati hook i provjerava njegovo povezivanje sa stranicom. S8 nije završen: stranica i dalje zahtijeva razbijanje te pregled svih DoD kriterija.
+
+Mock Chromium **18/18** (tri analitička speca): novi testovi provjeravaju stariji 200/500 nakon promjene preseta, neispravan odgovor i retry s istim odabranim rasponom, te tabelu grafa i neto 75; prethodni scenariji klijenta i frizera također prolaze. Namjerno isključivanje dashboard sequence guardova uzrokuje očekivani pad **2/2**, original vraćen i build/matrica ponovljeni. Fiksure ne dokazuju stvarne serverske podatke niti pristupačnost čitačem ekrana. Node **999/999**, lint 0 grešaka/6 prethodnih upozorenja, build **293,0/300 KiB**, Analytics **115,9/140 KiB**, E2E typecheck i pet Python provjera prolaze.
+
+CI [45241818125](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45241818125) za `864e1f6` pri bilježenju četiri posla prošla, rendered a11y u toku; ova lokalna dopuna nije u tom CI-ju. Nakon dovršetka runa pushati aktuelnu granu i provjeriti novi CI. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Analitički prikazi (rad u toku)
 
 `ClientAnalytics.tsx` 566 → 161 linija: prikazi sažetka, četiri taba i period-filter su komponente; upravljanje detaljnim dijalogom je hook, a region tabele ostaje montiran unutar svakog aktivnog panela. `StylistAnalytics.tsx` 248 → 119: postojeći read/sequence/retry tok je hook, a obje imenovane tabele su komponenta s `useId`. API endpointi, validacija, primjena perioda, izračuni, redoslijed tabova, fokus i lokalizacija nisu namjerno mijenjani. Tanka klijentska kompozicija još je 161 linija, `Analytics.tsx` 477, `Users.tsx` 547, `Services.tsx` 190; S8 i sve ostale DoD provjere ostaju otvorene.

@@ -6,6 +6,9 @@ const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
 const source = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
+const hook = readFileSync(new URL('./use-analytics-dashboard.ts', import.meta.url), 'utf8')
+assert.match(source, /import \{ useAnalyticsDashboard \} from '..\/features\/analytics\/use-analytics-dashboard'/)
+assert.match(source, /useAnalyticsDashboard\(\)/)
 const literalKeys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>
@@ -32,11 +35,11 @@ test('admin analytics UI references keys in both locales', () => {
 })
 
 test('analytics date presets and dashboard request contract remain unchanged', () => {
-  assert.match(source, /api\s*\.get<AnalyticsDashboard>\('\/api\/analytics\/dashboard', \{ params \}\)/)
+  assert.match(hook, /api\s*\.get<AnalyticsDashboard>\('\/api\/analytics\/dashboard', \{ params \}\)/)
   assert.match(source, /if \(preset === '12'\) return \{ monthsBack: '12' \}/)
   assert.match(source, /if \(preset === 'thisMonth'\) \{\s*return \{ year: String\(current\.year\), month: String\(current\.month\) \}/)
   assert.match(source, /if \(preset === 'custom' && customFrom && customTo\) return \{ fromDate: customFrom, toDate: customTo \}/)
-  assert.match(source, /sequence === requestSequence\.current/)
+  assert.match(hook, /sequence === requestSequence\.current/)
 })
 
 test('dynamic financial categories, stylist and service names stay data', () => {
