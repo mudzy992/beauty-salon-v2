@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Analitički prikazi (rad u toku)
+
+`ClientAnalytics.tsx` 566 → 161 linija: prikazi sažetka, četiri taba i period-filter su komponente; upravljanje detaljnim dijalogom je hook, a region tabele ostaje montiran unutar svakog aktivnog panela. `StylistAnalytics.tsx` 248 → 119: postojeći read/sequence/retry tok je hook, a obje imenovane tabele su komponenta s `useId`. API endpointi, validacija, primjena perioda, izračuni, redoslijed tabova, fokus i lokalizacija nisu namjerno mijenjani. Tanka klijentska kompozicija još je 161 linija, `Analytics.tsx` 477, `Users.tsx` 547, `Services.tsx` 190; S8 i sve ostale DoD provjere ostaju otvorene.
+
+**Dokazi:** frontend Node **999/999**, lint 0 grešaka/6 postojećih upozorenja, build **293,0/300 KiB**, Analytics **115,9/140 KiB**, E2E typecheck; strict i18n 2813/2813, CI indeks, hygiene, 758 linkova i 148 source kontrast parova prolaze. Završni mock Chromium **23/23**: raniji admin tokovi i klijentske utrke/fokus/retry, plus popunjeni klijentski paneli, BS/EN × 320/1280, i analitika frizera sa deep-link periodom, validacijom identiteta, retry, tabelama i stale 200/500. Ciljani axe testovi tri pravila strukture tabela nisu potpuni axe audit. Negativna kontrola uklanjanja sequence guardova frizera pada **2/2**, izvorni kod je vraćen i završni paket ponovljen. To su simulirani odgovori, ne dokaz stvarnog servera ili asistivne tehnologije.
+
+Source testovi tabela, lokalizacije i row akcija sada prate izdvojene komponente uz provjeru njihove veze sa stranicama; scope/caption, semantika, podaci i dostupni nazivi zadržani su kao garancije. CI prethodnog `2f9d5f0` [45233401354](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45233401354) završio je **5/5 success**. Ovaj zahvat i `77ba87f` traže novi CI; nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Klijentska analitika (rad u toku)
 
 `ClientAnalytics.tsx` 821 → 566 linija: izdvojeni su tipovi, hook za oba read zahtjeva, prikaz detalja s povratkom fokusa te ocjena zvjezdicama. URL parametri, proračuni, validacija identiteta odgovora, retry i nezavisna stanja analitike i dugovanja nisu namjerno mijenjani. Stranica još nije tanka kompozicija, kao ni Users i Analytics; S8 DoD ostaje otvoren.

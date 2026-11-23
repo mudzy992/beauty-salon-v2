@@ -8,7 +8,11 @@ const locales = ['bs', 'en'].map((language) =>
   ),
 )
 const source = readFileSync(new URL('../../pages/StylistAnalytics.tsx', import.meta.url), 'utf8')
-const keys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
+const tables = readFileSync(new URL('./stylist-analytics-tables.tsx', import.meta.url), 'utf8')
+const hook = readFileSync(new URL('./use-stylist-analytics-data.ts', import.meta.url), 'utf8')
+assert.match(source, /useStylistAnalyticsData\(\{ stylistId, appliedFrom, appliedTo \}\)/)
+assert.match(source, /<StylistAnalyticsTables data=\{data\} formatDate=\{formatDate\}/)
+const keys = new Set([source, tables].flatMap((text) => [...text.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)))
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 const getLeafPaths = (value, prefix) =>
@@ -31,17 +35,17 @@ test('stylist analytics UI uses keys present in both locales', () => {
 })
 
 test('stylist analytics keeps API data dynamic and formats dates, numbers, and amounts by locale', () => {
-  assert.match(source, /`\/api\/stylists\/\$\{encodeURIComponent\(stylistId\)\}\/analytics`/)
+  assert.match(hook, /`\/api\/stylists\/\$\{encodeURIComponent\(stylistId\)\}\/analytics`/)
   assert.match(source, /params\.fromDate = dateFrom/)
   assert.match(source, /params\.toDate = dateTo/)
   assert.match(source, /data\.stylist\.name/)
-  assert.match(source, /s\.serviceName/)
-  assert.match(source, /e\.clientName \?\? '-'/)
+  assert.match(tables, /s\.serviceName/)
+  assert.match(tables, /e\.clientName \?\? '-'/)
   assert.match(source, /formatDateOnlyLocale/)
-  assert.match(source, /formatLocalizedAmount\(Number\(e\.actualPrice\), i18n\.language\)/)
-  assert.match(source, /formatLocalizedNumber\(s\.count, i18n\.language\)/)
+  assert.match(tables, /formatLocalizedAmount\(Number\(e\.actualPrice\), i18n\.language\)/)
+  assert.match(tables, /formatLocalizedNumber\(s\.count, i18n\.language\)/)
   assert.doesNotMatch(
-    source,
+    source + tables,
     /Nazad na Stiliste|Odaberite stilistu \(npr\. s liste Stilisti\)|Nije moguće učitati analitiku stiliste\.|Primijeni period|Top usluge|Nema podataka\./,
   )
 })

@@ -4,6 +4,10 @@ import test from 'node:test'
 
 const analytics = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
 const client = readFileSync(new URL('../../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+const summary = readFileSync(new URL('../client-analytics/client-analytics-summary.tsx', import.meta.url), 'utf8')
+const reservations = readFileSync(new URL('../client-analytics/client-reservations-table.tsx', import.meta.url), 'utf8')
+const manual = readFileSync(new URL('../client-analytics/client-manual-entries-table.tsx', import.meta.url), 'utf8')
+const clientTables = [summary, reservations, manual].join('\n')
 const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), 'utf8')
 
 // ---------------------------------------------------------------------------
@@ -70,25 +74,29 @@ test('ClientAnalytics ima <h1> u svim stanjima (2.4.6)', () => {
 })
 
 test('ClientAnalytics tabele imaju scope i caption (1.3.1)', () => {
-  const ths = headers(client)
+  for (const component of ['ClientAnalyticsSummary', 'ClientReservationsTable', 'ClientManualEntriesTable']) {
+    assert.match(client, new RegExp(`<${component}\\b`), `${component} nije renderovan sa stranice`)
+    assert.match(client, new RegExp(`import \\{ ${component} \\} from `), `${component} nije importovan`)
+  }
+  const ths = headers(clientTables)
   assert.equal(ths.length, 17, 'tacno 17 <th> u tri tabele')
   assert.deepEqual(
     ths.filter((h) => !/scope="col"/.test(h)),
     [],
     'nijedan <th> ne smije ostati bez scope',
   )
-  const tables = [...client.matchAll(/<table className="app-table data-table[\s\S]*?<\/table>/g)].map(match => match[0])
+  const tables = [...clientTables.matchAll(/<table className="app-table data-table[\s\S]*?<\/table>/g)].map(match => match[0])
   assert.equal(tables.length, 3)
   for (const [table, key] of tables.map((table, i) => [table, ['servicesCaption', 'reservationsCaption', 'manualEntriesCaption'][i]])) {
     assert.equal((table.match(/<caption/g) || []).length, 1)
     assert.ok(table.includes(`clientAnalyticsPage.${key}`))
   }
-  assert.equal((client.match(/<table className="app-table data-table/g) || []).length, 3)
+  assert.equal((clientTables.match(/<table className="app-table data-table/g) || []).length, 3)
   // 17 celija + 2 empty-state colSpan = 19
-  assert.equal((client.match(/<td\b/g) || []).length, 19)
-  assert.equal((client.match(/<td data-label=\{t\(/g) || []).length, 17)
+  assert.equal((clientTables.match(/<td\b/g) || []).length, 19)
+  assert.equal((clientTables.match(/<td data-label=\{t\(/g) || []).length, 17)
   assert.equal(
-    (client.match(/<td data-label="/g) || []).length,
+    (clientTables.match(/<td data-label="/g) || []).length,
     0,
     'data-label ne smije biti hardkodovan literal',
   )
@@ -100,14 +108,14 @@ test('card-mode CSS i dalje cilja data-table', () => {
 
 test('popravljeni kontrastni prekršaji se ne vracaju (1.4.3 / 1.4.11)', () => {
   assert.equal(
-    (client.match(/text-slate-400/g) || []).length,
+    ([client, summary, reservations, manual].join('\n').match(/text-slate-400/g) || []).length,
     0,
     'text-slate-400 je 2.56:1 — mora ostati uklonjen',
   )
   assert.equal(
-    (client.match(/bg-emerald-500/g) || []).length,
+    ([client, summary, reservations, manual].join('\n').match(/bg-emerald-500/g) || []).length,
     0,
     'bg-emerald-500 je 2.32:1 na track-u — mora ostati uklonjen',
   )
-  assert.match(client, /bg-ok-foreground/, 'progress bar mora koristiti ok-foreground (6.51:1)')
+  assert.match(summary, /bg-ok-foreground/, 'progress bar mora koristiti ok-foreground (6.51:1)')
 })

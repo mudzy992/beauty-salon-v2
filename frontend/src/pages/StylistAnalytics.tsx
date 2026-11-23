@@ -1,29 +1,14 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import api from '../api/client'
+import { useStylistAnalyticsData } from '../features/stylist-analytics/use-stylist-analytics-data'
+import { StylistAnalyticsTables } from '../features/stylist-analytics/stylist-analytics-tables'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { formatLocalizedAmount, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
 import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
-
-interface StylistAnalyticsData {
-  stylist: {
-    id: string
-    name: string
-    user?: { id: string; username: string; email: string | null; firstName: string | null; lastName: string | null }
-  }
-  fromDate: string | null
-  toDate: string | null
-  completedCount: number
-  revenue: number
-  tips: number
-  topServices: { serviceId: string; serviceName: string; count: number; revenue: number }[]
-  recentEntries: { id: string; date: string; serviceName: string | null; clientName: string | null; actualPrice: unknown; tipAmount: unknown }[]
-}
 
 const StatCard = ({ title, value }: { title: string; value: string }) => (
   <Card className="min-w-0 p-5">
@@ -34,9 +19,6 @@ const StatCard = ({ title, value }: { title: string; value: string }) => (
 
 export default function StylistAnalytics() {
   const { t, i18n } = useTranslation()
-  const tablesId = useId()
-  const topServicesLabelId = `${tablesId}-top-services`
-  const recentEntriesLabelId = `${tablesId}-recent-entries`
   const locale = getIntlLocale(i18n.language)
   const formatDate = (value: string | null | undefined) => {
     if (!value) return '—'
@@ -51,54 +33,9 @@ export default function StylistAnalytics() {
   const stylistId = searchParams.get('stylistId')
   const appliedFrom = searchParams.get('fromDate') ?? ''
   const appliedTo = searchParams.get('toDate') ?? ''
-  const [data, setData] = useState<StylistAnalyticsData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '')
-  const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '')
-
-  const [error, setError] = useState(false)
-  const sequence = useRef(0)
-  const lastParams = useRef<Record<string, string>>({})
+  const { data, loading, dateFrom, setDateFrom, dateTo, setDateTo, error, load, lastParams } =
+    useStylistAnalyticsData({ stylistId, appliedFrom, appliedTo })
   const invalidRange = Boolean(dateFrom) !== Boolean(dateTo) || (!!dateFrom && !!dateTo && dateFrom > dateTo)
-
-  const load = useCallback((params: Record<string, string>) => {
-    if (!stylistId) return
-    const request = ++sequence.current
-    lastParams.current = params
-    setLoading(true)
-    setError(false)
-    setData(null)
-    api
-      .get<StylistAnalyticsData>(`/api/stylists/${encodeURIComponent(stylistId)}/analytics`, { params })
-      .then((res) => {
-        if (request !== sequence.current) return
-        const value = res.data
-        if (!value?.stylist || value.stylist.id !== stylistId || typeof value.stylist.name !== 'string' ||
-            !Array.isArray(value.topServices) || !Array.isArray(value.recentEntries) ||
-            ![value.completedCount, value.revenue, value.tips].every(Number.isFinite) ||
-            !value.topServices.every(row => typeof row.serviceName === 'string' && [row.count, row.revenue].every(Number.isFinite)) ||
-            !value.recentEntries.every(row => typeof row.id === 'string' && typeof row.date === 'string' && Number.isFinite(Number(row.actualPrice)))) {
-          throw new Error('Invalid stylist analytics response')
-        }
-        setData(value)
-      })
-      .catch(() => { if (request === sequence.current) setError(true) })
-      .finally(() => { if (request === sequence.current) setLoading(false) })
-  }, [stylistId])
-
-  useEffect(() => {
-    setDateFrom(appliedFrom)
-    setDateTo(appliedTo)
-    setData(null)
-    setError(false)
-    if (stylistId) {
-      const params: Record<string, string> = {}
-      if (appliedFrom) params.fromDate = appliedFrom
-      if (appliedTo) params.toDate = appliedTo
-      load(params)
-    } else setLoading(false)
-    return () => { sequence.current += 1 }
-  }, [stylistId, appliedFrom, appliedTo, load])
 
   if (!stylistId) {
     return (
@@ -175,73 +112,7 @@ export default function StylistAnalytics() {
         <StatCard title={t('stylistAnalytics.tips')} value={formatLocalizedAmount(data.tips, i18n.language)} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="min-w-0 p-5">
-          <h2 id={topServicesLabelId} className="mb-3 text-sm font-semibold text-content">{t('stylistAnalytics.topServices')}</h2>
-          <div className="app-table-wrap">
-            <table aria-labelledby={topServicesLabelId} className="app-table w-full border-collapse">
-              <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
-                  <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
-                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('stylistAnalytics.count')}</th>
-                  <th scope="col" className="py-2 text-right font-medium">{t('stylistAnalytics.revenue')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.topServices.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="py-4 text-content-strong">
-                      {t('common.noData')}
-                    </td>
-                  </tr>
-                ) : (
-                  data.topServices.map((s) => (
-                    <tr key={s.serviceId} className="border-b border-line">
-                      <td className="py-2 pr-3">{s.serviceName}</td>
-                      <td className="py-2 pr-3 text-right tabular-nums">{formatLocalizedNumber(s.count, i18n.language)}</td>
-                      <td className="py-2 text-right tabular-nums">{formatLocalizedAmount(s.revenue, i18n.language)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        <Card className="min-w-0 p-5">
-          <h2 id={recentEntriesLabelId} className="mb-3 text-sm font-semibold text-content">{t('stylistAnalytics.recentEntries')}</h2>
-          <div className="app-table-wrap">
-            <table aria-labelledby={recentEntriesLabelId} className="app-table w-full border-collapse">
-              <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
-                  <th scope="col" className="py-2 pr-3 font-medium">{t('common.date')}</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
-                  <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.client')}</th>
-                  <th scope="col" className="py-2 text-right font-medium">{t('stylistAnalytics.amount')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentEntries.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-4 text-content-strong">
-                      {t('common.noData')}
-                    </td>
-                  </tr>
-                ) : (
-                  data.recentEntries.map((e) => (
-                    <tr key={e.id} className="border-b border-line">
-                      <td className="py-2 pr-3">{formatDate(e.date)}</td>
-                      <td className="py-2 pr-3">{e.serviceName ?? '-'}</td>
-                      <td className="py-2 pr-3">{e.clientName ?? '-'}</td>
-                      <td className="py-2 text-right tabular-nums">{formatLocalizedAmount(Number(e.actualPrice), i18n.language)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
+      <StylistAnalyticsTables data={data} formatDate={formatDate} />
       </> : <h1 className="sr-only">{t('adminAnalytics.tabs.stylists')}</h1>}
     </div>
   )

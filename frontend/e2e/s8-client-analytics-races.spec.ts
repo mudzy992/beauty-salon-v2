@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 const profile = { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] }
 const analytics = (name: string) => ({
@@ -10,8 +11,8 @@ const analytics = (name: string) => ({
   reviews: [{ id: 'review', serviceRating: 5, stylistRating: 4, comment: 'Fixture review', isApproved: true, createdAt: '2026-01-16T12:00:00Z', service: { name: 'Fixture service' } }],
 })
 const debt = (name: string) => [{ id: name, amount: 15, createdAt: '2026-01-16T12:00:00Z', status: 'OPEN', service: { id: 'service', name } }]
-async function setup(page: Page) {
-  await page.addInitScript(() => { localStorage.setItem('token', 'fixture-admin-token'); localStorage.setItem('APP_LOCALE', 'en') })
+async function setup(page: Page, language = 'en') {
+  await page.addInitScript(lang => { localStorage.setItem('token', 'fixture-admin-token'); localStorage.setItem('APP_LOCALE', lang) }, language)
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname
     if (path === '/api/settings/public') return route.fulfill({ json: [] })
@@ -118,4 +119,43 @@ for (const width of [320, 1280]) {
     await page.keyboard.press('Escape')
     await expect(review).toBeFocused()
   })
+}
+
+for (const language of ['bs', 'en'] as const) {
+  for (const width of [320, 1280]) {
+    test(`client summary and all extracted panels preserve data ${language} ${width}`, async ({ page }) => {
+      await setup(page, language)
+      await page.setViewportSize({ width, height: 800 })
+      const populated = {
+        ...analytics('New'),
+        stats: { ...analytics('New').stats, totalSpent: 57, manualEntryCount: 1, manualSpent: 15 },
+        topServices: [{ name: 'Top Fixture', count: 2, totalSpent: 42 }],
+        manualEntries: [{ id: 'entry', date: '2026-01-15', actualPrice: 15, tipAmount: 3, isManual: true, notes: 'Manual fixture note', status: 'COMPLETED', service: { id: 'manual', name: 'Manual fixture service', price: 15 }, stylistProfile: { user: { firstName: 'Jane', lastName: 'Fixture', username: 'jane' } } }],
+      }
+      await page.route('**/api/users/client-one/analytics**', route => route.fulfill({ json: populated }))
+      await page.route('**/api/client-debts?**', route => route.fulfill({ json: debt('Fixture debt') }))
+      await page.goto('/admin/analytics?tab=clients&userId=client-one', { waitUntil: 'networkidle' })
+      await expect(page.locator('h1')).toHaveCount(1)
+      await expect(page.getByRole('heading', { name: 'New Client' })).toBeVisible()
+      const summary = page.getByRole('table', { name: language === 'en' ? /spending by service/i : /tabela potrosnje po uslugama/i })
+      await expect(summary).toContainText('Top Fixture')
+      await expect(summary).toContainText('42')
+      await expect(page.getByText('100%', { exact: true })).toBeVisible()
+      const reservations = page.getByRole('table', { name: language === 'en' ? /client reservations:/i : /tabela rezervacija klijenta/i })
+      await expect(reservations).toContainText('Fixture service')
+      const tableAxe = await new AxeBuilder({ page }).include('table').withRules(['table-duplicate-name', 'th-has-data-cells', 'td-headers-attr']).analyze()
+      expect(tableAxe.violations).toEqual([])
+      await page.getByRole('tab', { name: language === 'en' ? /manual income/i : /manuelni prihodi/i }).click()
+      const manual = page.getByRole('table', { name: language === 'en' ? /manual entries:/i : /tabela rucnih unosa/i })
+      for (const text of ['Manual fixture service', 'Jane Fixture', 'Manual fixture note', '15', '3']) await expect(manual).toContainText(text)
+      await page.getByRole('tab', { name: language === 'en' ? /reviews/i : /recenzije/i }).click()
+      await expect(page.getByText('Fixture review')).toBeVisible()
+      await page.getByRole('tab', { name: language === 'en' ? /debts/i : /dugovanja/i }).click()
+      await expect(page.getByText('Fixture debt', { exact: false })).toBeVisible()
+      await page.locator('#client-from').fill('2026-02-01')
+      await page.locator('#client-to').fill('2026-01-01')
+      await expect(page.getByRole('button', { name: language === 'en' ? 'Apply period' : 'Primijeni period' })).toBeDisabled()
+      await expect(page.getByRole('alert')).toBeVisible()
+    })
+  }
 }

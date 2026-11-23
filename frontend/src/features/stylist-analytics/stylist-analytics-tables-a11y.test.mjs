@@ -30,7 +30,10 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const SRC = resolve(HERE, '../..')
 const read = (rel) => readFileSync(resolve(SRC, rel), 'utf8')
 
-const page = read('pages/StylistAnalytics.tsx')
+const composition = read('pages/StylistAnalytics.tsx')
+const page = read('features/stylist-analytics/stylist-analytics-tables.tsx')
+assert.match(composition, /import \{ StylistAnalyticsTables \} from '..\/features\/stylist-analytics\/stylist-analytics-tables'/)
+assert.match(composition, /<StylistAnalyticsTables data=\{data\} formatDate=\{formatDate\}/)
 
 /** Otvarajući tagovi `<th …>` — bez `<thead>`, koji inače lažno uvećava brojač. */
 const thTagovi = () => [...page.matchAll(/<th\s[^>]*>/g)].map((m) => m[0])

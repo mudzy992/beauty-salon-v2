@@ -9,9 +9,16 @@ const source = readFileSync(new URL('../../pages/ClientAnalytics.tsx', import.me
 const dataHook = readFileSync(new URL('./use-client-analytics-data.ts', import.meta.url), 'utf8')
 const dialog = readFileSync(new URL('./client-analytics-detail-dialog.tsx', import.meta.url), 'utf8')
 const rating = readFileSync(new URL('./star-rating.tsx', import.meta.url), 'utf8')
+const views = ['client-analytics-summary.tsx', 'client-reservations-table.tsx', 'client-manual-entries-table.tsx', 'client-reviews.tsx', 'client-debts.tsx', 'client-period-filter.tsx'].map((file) => readFileSync(new URL('./' + file, import.meta.url), 'utf8'))
+const [summary, reservations, , reviews] = views
+const all = [source, dialog, rating, ...views].join('\n')
 assert.match(source, /useClientAnalyticsData\(\{ selectedUserId, appliedFrom, appliedTo \}\)/)
 assert.match(source, /<ClientAnalyticsDetailDialog\b[\s\S]*?detailTriggerRef=\{detailTriggerRef\}/)
-const literalKeys = new Set([source, dialog, rating].flatMap((text) => [...text.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)))
+for (const component of ['ClientAnalyticsSummary', 'ClientReservationsTable', 'ClientManualEntriesTable', 'ClientReviews', 'ClientDebts', 'ClientPeriodFilter']) {
+  assert.match(source, new RegExp(`<${component}\\b`))
+  assert.match(source, new RegExp(`import \\{ ${component} \\} from `))
+}
+const literalKeys = new Set([...all.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>
     typeof child === 'object' && child !== null
@@ -34,10 +41,10 @@ test('client analytics page translation references exist in both locales with ma
 test('client analytics dates and amounts follow the active locale', () => {
   assert.match(source, /formatDateOnlyLocale\(value\.slice\(0, 10\), getIntlLocale\(i18n\.language\)/)
   assert.match(source, /new Intl\.DateTimeFormat\(getIntlLocale\(i18n\.language\), \{ dateStyle: 'medium' \}\)/)
-  assert.match(source, /formatLocalizedAmount\(analytics\.stats\.totalSpent, i18n\.language\)/)
-  assert.match(source, /formatLocalizedNumber\(Number\(r\.service\?\.price \?\? 0\), i18n\.language/)
-  assert.doesNotMatch(source, /toLocaleDateString\(['"]bs-BA['"]\)|\.toFixed\(2\)/)
-  assert.doesNotMatch(source, /'Odobreno'|'Na čekanju'|'Penaliziran'|'Registrovan'|'Detalji Rezervacije'/)
+  assert.match(summary, /formatLocalizedAmount\(analytics\.stats\.totalSpent, i18n\.language\)/)
+  assert.match(reservations, /formatLocalizedNumber\(Number\(r\.service\?\.price \?\? 0\), i18n\.language/)
+  assert.doesNotMatch(all, /toLocaleDateString\(['"]bs-BA['"]\)|\.toFixed\(2\)/)
+  assert.doesNotMatch(all, /'Odobreno'|'Na čekanju'|'Penaliziran'|'Registrovan'|'Detalji Rezervacije'/)
 })
 
 test('client analytics request and route contracts remain unchanged', () => {
@@ -46,7 +53,7 @@ test('client analytics request and route contracts remain unchanged', () => {
   assert.match(source, /next\.set\('fromDate', dateFrom\)/)
   assert.match(source, /next\.set\('toDate', dateTo\)/)
   assert.match(source, /navigate\('\/admin\/users'\)/)
-  assert.match(source, /\{getUserName\(analytics\.user\)\}/)
-  assert.match(source, /\{r\.service\?\.name \?\? '-'\}/)
-  assert.match(source, /\{r\.comment\}/)
+  assert.match(summary, /\{getUserName\(analytics\.user\)\}/)
+  assert.match(reservations, /\{r\.service\?\.name \?\? '-'\}/)
+  assert.match(reviews, /\{r\.comment\}/)
 })

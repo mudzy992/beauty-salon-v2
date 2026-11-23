@@ -111,9 +111,12 @@ test('1.1.1/4.1.2: nema aria-label/aria-labelledby na <div>/<span>/<p> bez role 
 test('1.1.1: StarRating izlaže ocjenu preko role="img" (zvjezdice su aria-hidden)', () => {
   const page = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
   const dialog = readFileSync(new URL('../features/client-analytics/client-analytics-detail-dialog.tsx', import.meta.url), 'utf8')
+  const reviews = readFileSync(new URL('../features/client-analytics/client-reviews.tsx', import.meta.url), 'utf8')
   const src = readFileSync(new URL('../features/client-analytics/star-rating.tsx', import.meta.url), 'utf8')
-  assert.match(page, /import \{ StarRating \} from '..\/features\/client-analytics\/star-rating'/)
-  assert.match(page, /<StarRating rating=\{r\.serviceRating\}/)
+  assert.match(page, /import \{ ClientReviews \} from '..\/features\/client-analytics\/client-reviews'/)
+  assert.match(page, /<ClientReviews\b/)
+  assert.match(reviews, /import \{ StarRating \} from '.\/star-rating'/)
+  assert.match(reviews, /<StarRating rating=\{r\.serviceRating\}/)
   assert.match(page, /<ClientAnalyticsDetailDialog\b/)
   assert.match(dialog, /import \{ StarRating \} from '.\/star-rating'/)
   assert.match(dialog, /<StarRating rating=\{detailReview\.serviceRating\}/)
@@ -147,7 +150,10 @@ test('2.1.1: Reviews — detalji recenzije imaju pravo dugme, ne samo klik na re
 })
 
 test('4.1.2: ClientAnalytics — red tabele nije fokusabilan bez role', () => {
-  const src = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  const page = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  assert.match(page, /import \{ ClientReservationsTable \} from '..\/features\/client-analytics\/client-reservations-table'/)
+  assert.match(page, /<ClientReservationsTable\b[^>]*openReservationDetail=\{openReservationDetail\}/s)
+  const src = readFileSync(new URL('../features/client-analytics/client-reservations-table.tsx', import.meta.url), 'utf8')
   // <tr> ne smije nositi tabIndex: bez role AT najavi samo "red", a pristupačni
   // put je ionako dugme "Detalji" u zadnjoj koloni.
   // Namjerno preko scanTags, NE regex-om: prvi pokušaj (`/<tr\b[^>]*tabIndex/`)
@@ -175,7 +181,7 @@ test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu',
   const cases = [
     ['../pages/Reservations.tsx', /reservations\.adminList\.details/, 'raw'],
     ['../pages/Stylists.tsx', /stylists\.aria\.edit/, 'datatable'],
-    ['../pages/ClientAnalytics.tsx', /clientAnalyticsPage\.details/, 'raw'],
+    ['../features/client-analytics/client-reservations-table.tsx', /clientAnalyticsPage\.details/, 'raw'],
     ['../pages/Reviews.tsx', /reviews\.details/, 'raw'],
   ]
   for (const [rel, key, kind] of cases) {
@@ -194,7 +200,10 @@ test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu',
 })
 
 test('4.1.2: kartica recenzije — naslov je pravo dugme razvučeno preko cijele kartice', () => {
-  const src = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  const page = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
+  assert.match(page, /import \{ ClientReviews \} from '..\/features\/client-analytics\/client-reviews'/)
+  assert.match(page, /<ClientReviews\b[^>]*openReviewDetail=\{openReviewDetail\}/s)
+  const src = readFileSync(new URL('../features/client-analytics/client-reviews.tsx', import.meta.url), 'utf8')
   const tags = scanTags(src)
 
   // Kartica više ne smije biti fokusabilna/interaktivna na nivou <div>-a
