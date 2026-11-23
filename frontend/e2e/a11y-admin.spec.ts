@@ -2255,7 +2255,7 @@ for (const kind of ['category', 'subcategory'] as const) {
     await page.route(`**/api/services/${kind === 'category' ? 'categories/o4-cat' : 'subcategories/o4-sub'}`, route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
     await page.goto('/admin/services', { waitUntil: 'networkidle' })
     if (kind === 'subcategory') await page.getByRole('button', { name: /O4 usluge/ }).first().click()
-    const trigger = page.getByRole('button', { name: kind === 'category' ? /^(obriši kategoriju|delete category)$/i : /^(obriši potkategoriju|delete subcategory)$/i })
+    const trigger = page.getByRole('button', { name: kind === 'category' ? /^(obriši kategoriju|delete category): O4 usluge$/i : /^(obriši potkategoriju|delete subcategory): O4 podkategorija$/i })
     await exerciseO4Confirmation(page, trigger, kind === 'category' ? /kategoriju i sve potkategorije|category and all subcategories/i : /potkategoriju i sve usluge|subcategory and all services/i, () => count)
   })
 }

@@ -4,9 +4,14 @@ import test from 'node:test'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const salon = read('../../pages/Salon.tsx')
-const services = read('../../pages/Services.tsx')
+const servicesPage = read('../../pages/Services.tsx')
+const serviceTable = read('../services/service-table.tsx')
+// Include the extracted table and verify the page still renders it. The
+// caption/scope and responsive-table checks below cover both files together.
+const services = `${servicesPage}\n${serviceTable}`
 const stylists = read('../../pages/Stylists.tsx')
 const css = read('../../index.css')
+const runtimeCss = read('../../styles/globals.css')
 
 // ---------------------------------------------------------------------------
 // Faza 8 — Salon / Usluge / Frizeri (2839 linija, do sada 0 testova)
@@ -63,6 +68,9 @@ test('radno vrijeme: ime kontrole uključuje dan (4.1.2)', () => {
 })
 
 test('svih 5 tabela ima scope i caption (1.3.1)', () => {
+  assert.match(servicesPage, /import \{ ServiceTable \} from '\.\.\/features\/services\/service-table'/)
+  assert.match(servicesPage, /<ServiceTable\b/)
+  assert.match(serviceTable, /<DataTable\b/)
   // 2026-11-09 — Salon.tsx je prešao na dijeljenu `DataTable` komponentu, pa njegova
   // 2 tabele (4 + 5 = 9 <th>) više nemaju ručni markup.
   // 2026-11-17 (Faza C (9/)) — i Stylists.tsx prelazi na `DataTable` (2 tabele), pa ručno
@@ -109,6 +117,12 @@ test('svih 5 tabela opt-in u card mode (1.4.10)', () => {
     }
   }
   assert.match(css, /table\.data-table tbody td::before/)
+  // index.css nije uključen u runtime; za izdvojenu tabelu usluga dodatno
+  // provjeri aktivni stylesheet i vezu klase s DataTable, bez tvrdnje da su
+  // ostale tabele time popravljene.
+  assert.match(serviceTable, /tableClassName="service-catalog-table"/)
+  assert.match(runtimeCss, /@media \(max-width: 639px\)\s*\{\s*table\.service-catalog-table/)
+  assert.match(runtimeCss, /table\.service-catalog-table tbody td::before\s*\{\s*content: attr\(data-label\)/)
 
   // svaki <td> osim colSpan empty-state mora imati dinamicki data-label
   for (const [name, src] of [

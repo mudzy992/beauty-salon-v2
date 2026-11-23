@@ -105,6 +105,12 @@ test('headRowClassName je uklonjen — lokalne varijante uzglavlja se ne čuvaju
  * nekonzistentnost i mora se preseliti u default ili ukloniti.
  */
 const ALLOWED = {
+  // S8: samo ova tabela dobija scoped mobilni reflow, jer index.css nije
+  // uključen u runtime; veza klase i CSS pravila se dodatno testira u
+  // salon-services-stylists-a11y, a geometrija u s8-service-table.spec.ts.
+  'features/services/service-table.tsx': {
+    tableClassName: 1,
+  },
   'features/finance/expense/expense-table.tsx': {
     unsortedIndicator: 1,
     rowClassName: 1,

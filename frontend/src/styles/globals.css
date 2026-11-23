@@ -1973,6 +1973,28 @@
   }
 }
 
+/* Service rows reflow into cards without relying on the unused index.css.
+   Keep this scoped: the shared DataTable is also used by other admin screens. */
+@media (max-width: 639px) {
+  table.service-catalog-table { display: block; width: 100%; }
+  table.service-catalog-table thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  table.service-catalog-table tbody { display: block; }
+  table.service-catalog-table tbody tr {
+    display: block; margin-bottom: .75rem; padding: .5rem .75rem;
+    border: 1px solid hsl(var(--line)); border-radius: .5rem; background: hsl(var(--surface));
+  }
+  table.service-catalog-table tbody td {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; padding: .375rem 0; text-align: right;
+  }
+  table.service-catalog-table tbody td::before {
+    content: attr(data-label); text-align: left; font-weight: 500; color: hsl(var(--text-muted-strong));
+  }
+}
+
 /* Client analytics dialogs render in a portal, outside the hub scope. */
 [data-skin="aurum"] [data-client-analytics-dialog] .text-rose-600 {
   color: hsl(var(--text-muted-strong));

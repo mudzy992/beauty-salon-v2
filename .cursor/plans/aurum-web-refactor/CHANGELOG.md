@@ -5,6 +5,32 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Utrka pregleda brisanja i CI nastavak (rad u toku)
+
+**Pregled akcije:** u sintetičkom browseru zakašnjeli uspjeh pregleda cilja A prepisivao je već prikazani konflikt cilja B, a zakašnjela greška uklanjala B pregled; oba testa prije popravke padaju. Server provjerava `impactToken` i konflikte u transakciji, ali korisnički prikaz i omogućavanje akcije ne smiju zavisiti samo od toga. Generacijski guard sada odbacuje zastarjele odgovore i greške te ne završava novi loading iz starog zahtjeva; invalidira pregled i pri promjeni režima/cilja, pražnjenju cilja, zatvaranju dijaloga i unmountu. Prije popravke zatvaranja putem Cancel dodatna negativna kontrola hvata zakašnjelu pogrešnu toast poruku; nakon popravke ona se ne pojavljuje. Ovo štiti učitavanje pregleda, ne dokazuje sve utrke već poslanih mutacija.
+
+**Dokaz:** na svježem buildu mock Chromium **44/44**: 14 utrka (stari 200/500, novi konflikt, prazan cilj, promjena akcije, još otvoren novi zahtjev, ponovno otvaranje i zatvaranje Cancel/Escape), 24 pregleda tabele i 6 postojećih brisanje/spajanje fiksura. Web Node **990/990**, build 292,9/300 KiB i E2E typecheck prolaze. Testovi nemaju stvarne write transakcije.
+
+**CI:** [45161311410](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45161311410) za `2517970` završio **4/5**: backend (uključujući PostgreSQL HTTP testove), frontend, mobile i hygiene prolaze; a11y **2740 prošlo, 2 pala**. Iz GitHub anotacija: O4 testovi kategorije i potkategorije traže stara pristupačna imena bez naziva stavke. Selektori su usklađeni s tačno imenovanim fiksurama (`O4 usluge` i `O4 podkategorija`), a provjere opisa, odustajanja bez mutacije, povratka fokusa i jedne potvrđene DELETE mutacije ostaju iste. Oba originalna testa lokalno **2/2** uz sintetički admin profil i mock API; nisu stvarni CI/backend rezultat. Naknadni S8 kod još nema CI dokaz.
+
+**640 px:** originalni scoped axe je bilježio nepotpun kontrast 1–2 djelimično odrezana čvora. Tabela je horizontalno scrollabilna i fokusabilna; u svih šest kombinacija tema/jezika pomjeranje strelicom radi, a zasebni axe pregled svakog tada izmjerenog čvora nakon scrolla prolazi bez incomplete i violations. Negativna kontrola namjerno slabog kontrasta ponovljena **5/5** otkriva prekršaj. Ovo je ograničen pregled konkretnog mock sadržaja, ne puni vizuelni/AT audit.
+
+**Test ugovora:** allowlista DataTable stila dokumentuje tačno jednu funkcionalnu klasu samo za izdvojenu tabelu usluga; provjere klase, aktivnog CSS-a i mobilne geometrije ostaju, ostali potrošači nisu izuzeti. Nije rađen merge niti deploy.
+
+---
+
+## 2026-11-18 · S8 · Tabela usluga i mobilni reflow (rad u toku)
+
+**Šta i zašto:** `Services.tsx` je prije ovog koraka imao 1241 liniju; nakon izdvajanja imao je 1106 (kasniji guard opisan iznad). Kolone i akcije tabele izdvojene su u `features/services/service-table.tsx` (147 linija) i zajednički tip u `service-types.ts`. Pozivi uređivanja i brisanja, linkovi, formatiranje, redoslijed i nazivi kolona ostaju isti. Ovo nije završeno razbijanje S8.
+
+Na svježem prethodnom buildu test je pri 320 CSS px utvrdio da je opis skriven, a nakon otkrivanja je izmjerena tabela široka 743 px u regionu širokom 210 px: planirana kartična pravila iz `index.css` nisu bila uključena u aktivni stylesheet. Posebno ograničena pravila u `globals.css` pretvaraju samo tabelu usluga u kartice ispod 640 px, bez promjene drugih tabela. Opis je vidljiv i prelama i dugačak neprekinuti tekst umjesto da se skrati. Test bez popravke opisa pada na `hidden`, a test širine bez reflowa pada na horizontalnom prekoračenju.
+
+**Dokaz:** svježi produkcijski build i E2E typecheck prolaze; sintetički Chromium tabela **24/24** (tri teme, BS/EN, 320/639/640/1280 px) provjerava svih osam kolona, imena i linkove istoimenih usluga, geometriju bez horizontalnog preljeva na mobilnom, dugi opis te otvaranje uređivanja tipkom Enter. Postojeće sintetičke regresije previewa brisanja/spajanja **6/6**. Scoped axe nad tabelom nema prijavljenih WCAG A/AA prekršaja u svih 24; pri 320/639/1280 nema `incomplete`, ali pri 640 ima 1–2 `color-contrast` nepotpuna čvora po testu zbog djelimičnog zaklanjanja — ostaju za pregled, nisu prolaz kontrasta. Web Node **990/990**, lint 0 grešaka / 6 ranijih upozorenja; build početno 292,9/300 KiB; CI indeks i i18n prolaze. Testovi koriste mock API, nisu stvarni backend ni pregled čitačem ekrana.
+
+**Izmjena testa:** statički test tabele sada čita i izdvojeni modul te eksplicitno provjerava da stranica renderuje `ServiceTable`, a ona `DataTable`; broj tabela, caption, scope i ostale postojeće garancije ostaju provjerene. CI [45161311410](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45161311410) odnosi se na prethodni `2517970`: backend, mobile, frontend i hygiene prolaze; a11y je još u toku pri zadnjoj provjeri. Ovaj S8 nastavak nije uključen u taj run. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · Nastavak nakon `a788242` · CI i obnova sesije
 
 **Šta i zašto:** CI za `a788242` pokazao je da obje izolovane PostgreSQL baze uspješno primjenjuju migracije, ali backend brava broja literalnih grešaka i mobilni test permission alerta nisu prošli. Nove consent greške prebačene su u postojeći registar kodova, uz očuvane HTTP statuse i BS poruke, mapiranje kodova i BS/EN ključeve. Brava od 439 nije povećana. Mobilni source test sada prihvata dodatne `beforeDescription` i `afterDescription` zavisnosti callbacka; provjera da odbijena dozvola prekida rad prije pickera ostaje nepromijenjena.

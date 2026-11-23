@@ -5,16 +5,16 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ServiceDeletionImpactView } from '../features/services/service-deletion-impact'
+import { ServiceTable } from '../features/services/service-table'
+import type { Service } from '../features/services/service-types'
 import type { ServiceDeletionImpact, ServiceMutationAction } from '../features/services/service-deletion-types'
 
 import api from '../api/client'
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
-import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 import {
   fetchAllAdminServiceCategories,
   fetchAllAdminServices,
@@ -30,7 +30,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '../components/ui/accordion'
-import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -47,21 +46,6 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Switch } from '../components/ui/switch'
 import { Textarea } from '../components/ui/textarea'
-
-interface Service {
-  id: string
-  subcategoryId: string
-  name: string
-  shortDescription: string | null
-  heroImage: string | null
-  durationMinutes: number
-  price: number | string
-  isActive: boolean
-  sortOrder: number
-  gender: 'MALE' | 'FEMALE'
-  loyaltyEnabled?: boolean
-  loyaltyMaxDiscountPercent?: number
-}
 
 interface Subcategory {
   id: string
@@ -86,7 +70,7 @@ type ModalMode = 'category' | 'subcategory' | 'service'
 
 
 export default function Services() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { success, error } = useAppToast()
   const showApiError = useCallback(
     (err: unknown, fallbackKey: string) => {
@@ -143,6 +127,16 @@ export default function Services() {
   )
   const [deletionTargetId, setDeletionTargetId] = useState('')
   const [deletionConfirmationName, setDeletionConfirmationName] = useState('')
+  const deletionPreviewGeneration = useRef(0)
+
+  useEffect(() => () => { deletionPreviewGeneration.current += 1 }, [])
+
+  const invalidateDeletionPreview = () => {
+    deletionPreviewGeneration.current += 1
+    setDeletionImpact(null)
+    setDeletionLoadError(false)
+    setDeletionLoading(false)
+  }
 
   const loadData = useCallback(() => {
     setLoading(true)
@@ -354,6 +348,7 @@ export default function Services() {
     serviceId: string,
     targetServiceId?: string,
   ) => {
+    const generation = ++deletionPreviewGeneration.current
     setDeletionLoading(true)
     setDeletionLoadError(false)
     try {
@@ -361,13 +356,15 @@ export default function Services() {
         `/api/services/admin/services/${serviceId}/deletion-impact`,
         { params: targetServiceId ? { targetServiceId } : undefined },
       )
+      if (generation !== deletionPreviewGeneration.current) return
       setDeletionImpact(data)
     } catch (err) {
+      if (generation !== deletionPreviewGeneration.current) return
       setDeletionImpact(null)
       setDeletionLoadError(true)
       showApiError(err, 'services.errors.deleteServiceFailed')
     } finally {
-      setDeletionLoading(false)
+      if (generation === deletionPreviewGeneration.current) setDeletionLoading(false)
     }
   }
 
@@ -422,7 +419,7 @@ export default function Services() {
 
   const selectDeletionAction = (action: ServiceMutationAction) => {
     setDeletionAction(action)
-    setDeletionImpact(null)
+    invalidateDeletionPreview()
     if (!deletionService) return
     if (action === 'MERGE') {
       if (deletionTargetId)
@@ -458,126 +455,7 @@ export default function Services() {
   const allServices = allSubcategories.flatMap(subcategory => subcategory.services ?? [])
   const serviceAccessibleName = (service: Service) => disambiguatedName(service, allServices)
 
-  const serviceColumns = (
-    sub: { id: string },
-  ): DataTableColumn<Service>[] => [
-    {
-      key: 'service',
-      headerKey: 'services.table.service',
-      className: 'p-3 font-medium',
-      render: (s) => s.name,
-    },
-    {
-      key: 'description',
-      headerKey: 'services.table.description',
-      className: 'hidden p-3 md:table-cell',
-      render: (s) => (
-        <span className="block max-w-[260px] truncate">{s.shortDescription ?? '-'}</span>
-      ),
-    },
-    {
-      key: 'duration',
-      headerKey: 'services.table.duration',
-      align: 'right',
-      className: 'p-3 tabular-nums',
-      render: (s) => t('services.durationValue', { count: s.durationMinutes }),
-    },
-    {
-      key: 'price',
-      headerKey: 'services.table.price',
-      align: 'right',
-      className: 'p-3 tabular-nums',
-      render: (s) =>
-        formatLocalizedNumber(s.price, i18n.language, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }),
-    },
-    {
-      key: 'gender',
-      headerKey: 'services.table.gender',
-      className: 'p-3',
-      render: (s) => (
-        <Badge
-          variant={s.gender === 'MALE' ? 'secondary' : 'brand'}
-          className="text-[10px]"
-        >
-          {s.gender === 'MALE' ? t('users.gender.male') : t('users.gender.female')}
-        </Badge>
-      ),
-    },
-    {
-      key: 'loyalty',
-      headerKey: 'services.table.loyalty',
-      className: 'p-3',
-      render: (s) =>
-        s.loyaltyEnabled ? (
-          <Badge variant="brand" className="text-[10px]">
-            {t('services.loyaltyDiscount', {
-              percent: formatLocalizedNumber(s.loyaltyMaxDiscountPercent ?? 0, i18n.language),
-            })}
-          </Badge>
-        ) : (
-          <Badge variant="secondary" className="text-[10px]">
-            {t('services.withoutLoyalty')}
-          </Badge>
-        ),
-    },
-    {
-      key: 'status',
-      headerKey: 'services.table.status',
-      className: 'p-3',
-      render: (s) => (
-        <Badge variant={s.isActive ? 'success' : 'secondary'} className="text-[10px]">
-          {s.isActive
-            ? t('services.status.serviceActive')
-            : t('services.status.serviceInactive')}
-        </Badge>
-      ),
-    },
-    {
-      key: 'actions',
-      headerKey: 'services.table.actions',
-      align: 'right',
-      className: 'p-3',
-      render: (s) => (
-        <div className="flex justify-end gap-1">
-          <Button
-            asChild
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('services.aria.workGallery', { name: serviceAccessibleName(s) })}
-          >
-            <RouterLink to={`/admin/services/${s.id}/work-gallery`}>
-              <Eye className="h-4 w-4 text-purple-600" />
-            </RouterLink>
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('services.aria.editService', { name: serviceAccessibleName(s) })}
-            onClick={() => openServiceForm(sub.id, s)}
-          >
-            <Pencil className="h-4 w-4 text-blue-600" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('services.aria.deleteService', { name: serviceAccessibleName(s) })}
-            onClick={() => openServiceDeletion(s)}
-          >
-            <Trash2 className="h-4 w-4 text-rose-600" />
-          </Button>
-        </div>
-      ),
-    },
-  ]
+
 
   return (
     <div>
@@ -718,11 +596,11 @@ export default function Services() {
 
                           {sub.services?.length ? (
                             <div className="app-table-wrap rounded-md border border-line bg-surface  ">
-                              <DataTable
-                                caption={t('services.tableCaption')}
-                                columns={serviceColumns(sub)}
+                              <ServiceTable
                                 rows={sub.services}
-                                rowKey={(s) => s.id}
+                                serviceAccessibleName={serviceAccessibleName}
+                                onEdit={(service) => openServiceForm(sub.id, service)}
+                                onDelete={openServiceDeletion}
                               />
                             </div>
                           ) : (
@@ -1060,7 +938,10 @@ export default function Services() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deletionOpen} onOpenChange={setDeletionOpen}>
+      <Dialog open={deletionOpen} onOpenChange={(nextOpen) => {
+        if (!nextOpen) invalidateDeletionPreview()
+        setDeletionOpen(nextOpen)
+      }}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('services.deletion.title')}</DialogTitle>
@@ -1114,7 +995,7 @@ export default function Services() {
                     onChange={(event) => {
                       const targetId = event.target.value
                       setDeletionTargetId(targetId)
-                      setDeletionImpact(null)
+                      invalidateDeletionPreview()
                       if (targetId)
                         void loadDeletionImpact(deletionService.id, targetId)
                     }}
@@ -1198,7 +1079,7 @@ export default function Services() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setDeletionOpen(false)}
+              onClick={() => { invalidateDeletionPreview(); setDeletionOpen(false) }}
               disabled={deletionSaving}
             >
               {t('common.cancel')}
