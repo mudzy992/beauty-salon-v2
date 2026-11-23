@@ -10,6 +10,8 @@
  * Parnost s backend registrom cuva `test:api-error-code-parity`.
  */
 export const API_ERROR_CODE_TO_KEY = {
+  FINANCE_HISTORICAL_SERVICE_UNSUPPORTED: 'finance.manualEntry.historicalServiceUnsupported',
+  FINANCE_SERVICE_UNSUPPORTED: 'finance.manualEntry.serviceUnsupported',
   EXPENSE_DATE_INVALID: 'finance.expenseForm.dateInvalid',
   EXPENSE_DATE_OUTSIDE_BOOK: 'finance.expenseForm.dateRequired',
   SETTINGS_INVALID_THEME: 'adminSettings.appearance.errors.invalidTheme',

@@ -135,6 +135,9 @@ test('before-after parser rejects partial malformed pages and normalizes complet
   const rows = normalizeBeforeAfterPairs([pair]);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].before.pathOriginal, 'private/before.webp');
+  const described = normalizeBeforeAfterPairs([{ ...pair, before: { ...pair.before, description: 'Kratka kovrdžava kosa' }, after: { ...pair.after, description: null } }]);
+  assert.equal(described[0].before.description, 'Kratka kovrdžava kosa');
+  assert.equal(described[0].after.description, null);
   assert.equal(normalizeBeforeAfterPairs([pair, { id: 'pair-2', before: null, after: {} }]), null);
   assert.equal(normalizeBeforeAfterPairs([]).length, 0);
   assert.equal(normalizeBeforeAfterPairs({ items: [] }), null);

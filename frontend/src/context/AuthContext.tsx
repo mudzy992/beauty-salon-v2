@@ -19,7 +19,7 @@ interface AuthContextValue {
   user: User | null;
   token: string | null;
   login: (username: string, password: string) => Promise<User>;
-  logout: () => void;
+  logout: () => boolean;
   refreshProfile: () => Promise<User>;
   replaceToken: (token: string) => void;
   isReady: boolean;

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useId, useRef, useState, useCallback } from 'react'
 import { ChevronsLeftRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -11,6 +11,8 @@ interface BeforeAfterSliderProps {
   alt?: string
   aspectRatio?: number
   ariaLabel?: string
+  beforeDescription?: string | null
+  afterDescription?: string | null
 }
 
 /**
@@ -23,8 +25,12 @@ export function BeforeAfterSlider({
   alt = '',
   aspectRatio = 4 / 3,
   ariaLabel,
+  beforeDescription,
+  afterDescription,
 }: BeforeAfterSliderProps) {
   const { t } = useTranslation()
+  const descriptionId = useId()
+  const hasDescription = Boolean(beforeDescription || afterDescription)
   const [position, setPosition] = useState(50)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -66,11 +72,19 @@ export function BeforeAfterSlider({
   )
 
   return (
+    <>
+    {hasDescription ? (
+      <span id={descriptionId} className="sr-only">
+        {beforeDescription ? `${t('public.beforeAfter.before')}: ${beforeDescription}. ` : ''}
+        {afterDescription ? `${t('public.beforeAfter.after')}: ${afterDescription}` : ''}
+      </span>
+    ) : null}
     <div
       ref={containerRef}
       data-before-after-slider
       role="slider"
       aria-label={ariaLabel ?? t('public.beforeAfter.sliderLabel')}
+      aria-describedby={hasDescription ? descriptionId : undefined}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(position)}
@@ -138,5 +152,6 @@ export function BeforeAfterSlider({
         </div>
       </div>
     </div>
+    </>
   )
 }

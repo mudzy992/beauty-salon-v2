@@ -22,8 +22,8 @@ import type { HomeScreenProps } from '../../navigation/types';
 
 interface BeforeAfterPair {
   id: string;
-  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
-  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
 }
 
 const PAGE_SIZE = 10;
@@ -89,11 +89,14 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
   }, [loadPage]);
 
   const renderItem: ListRenderItem<BeforeAfterPair> = useCallback(
-    ({ item }) => (
+    ({ item, index }) => (
       <View style={styles.card}>
         <BeforeAfterSlider
           beforeSrc={getUploadUrl(item.before.pathMedium ?? item.before.pathThumb ?? item.before.pathOriginal)}
           afterSrc={getUploadUrl(item.after.pathMedium ?? item.after.pathThumb ?? item.after.pathOriginal)}
+          beforeDescription={item.before.description}
+          afterDescription={item.after.description}
+          comparisonNumber={index + 1}
           width={sliderSize}
           height={sliderSize}
         />

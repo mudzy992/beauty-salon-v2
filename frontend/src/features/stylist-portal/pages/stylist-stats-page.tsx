@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../../components/ui/button'
-import { useQuery } from '@tanstack/react-query'
+import { useSessionQuery as useQuery } from '../../../query/use-session-query'
 
 import { Card } from '../../../components/ui/card'
 import { useStylistProfileMe } from '../../stylist-workbook/hooks/useStylistProfileMe'

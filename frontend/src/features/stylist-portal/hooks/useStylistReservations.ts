@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSessionQuery as useQuery } from '../../../query/use-session-query'
 
 import {
   acceptReservationForStylist,

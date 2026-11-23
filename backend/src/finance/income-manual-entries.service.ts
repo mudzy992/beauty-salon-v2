@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
@@ -66,6 +67,9 @@ export class IncomeManualEntriesService {
         tx,
       )
       ensureDateMatchesPeriod(date, book.year, book.month)
+      if (!(await this.isExistingServiceSupported(dto.serviceId, dto.stylistProfileId ?? null, tx))) {
+        throw new ConflictException(apiError('FINANCE_SERVICE_UNSUPPORTED'))
+      }
       if (dto.clientId) await this.assertClientRole(dto.clientId, tx)
       const servicePrice = await this.getServicePrice(dto.serviceId, tx)
       const amounts = splitPaidAmount(dto.paidAmount, servicePrice)
@@ -133,11 +137,22 @@ export class IncomeManualEntriesService {
       if (!existing || existing.bookId !== bookId) {
         throw new NotFoundException('Ručni prihod nije pronađen.')
       }
+      if (!(await this.isExistingServiceSupported(existing.serviceId, existing.stylistProfileId, tx))) {
+        throw new ConflictException(apiError('FINANCE_HISTORICAL_SERVICE_UNSUPPORTED'))
+      }
       const date =
         dto.date != null ? parseAndNormalizeDate(dto.date) : existing.date
       ensureDateMatchesPeriod(date, book.year, book.month)
 
       const serviceId = dto.serviceId ?? existing.serviceId
+      const stylistProfileId =
+        dto.stylistProfileId !== undefined
+          ? dto.stylistProfileId
+          : existing.stylistProfileId
+      if ((serviceId !== existing.serviceId || stylistProfileId !== existing.stylistProfileId) &&
+          !(await this.isExistingServiceSupported(serviceId, stylistProfileId, tx))) {
+        throw new ConflictException(apiError('FINANCE_SERVICE_UNSUPPORTED'))
+      }
       const servicePrice = await this.getServicePrice(serviceId, tx)
       const paidAmount =
         dto.paidAmount != null
@@ -146,10 +161,6 @@ export class IncomeManualEntriesService {
       const amounts = splitPaidAmount(paidAmount, servicePrice)
       const clientId =
         dto.clientId !== undefined ? dto.clientId : existing.clientId
-      const stylistProfileId =
-        dto.stylistProfileId !== undefined
-          ? dto.stylistProfileId
-          : existing.stylistProfileId
       if (clientId) await this.assertClientRole(clientId, tx)
       const debtIntent = this.resolveDebtIntent({
         debtHandling: dto.debtHandling,
@@ -158,6 +169,7 @@ export class IncomeManualEntriesService {
         stylistProfileId,
       })
 
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM "client_debts" WHERE manual_entry_id = ${entryId} FOR UPDATE`)
       await assertNoSettledDebt(tx, entryId, 'izmjena stavke')
       const entry = await tx.incomeBookManualEntry.update({
         where: { id: entryId },
@@ -211,7 +223,21 @@ export class IncomeManualEntriesService {
       if (!existing || existing.bookId !== bookId) {
         throw new NotFoundException('Ručni prihod nije pronađen.')
       }
-      await assertNoSettledDebt(tx, entryId, 'brisanje stavke')
+      const supported = await this.isExistingServiceSupported(existing.serviceId, existing.stylistProfileId, tx)
+      // Serialize with a concurrent repayment/write-off before deciding whether
+      // a debt may be removed or must remain as financial evidence.
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM "client_debts" WHERE manual_entry_id = ${entryId} FOR UPDATE`)
+      let retainedSettledDebtIds: string[] = []
+      if (supported) {
+        await assertNoSettledDebt(tx, entryId, 'brisanje stavke')
+      } else {
+        const settled = await tx.clientDebt.findMany({
+          where: { manualEntryId: entryId, status: 'SETTLED' },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        })
+        retainedSettledDebtIds = settled.map((debt) => debt.id)
+      }
       await syncDebtForManualEntry(tx, {
         manualEntryId: entryId,
         clientId: existing.clientId,
@@ -226,7 +252,7 @@ export class IncomeManualEntriesService {
           bookId,
           manualEntryId: existing.id,
           action: 'DELETE',
-          beforeJson: toSnapshot(existing),
+          beforeJson: { ...toSnapshot(existing), retainedSettledDebtIds },
           createdById: userId,
         },
       })
@@ -287,6 +313,26 @@ export class IncomeManualEntriesService {
       select: { id: true },
     })
     if (!client) throw new BadRequestException('Odabrani korisnik nije klijent.')
+  }
+
+  /** Lock the original assignment during the edit so a concurrent unassignment
+   * or service deactivation cannot race the eligibility check. Deleting the
+   * historical entry intentionally has no such eligibility requirement. */
+  private async isExistingServiceSupported(
+    serviceId: string,
+    stylistProfileId: string | null,
+    tx: Prisma.TransactionClient,
+  ) {
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM "services" WHERE id = ${serviceId} FOR SHARE`)
+    const service = await tx.service.findUnique({ where: { id: serviceId }, select: { isActive: true } })
+    if (!service?.isActive) return false
+    if (!stylistProfileId) return true
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM "stylist_services" WHERE stylist_profile_id = ${stylistProfileId} AND service_id = ${serviceId} FOR SHARE`)
+    const assignment = await tx.stylistService.findUnique({
+      where: { stylistProfileId_serviceId: { stylistProfileId, serviceId } },
+      select: { id: true },
+    })
+    return Boolean(assignment)
   }
 
   private async getServicePrice(

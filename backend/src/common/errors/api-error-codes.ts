@@ -10,6 +10,8 @@
  * zadrzi konkretan razlog u polju `message`.
  */
 export const API_ERROR_CODES = {
+  FINANCE_HISTORICAL_SERVICE_UNSUPPORTED: 'Ova usluga više nije dostupna za stilistu. Unos se ne može urediti; u otključanoj knjizi možete ga obrisati.',
+  FINANCE_SERVICE_UNSUPPORTED: 'Odabrana usluga nije dostupna za odabranog stilistu. Osvježite podatke i odaberite dostupnu uslugu.',
   EXPENSE_DATE_INVALID: 'Datum rashoda nije važeći kalendarski datum.',
   EXPENSE_DATE_OUTSIDE_BOOK: 'Datum rashoda mora pripadati mjesecu knjige.',
   SETTINGS_INVALID_THEME: 'Neispravna tema.',

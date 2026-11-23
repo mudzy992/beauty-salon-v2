@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, ImageOff, Loader2, ShieldCheck } from 'lucide-react'
 
@@ -42,28 +42,43 @@ export function MediaConsentPanel() {
   const [payload, setPayload] = useState<ConsentPayload | null>(null)
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [accepted, setAccepted] = useState<Record<string, boolean>>({})
+  const [acceptedDescription, setAcceptedDescription] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [revokeTarget, setRevokeTarget] = useState<ConsentItem | null>(null)
+  const loadGeneration = useRef(0)
+  const actionGeneration = useRef(0)
+  const actionInFlight = useRef(false)
 
   const load = useCallback(async () => {
+    const generation = ++loadGeneration.current
     setLoading(true)
     try {
       const { data } = await api.get<ConsentPayload>('/api/media/consents/me')
+      if (generation !== loadGeneration.current) return false
       setPayload(data)
       setAccepted({})
+      setAcceptedDescription({})
       setMessage('')
+      return true
     } catch {
+      if (generation !== loadGeneration.current) return false
       setPayload(null)
       setMessage(i18n.t('mediaConsent.errors.loadFailed'))
+      return false
     } finally {
-      setLoading(false)
+      if (generation === loadGeneration.current) setLoading(false)
     }
   }, [i18n])
 
   useEffect(() => {
     void load()
+    return () => {
+      loadGeneration.current += 1
+      actionGeneration.current += 1
+      actionInFlight.current = false
+    }
   }, [load])
 
   const previewItems = useMemo(
@@ -112,33 +127,48 @@ export function MediaConsentPanel() {
   }, [previewKey, payload])
 
   const grant = async (item: ConsentItem) => {
-    if (!payload || !accepted[item.imageId]) return
+    if (!payload || !accepted[item.imageId] || actionInFlight.current) return
+    const generation = actionGeneration.current
+    actionInFlight.current = true
     setSavingId(item.imageId)
     setMessage('')
     try {
       await api.post(`/api/media/consents/${item.imageId}/grant`, {
         policyVersion: payload.policyVersion,
+        publishDescription: Boolean(acceptedDescription[item.imageId]),
+        ...(acceptedDescription[item.imageId] ? { reviewedDescription: item.description?.trim() } : {}),
       })
-      await load()
-      setMessage(t('mediaConsent.toast.granted'))
+      if (generation !== actionGeneration.current) return
+      const refreshed = await load()
+      if (generation === actionGeneration.current) setMessage(t(refreshed ? 'mediaConsent.toast.granted' : 'mediaConsent.toast.grantedRefreshFailed'))
     } catch {
-      setMessage(t('mediaConsent.errors.grantFailed'))
+      if (generation === actionGeneration.current) setMessage(t('mediaConsent.errors.grantFailed'))
     } finally {
-      setSavingId(null)
+      if (generation === actionGeneration.current) {
+        actionInFlight.current = false
+        setSavingId(null)
+      }
     }
   }
 
   const revoke = async (item: ConsentItem) => {
+    if (actionInFlight.current) return
+    const generation = actionGeneration.current
+    actionInFlight.current = true
     setSavingId(item.imageId)
     setMessage('')
     try {
       await api.delete(`/api/media/consents/${item.imageId}`)
-      await load()
-      setMessage(t('mediaConsent.toast.revoked'))
+      if (generation !== actionGeneration.current) return
+      const refreshed = await load()
+      if (generation === actionGeneration.current) setMessage(t(refreshed ? 'mediaConsent.toast.revoked' : 'mediaConsent.toast.revokedRefreshFailed'))
     } catch {
-      setMessage(t('mediaConsent.errors.revokeFailed'))
+      if (generation === actionGeneration.current) setMessage(t('mediaConsent.errors.revokeFailed'))
     } finally {
-      setSavingId(null)
+      if (generation === actionGeneration.current) {
+        actionInFlight.current = false
+        setSavingId(null)
+      }
     }
   }
 
@@ -223,11 +253,25 @@ export function MediaConsentPanel() {
                         {t('mediaConsent.explicitConsent')}
                       </span>
                     </label>
+                    {item.description?.trim() ? (
+                      <div className="space-y-2 text-sm text-content-strong">
+                        <p>{t('mediaConsent.descriptionPreview')}: {item.description.trim()}</p>
+                        <label className="flex cursor-pointer items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(acceptedDescription[item.imageId])}
+                            onChange={(event) => setAcceptedDescription((current) => ({ ...current, [item.imageId]: event.target.checked }))}
+                            className="mt-1 h-4 w-4 accent-amber-700"
+                          />
+                          <span>{t('mediaConsent.publishDescriptionOptional')}</span>
+                        </label>
+                      </div>
+                    ) : null}
                     <Button
                       type="button"
                       size="sm"
                       disabled={
-                        !accepted[item.imageId] || savingId === item.imageId
+                        !accepted[item.imageId] || savingId !== null
                       }
                       onClick={() => void grant(item)}
                     >
@@ -297,7 +341,7 @@ export function MediaConsentPanel() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={savingId === item.imageId}
+                    disabled={savingId !== null}
                     onClick={() => setRevokeTarget(item)}
                   >
                     {savingId === item.imageId
@@ -323,6 +367,9 @@ export function MediaConsentPanel() {
           <p role="status" className="text-sm text-content-strong">
             {message}
           </p>
+        ) : null}
+        {!loading && !payload ? (
+          <Button type="button" variant="outline" onClick={() => void load()}>{t('common.retry')}</Button>
         ) : null}
         <p className="text-xs leading-5 text-content-strong">
           {t('mediaConsent.privacyNote')}

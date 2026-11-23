@@ -590,6 +590,7 @@ model DailyLogImageConsent {
   clientId         String?                    @map("client_id")
   purpose          DailyLogMediaConsentPurpose @default(PUBLIC_GALLERY)
   policyVersion    String                     @map("policy_version")
+  approvedDescription String?                 @map("approved_description") @db.Text
   consentedAt      DateTime                   @map("consented_at")
   revokedAt        DateTime?                  @map("revoked_at")
   publishedUploadId String?                   @unique @map("published_upload_id")

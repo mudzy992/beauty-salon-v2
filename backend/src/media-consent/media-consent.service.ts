@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -7,11 +8,13 @@ import {
 import {
   DailyLogMediaConsentAction,
   DailyLogMediaConsentPurpose,
+  Prisma,
   UploadStorageClass,
 } from '@prisma/client';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { toDateOnlyString } from '../common/utils/date-only';
+import { CONSENT_PHOTO_MIMES, selectBeforeAfterPair } from '../daily-log/before-after-selection';
 import { UploadsService } from '../uploads/uploads.service';
 import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from './media-consent.constants';
 export { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from './media-consent.constants';
@@ -74,13 +77,11 @@ export class MediaConsentService {
           },
         },
       },
-      orderBy: [{ dailyLogEntry: { date: 'desc' } }, { sortOrder: 'asc' }],
+      orderBy: [{ dailyLogEntry: { date: 'desc' } }, { sortOrder: 'asc' }, { id: 'asc' }],
     });
 
     const eligible = images.filter((image) =>
-      ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(
-        image.upload.mimeType.toLowerCase(),
-      ),
+      CONSENT_PHOTO_MIMES.includes(image.upload.mimeType.toLowerCase()),
     );
     const isActiveConsent = (image: (typeof eligible)[number]) =>
       image.consent?.clientId === user.sub &&
@@ -92,18 +93,19 @@ export class MediaConsentService {
         UploadStorageClass.CONSENTED_PUBLIC;
     const active = eligible.filter(isActiveConsent);
     const activeImageIds = new Set(active.map((image) => image.id));
-    const pairSides = new Map<
-      string,
-      { beforeImageIds: Set<string>; afterImageIds: Set<string> }
-    >();
+    const activeByEntry = new Map<string, typeof active>();
     for (const image of active) {
-      const sides = pairSides.get(image.dailyLogEntry.id) ?? {
-        beforeImageIds: new Set<string>(),
-        afterImageIds: new Set<string>(),
-      };
-      if (image.isBefore) sides.beforeImageIds.add(image.id);
-      if (image.isAfter) sides.afterImageIds.add(image.id);
-      pairSides.set(image.dailyLogEntry.id, sides);
+      const entryImages = activeByEntry.get(image.dailyLogEntry.id) ?? [];
+      entryImages.push(image);
+      activeByEntry.set(image.dailyLogEntry.id, entryImages);
+    }
+    const autoPublishedImageIds = new Set<string>();
+    for (const entryImages of activeByEntry.values()) {
+      const pair = selectBeforeAfterPair(entryImages);
+      if (pair) {
+        autoPublishedImageIds.add(pair.before.id);
+        autoPublishedImageIds.add(pair.after.id);
+      }
     }
     const autoCategory = await this.prisma.galleryCategory.findFirst({
       where: { autoPublishConsentedPairs: true },
@@ -111,16 +113,7 @@ export class MediaConsentService {
     });
     const mapImage = (image: (typeof eligible)[number]) => {
       const activeConsent = activeImageIds.has(image.id);
-      const pairSidesForEntry = pairSides.get(image.dailyLogEntry.id);
-      const completeAutoPair = Boolean(
-        autoCategory &&
-          pairSidesForEntry &&
-          Array.from(pairSidesForEntry.beforeImageIds).some((beforeId) =>
-            Array.from(pairSidesForEntry.afterImageIds).some(
-              (afterId) => afterId !== beforeId,
-            ),
-          ),
-      );
+      const completeAutoPair = Boolean(autoCategory && autoPublishedImageIds.has(image.id));
       const publishedCategories = activeConsent
         ? (image.consent?.publishedUpload?.galleryImages.map((item) =>
             item.category,
@@ -162,8 +155,13 @@ export class MediaConsentService {
     imageId: string,
     policyVersion: string,
     user: ConsentUser,
+    publishDescription?: unknown,
+    reviewedDescription?: unknown,
   ) {
     this.assertClient(user);
+    if (publishDescription !== undefined && typeof publishDescription !== 'boolean') {
+      throw new BadRequestException('Odluka o objavi opisa mora biti logička vrijednost.');
+    }
     if (policyVersion !== CLIENT_MEDIA_PUBLICATION_POLICY_VERSION) {
       throw new ConflictException('Verzija teksta saglasnosti nije važeća.');
     }
@@ -209,10 +207,21 @@ export class MediaConsentService {
       image.consent.policyVersion === policyVersion &&
       image.consent.publishedUploadId
     ) {
+      if (publishDescription === true &&
+          (!image.consent.approvedDescription || reviewedDescription !== image.consent.approvedDescription)) {
+        throw new ConflictException('Aktivna saglasnost ne obuhvata pregledani opis. Osvježite podatke.');
+      }
       return {
         active: true,
         consentedAt: image.consent.consentedAt.toISOString(),
       };
+    }
+
+    // Legacy photo consent never authorizes publishing private descriptions.
+    // A separate opt-in must match the exact text the client reviewed.
+    const approvedDescription = publishDescription === true ? image.description?.trim() || null : null;
+    if (publishDescription === true && (!approvedDescription || reviewedDescription !== approvedDescription)) {
+      throw new ConflictException('Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.');
     }
 
     const reusedCopyId =
@@ -230,6 +239,31 @@ export class MediaConsentService {
     const now = new Date();
     try {
       const consent = await this.prisma.$transaction(async (tx) => {
+        // Lock the entry before the image, matching entry deletion/update paths.
+        // Derivation happens outside the transaction, so eligibility must be
+        // checked again after both locks have been acquired.
+        await tx.$queryRaw(Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${image.dailyLogEntryId} FOR UPDATE`);
+        await tx.$queryRaw(Prisma.sql`SELECT id FROM "daily_log_images" WHERE id = ${image.id} FOR UPDATE`);
+        const latest = await tx.dailyLogImage.findUnique({
+          where: { id: image.id },
+          include: {
+            upload: { select: { storageClass: true } },
+            dailyLogEntry: { select: { clientId: true, kind: true, status: true, deletedAt: true } },
+          },
+        });
+        if (!latest || latest.dailyLogEntryId !== image.dailyLogEntryId ||
+            latest.uploadId !== image.uploadId ||
+            latest.dailyLogEntry.clientId !== user.sub ||
+            latest.dailyLogEntry.kind !== 'SERVICE' ||
+            latest.dailyLogEntry.status !== 'COMPLETED' ||
+            latest.dailyLogEntry.deletedAt !== null ||
+            (!latest.isBefore && !latest.isAfter) ||
+            latest.upload.storageClass !== UploadStorageClass.PRIVATE) {
+          throw new NotFoundException('Fotografija nije pronađena.');
+        }
+        if (approvedDescription && latest.description?.trim() !== approvedDescription) {
+          throw new ConflictException('Opis se promijenio. Osvježite podatke i ponovo pregledajte opis.');
+        }
         const current = await tx.dailyLogImageConsent.findUnique({
           where: { dailyLogImageId: image.id },
         });
@@ -238,6 +272,19 @@ export class MediaConsentService {
             'Ova fotografija je vezana za raniju saglasnost.',
           );
         }
+        if (current?.clientId === user.sub && current.revokedAt === null &&
+            current.policyVersion === policyVersion && current.publishedUploadId) {
+          if ((current.approvedDescription ?? null) !== approvedDescription) {
+            throw new ConflictException('Saglasnost za opis se promijenila. Osvježite podatke.');
+          }
+          return { record: current, usedCopy: false };
+        }
+        const observed = image.consent;
+        if ((observed?.id ?? null) !== (current?.id ?? null) ||
+            (observed?.revokedAt?.getTime() ?? null) !== (current?.revokedAt?.getTime() ?? null) ||
+            (observed?.consentedAt?.getTime() ?? null) !== (current?.consentedAt?.getTime() ?? null)) {
+          throw new ConflictException('Saglasnost se promijenila. Osvježite podatke.');
+        }
         const record = current
           ? await tx.dailyLogImageConsent.update({
               where: { id: current.id },
@@ -245,6 +292,7 @@ export class MediaConsentService {
                 clientId: user.sub,
                 purpose: CONSENT_PURPOSE,
                 policyVersion,
+                approvedDescription,
                 consentedAt: now,
                 revokedAt: null,
                 publishedUploadId,
@@ -256,6 +304,7 @@ export class MediaConsentService {
                 clientId: user.sub,
                 purpose: CONSENT_PURPOSE,
                 policyVersion,
+                approvedDescription,
                 consentedAt: now,
                 publishedUploadId,
               },
@@ -270,11 +319,14 @@ export class MediaConsentService {
             source: 'CLIENT_APP',
           },
         });
-        return record;
+        return { record, usedCopy: true };
       });
+      if (copy?.id && !consent.usedCopy) {
+        await this.uploads.deleteUnreferencedUpload(copy.id).catch(() => undefined);
+      }
       return {
         active: true,
-        consentedAt: consent.consentedAt.toISOString(),
+        consentedAt: consent.record.consentedAt.toISOString(),
       };
     } catch (error) {
       if (copy?.id) {
@@ -288,32 +340,25 @@ export class MediaConsentService {
 
   async revokeForClient(imageId: string, user: ConsentUser) {
     this.assertClient(user);
-    const consent = await this.prisma.dailyLogImageConsent.findUnique({
-      where: { dailyLogImageId: imageId },
-      include: {
-        dailyLogImage: {
-          include: { dailyLogEntry: { select: { clientId: true } } },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM "daily_log_images" WHERE id = ${imageId} FOR UPDATE`);
+      const consent = await tx.dailyLogImageConsent.findUnique({
+        where: { dailyLogImageId: imageId },
+        include: {
+          dailyLogImage: {
+            include: { dailyLogEntry: { select: { clientId: true } } },
+          },
         },
-      },
-    });
-    if (
-      !consent ||
-      !consent.dailyLogImage ||
-      consent.clientId !== user.sub ||
-      consent.dailyLogImage.dailyLogEntry.clientId !== user.sub
-    ) {
-      throw new NotFoundException('Saglasnost nije pronađena.');
-    }
-    if (consent.revokedAt) {
-      return { revoked: true, revokedAt: consent.revokedAt.toISOString() };
-    }
-
-    const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.dailyLogImageConsent.update({
-        where: { id: consent.id },
-        data: { revokedAt: now },
       });
+      if (!consent || !consent.dailyLogImage || consent.clientId !== user.sub ||
+          consent.dailyLogImage.dailyLogEntry.clientId !== user.sub) {
+        throw new NotFoundException('Saglasnost nije pronađena.');
+      }
+      if (consent.revokedAt) {
+        return { revoked: true, revokedAt: consent.revokedAt.toISOString() };
+      }
+      const now = new Date();
+      await tx.dailyLogImageConsent.update({ where: { id: consent.id }, data: { revokedAt: now } });
       await tx.dailyLogImageConsentEvent.create({
         data: {
           consentId: consent.id,
@@ -324,8 +369,8 @@ export class MediaConsentService {
           source: 'CLIENT_APP',
         },
       });
+      return { revoked: true, revokedAt: now.toISOString() };
     });
-    return { revoked: true, revokedAt: now.toISOString() };
   }
 
   async findActivePublicUploadId(consentId: string): Promise<string> {

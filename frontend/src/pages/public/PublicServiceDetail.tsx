@@ -52,11 +52,13 @@ type BeforeAfterPair = {
     pathOriginal: string;
     pathMedium?: string | null;
     pathThumb?: string | null;
+    description?: string | null;
   };
   after: {
     pathOriginal: string;
     pathMedium?: string | null;
     pathThumb?: string | null;
+    description?: string | null;
   };
 };
 
@@ -91,7 +93,8 @@ const isImageAsset = (
   isRecord(value) &&
   typeof value.pathOriginal === "string" &&
   isOptionalString(value.pathMedium) &&
-  isOptionalString(value.pathThumb);
+  isOptionalString(value.pathThumb) &&
+  isOptionalString(value.description);
 
 const isBeforeAfterPair = (value: unknown): value is BeforeAfterPair =>
   isRecord(value) &&

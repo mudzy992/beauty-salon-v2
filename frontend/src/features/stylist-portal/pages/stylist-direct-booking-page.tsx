@@ -12,6 +12,7 @@ import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { useAppToast } from '../../../lib/toast/useAppToast'
+import { useAuthStore } from '../../../stores/auth.store'
 import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 
@@ -52,6 +53,13 @@ export const StylistDirectBookingPage = () => {
   const [clientSearchError, setClientSearchError] = useState(false)
   const servicesRequestIdRef = useRef(0)
   const clientSearchRequestIdRef = useRef(0)
+  const submitGeneration = useRef(0)
+  const submitInFlight = useRef(false)
+
+  useEffect(() => () => {
+    submitGeneration.current += 1
+    submitInFlight.current = false
+  }, [])
 
   const loadServices = useCallback(async () => {
     const requestId = ++servicesRequestIdRef.current
@@ -170,10 +178,15 @@ export const StylistDirectBookingPage = () => {
   }
 
   const handleSubmit = async () => {
+    if (submitInFlight.current) return
     if (!selectedClient?.gender) {
       toast.error(t('stylistPortal.directBooking.clientGenderRequired'))
       return
     }
+    const generation = ++submitGeneration.current
+    const sessionVersion = useAuthStore.getState().sessionVersion
+    const isCurrent = () => generation === submitGeneration.current && useAuthStore.getState().sessionVersion === sessionVersion
+    submitInFlight.current = true
     setSaving(true)
     try {
       await api.post('/api/reservations/stylist/direct', {
@@ -184,13 +197,18 @@ export const StylistDirectBookingPage = () => {
         endTime,
         clientNotes: clientNotes.trim() || undefined,
       })
+      if (!isCurrent()) return
       toast.success(t('stylistPortal.directBooking.created'))
       navigate('/stylist/schedule')
     } catch (error) {
+      if (!isCurrent()) return
       const apiErr = resolveAdminApiError(getErrorMessage(error, ''), 'stylistPortal.directBooking.createFailed', getErrorCode(error))
       toast.error(t(apiErr.key, apiErr.values))
     } finally {
-      setSaving(false)
+      if (generation === submitGeneration.current) {
+        submitInFlight.current = false
+        setSaving(false)
+      }
     }
   }
 

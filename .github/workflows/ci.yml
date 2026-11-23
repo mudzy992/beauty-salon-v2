@@ -221,6 +221,9 @@ jobs:
       - name: Test localized profile API errors
         working-directory: frontend
         run: npm run test:profile-api-errors
+      - name: Test auth session race handling
+        working-directory: frontend
+        run: npm run test:auth-session-race
       - name: Test profile accessibility semantics
         working-directory: frontend
         run: npm run test:profile-accessibility
@@ -977,6 +980,9 @@ jobs:
           # Fail-closed: bez stvarnog browser fajla `run-a11y-routes.mjs` ispisuje
           # SKIPPED i vraca 0, pa bi a11y posao bio lazno zelen.
           node -e "const { chromium } = require('@playwright/test'); const fs = require('node:fs'); const p = chromium.executablePath(); if (!p || !fs.existsSync(p)) { console.error('Chromium executable missing: ' + p); process.exit(1); } console.log('Chromium executable: ' + p);"
+      - name: Test rendered auth session isolation
+        working-directory: frontend
+        run: npm run test:auth-session-rendered
       - name: Run rendered a11y (axe) suite
         id: axe
         working-directory: frontend

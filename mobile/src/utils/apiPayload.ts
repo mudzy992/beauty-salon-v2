@@ -40,8 +40,8 @@ export interface SalonWorkingHour {
 
 export interface BeforeAfterPairPayload {
   id: string;
-  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
-  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
 }
 
 export interface AvailabilityChangedPayload {
@@ -465,6 +465,7 @@ function normalizeImageSide(value: unknown): BeforeAfterPairPayload['before'] | 
     pathOriginal,
     ...(isOptionalString(value.pathMedium) ? { pathMedium: value.pathMedium as string | null | undefined } : {}),
     ...(isOptionalString(value.pathThumb) ? { pathThumb: value.pathThumb as string | null | undefined } : {}),
+    ...(isOptionalString(value.description) ? { description: value.description as string | null | undefined } : {}),
   };
 }
 

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { useAuthStore } from '../stores/auth.store'
 import OnboardingShell from '../components/OnboardingShell'
 import { getPostAuthRedirectPath } from '../utils/clientOnboarding'
 import { Button } from '../components/ui/button'
@@ -39,6 +40,8 @@ export default function ForceChangePassword() {
       return
     }
     const generation = ++requestGeneration.current
+    let sessionVersion = useAuthStore.getState().sessionVersion
+    const isCurrent = () => generation === requestGeneration.current && useAuthStore.getState().sessionVersion === sessionVersion
     requestInFlight.current = true
     setLoading(true)
     try {
@@ -46,13 +49,15 @@ export default function ForceChangePassword() {
         '/auth/change-password',
         { currentPassword, newPassword },
       )
+      if (!isCurrent()) return
       replaceToken(response.data.access_token)
+      sessionVersion = useAuthStore.getState().sessionVersion
       const updated = await refreshProfile()
-      if (generation !== requestGeneration.current) return
+      if (!isCurrent()) return
       toast.success(t('onboarding.passwordChanged'))
       navigate(getPostAuthRedirectPath(updated), { replace: true })
     } catch (error: any) {
-      if (generation === requestGeneration.current) {
+      if (isCurrent()) {
         toast.error(error?.response?.data?.message || t('onboarding.passwordChangeFailed'))
       }
     } finally {

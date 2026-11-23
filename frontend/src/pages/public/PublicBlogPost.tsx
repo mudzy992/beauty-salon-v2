@@ -11,6 +11,7 @@ import api from '../../api/client'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { useAuth } from '../../context/AuthContext'
+import { useAuthStore } from '../../stores/auth.store'
 import { useTranslation } from 'react-i18next'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
@@ -146,17 +147,20 @@ export default function PublicBlogPost() {
     const content = newComment.trim()
     if (!post?.id || !content || commentSubmissionInFlight.current) return
     const submittedPostId = post.id
+    const sessionVersion = useAuthStore.getState().sessionVersion
     const generation = ++commentSubmissionGeneration.current
     commentSubmissionInFlight.current = true
     setSubmitting(true)
     try {
       await api.post(`/api/blog/${submittedPostId}/comments`, { content })
       if (generation !== commentSubmissionGeneration.current) return
+      if (useAuthStore.getState().sessionVersion !== sessionVersion) return
       setNewComment('')
       void loadComments(0, false)
       toast.success(t('public.blogPost.commentSubmitted'))
     } catch {
       if (generation !== commentSubmissionGeneration.current) return
+      if (useAuthStore.getState().sessionVersion !== sessionVersion) return
       toast.error(t('public.blogPost.commentSubmitFailed'))
     } finally {
       if (generation === commentSubmissionGeneration.current) {

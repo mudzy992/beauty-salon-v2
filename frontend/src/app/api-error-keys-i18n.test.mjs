@@ -134,7 +134,7 @@ const MODULES = [
     label: 'admin-api-error',
     file: '../features/admin/admin-api-error.mjs',
     prefix: '',
-    expectedPairs: 76,
+    expectedPairs: 78,
     // `resolveAdminApiError` vraća `{ key, values }` — vrijednosti su potrebne za dvije
     // interpolirane grane, pa se provjerava i poklapanje s `{{placeholder}}` u lokalima.
     resolve: (message) => resolveAdminApiError(message, SENTINEL),

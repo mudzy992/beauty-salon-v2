@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { RouteObject } from 'react-router-dom'
 
 import PublicLayout from '../../layouts/PublicLayout'
+import { IdentityBoundary } from '../../components/IdentityBoundary'
 import { PublicFeatureGate } from '../../features/shell/public/public-feature-gate'
 
 const Profile = lazy(() => import('../../pages/Profile'))
@@ -28,12 +29,12 @@ export const publicRoutes: RouteObject[] = [
       { path: 'usluge', element: <PublicServices /> },
       { path: 'usluge/:serviceId', element: <PublicServiceDetail /> },
       { path: 'blog', element: <PublicFeatureGate flag="public_feature_blog"><PublicBlogList /></PublicFeatureGate> },
-      { path: 'blog/:slug', element: <PublicFeatureGate flag="public_feature_blog"><PublicBlogPost /></PublicFeatureGate> },
+      { path: 'blog/:slug', element: <PublicFeatureGate flag="public_feature_blog"><IdentityBoundary><PublicBlogPost /></IdentityBoundary></PublicFeatureGate> },
       { path: 'galerija', element: <PublicFeatureGate flag="public_feature_gallery"><PublicGallery /></PublicFeatureGate> },
       { path: 'kontakt', element: <PublicContact /> },
-      { path: 'rezervacija', element: <PublicReserve /> },
-      { path: 'moje-rezervacije', element: <MyReservations /> },
-      { path: 'moje-rezervacije/:id', element: <MyReservationDetail /> },
+      { path: 'rezervacija', element: <IdentityBoundary><PublicReserve /></IdentityBoundary> },
+      { path: 'moje-rezervacije', element: <IdentityBoundary><MyReservations /></IdentityBoundary> },
+      { path: 'moje-rezervacije/:id', element: <IdentityBoundary><MyReservationDetail /></IdentityBoundary> },
       { path: 'moj-termin/:token', element: <PublicReservationView /> },
       { path: 'unsubscribe', element: <CampaignUnsubscribe /> },
       { path: 'profil', element: <Profile /> },

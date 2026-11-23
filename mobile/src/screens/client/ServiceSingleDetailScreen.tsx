@@ -32,8 +32,8 @@ import type { Service } from '../../types';
 
 type BeforeAfterPair = {
   id: string;
-  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
-  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
 };
 
 const REVIEW_PAGE_SIZE = 20;
@@ -387,11 +387,14 @@ export function ServiceSingleDetailScreen({
           </Text>
         ) : (
           <View style={{ gap: spacing.md }}>
-            {pairs.map((p) => (
+            {pairs.map((p, index) => (
               <BeforeAfterSlider
                 key={p.id}
                 beforeSrc={getUploadUrl(p.before.pathMedium ?? p.before.pathThumb ?? p.before.pathOriginal)}
                 afterSrc={getUploadUrl(p.after.pathMedium ?? p.after.pathThumb ?? p.after.pathOriginal)}
+                beforeDescription={p.before.description}
+                afterDescription={p.after.description}
+                comparisonNumber={index + 1}
                 width={sliderSize}
                 height={sliderSize}
               />

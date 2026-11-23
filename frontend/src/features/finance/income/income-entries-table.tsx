@@ -154,15 +154,21 @@ export function IncomeEntriesTable({
       align: 'right',
       render: (row) =>
         row.manualEntry && !isLocked ? (
-          <div className="flex justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={actionLabel('finance.incomeList.editManualEntry', row)}
-              onClick={() => onEdit(row.manualEntry as IncomeBookManualEntry)}
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {row.manualEntry.canEditOriginalService === false ? (
+              <span className="max-w-64 text-left text-xs text-content-strong">
+                {t('finance.manualEntry.historicalServiceUnsupported')}
+              </span>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={actionLabel('finance.incomeList.editManualEntry', row)}
+                onClick={() => onEdit(row.manualEntry as IncomeBookManualEntry)}
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"

@@ -57,6 +57,8 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             await expect(page.getByRole('heading', { name: 'DK-TEST' })).toBeVisible()
             await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
             await expect(page.locator('html')).toHaveAttribute('lang', language)
+            const description = page.locator(imageKind === 'before' ? '#before-image-description' : '#after-image-description')
+            await description.fill('Synthetic hair description')
             const target = page.locator('input[type="file"]').nth(imageKind === 'before' ? 0 : 1).locator('xpath=following-sibling::button[1]')
             await expect(target).toBeVisible()
             await expect(target).toHaveAccessibleName(imageKind === 'before' ? /dodaj prije|add before/i : /dodaj poslije|add after/i)
@@ -97,7 +99,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             ] : [
               { method: 'POST', path: '/api/uploads' },
               { method: 'POST', path: '/api/daily-log/entry-test/images', body: {
-                uploadId: 'synthetic-upload', isBefore: imageKind === 'before', isAfter: imageKind === 'after',
+                uploadId: 'synthetic-upload', isBefore: imageKind === 'before', isAfter: imageKind === 'after', description: 'Synthetic hair description',
               } },
             ])
           })

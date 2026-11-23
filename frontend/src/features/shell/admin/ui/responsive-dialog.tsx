@@ -72,7 +72,7 @@ export function ResponsiveDialog({
           onCloseAutoFocus={handleCloseAutoFocus}
           className="flex h-full w-full max-w-full flex-col gap-0 p-0"
         >
-          <div className="border-b border-line px-4 py-3 ">
+          <div className="border-b border-line px-4 py-3 pr-16">
             <DialogTitle className="text-base font-semibold text-content">
               {title}
             </DialogTitle>
@@ -96,7 +96,7 @@ export function ResponsiveDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent ref={contentRef} className={className ?? 'max-w-2xl'} onOpenAutoFocus={handleOpenAutoFocus} onCloseAutoFocus={handleCloseAutoFocus}>
-        <DialogHeader>
+        <DialogHeader className="pr-12">
           <DialogTitle>{title}</DialogTitle>
           {description ? (
             <DialogDescription>{description}</DialogDescription>

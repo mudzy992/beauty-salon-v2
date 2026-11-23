@@ -1,15 +1,27 @@
 import axios from 'axios';
-import { useAuthStore } from '../stores/auth.store';
+import { synchronizeAuthFromStorage, useAuthStore } from '../stores/auth.store';
 
 const baseURL = import.meta.env.VITE_API_URL || '';
 
+const resolvedBaseURL = baseURL ? `${baseURL.replace(/\/$/, '')}` : '';
 export const api = axios.create({
-  baseURL: baseURL ? `${baseURL.replace(/\/$/, '')}` : '',
+  baseURL: resolvedBaseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Login's optional profile fetch must use the just-issued token, without
+// attaching or invalidating an unrelated currently active session.
+export const loginProfileApi = axios.create({ baseURL: resolvedBaseURL });
+
+const requestSessionVersions = new WeakMap<object, number>();
+
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token ?? localStorage.getItem('token');
+  // Do not send an action initiated in the old tab session with a new user's
+  // token when the storage event has not yet been delivered.
+  if (synchronizeAuthFromStorage()) throw new axios.CanceledError('Session changed before request');
+  const session = useAuthStore.getState();
+  requestSessionVersions.set(config, session.sessionVersion);
+  const token = session.token ?? localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
     if (typeof config.headers.delete === 'function') {
@@ -19,7 +31,7 @@ api.interceptors.request.use((config) => {
     }
   }
   return config;
-});
+}, (error) => { throw error }, { synchronous: true });
 
 const isExpectedUnauthorizedOnAuth = (requestUrl: string): boolean => {
   const u = requestUrl.replace(/^https?:\/\/[^/]+/i, '');
@@ -32,8 +44,9 @@ const isExpectedUnauthorizedOnAuth = (requestUrl: string): boolean => {
 };
 
 api.interceptors.response.use(
-  (r) => r,
+  (r) => { synchronizeAuthFromStorage(); return r },
   (err) => {
+    synchronizeAuthFromStorage();
     if (err.response?.status === 401) {
       const url = String(err.config?.url ?? '');
       const base = String(err.config?.baseURL ?? '');
@@ -41,8 +54,10 @@ api.interceptors.response.use(
       if (isExpectedUnauthorizedOnAuth(url) || isExpectedUnauthorizedOnAuth(combined)) {
         return Promise.reject(err);
       }
-      useAuthStore.getState().logout();
-      window.location.assign('/login');
+      const session = useAuthStore.getState();
+      if (session.token && err.config && requestSessionVersions.get(err.config) === session.sessionVersion) {
+        if (session.logout()) window.location.assign('/login');
+      }
     }
     return Promise.reject(err);
   }

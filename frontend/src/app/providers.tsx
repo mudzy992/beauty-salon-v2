@@ -13,6 +13,7 @@ import { AppToaster } from '../lib/toast/toaster'
 
 export const AppProviders = ({ children }: PropsWithChildren) => {
   const token = useAuthStore((s) => s.token)
+  const sessionVersion = useAuthStore((s) => s.sessionVersion)
   const setReady = useAuthStore((s) => s.setReady)
   const refreshProfile = useAuthStore((s) => s.refreshProfile)
   const logout = useAuthStore((s) => s.logout)
@@ -22,10 +23,13 @@ export const AppProviders = ({ children }: PropsWithChildren) => {
       setReady(true)
       return
     }
+    let active = true
+    const isCurrent = () => active && useAuthStore.getState().sessionVersion === sessionVersion
     refreshProfile()
-      .catch(() => logout())
-      .finally(() => setReady(true))
-  }, [token, refreshProfile, logout, setReady])
+      .catch(() => { if (isCurrent()) logout() })
+      .finally(() => { if (isCurrent()) setReady(true) })
+    return () => { active = false }
+  }, [token, sessionVersion, refreshProfile, logout, setReady])
 
   return (
     // WCAG 2.5.4 (Motion Actuation, AA) i 2.3.3 (AAA): `framer-motion` animira preko JS-a, pa

@@ -9,7 +9,8 @@ const isImage = (value) =>
   typeof value.pathOriginal === 'string' &&
   value.pathOriginal.trim().length > 0 &&
   isOptionalPath(value.pathMedium) &&
-  isOptionalPath(value.pathThumb)
+  isOptionalPath(value.pathThumb) &&
+  (value.description === undefined || value.description === null || typeof value.description === 'string')
 
 const isPair = (value) =>
   isRecord(value) &&

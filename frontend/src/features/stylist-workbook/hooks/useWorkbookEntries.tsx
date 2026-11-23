@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useSessionQuery as useQuery } from '../../../query/use-session-query'
 import { useTranslation } from 'react-i18next'
 
 import {

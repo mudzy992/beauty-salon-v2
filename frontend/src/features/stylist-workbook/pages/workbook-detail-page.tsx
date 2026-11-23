@@ -7,6 +7,8 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
+import { Input } from '../../../components/ui/input'
+import { Label } from '../../../components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +46,8 @@ export const WorkbookDetailPage = () => {
 
   const [acting, setActing] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [beforeDescription, setBeforeDescription] = useState('')
+  const [afterDescription, setAfterDescription] = useState('')
   const beforeFileRef = useRef<HTMLInputElement>(null)
   const afterFileRef = useRef<HTMLInputElement>(null)
   const beforeButtonRef = useRef<HTMLButtonElement>(null)
@@ -75,6 +79,8 @@ export const WorkbookDetailPage = () => {
     e.target.value = ''
     if (!file) return
     if (!entry) return
+    const description = (isBefore ? beforeDescription : afterDescription).trim()
+    if (description.length < 3) return
     const trigger = isBefore ? beforeButtonRef.current : afterButtonRef.current
     const active = document.activeElement
     if (active === trigger || active === e.target || active === document.body) focusAfterUpload.current = trigger
@@ -83,7 +89,7 @@ export const WorkbookDetailPage = () => {
       const upload = await uploadDailyLogImage(file)
       await attachDailyLogImage({
         entryId: entry.id,
-        body: { uploadId: upload.id, isBefore, isAfter: !isBefore },
+        body: { uploadId: upload.id, isBefore, isAfter: !isBefore, description },
       })
       success(
         t('stylistWorkbook.detail.imageAddedTitle'),
@@ -355,7 +361,7 @@ export const WorkbookDetailPage = () => {
                     <MediaImage
                       key={img.id}
                       src={uri}
-                      alt={t('stylistWorkbook.detail.before')}
+                      alt={img.description || t('stylistWorkbook.detail.before')}
                       className="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
                       loading="lazy"
                     />
@@ -375,7 +381,7 @@ export const WorkbookDetailPage = () => {
                     <MediaImage
                       key={img.id}
                       src={uri}
-                      alt={t('stylistWorkbook.detail.after')}
+                      alt={img.description || t('stylistWorkbook.detail.after')}
                       className="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
                       loading="lazy"
                     />
@@ -387,6 +393,15 @@ export const WorkbookDetailPage = () => {
 
           {canComplete ? (
             <div className="mt-5 flex flex-wrap items-center gap-2">
+              <p id="image-description-help" className="w-full text-sm text-content-strong">{t('stylistWorkbook.detail.descriptionHelp')}</p>
+              <div className="grid w-full gap-1">
+                <Label htmlFor="before-image-description">{t('stylistWorkbook.detail.beforeDescription')}</Label>
+                <Input id="before-image-description" maxLength={500} value={beforeDescription} onChange={(event) => setBeforeDescription(event.target.value)} aria-describedby="image-description-help" />
+              </div>
+              <div className="grid w-full gap-1">
+                <Label htmlFor="after-image-description">{t('stylistWorkbook.detail.afterDescription')}</Label>
+                <Input id="after-image-description" maxLength={500} value={afterDescription} onChange={(event) => setAfterDescription(event.target.value)} aria-describedby="image-description-help" />
+              </div>
               <input
                 ref={beforeFileRef}
                 type="file"
@@ -395,7 +410,7 @@ export const WorkbookDetailPage = () => {
                 onChange={(e) => void handleUpload(true, e)}
                 disabled={uploading}
               />
-              <Button ref={beforeButtonRef} type="button" variant="outline" size="sm" disabled={uploading} onClick={() => beforeFileRef.current?.click()}>
+              <Button ref={beforeButtonRef} type="button" variant="outline" size="sm" disabled={uploading || beforeDescription.trim().length < 3} onClick={() => beforeFileRef.current?.click()}>
                 {uploading
                   ? t('stylistWorkbook.detail.uploading')
                   : t('stylistWorkbook.detail.addBefore')}
@@ -408,7 +423,7 @@ export const WorkbookDetailPage = () => {
                 onChange={(e) => void handleUpload(false, e)}
                 disabled={uploading}
               />
-              <Button ref={afterButtonRef} type="button" variant="outline" size="sm" disabled={uploading} onClick={() => afterFileRef.current?.click()}>
+              <Button ref={afterButtonRef} type="button" variant="outline" size="sm" disabled={uploading || afterDescription.trim().length < 3} onClick={() => afterFileRef.current?.click()}>
                 {uploading
                   ? t('stylistWorkbook.detail.uploading')
                   : t('stylistWorkbook.detail.addAfter')}

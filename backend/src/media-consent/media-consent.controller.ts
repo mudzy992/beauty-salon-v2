@@ -37,8 +37,10 @@ export class MediaConsentController {
     @Param('imageId') imageId: string,
     @Body('policyVersion') policyVersion: string,
     @CurrentUser() user: CurrentUserPayload,
+    @Body('publishDescription') publishDescription?: unknown,
+    @Body('reviewedDescription') reviewedDescription?: unknown,
   ) {
-    return this.consents.grantForClient(imageId, policyVersion, user);
+    return this.consents.grantForClient(imageId, policyVersion, user, publishDescription, reviewedDescription);
   }
 
   @Delete(':imageId')

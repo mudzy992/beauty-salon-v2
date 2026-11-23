@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import api from '../api/client'
+import api, { loginProfileApi } from '../api/client'
 
 export interface AuthUser {
   sub: string
@@ -88,11 +88,12 @@ interface AuthState {
   token: string | null
   user: AuthUser | null
   isReady: boolean
+  sessionVersion: number
   setToken: (token: string | null) => void
   replaceToken: (token: string) => void
   setUser: (user: AuthUser | null) => void
   setReady: (ready: boolean) => void
-  logout: () => void
+  logout: () => boolean
   refreshProfile: () => Promise<AuthUser>
   login: (username: string, password: string) => Promise<AuthUser>
 }
@@ -101,43 +102,91 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem(TOKEN_KEY),
   user: null,
   isReady: false,
-  setToken: (token) => set({ token }),
+  sessionVersion: 0,
+  setToken: (token) => set((state) => ({ token, sessionVersion: state.sessionVersion + 1 })),
   replaceToken: (token) => {
     localStorage.setItem(TOKEN_KEY, token)
     api.defaults.headers.common.Authorization = `Bearer ${token}`
-    set({ token })
+    set((state) => ({ token, sessionVersion: state.sessionVersion + 1 }))
   },
-  setUser: (user) => set({ user }),
+  setUser: (user) => set((state) => ({
+    user,
+    sessionVersion: state.sessionVersion + (state.user?.sub !== user?.sub ? 1 : 0),
+  })),
   setReady: (ready) => set({ isReady: ready }),
   logout: () => {
+    // A click or delayed response from the old tab must not erase a newer
+    // session written by another tab before its storage event is delivered.
+    if (synchronizeAuthFromStorage()) return false
     localStorage.removeItem(TOKEN_KEY)
     delete api.defaults.headers.common.Authorization
-    set({ token: null, user: null, isReady: true })
+    set((state) => ({ token: null, user: null, isReady: true, sessionVersion: state.sessionVersion + 1 }))
     window.location.assign('/')
+    return true
   },
   refreshProfile: async () => {
+    const { token, sessionVersion, user } = get()
     const profile = await api.get<ProfilePayload>('/api/users/profile')
-    const mapped = mapProfileToUser(profile.data, get().token)
+    if (get().sessionVersion !== sessionVersion || get().token !== token) {
+      throw new Error('Session changed during profile refresh')
+    }
+    if (user && profile.data.id !== user.sub) {
+      throw new Error('Profile identity does not match session')
+    }
+    const mapped = mapProfileToUser(profile.data, token)
     set({ user: mapped })
     return mapped
   },
   login: async (username: string, password: string) => {
+    const sessionVersion = get().sessionVersion
     const { data } = await api.post<{ access_token: string; user?: ProfilePayload }>(
       '/auth/login',
       { login: username, password },
     )
+    if (get().sessionVersion !== sessionVersion) throw new Error('Session changed during login')
     const newToken = data.access_token
-    localStorage.setItem(TOKEN_KEY, newToken)
-    api.defaults.headers.common.Authorization = `Bearer ${newToken}`
     let userData: AuthUser
     if (data.user?.id) {
       userData = mapProfileToUser(data.user, newToken)
     } else {
-      const profile = await api.get<ProfilePayload>('/api/users/profile')
+      const profile = await loginProfileApi.get<ProfilePayload>('/api/users/profile', {
+        headers: { Authorization: `Bearer ${newToken}` },
+      })
+      // The separate fallback client has no shared response interceptor.
+      synchronizeAuthFromStorage()
+      if (get().sessionVersion !== sessionVersion) throw new Error('Session changed during login')
       userData = mapProfileToUser(profile.data, newToken)
     }
-    set({ token: newToken, user: userData, isReady: true })
+    localStorage.setItem(TOKEN_KEY, newToken)
+    api.defaults.headers.common.Authorization = `Bearer ${newToken}`
+    set((state) => ({ token: newToken, user: userData, isReady: true, sessionVersion: state.sessionVersion + 1 }))
     return userData
   },
 }))
+
+// Storage events are delivered asynchronously and may describe an older write.
+// Always read the current value instead of applying event.newValue.
+export function synchronizeAuthFromStorage(force = false): boolean {
+  const token = localStorage.getItem(TOKEN_KEY)
+  const current = useAuthStore.getState()
+  if (!force && current.token === token) return false
+  if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`
+  else delete api.defaults.headers.common.Authorization
+  useAuthStore.setState((state) => ({
+    token,
+    user: null,
+    isReady: !token,
+    sessionVersion: state.sessionVersion + 1,
+  }))
+  return true
+}
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', (event) => {
+    if (event.storageArea !== localStorage || (event.key !== TOKEN_KEY && event.key !== null)) return
+    // Even if the current token matches, intervening writes (A→B→A) invalidate
+    // in-flight work and cached identity. Same-value writes emit no event.
+    synchronizeAuthFromStorage(true)
+  })
+}
 

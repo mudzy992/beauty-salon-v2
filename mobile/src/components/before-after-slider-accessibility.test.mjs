@@ -8,8 +8,12 @@ const translations = readFileSync(new URL('../i18n/bs.ts', import.meta.url), 'ut
 test('before-after slider exposes an adjustable accessible value and localized instructions', () => {
   assert.match(component, /accessible\s+accessibilityRole="adjustable"/);
   assert.match(component, /accessibilityValue=\{\{[\s\S]*?min: 0,[\s\S]*?max: 100,[\s\S]*?now: accessibilityPercent/);
-  assert.match(component, /accessibilityLabel=\{t\('home\.beforeAfterSliderLabel'\)\}/);
-  assert.match(component, /accessibilityHint=\{t\('home\.beforeAfterSliderHint'\)\}/);
+  assert.match(component, /const label = comparisonNumber \?/);
+  assert.match(component, /accessibilityLabel=\{label\}/);
+  assert.match(component, /accessibilityHint=\{hint\}/);
+  assert.match(component, /beforeDescription \?[^\n]*beforeDescription/);
+  assert.match(component, /afterDescription \?[^\n]*afterDescription/);
+  assert.match(component, /t\('home\.beforeAfterSliderHint'\)/);
   assert.match(component, /accessibilityPercent = Math\.round\(position \* 100\)/);
 });
 

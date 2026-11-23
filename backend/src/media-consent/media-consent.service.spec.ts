@@ -17,6 +17,8 @@ jest.mock('../prisma/prisma.service', () => ({
 }));
 
 const tx = {
+  $queryRaw: jest.fn().mockResolvedValue([]),
+  dailyLogImage: { findUnique: jest.fn() },
   dailyLogImageConsent: {
     findUnique: jest.fn(),
     create: jest.fn(),
@@ -42,6 +44,7 @@ const owner = { sub: 'owner-1', roles: ['OWNER'] };
 function imageRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'image-1',
+    dailyLogEntryId: 'entry-1',
     uploadId: 'upload-original-1',
     isBefore: true,
     isAfter: false,
@@ -104,6 +107,7 @@ describe('MediaConsentService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    tx.dailyLogImage.findUnique.mockImplementation(() => prisma.dailyLogImage.findUnique());
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MediaConsentService,
@@ -140,6 +144,23 @@ describe('MediaConsentService', () => {
         image.publishedCategories.some((category) => category.id === 'auto-category'),
       ),
     ).toBe(true);
+  });
+
+  it('marks only the two selected active photos as auto-published, not pending or extra photos', async () => {
+    const pending = consentedListImage('pending-image', true, false);
+    pending.consent = null as never;
+    prisma.dailyLogImage.findMany.mockResolvedValue([
+      consentedListImage('before-image', true, false),
+      consentedListImage('extra-before-image', true, false),
+      consentedListImage('after-image', false, true),
+      pending,
+    ]);
+    prisma.galleryCategory.findFirst.mockResolvedValue({ id: 'auto-category', name: 'Rezultati' });
+    const result = await service.listForClient(client);
+    expect(result.active.map(image => [image.imageId, image.isPublished])).toEqual([
+      ['before-image', true], ['extra-before-image', false], ['after-image', true],
+    ]);
+    expect(result.pending[0]).toMatchObject({ imageId: 'pending-image', isPublished: false, publishedCategories: [] });
   });
 
   it('does not mark one photo with both flags as a published pair', async () => {
@@ -203,7 +224,7 @@ describe('MediaConsentService', () => {
   });
 
   it('creates a sanitized derivative and immutable grant event for the linked client', async () => {
-    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord());
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Private description' }));
     uploads.createConsentDerivative.mockResolvedValue({
       id: 'consented-copy-1',
       pathOriginal: 'consented/2026/10/copy.webp',
@@ -232,6 +253,7 @@ describe('MediaConsentService', () => {
         dailyLogImageId: 'image-1',
         clientId: 'client-1',
         policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
+        approvedDescription: null,
         publishedUploadId: 'consented-copy-1',
       }),
     });
@@ -243,6 +265,91 @@ describe('MediaConsentService', () => {
         source: 'CLIENT_APP',
       }),
     });
+  });
+
+  it('publishes a description only after a separate opt-in to the reviewed text', async () => {
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Kratka kovrdžava kosa' }));
+    uploads.createConsentDerivative.mockResolvedValue({ id: 'copy-1' });
+    tx.dailyLogImageConsent.findUnique.mockResolvedValue(null);
+    tx.dailyLogImageConsent.create.mockResolvedValue({ id: 'consent-1', consentedAt: new Date() });
+    tx.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Kratka kovrdžava kosa' }));
+    await service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, true, 'Kratka kovrdžava kosa');
+    expect(tx.dailyLogImageConsent.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ approvedDescription: 'Kratka kovrdžava kosa' }) }));
+  });
+
+  it('does not pretend an existing photo-only consent approved a description', async () => {
+    const active = { id: 'consent-1', clientId: 'client-1', revokedAt: null, policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, publishedUploadId: 'copy-1', approvedDescription: null, consentedAt: new Date() };
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Opis', consent: active }));
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, true, 'Opis')).rejects.toBeInstanceOf(ConflictException);
+    expect(uploads.createConsentDerivative).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates simultaneous compatible grants and cleans the losing derivative', async () => {
+    const active = { id: 'consent-1', clientId: 'client-1', revokedAt: null, policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, publishedUploadId: 'first-copy', approvedDescription: null, consentedAt: new Date() };
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord());
+    uploads.createConsentDerivative.mockResolvedValue({ id: 'second-copy' });
+    uploads.deleteUnreferencedUpload.mockResolvedValue(undefined);
+    tx.dailyLogImageConsent.findUnique.mockResolvedValue(active);
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client)).resolves.toEqual({ active: true, consentedAt: active.consentedAt.toISOString() });
+    expect(uploads.deleteUnreferencedUpload).toHaveBeenCalledWith('second-copy');
+    expect(tx.dailyLogImageConsentEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects concurrent grants with different description decisions', async () => {
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Opis' }));
+    uploads.createConsentDerivative.mockResolvedValue({ id: 'second-copy' });
+    uploads.deleteUnreferencedUpload.mockResolvedValue(undefined);
+    tx.dailyLogImageConsent.findUnique.mockResolvedValue({ id: 'consent-1', clientId: 'client-1', revokedAt: null, policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, publishedUploadId: 'first-copy', approvedDescription: 'Opis', consentedAt: new Date() });
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, false)).rejects.toBeInstanceOf(ConflictException);
+    expect(uploads.deleteUnreferencedUpload).toHaveBeenCalledWith('second-copy');
+    expect(tx.dailyLogImageConsent.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale grant if consent was revoked during preparation', async () => {
+    const revoked = { id: 'consent-1', clientId: 'client-1', revokedAt: new Date(), policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, publishedUploadId: 'first-copy', consentedAt: new Date() };
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord());
+    uploads.createConsentDerivative.mockResolvedValue({ id: 'second-copy' });
+    uploads.deleteUnreferencedUpload.mockResolvedValue(undefined);
+    tx.dailyLogImageConsent.findUnique.mockResolvedValue(revoked);
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client)).rejects.toBeInstanceOf(ConflictException);
+    expect(uploads.deleteUnreferencedUpload).toHaveBeenCalledWith('second-copy');
+    expect(tx.dailyLogImageConsent.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale description before creating a public derivative', async () => {
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Drugačiji opis' }));
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, true, 'Stari opis')).rejects.toBeInstanceOf(ConflictException);
+    expect(uploads.createConsentDerivative).not.toHaveBeenCalled();
+    expect(tx.dailyLogImageConsent.create).not.toHaveBeenCalled();
+  });
+
+  it('rolls back and cleans the derivative if the description changes during grant', async () => {
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Prvobitni opis' }));
+    uploads.createConsentDerivative.mockResolvedValue({ id: 'copy-1' });
+    uploads.deleteUnreferencedUpload.mockResolvedValue(undefined);
+    tx.dailyLogImage.findUnique.mockResolvedValue(imageRecord({ description: 'Novi opis' }));
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client, true, 'Prvobitni opis')).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.dailyLogImageConsent.create).not.toHaveBeenCalled();
+    expect(uploads.deleteUnreferencedUpload).toHaveBeenCalledWith('copy-1');
+  });
+
+  it.each([
+    { label: 'client changed', changes: { dailyLogEntry: { clientId: 'client-2', kind: 'SERVICE', status: 'COMPLETED', deletedAt: null } } },
+    { label: 'entry no longer completed', changes: { dailyLogEntry: { clientId: 'client-1', kind: 'SERVICE', status: 'PENDING', deletedAt: null } } },
+    { label: 'entry deleted', changes: { dailyLogEntry: { clientId: 'client-1', kind: 'SERVICE', status: 'COMPLETED', deletedAt: new Date() } } },
+    { label: 'image reclassified', changes: { isBefore: false, isAfter: false } },
+    { label: 'image moved', changes: { dailyLogEntryId: 'another-entry' } },
+    { label: 'original replaced', changes: { uploadId: 'another-upload' } },
+    { label: 'original no longer private', changes: { upload: { storageClass: UploadStorageClass.PUBLIC } } },
+  ])('rechecks eligibility after derivative preparation: $label', async ({ changes }) => {
+    prisma.dailyLogImage.findUnique.mockResolvedValue(imageRecord());
+    tx.dailyLogImage.findUnique.mockResolvedValue(imageRecord(changes));
+    uploads.createConsentDerivative.mockResolvedValue({ id: 'copy-to-clean' });
+    uploads.deleteUnreferencedUpload.mockResolvedValue(undefined);
+    await expect(service.grantForClient('image-1', CLIENT_MEDIA_PUBLICATION_POLICY_VERSION, client)).rejects.toBeInstanceOf(NotFoundException);
+    expect(tx.dailyLogImageConsent.create).not.toHaveBeenCalled();
+    expect(tx.dailyLogImageConsentEvent.create).not.toHaveBeenCalled();
+    expect(uploads.deleteUnreferencedUpload).toHaveBeenCalledWith('copy-to-clean');
   });
 
   it('reuses the retained derivative after a prior revocation and logs a new grant', async () => {
@@ -327,16 +434,15 @@ describe('MediaConsentService', () => {
   );
 
   it('records revocation and prevents the public direct-file route from resolving', async () => {
-    prisma.dailyLogImageConsent.findUnique
-      .mockResolvedValueOnce({
-        id: 'consent-1',
-        clientId: 'client-1',
-        purpose: 'PUBLIC_GALLERY',
-        policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
-        revokedAt: null,
-        dailyLogImage: { dailyLogEntry: { clientId: 'client-1' } },
-      })
-      .mockResolvedValueOnce({
+    tx.dailyLogImageConsent.findUnique.mockResolvedValueOnce({
+      id: 'consent-1',
+      clientId: 'client-1',
+      purpose: 'PUBLIC_GALLERY',
+      policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
+      revokedAt: null,
+      dailyLogImage: { dailyLogEntry: { clientId: 'client-1' } },
+    });
+    prisma.dailyLogImageConsent.findUnique.mockResolvedValueOnce({
         id: 'consent-1',
         clientId: 'client-1',
         purpose: 'PUBLIC_GALLERY',

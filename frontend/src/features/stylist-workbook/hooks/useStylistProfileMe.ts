@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useSessionQuery as useQuery } from '../../../query/use-session-query'
 
 import { fetchStylistProfileMe } from '../api/stylist-workbook.api'
 

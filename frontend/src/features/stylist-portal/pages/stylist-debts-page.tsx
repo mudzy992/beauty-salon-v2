@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '../../../components/ui/label'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import api from '../../../api/client'
-import { useQuery } from '@tanstack/react-query'
+import { useSessionQuery as useQuery } from '../../../query/use-session-query'
 import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 

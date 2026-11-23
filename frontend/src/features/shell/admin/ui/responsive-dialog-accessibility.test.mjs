@@ -29,6 +29,6 @@ test('mobile drawer provides the dialog title and optional description semantics
 test('desktop dialog retains the same named title and optional description', () => {
   const desktopBranch = source.slice(source.indexOf('return (\n    <Dialog'))
 
-  assert.match(desktopBranch, /<DialogHeader>[\s\S]*?<DialogTitle>\{title\}<\/DialogTitle>/)
+  assert.match(desktopBranch, /<DialogHeader\b[^>]*>[\s\S]*?<DialogTitle>\{title\}<\/DialogTitle>/)
   assert.match(desktopBranch, /<DialogDescription>\{description\}<\/DialogDescription>/)
 })

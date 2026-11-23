@@ -87,6 +87,18 @@ describe('DailyLogPublicService', () => {
     expect(actual.nextOffset).toBe(1);
   });
 
+  it('publishes only separately approved description snapshots, never the private image description', async () => {
+    const entry = makePairEntry('private');
+    Object.assign(entry.images[0], { description: 'PRIVATE BEFORE', consent: { id: 'before-consent', clientId: 'client-1', approvedDescription: null } });
+    Object.assign(entry.images[1], { description: 'PRIVATE AFTER', consent: { id: 'after-consent', clientId: 'client-1', approvedDescription: 'Approved description' } });
+    mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([entry]);
+    const actual = await service.findBeforeAfterPairs({ limit: 10 });
+    expect(actual.items[0]?.before.description).toBeNull();
+    expect(actual.items[0]?.after.description).toBe('Approved description');
+    expect(JSON.stringify(actual)).not.toContain('PRIVATE');
+  });
+
   it('does not reuse one image as both sides of an automatic pair', async () => {
     mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
     mockPrisma.dailyLogEntry.findMany.mockResolvedValue([
@@ -149,7 +161,7 @@ describe('DailyLogPublicService', () => {
           images: {
             some: expect.objectContaining({
               isBefore: true,
-              upload: { storageClass: 'PRIVATE' },
+              upload: expect.objectContaining({ storageClass: 'PRIVATE', mimeType: { in: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], mode: 'insensitive' } }),
               consent: { is: expect.objectContaining({ revokedAt: null }) },
             }),
           },

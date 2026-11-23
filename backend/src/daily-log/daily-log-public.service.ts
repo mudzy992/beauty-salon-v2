@@ -10,6 +10,7 @@ import {
   MAX_BEFORE_AFTER_OFFSET,
 } from './before-after-query.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { CONSENT_PHOTO_MIMES, selectBeforeAfterPair } from './before-after-selection';
 import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.constants';
 
 export type BeforeAfterPair = {
@@ -18,11 +19,13 @@ export type BeforeAfterPair = {
     pathOriginal: string;
     pathMedium?: string | null;
     pathThumb?: string | null;
+    description?: string | null;
   };
   after: {
     pathOriginal: string;
     pathMedium?: string | null;
     pathThumb?: string | null;
+    description?: string | null;
   };
 };
 
@@ -119,7 +122,7 @@ export class DailyLogPublicService {
       images: {
         some: {
           isBefore: true,
-          upload: { storageClass: UploadStorageClass.PRIVATE },
+          upload: { storageClass: UploadStorageClass.PRIVATE, mimeType: { in: CONSENT_PHOTO_MIMES, mode: 'insensitive' } },
           consent: { is: activeConsent },
         },
       },
@@ -128,7 +131,7 @@ export class DailyLogPublicService {
           images: {
             some: {
               isAfter: true,
-              upload: { storageClass: UploadStorageClass.PRIVATE },
+              upload: { storageClass: UploadStorageClass.PRIVATE, mimeType: { in: CONSENT_PHOTO_MIMES, mode: 'insensitive' } },
               consent: { is: activeConsent },
             },
           },
@@ -148,12 +151,12 @@ export class DailyLogPublicService {
           OR: [
             {
               isBefore: true,
-              upload: { storageClass: UploadStorageClass.PRIVATE },
+              upload: { storageClass: UploadStorageClass.PRIVATE, mimeType: { in: CONSENT_PHOTO_MIMES, mode: 'insensitive' } },
               consent: { is: activeConsent },
             },
             {
               isAfter: true,
-              upload: { storageClass: UploadStorageClass.PRIVATE },
+              upload: { storageClass: UploadStorageClass.PRIVATE, mimeType: { in: CONSENT_PHOTO_MIMES, mode: 'insensitive' } },
               consent: { is: activeConsent },
             },
           ],
@@ -163,10 +166,10 @@ export class DailyLogPublicService {
           isBefore: true,
           isAfter: true,
           consent: {
-            select: { id: true, clientId: true },
+            select: { id: true, clientId: true, approvedDescription: true },
           },
         },
-        orderBy: { sortOrder: 'asc' as const },
+        orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }],
       },
     } satisfies Prisma.DailyLogEntrySelect;
   }
@@ -215,7 +218,7 @@ export class DailyLogPublicService {
         id: string;
         isBefore: boolean;
         isAfter: boolean;
-        consent: { id: string; clientId: string | null } | null;
+        consent: { id: string; clientId: string | null; approvedDescription: string | null } | null;
       }>;
     }>,
   ): BeforeAfterPair[] {
@@ -224,13 +227,9 @@ export class DailyLogPublicService {
       const valid = (image: (typeof entry.images)[number]) =>
         image.consent?.clientId !== null &&
         image.consent?.clientId === entry.clientId;
-      const beforeImg = entry.images.find(
-        (image) => image.isBefore && valid(image),
-      );
-      const afterImg = entry.images.find(
-        (image) =>
-          image.isAfter && image.id !== beforeImg?.id && valid(image),
-      );
+      const pair = selectBeforeAfterPair(entry.images.filter(valid));
+      const beforeImg = pair?.before;
+      const afterImg = pair?.after;
       if (!entry.clientId || !beforeImg?.consent || !afterImg?.consent)
         continue;
       pairs.push({
@@ -239,11 +238,13 @@ export class DailyLogPublicService {
           pathOriginal: `/api/media/consents/${beforeImg.consent.id}/file`,
           pathMedium: null,
           pathThumb: null,
+          description: beforeImg.consent.approvedDescription ?? null,
         },
         after: {
           pathOriginal: `/api/media/consents/${afterImg.consent.id}/file`,
           pathMedium: null,
           pathThumb: null,
+          description: afterImg.consent.approvedDescription ?? null,
         },
       });
     }

@@ -603,6 +603,8 @@
   "mediaConsent": {
     "title": "Saglasnosti za fotografije",
     "intro": "Saglasnost je dobrovoljna i odvojena za svaku fotografiju. Odbijanje ne utiče na uslugu.",
+    "descriptionPreview": "Predloženi opis fotografije",
+    "publishDescriptionOptional": "Dodatno pristajem da se ovaj opis javno prikaže uz fotografiju. Ova odluka je opcionalna i odvojena od saglasnosti za fotografiju.",
     "pendingHeading": "Fotografije koje čekaju vašu odluku",
     "activeHeading": "Aktivne saglasnosti",
     "photoBefore": "Fotografija prije tretmana",
@@ -621,7 +623,9 @@
     "privacyNote": "Fotografije bez vaše saglasnosti ostaju privatne. Povlačenje zaustavlja budući pristup kroz sistem; kopije koje su već preuzete ili snimljene izvan njega ne mogu se opozvati.",
     "toast": {
       "granted": "Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.",
-      "revoked": "Saglasnost je povučena, a budući javni pristup kroz sistem je blokiran."
+      "revoked": "Saglasnost je povučena, a budući javni pristup kroz sistem je blokiran.",
+      "grantedRefreshFailed": "Saglasnost je sačuvana, ali status nije moguće osvježiti. Pokušajte ponovo učitati.",
+      "revokedRefreshFailed": "Saglasnost je povučena, ali status nije moguće osvježiti. Pokušajte ponovo učitati."
     },
     "errors": {
       "loadFailed": "Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.",
@@ -1424,14 +1428,14 @@
       "subcategoryActiveToggle": "Potkategorija aktivna",
       "serviceActiveToggle": "Usluga aktivna",
       "loyaltyToggle": "Loyalty omogućen za uslugu",
-      "addSubcategory": "Dodaj potkategoriju",
-      "editCategory": "Uredi kategoriju",
-      "deleteCategory": "Obriši kategoriju",
-      "editSubcategory": "Uredi potkategoriju",
-      "deleteSubcategory": "Obriši potkategoriju",
-      "workGallery": "Pregled završenih radova",
-      "editService": "Uredi uslugu",
-      "deleteService": "Obriši uslugu"
+      "addSubcategory": "Dodaj potkategoriju: {{name}}",
+      "editCategory": "Uredi kategoriju: {{name}}",
+      "deleteCategory": "Obriši kategoriju: {{name}}",
+      "editSubcategory": "Uredi potkategoriju: {{name}}",
+      "deleteSubcategory": "Obriši potkategoriju: {{name}}",
+      "workGallery": "Pregled završenih radova: {{name}}",
+      "editService": "Uredi uslugu: {{name}}",
+      "deleteService": "Obriši uslugu: {{name}}"
     },
     "toast": {
       "saved": "Promjene su sačuvane.",
@@ -1818,6 +1822,9 @@
       "finishWithReservation": "Završi zapis (završava i rezervaciju)",
       "finishEntry": "Završi zapis (upis u knjigu)",
       "beforeAfter": "Prije i poslije",
+      "descriptionHelp": "Opis je privatan dok klijent zasebno ne odobri njegovu javnu objavu.",
+      "beforeDescription": "Opis fotografije prije",
+      "afterDescription": "Opis fotografije poslije",
       "beforeAfterHint": "Dodajte fotografije prije i poslije (kvadratni izrez, kao u mobilnoj aplikaciji).",
       "before": "Prije",
       "after": "Poslije",
@@ -2346,7 +2353,7 @@
       "resyncFailed": "Sinhronizacija nije uspjela",
       "entriesTitle": "Stavke ({{count}})",
       "deleteTitle": "Obrisati stavku?",
-      "deleteDescription": "Ako je uz stavku evidentiran otvoren dug, i on će biti obrisan.",
+      "deleteDescription": "Ako je uz stavku evidentiran otvoren dug, i on će biti obrisan. Kod usluge koja više nije podržana, naplaćeni dug i njegova naplata ostaju evidentirani; stavka se uklanja iz prihoda.",
       "deleteConfirm": "Obriši",
       "lockHistoryEmpty": "Nema zabilježenih zaključavanja.",
       "manualHistoryEmpty": "Nema izmjena ručnih stavki.",
@@ -2582,6 +2589,8 @@
       "servicesLoadError": "Usluge se ne mogu učitati.",
       "retryServices": "Ponovo učitaj usluge",
       "amountUnavailable": "Nedostupno",
+      "historicalServiceUnsupported": "Ova usluga više nije dostupna za stilistu. Unos se ne može urediti; u otključanoj knjizi možete ga obrisati.",
+      "serviceUnsupported": "Odabrana usluga nije dostupna za odabranog stilistu. Osvježite podatke i odaberite dostupnu uslugu.",
       "selectService": "— Odaberite servis —",
       "selectStylistFirst": "Prvo odaberite stilistu",
       "client": "Klijent",
@@ -2976,6 +2985,7 @@
       "consentDescription": "Fotografije klijentica prikazuju se samo uz njihovu važeću, izričitu saglasnost.",
       "automaticConsentDescription": "Automatski prikazujemo samo parove za koje obje fotografije imaju važeću saglasnost.",
       "noConsentedPairs": "Trenutno nema parova s aktivnom saglasnošću za obje fotografije.",
+      "categoryOccurrence": "{{name}}, kategorija {{current}} od {{total}}",
       "openImage": "Otvori sliku",
       "openOriginal": "Otvori original u novom prozoru",
       "close": "Zatvori",

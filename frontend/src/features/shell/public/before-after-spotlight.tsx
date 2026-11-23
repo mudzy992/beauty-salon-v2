@@ -10,8 +10,8 @@ const MotionDiv = motion.div
 
 export type BeforeAfterSpotlightPair = {
   id: string
-  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
-  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null }
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null }
 }
 
 const THUMB_ROW_H = 80
@@ -132,6 +132,8 @@ export const BeforeAfterSpotlight = ({
                   beforeSrc={resolveBefore(selectedPair)}
                   afterSrc={resolveAfter(selectedPair)}
                   alt={t('public.beforeAfter.comparisonLabels')}
+                  beforeDescription={selectedPair.before.description}
+                  afterDescription={selectedPair.after.description}
                   aspectRatio={1}
                   ariaLabel={t('public.beforeAfter.selectedTransformation', {
                     current: selectedPairIndex + 1,

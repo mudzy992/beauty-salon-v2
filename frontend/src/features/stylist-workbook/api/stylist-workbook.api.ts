@@ -116,7 +116,7 @@ export const uploadDailyLogImage = async (file: File): Promise<{ id: string }> =
 
 export const attachDailyLogImage = async (params: {
   entryId: string
-  body: { uploadId: string; isBefore?: boolean; isAfter?: boolean }
+  body: { uploadId: string; isBefore?: boolean; isAfter?: boolean; description?: string }
 }): Promise<{ id: string }> => {
   const { data } = await api.post<{ id: string }>(`/api/daily-log/${params.entryId}/images`, params.body)
   return data

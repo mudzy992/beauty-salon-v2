@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useSessionQuery as useQuery } from '../query/use-session-query'
 
 import api from '../api/client'
 import { Button } from '../components/ui/button'

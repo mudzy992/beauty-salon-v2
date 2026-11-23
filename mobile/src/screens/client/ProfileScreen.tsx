@@ -96,6 +96,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [mediaConsentLoading, setMediaConsentLoading] = useState(false);
   const [mediaConsentSavingId, setMediaConsentSavingId] = useState<string | null>(null);
   const [mediaConsentAccepted, setMediaConsentAccepted] = useState<Record<string, boolean>>({});
+  const [mediaDescriptionAccepted, setMediaDescriptionAccepted] = useState<Record<string, boolean>>({});
   const [mediaConsentMessage, setMediaConsentMessage] = useState('');
   const mediaConsentGeneration = useRef(0);
   const debtsGeneration = useRef(0);
@@ -141,6 +142,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     setVerifySubmitting(false);
     setMediaConsentSavingId(null);
     setMediaConsentAccepted({});
+    setMediaDescriptionAccepted({});
     setMediaConsentMessage('');
   }, [userId]);
   const isClient = userIsClient(user);
@@ -166,6 +168,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       setMediaConsentLoaded(false);
       setMediaConsentError(false);
       setMediaConsentAccepted({});
+      setMediaDescriptionAccepted({});
       setMediaConsentMessage('');
       setMediaConsentLoading(false);
       return false;
@@ -181,6 +184,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       setMediaConsentLoaded(true);
       setMediaConsentError(false);
       setMediaConsentAccepted({});
+      setMediaDescriptionAccepted({});
       setMediaConsentMessage('');
       return true;
     } catch {
@@ -325,6 +329,8 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     try {
       await api.post(`/api/media/consents/${encodeURIComponent(item.imageId)}/grant`, {
         policyVersion,
+        publishDescription: Boolean(mediaDescriptionAccepted[item.imageId]),
+        ...(mediaDescriptionAccepted[item.imageId] ? { reviewedDescription: item.description.trim() } : {}),
       });
       if (!isCurrentConsentAction()) return;
       const refreshed = await loadMediaConsent();
@@ -339,7 +345,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     } finally {
       if (isCurrentAction(identity)) setMediaConsentSavingId(null);
     }
-  }, [captureActionIdentity, isCurrentAction, loadMediaConsent, visibleMediaConsent, mediaConsentAccepted, t]);
+  }, [captureActionIdentity, isCurrentAction, loadMediaConsent, visibleMediaConsent, mediaConsentAccepted, mediaDescriptionAccepted, t]);
 
   const revokeMediaConsent = useCallback((item: ConsentItem) => {
     const identity = captureActionIdentity();
@@ -545,6 +551,20 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                         {t('profile.mediaConsent.checkbox')}
                       </Text>
                     </TouchableOpacity>
+                    {item.description ? (
+                      <View style={{ gap: spacing.sm, marginBottom: spacing.md }}>
+                        <Text style={{ color: colors.textSecondary }}>{t('profile.mediaConsent.descriptionPreview')}: {item.description}</Text>
+                        <TouchableOpacity
+                          onPress={() => setMediaDescriptionAccepted((current) => ({ ...current, [item.imageId]: !current[item.imageId] }))}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: Boolean(mediaDescriptionAccepted[item.imageId]) }}
+                          style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}
+                        >
+                          <Ionicons name={mediaDescriptionAccepted[item.imageId] ? 'checkbox' : 'square-outline'} size={20} color={colors.primary} />
+                          <Text style={{ color: colors.text, flex: 1, fontSize: 13, lineHeight: 19 }}>{t('profile.mediaConsent.publishDescriptionOptional')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
                     <Button
                       title={mediaConsentSavingId === item.imageId ? t('profile.sending') : t('profile.mediaConsent.grantAction')}
                       onPress={() => void grantMediaConsent(item)}

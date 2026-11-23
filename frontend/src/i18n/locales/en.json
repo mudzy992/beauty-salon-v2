@@ -603,6 +603,8 @@
   "mediaConsent": {
     "title": "Photo consent",
     "intro": "Consent is voluntary and requested separately for each photo. Declining does not affect your service.",
+    "descriptionPreview": "Proposed photo description",
+    "publishDescriptionOptional": "I also agree to make this description public with the photo. This choice is optional and separate from photo consent.",
     "pendingHeading": "Photos awaiting your decision",
     "activeHeading": "Active consents",
     "photoBefore": "Before-treatment photo",
@@ -621,7 +623,9 @@
     "privacyNote": "Photos without your consent remain private. Revoking consent stops future access through the system; copies already downloaded or captured outside it cannot be revoked.",
     "toast": {
       "granted": "Consent was recorded. Public display status is shown with the active consent.",
-      "revoked": "Consent was revoked, and future public access through the system is blocked."
+      "revoked": "Consent was revoked, and future public access through the system is blocked.",
+      "grantedRefreshFailed": "Consent was saved, but the status could not be refreshed. Try loading it again.",
+      "revokedRefreshFailed": "Consent was revoked, but the status could not be refreshed. Try loading it again."
     },
     "errors": {
       "loadFailed": "Unable to load consent details right now. Please try again.",
@@ -1424,14 +1428,14 @@
       "subcategoryActiveToggle": "Subcategory active",
       "serviceActiveToggle": "Service active",
       "loyaltyToggle": "Loyalty enabled for service",
-      "addSubcategory": "Add subcategory",
-      "editCategory": "Edit category",
-      "deleteCategory": "Delete category",
-      "editSubcategory": "Edit subcategory",
-      "deleteSubcategory": "Delete subcategory",
-      "workGallery": "View completed work",
-      "editService": "Edit service",
-      "deleteService": "Delete service"
+      "addSubcategory": "Add subcategory: {{name}}",
+      "editCategory": "Edit category: {{name}}",
+      "deleteCategory": "Delete category: {{name}}",
+      "editSubcategory": "Edit subcategory: {{name}}",
+      "deleteSubcategory": "Delete subcategory: {{name}}",
+      "workGallery": "View completed work: {{name}}",
+      "editService": "Edit service: {{name}}",
+      "deleteService": "Delete service: {{name}}"
     },
     "toast": {
       "saved": "Changes saved.",
@@ -1818,6 +1822,9 @@
       "finishWithReservation": "Complete entry (also completes reservation)",
       "finishEntry": "Complete entry (record in ledger)",
       "beforeAfter": "Before and after",
+      "descriptionHelp": "The description remains private unless the client separately approves its publication.",
+      "beforeDescription": "Before photo description",
+      "afterDescription": "After photo description",
       "beforeAfterHint": "Add before-and-after photos (square crop, as in the mobile app).",
       "before": "Before",
       "after": "After",
@@ -2346,7 +2353,7 @@
       "resyncFailed": "Synchronization failed.",
       "entriesTitle": "Entries ({{count}})",
       "deleteTitle": "Delete this entry?",
-      "deleteDescription": "If an open debt is recorded for this entry, it will also be deleted.",
+      "deleteDescription": "If an open debt is recorded for this entry, it will also be deleted. For a service that is no longer supported, any settled debt and its payment remain recorded; the entry is removed from income.",
       "deleteConfirm": "Delete",
       "lockHistoryEmpty": "There is no lock history.",
       "manualHistoryEmpty": "There are no manual-entry changes.",
@@ -2582,6 +2589,8 @@
       "servicesLoadError": "Could not load services.",
       "retryServices": "Reload services",
       "amountUnavailable": "Unavailable",
+      "historicalServiceUnsupported": "This service is no longer available for the stylist. The entry cannot be edited; you can delete it from an unlocked book.",
+      "serviceUnsupported": "The selected service is not available for this stylist. Refresh the data and choose an available service.",
       "selectService": "— Select a service —",
       "selectStylistFirst": "Select a stylist first",
       "client": "Client",
@@ -2976,6 +2985,7 @@
       "consentDescription": "Client photos are shown only with current, explicit consent.",
       "automaticConsentDescription": "We automatically display only pairs where both photos have current consent.",
       "noConsentedPairs": "There are currently no pairs with active consent for both photos.",
+      "categoryOccurrence": "{{name}}, category {{current}} of {{total}}",
       "openImage": "Open image",
       "openOriginal": "Open original in a new window",
       "close": "Close",

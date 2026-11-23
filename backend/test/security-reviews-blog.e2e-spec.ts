@@ -4,7 +4,7 @@ jest.mock('../src/blog/utils/sanitize-blog-content', () => ({
 }));
 
 import { createHmac, randomUUID } from 'node:crypto';
-import { appendFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -1417,6 +1417,77 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     expect(randomPage.body).toMatchObject({ hasMore: false, nextOffset: 0 });
   });
 
+  it('publishes only a separately approved description and keeps the reviewed snapshot', async () => {
+    const imageId = firstBeforeImageId;
+    const consentId = fixtureIds.mediaConsents[0];
+    const entryId = fixtureIds.consentedDailyLogEntries[0];
+    const policyVersion = 'client-media-publication-v1';
+    const description = 'Kratka kovrdžava kosa prije tretmana';
+    await prisma!.dailyLogImage.update({ where: { id: imageId }, data: { description } });
+    const feed = () => request(getHttpServer(app!)).get('/api/daily-log/before-after').query({ serviceId, limit: 50 }).expect(200);
+    const findPair = (body: { items: Array<{ id: string; before: { description: string | null } }> }) => body.items.find(item => item.id === entryId);
+    expect(findPair((await feed()).body)?.before.description).toBeNull();
+    await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: description }).expect(409);
+    await request(getHttpServer(app!)).delete(`/api/media/consents/${imageId}`).set('Authorization', `Bearer ${clientToken}`).expect(200);
+    await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: 'Stari opis' }).expect(409);
+    await request(getHttpServer(app!)).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion, publishDescription: true, reviewedDescription: description }).expect(201);
+    expect(findPair((await feed()).body)?.before.description).toBe(description);
+    await prisma!.dailyLogImage.update({ where: { id: imageId }, data: { description: 'Izmijenjeni privatni opis' } });
+    expect(findPair((await feed()).body)?.before.description).toBe(description);
+    // Restore fixture for the separate revocation/direct-file test.
+    await prisma!.dailyLogImage.update({ where: { id: imageId }, data: { description: null } });
+    await prisma!.dailyLogImageConsent.update({ where: { id: consentId }, data: { approvedDescription: null } });
+  });
+
+  it('reports publication only for the pair actually selected in the public feed', async () => {
+    const db = prisma!;
+    const entryId = fixtureIds.consentedDailyLogEntries[0]!;
+    const originalImage = await db.dailyLogImage.findUniqueOrThrow({ where: { id: firstBeforeImageId } });
+    const extra = await db.dailyLogImage.create({ data: { dailyLogEntryId: entryId, uploadId: originalImage.uploadId, isBefore: true, sortOrder: 10 } });
+    const pending = await db.dailyLogImage.create({ data: { dailyLogEntryId: entryId, uploadId: originalImage.uploadId, isAfter: true, sortOrder: 11 } });
+    fixtureIds.dailyLogImages.push(extra.id, pending.id);
+    const derivative = await db.upload.create({ data: { originalName: 'extra-fixture.webp', mimeType: 'image/webp', sizeBytes: 1, pathOriginal: `private/consented/e2e/extra-${randomUUID()}.webp`, storageClass: 'CONSENTED_PUBLIC' } });
+    fixtureIds.uploads.push(derivative.id);
+    const consent = await db.dailyLogImageConsent.create({ data: { dailyLogImageId: extra.id, clientId: clientUserId, purpose: 'PUBLIC_GALLERY', policyVersion: 'client-media-publication-v1', consentedAt: new Date(), publishedUploadId: derivative.id } });
+    fixtureIds.mediaConsents.push(consent.id);
+    try {
+      const http = getHttpServer(app!);
+      const inbox = await request(http).get('/api/media/consents/me').set('Authorization', `Bearer ${clientToken}`).expect(200);
+      const active = inbox.body.active as Array<{ imageId: string; isPublished: boolean; publishedCategories: unknown[] }>;
+      const awaiting = inbox.body.pending as Array<{ imageId: string; isPublished: boolean; publishedCategories: unknown[] }>;
+      expect(active.find(item => item.imageId === firstBeforeImageId)?.isPublished).toBe(true);
+      expect(active.find(item => item.imageId === extra.id)).toMatchObject({ isPublished: false, publishedCategories: [] });
+      expect(awaiting.find(item => item.imageId === pending.id)).toMatchObject({ isPublished: false, publishedCategories: [] });
+      const feed = await request(http).get('/api/daily-log/before-after').query({ serviceId, limit: 50 }).expect(200);
+      const pair = feed.body.items.find((item: { id: string }) => item.id === entryId);
+      expect(pair.before.pathOriginal).toBe(`/api/media/consents/${fixtureIds.mediaConsents[0]}/file`);
+      expect(pair.after.pathOriginal).toBe(`/api/media/consents/${fixtureIds.mediaConsents[1]}/file`);
+    } finally {
+      await db.dailyLogImageConsent.deleteMany({ where: { id: consent.id } });
+      await db.dailyLogImage.deleteMany({ where: { id: { in: [extra.id, pending.id] } } });
+      await db.upload.deleteMany({ where: { id: derivative.id } });
+    }
+  });
+
+  it('serializes concurrent duplicate grants and revocations without duplicate audit events', async () => {
+    const imageId = firstBeforeImageId;
+    const consentId = fixtureIds.mediaConsents[0];
+    const http = getHttpServer(app!);
+    const revoke = () => request(http).delete(`/api/media/consents/${imageId}`).set('Authorization', `Bearer ${clientToken}`);
+    const grant = () => request(http).post(`/api/media/consents/${imageId}/grant`).set('Authorization', `Bearer ${clientToken}`).send({ policyVersion: 'client-media-publication-v1' });
+    await revoke().expect(200);
+    const grantsBefore = await prisma!.dailyLogImageConsentEvent.count({ where: { consentId, action: 'GRANTED' } });
+    const results = await Promise.all([grant(), grant()]);
+    expect(results.map(result => result.status)).toEqual([201, 201]);
+    expect(await prisma!.dailyLogImageConsentEvent.count({ where: { consentId, action: 'GRANTED' } })).toBe(grantsBefore + 1);
+    const revocationsBefore = await prisma!.dailyLogImageConsentEvent.count({ where: { consentId, action: 'REVOKED' } });
+    const revoked = await Promise.all([revoke(), revoke()]);
+    expect(revoked.map(result => result.status)).toEqual([200, 200]);
+    expect(await prisma!.dailyLogImageConsentEvent.count({ where: { consentId, action: 'REVOKED' } })).toBe(revocationsBefore + 1);
+    expect((await prisma!.dailyLogImageConsent.findUniqueOrThrow({ where: { id: consentId } })).revokedAt).not.toBeNull();
+    await grant().expect(201); // Restore the active fixture for the direct-file test.
+  });
+
   it('revokes client photo publication from the public feed and direct file route', async () => {
     const consentId = fixtureIds.mediaConsents[0];
     const derivativeUploadId = fixtureIds.consentedUploadIds[0];
@@ -1449,6 +1520,205 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       .expect(404);
     expect(readConsentDerivativeMock).toHaveBeenCalledTimes(1);
   });
+
+  it('creates one real sanitized derivative for concurrent consent grants and cleans the unused copy', async () => {
+    if (!uploadRoot) throw new Error('Missing disposable upload root');
+    const db = prisma!;
+    const suffix = randomUUID();
+    const sourcePath = `private/e2e/real-consent-${suffix}.jpg`;
+    const source = await sharp({ create: { width: 24, height: 18, channels: 3, background: '#d18c67' } })
+      .jpeg().withMetadata({ exif: { IFD0: { Artist: 'Private test metadata' } } }).toBuffer();
+    expect((await sharp(source).metadata()).exif).toBeDefined();
+    await mkdir(join(uploadRoot, 'private/e2e'), { recursive: true });
+    await writeFile(join(uploadRoot, sourcePath), source);
+    const original = await db.upload.create({ data: { originalName: 'synthetic.jpg', mimeType: 'image/jpeg', sizeBytes: source.length, pathOriginal: sourcePath, storageClass: 'PRIVATE', uploadedById: clientUserId } });
+    fixtureIds.uploads.push(original.id);
+    const image = await db.dailyLogImage.create({ data: { dailyLogEntryId: unconsentedDailyLogEntryId, uploadId: original.id, isBefore: true, isAfter: false, description: 'Sintetički privatni opis', sortOrder: 100 } });
+    fixtureIds.dailyLogImages.push(image.id);
+    const uploads = app!.get(UploadsService);
+    const realCreate = uploads.createConsentDerivative.bind(uploads);
+    const copies: Array<{ id: string; pathOriginal: string }> = [];
+    let release!: () => void;
+    const bothCreated = new Promise<void>(resolve => { release = resolve });
+    const createSpy = jest.spyOn(uploads, 'createConsentDerivative').mockImplementation(async uploadId => {
+      const copy = await realCreate(uploadId);
+      copies.push(copy);
+      fixtureIds.uploads.push(copy.id);
+      if (copies.length === 2) release();
+      await bothCreated;
+      return copy;
+    });
+    const http = getHttpServer(app!);
+    const grant = () => request(http).post(`/api/media/consents/${image.id}/grant`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ policyVersion: 'client-media-publication-v1', publishDescription: true, reviewedDescription: 'Sintetički privatni opis' });
+    try {
+      await request(http).post(`/api/media/consents/${image.id}/grant`)
+        .set('Authorization', `Bearer ${reviewClientToken}`)
+        .send({ policyVersion: 'client-media-publication-v1' }).expect(404);
+      const results = await Promise.all([grant(), grant()]);
+      expect(results.map(result => result.status)).toEqual([201, 201]);
+      expect(copies).toHaveLength(2);
+      const consent = await db.dailyLogImageConsent.findUniqueOrThrow({ where: { dailyLogImageId: image.id } });
+      fixtureIds.mediaConsents.push(consent.id);
+      expect(consent).toMatchObject({ clientId: clientUserId, approvedDescription: 'Sintetički privatni opis', revokedAt: null });
+      const survivor = copies.find(copy => copy.id === consent.publishedUploadId)!;
+      const discarded = copies.find(copy => copy.id !== consent.publishedUploadId)!;
+      expect(survivor).toBeDefined();
+      expect(discarded).toBeDefined();
+      expect(await db.upload.findUnique({ where: { id: discarded.id } })).toBeNull();
+      await expect(stat(join(uploadRoot, discarded.pathOriginal))).rejects.toMatchObject({ code: 'ENOENT' });
+      const sanitized = await readFile(join(uploadRoot, survivor.pathOriginal));
+      const metadata = await sharp(sanitized).metadata();
+      expect(metadata.format).toBe('webp');
+      expect(metadata.exif).toBeUndefined();
+      expect(await db.dailyLogImageConsentEvent.findMany({ where: { consentId: consent.id }, select: { action: true, actorId: true } })).toEqual([{ action: 'GRANTED', actorId: clientUserId }]);
+
+      readConsentDerivativeMock.mockRestore();
+      const response = await request(http).get(`/api/media/consents/${consent.id}/file`).expect(200);
+      expect(response.headers['content-type']).toContain('image/webp');
+      expect(response.headers['cache-control']).toContain('no-store');
+      expect(response.body).toEqual(sanitized);
+      await request(http).delete(`/api/media/consents/${image.id}`).set('Authorization', `Bearer ${reviewClientToken}`).expect(404);
+      await request(http).delete(`/api/media/consents/${image.id}`).set('Authorization', `Bearer ${clientToken}`).expect(200);
+      await request(http).get(`/api/media/consents/${consent.id}/file`).expect(404);
+      expect(await db.dailyLogImageConsentEvent.findMany({ where: { consentId: consent.id }, orderBy: { createdAt: 'asc' }, select: { action: true, actorId: true } })).toEqual([{ action: 'GRANTED', actorId: clientUserId }, { action: 'REVOKED', actorId: clientUserId }]);
+    } finally {
+      release();
+      createSpy.mockRestore();
+      readConsentDerivativeMock = jest.spyOn(uploads, 'readConsentDerivative').mockResolvedValue({ buffer: Buffer.from('synthetic-webp'), mimeType: 'image/webp', fileName: 'synthetic.webp', inline: true });
+    }
+  }, 30_000);
+
+  it('rejects an in-flight stale grant after another grant and revoke and removes its real derivative', async () => {
+    if (!uploadRoot) throw new Error('Missing disposable upload root');
+    const db = prisma!;
+    const sourcePath = `private/e2e/interleaved-${randomUUID()}.jpg`;
+    const source = await sharp({ create: { width: 12, height: 12, channels: 3, background: '#7a9c8d' } }).jpeg().toBuffer();
+    await mkdir(join(uploadRoot, 'private/e2e'), { recursive: true });
+    await writeFile(join(uploadRoot, sourcePath), source);
+    const original = await db.upload.create({ data: { originalName: 'interleaved.jpg', mimeType: 'image/jpeg', sizeBytes: source.length, pathOriginal: sourcePath, storageClass: 'PRIVATE', uploadedById: clientUserId } });
+    fixtureIds.uploads.push(original.id);
+    const image = await db.dailyLogImage.create({ data: { dailyLogEntryId: unconsentedDailyLogEntryId, uploadId: original.id, isBefore: true, isAfter: false, sortOrder: 101 } });
+    fixtureIds.dailyLogImages.push(image.id);
+    const uploads = app!.get(UploadsService);
+    const realCreate = uploads.createConsentDerivative.bind(uploads);
+    let releaseFirst!: () => void;
+    let signalFirst!: () => void;
+    const firstCreated = new Promise<void>(resolve => { signalFirst = resolve });
+    const firstGate = new Promise<void>(resolve => { releaseFirst = resolve });
+    const copies: Array<{ id: string; pathOriginal: string }> = [];
+    const createSpy = jest.spyOn(uploads, 'createConsentDerivative').mockImplementation(async uploadId => {
+      const copy = await realCreate(uploadId);
+      copies.push(copy);
+      fixtureIds.uploads.push(copy.id);
+      if (copies.length === 1) { signalFirst(); await firstGate; }
+      return copy;
+    });
+    const http = getHttpServer(app!);
+    const grant = () => request(http).post(`/api/media/consents/${image.id}/grant`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ policyVersion: 'client-media-publication-v1' });
+    // Start the request immediately; supertest requests are lazy until awaited/then'ed.
+    const staleGrant = grant().then(result => result);
+    try {
+      await firstCreated;
+      await grant().expect(201);
+      const consent = await db.dailyLogImageConsent.findUniqueOrThrow({ where: { dailyLogImageId: image.id } });
+      fixtureIds.mediaConsents.push(consent.id);
+      await request(http).delete(`/api/media/consents/${image.id}`).set('Authorization', `Bearer ${clientToken}`).expect(200);
+      releaseFirst();
+      expect((await staleGrant).status).toBe(409);
+      expect(copies).toHaveLength(2);
+      expect(await db.upload.findUnique({ where: { id: copies[0]!.id } })).toBeNull();
+      await expect(stat(join(uploadRoot, copies[0]!.pathOriginal))).rejects.toMatchObject({ code: 'ENOENT' });
+      const final = await db.dailyLogImageConsent.findUniqueOrThrow({ where: { id: consent.id } });
+      expect(final.revokedAt).not.toBeNull();
+      expect(final.publishedUploadId).toBe(copies[1]!.id);
+      expect(await db.dailyLogImageConsentEvent.findMany({ where: { consentId: consent.id }, orderBy: { createdAt: 'asc' }, select: { action: true, actorId: true } })).toEqual([{ action: 'GRANTED', actorId: clientUserId }, { action: 'REVOKED', actorId: clientUserId }]);
+      await request(http).get(`/api/media/consents/${consent.id}/file`).expect(404);
+    } finally {
+      releaseFirst();
+      await staleGrant.catch(() => undefined);
+      createSpy.mockRestore();
+    }
+  }, 30_000);
+
+  it.each(['committed', 'locked'] as const)('does not grant consent after the image entry changes client during derivative creation (%s)', async (mode) => {
+    if (!uploadRoot) throw new Error('Missing disposable upload root');
+    const db = prisma!;
+    const sourcePath = `private/e2e/transferred-${randomUUID()}.jpg`;
+    const source = await sharp({ create: { width: 12, height: 12, channels: 3, background: '#b5a392' } }).jpeg().toBuffer();
+    await mkdir(join(uploadRoot, 'private/e2e'), { recursive: true });
+    await writeFile(join(uploadRoot, sourcePath), source);
+    const original = await db.upload.create({ data: { originalName: 'transferred.jpg', mimeType: 'image/jpeg', sizeBytes: source.length, pathOriginal: sourcePath, storageClass: 'PRIVATE', uploadedById: clientUserId } });
+    fixtureIds.uploads.push(original.id);
+    const entry = await db.dailyLogEntry.create({ data: { stylistProfileId: fixtureIds.stylistProfile!, clientId: clientUserId, serviceId, kind: 'SERVICE', date: new Date(), actualPrice: 25, publicReferenceCode: randomUUID(), status: 'COMPLETED', completedAt: new Date() } });
+    fixtureIds.dailyLogEntries.push(entry.id);
+    const image = await db.dailyLogImage.create({ data: { dailyLogEntryId: entry.id, uploadId: original.id, isBefore: true, isAfter: false, sortOrder: 0 } });
+    fixtureIds.dailyLogImages.push(image.id);
+    const uploads = app!.get(UploadsService);
+    const realCreate = uploads.createConsentDerivative.bind(uploads);
+    let release!: () => void;
+    let signal!: () => void;
+    const copyCreated = new Promise<void>(resolve => { signal = resolve });
+    const gate = new Promise<void>(resolve => { release = resolve });
+    let copy: { id: string; pathOriginal: string } | undefined;
+    const spy = jest.spyOn(uploads, 'createConsentDerivative').mockImplementation(async uploadId => {
+      copy = await realCreate(uploadId);
+      fixtureIds.uploads.push(copy.id);
+      signal();
+      await gate;
+      return copy;
+    });
+    const http = getHttpServer(app!);
+    const grant = request(http).post(`/api/media/consents/${image.id}/grant`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ policyVersion: 'client-media-publication-v1' }).then(result => result);
+    let releaseTransfer: (() => void) | undefined;
+    let transfer: Promise<unknown> | undefined;
+    try {
+      await copyCreated;
+      if (mode === 'committed') {
+        await db.dailyLogEntry.update({ where: { id: entry.id }, data: { clientId: reviewClientUserId } });
+        release();
+      } else {
+        let signalTransfer!: () => void;
+        const transferStarted = new Promise<void>(resolve => { signalTransfer = resolve });
+        const transferGate = new Promise<void>(resolve => { releaseTransfer = resolve });
+        transfer = db.$transaction(async tx => {
+          await tx.dailyLogEntry.update({ where: { id: entry.id }, data: { clientId: reviewClientUserId } });
+          signalTransfer();
+          await transferGate;
+        }, { timeout: 15_000 });
+        await transferStarted;
+        release();
+        const deadline = Date.now() + 8_000;
+        let blocked = false;
+        while (Date.now() < deadline && !blocked) {
+          const rows = await db.$queryRaw<Array<{ count: number }>>`SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock' AND query LIKE '%daily_log_entries%' AND query LIKE '%FOR UPDATE%'`;
+          blocked = rows[0]!.count > 0;
+          if (!blocked) await new Promise(resolve => setTimeout(resolve, 25));
+        }
+        expect(blocked).toBe(true);
+        releaseTransfer!();
+        await transfer;
+      }
+      expect((await grant).status).toBe(404);
+      expect(await db.dailyLogImageConsent.findUnique({ where: { dailyLogImageId: image.id } })).toBeNull();
+      expect(copy).toBeDefined();
+      expect(await db.upload.findUnique({ where: { id: copy!.id } })).toBeNull();
+      await expect(stat(join(uploadRoot, copy!.pathOriginal))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      release();
+      releaseTransfer?.();
+      await transfer?.catch(() => undefined);
+      await grant.catch(() => undefined);
+      const consent = await db.dailyLogImageConsent.findUnique({ where: { dailyLogImageId: image.id } });
+      if (consent) fixtureIds.mediaConsents.push(consent.id);
+      spy.mockRestore();
+    }
+  }, 30_000);
 
   it('excludes inactive services, catalog parents and stylist profiles from availability', async () => {
     const testPrisma = prisma!;
@@ -3176,6 +3446,47 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         where: { bookId: book.id, notes: invalidNotes },
       }),
     ).toBe(0);
+  });
+
+  it('enforces historical-service edit, locked deletion and replacement over HTTP', async () => {
+    const db = prisma!;
+    const http = getHttpServer(app!);
+    const stylistProfileId = fixtureIds.stylistProfile!;
+    const assignmentKey = { stylistProfileId_serviceId: { stylistProfileId, serviceId } };
+    let book: Awaited<ReturnType<typeof db.incomeBook.create>> | undefined;
+    let date = '';
+    for (let year = 1980; year < 1990 && !book; year++) {
+      for (let month = 1; month <= 12; month++) {
+        if (await db.incomeBook.findUnique({ where: { year_month: { year, month } } })) continue;
+        book = await db.incomeBook.create({ data: { year, month } });
+        date = `${year}-${String(month).padStart(2, '0')}-15`;
+        break;
+      }
+    }
+    if (!book) throw new Error('No disposable income-book period');
+    const id = book.id;
+    const route = `/api/income-books/${id}`;
+    const auth = (r: request.Test) => r.set('Authorization', `Bearer ${ownerToken}`);
+    try {
+      const entry = await auth(request(http).post(`${route}/manual-entries`)).send({ date, serviceId, stylistProfileId, paidAmount: 25 }).expect(201);
+      const entryId = entry.body.id as string;
+      expect((await auth(request(http).get(route)).expect(200)).body.manualEntries.find((row: { id: string }) => row.id === entryId).canEditOriginalService).toBe(true);
+      await db.stylistService.delete({ where: assignmentKey });
+      expect((await auth(request(http).get(route)).expect(200)).body.manualEntries.find((row: { id: string }) => row.id === entryId).canEditOriginalService).toBe(false);
+      await auth(request(http).patch(`${route}/manual-entries/${entryId}`)).send({ paidAmount: 10 }).expect(409);
+      await auth(request(http).post(`${route}/manual-entries`)).send({ date, serviceId, stylistProfileId, paidAmount: 25 }).expect(409);
+      await auth(request(http).post(`${route}/lock`)).expect(201);
+      await auth(request(http).delete(`${route}/manual-entries/${entryId}`)).expect(400);
+      expect(await db.incomeBookManualEntry.findUnique({ where: { id: entryId } })).not.toBeNull();
+      await auth(request(http).post(`${route}/unlock`)).send({ reason: 'Provjera historijske stavke' }).expect(201);
+      await auth(request(http).delete(`${route}/manual-entries/${entryId}`)).expect(200);
+      await db.stylistService.create({ data: { stylistProfileId, serviceId } });
+      await auth(request(http).post(`${route}/manual-entries`)).send({ date, serviceId, stylistProfileId, paidAmount: 25 }).expect(201);
+      expect(await db.incomeBookManualEntryAudit.count({ where: { bookId: id, action: 'DELETE' } })).toBe(1);
+    } finally {
+      await db.stylistService.upsert({ where: assignmentKey, create: { stylistProfileId, serviceId }, update: {} });
+      await db.incomeBook.deleteMany({ where: { id } });
+    }
   });
 
   it('serializes concurrent debt repayments, replays the recorded payment, and rolls back failed KIF writes', async () => {

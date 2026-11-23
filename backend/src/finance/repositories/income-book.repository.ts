@@ -91,8 +91,8 @@ export class IncomeBookRepository {
     })
   }
 
-  findDetail(id: string) {
-    return this.prisma.incomeBook.findUnique({
+  async findDetail(id: string) {
+    const book = await this.prisma.incomeBook.findUnique({
       where: { id },
       include: {
         entries: {
@@ -133,6 +133,23 @@ export class IncomeBookRepository {
         },
       },
     })
+    if (!book) return null
+    const stylistIds = [...new Set(book.manualEntries.flatMap((entry) => entry.stylistProfileId ? [entry.stylistProfileId] : []))]
+    const serviceIds = [...new Set(book.manualEntries.map((entry) => entry.serviceId))]
+    const assignments = stylistIds.length && serviceIds.length
+      ? await this.prisma.stylistService.findMany({
+          where: { stylistProfileId: { in: stylistIds }, serviceId: { in: serviceIds } },
+          select: { stylistProfileId: true, serviceId: true },
+        })
+      : []
+    const assigned = new Set(assignments.map(({ stylistProfileId, serviceId }) => JSON.stringify([stylistProfileId, serviceId])))
+    return {
+      ...book,
+      manualEntries: book.manualEntries.map((entry) => ({
+        ...entry,
+        canEditOriginalService: entry.service.isActive && (!entry.stylistProfileId || assigned.has(JSON.stringify([entry.stylistProfileId, entry.serviceId]))),
+      })),
+    }
   }
 
   async setLockState(

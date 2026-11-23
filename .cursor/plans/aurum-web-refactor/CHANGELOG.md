@@ -5,6 +5,40 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · Više tabova, privatni obrasci i booking fokus (rad u toku)
+
+**Šta i zašto:** stvarna dva Chromium taba su prije popravke zadržavala stilistu A nakon prijave B i odjave u drugom tabu. Store sluša `storage` i čita trenutno stanje umjesto zastarjele vrijednosti događaja, briše identitet i skriva zaštićeni sadržaj do novog profila. Axios prije slanja provjerava neslaganje storagea i odbija stari zahtjev umjesto da ga pošalje s novim tokenom; odgovor i zasebni login fallback također provjeravaju storage. Zakašnjeli 401 i odjava ne smiju obrisati poznati noviji token; pozivaoci ne preusmjeravaju ako odjava nije uspjela.
+
+`IdentityBoundary` resetuje lokalni privatni state pri promjeni korisnika na admin/stylist granicama te na profilu, vlastitim rezervacijama, formi rezervacije i članku s nacrtom komentara. Time su uklonjeni reproducirani zaostali izbor klijenta, otvoreni dijalog, napomena rezervacije i nacrt komentara drugog korisnika. Članak se pri promjeni identiteta ponovo učitava; javni router i ostatak aplikacije se ne remountaju. Zakašnjeli uspjeh klijentske ili direktne rezervacije i komentara ne smije preusmjeriti niti izmijeniti novi identitet; normalni tokovi ostaju testirani.
+
+Ponovljen je stvarni fokusni pad na svježem buildu: **7/15** sintetičkih Classic/reduced-motion pokušaja palo je na hit-testu. Dijagnostika je izmjerila fokusirani centar na 692 px, iza sticky zaglavlja do 698 px. Privremeni nadzor sada provjerava položaj i nakon scroll događaja (ne samo promjene veličine), a eksplicitni korisnički unos otkazuje i još nezapočeti prijenos fokusa. Poslije prve izmjene jedan od 30 testova je i dalje pao na zaštiti korisničkog skrolanja; nakon dodatne zaštite **30/30** ponavljanja prolazi. Novi deterministički sintetički wheel-before-frame test pada kada se privremeno ukloni ta zaštita, a prolazi kada se vrati. Ovo ne dokazuje uzrok izvornog intermitentnog CI pada.
+
+**Testovi:** synthetic Vite browser **20/20**, uključujući četiri testa u dva taba; store/Axios/query **18/18**; frontend Node **987/987**; svježi build **292,4/300 KiB**, E2E typecheck i lint 0 grešaka / 6 postojećih upozorenja. Na svježem buildu odabrani browser paket **37/37** (booking fokus, change-after-slot, retry s istim idempotency ključem i prikaz bloga); prethodni produkcijski paket **234/234** bio je prije posljednjih izmjena bloga i fokusa. API odgovori su mockirani; mali lokalni servis je davao samo javne postavke, ne stvarni backend. CI indeks, i18n i diff check prolaze. CI run id: nema.
+
+**Izmjene testova:** source test promjene lozinke usklađen je s novim `isCurrent` guardom: i dalje zahtijeva sprečavanje zakašnjele navigacije, a dodatno provjerava zaštitu rotacije tokena i verziju sesije; stvarni negativni i normalni tok su browser-testirani. Fokusni hit-test nije oslabljen; dodana je samo dijagnostika geometrije te zaseban negativno kontrolisan test prije framea.
+
+**Ograničenja:** isti token zapisan ponovo u drugom tabu ne generiše `storage` događaj; `localStorage` nema atomsku compare-and-swap zaštitu između konkurentnih tabova. Već poslani server zahtjev može uspjeti i nakon promjene korisnika. Nisu dokazani svi ostali async tokovi, stvarni backend/browser lifecycle, socket/backend, migration deploy, mobilni uređaji/AT ni puni CI. Nije rađen deploy ni merge.
+
+---
+
+## 2026-11-18 · Web sesija i privatni query cache (rad u toku)
+
+**Šta i zašto:** sintetički testovi su reproducirali zakašnjele profile, 401 i login koji utiču na noviju sesiju, kao i Axios zahtjev koji zbog asinhronog interceptora dobije pogrešan token. `auth.store.ts`, `api/client.ts` i `app/providers.tsx` koriste verziju sesije i guardove; fallback profila pri loginu ima odvojenu Axios instancu. Isti token obnovljen tokom početnog učitavanja ponovo pokreće inicijalizaciju. Zakašnjeli odgovor promjene lozinke ne smije zamijeniti novu sesiju.
+
+React Query je reproducirano prikazivao keš duga stiliste A stilisti B. Svi postojeći query hookovi koriste `useSessionQuery`, koji dodaje verziju sesije na kraj ključa, bez prosljeđivanja starih podataka kao placeholdera; postojeće prefix invalidacije ostaju funkcionalne. Stari rezultati mogu do isteka GC-a ostati u memoriji pod starim ključem. Dodani su AST ugovor protiv direktnih nezaštićenih query čitanja i test prefix invalidacije. Ovo nije tvrdnja da su sve druge lokalne state/mutacije ili budući API-ji automatski sigurni.
+
+**Dokaz:** Vite store/Axios i query testovi **12/12**; sintetički browser **8/8**, uključujući keš i zakašnjeli dug, lozinku (negativni i normalni tok), stari 401/startup i isti token. Prije popravka test curenja keša, test zakašnjele lozinke i test obnove istog tokena padaju. Negativne kontrole za stare 401/provider zaštite također padaju. Puni pronađeni frontend Node testovi **981/981** nakon izolacije keša (prije posljednjih promjena provider/lozinka); odabrane produkcijske browser regresije **114/114** na buildu prije posljednje promjene providera. Svježi build i E2E typecheck prolaze poslije nje; lint 0 grešaka / 6 postojećih upozorenja; CI indeks, i18n i `git diff --check` prolaze. Browser API odgovori su mockirani, proxy websocket upozorenja su očekivana bez backend servera.
+
+**Ograničenja u toj međufazi:** promjena tokena/odjava u drugom tabu tada nije bila sinhronizovana niti testirana (kasniji rad je opisan iznad); stvarni backend/browser lifecycle i kompletan pregled preostalih privatnih stanja/mutacija nisu dokazani. Nema novog CI runa niti deploya. S8 i ostali otvoreni rad ostaju u toku.
+
+---
+
+## 2026-11-18 · S8 · Početno mjerenje (rad u toku)
+
+Vlasnik je odobrio razbijanje. Prije izmjena izmjereno `wc -l`: AnalyticsHub 46, Analytics 477, ClientAnalytics 821, StylistAnalytics 248, Users 1718, Services 1519, Salon 674, Stylists 520, ServiceWorkGallery 226. Source-contract testovi referenciraju ove putanje; pri izdvajanju treba očuvati njihove stvarne garancije. Ovo je samo inventar, S8 nije završen i nema CI dokaza za ovaj korak.
+
+---
+
 ## 2026-11-11 · K0 · Plan kreiran (bez koda)
 
 **Šta:** kreiran `.cursor/plans/aurum-web-refactor/` sa `00_overview.md`, 12 faznih planova (`01`–`12`), `CHECKLIST.md`, `CHANGELOG.md`, `HANDOFF.md`; kreirane plan-matrice `.cursor/docs/matrices/aurum-theme/` i `.cursor/docs/matrices/aurum-route-coverage/` (obe s `MATRIX.md` + `CHANGELOG.md`).
@@ -1037,3 +1071,21 @@ Sintetički 503 prethodno je ostavio prazan aktivan select bez poruke. Dodani lo
 ## M1/M4 · greška dohvaćanja usluga stiliste
 
 Lokalno dodani status/greška/retry i izolacija kasnog odgovora prethodnog stiliste. Pri uređivanju dok nema usluga spremanje je blokirano, a iznosi označeni nedostupnim; kontrolisana fiksura prije guarda pokazala aktivno Save. Regresija prije zadnjeg preciziranja pending stanja 102/102, poslije 24/24 ciljano; šest scoped error axe skenova bez violations s po jednim contrast incomplete. CI `45074650488` za prethodni commit ima četiri uspješna posla, rendered u toku; lokalni nastavak ne pripada tom runu. Nisu ispitani stvarni backend/AT niti slučaj historijske usluge koje nema u uspješno dohvaćenoj listi. [Detalji](19_m4_m7_protokol_i_izvjestaj.md).
+
+## Rad u toku · Finansije, saglasnost i S8 (nekomitovano)
+
+Proširena lokalna regresija rezervacija, galerije, dnevne knjige i finansija nad ranijim buildom **210/210**. Svježi build, E2E TypeScript i frontend Node **854/854** prolaze; lint ima šest postojećih upozorenja. PostgreSQL backend E2E **79/79**, četiri suite, ali migracijska tabela je lokalno simulirana, a derivacija saglasnosti u HTTP testu mockirana. Ovo nije dokaz CI migracijskog deploya ni stvarnog čišćenja izvedenih slika.
+
+Novi sintetički test kasnog booking pomaka obuhvata tri teme i oba motion moda **6/6**; izvorni intermitentni CI pad i dalje nije objašnjen. S8 prikaz uticaja brisanja izdvojen, dostupni nazivi akcija sadrže naziv zapisa i razlikuju istoimene zapise; šest sintetičkih browser fiksura **6/6**. Testovi su s mockiranim podacima i nisu potpuni pregled pristupačnosti niti potvrda cijele S8 faze.
+
+Opis slike ostaje privatan bez zasebnog pristanka klijenta; implementirani su odvojeni snapshot i zaštita od zastarjelog opisa. Dalji rad obuhvata isprepletene grant/revoke pozive na stvarnoj bazi, stvarnu derivaciju i cleanup, deploy migracije, mobilni i web identity/race test, pregled privatnosti te OS/AT provjere. Identitetski guard u profilu ne dokazuje sigurnost cijelog auth storea: posebno treba provjeriti `refreshProfile` i odgovore 401 koji stignu nakon promjene sesije. Bez mergea/deploya i bez predstavljanja ovih rezultata kao završene faze.
+
+## Rad u toku · Saglasnost: stvarna derivacija i konkurentne promjene
+
+U izolovanom PostgreSQL HTTP testu reproducirano je da grant može uspjeti nakon što je zapis fotografije tokom generisanja izvedene kopije dodijeljen drugom klijentu (prije ispravke 201 umjesto 404). Grant sada u transakciji zaključava dnevni zapis pa fotografiju i ponovo provjerava vlasnika, status, klasifikaciju i original; neiskorištena kopija se čisti. Dvije kontrolisane varijante promjene vlasnika, uključujući stvarno čekanje PostgreSQL zaključavanja, prolaze. Sedam dodatnih unit fiksura pokriva druge promjene uslova; to nije dokaz svih mogućih rasporeda.
+
+Dva HTTP testa koriste **stvarne** sintetičke JPEG fajlove, `sharp`, PostgreSQL i disk: istovremeni grantovi zadržavaju jednu WebP kopiju bez EXIF-a, suvišna baza/fajl se uklanjaju, strani klijent se odbija, audit ima jedan grant i jedan revoke, a javni fajl je nakon povlačenja 404. Drugi test zadržava prvi grant prije transakcije, izvršava drugi grant i revoke te provjerava 409 i čišćenje zastarjele kopije. To ne dokazuje potpunu anonimizaciju slike, pouzdan cleanup nakon pada procesa, sve utrke ni stvarno produkcijsko okruženje.
+
+Otkriven i ispravljen netačan status „objavljeno“ za dodatne i neodobrene fotografije istog zapisa: inbox i javni feed sada koriste isti izbor para i stabilno sortiranje. MIME filter je usklađen. Lokalno **37/37** consent/public unit, **5/5** ciljanih stvarnih PostgreSQL HTTP provjera i **84/84** cijelog backend E2E paketa, build prolazi. Migracijska tabela i dalje je lokalno simulirana; puni migracijski deploy/izolovani CI, provjere identiteta sesije te OS/AT ostaju otvoreni. Nije rađen merge/deploy.
+
+Nakon tih izmjena pokrenut je i kompletan backend Jest paket: **115/115 suite, 838/838 testova**. PostgreSQL E2E rezultat iznad ostaje uz navedeno ograničenje migracijske tabele.

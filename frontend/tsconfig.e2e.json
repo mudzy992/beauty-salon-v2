@@ -5,5 +5,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["e2e", "playwright.config.ts"]
+  "include": ["e2e", "e2e-auth-session", "playwright.config.ts", "playwright.auth-session.config.ts"]
 }

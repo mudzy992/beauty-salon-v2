@@ -66,7 +66,14 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   }
   const [acting, setActing] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [pendingImageLink, setPendingImageLink] = useState<{ uploadId: string; isBefore: boolean } | null>(null);
+  const [pendingImageLink, setPendingImageLink] = useState<{ uploadId: string; isBefore: boolean; description: string } | null>(null);
+  const [beforeDescription, setBeforeDescription] = useState('');
+  const [afterDescription, setAfterDescription] = useState('');
+  useEffect(() => {
+    setBeforeDescription('');
+    setAfterDescription('');
+    setPendingImageLink(null);
+  }, [entryId, userId]);
   const { t } = useTranslation();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
@@ -285,7 +292,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   }, [deleteReason, entryId, navigation, t, beginAction]);
 
   const linkUploadedImage = useCallback(
-    async (uploadId: string, isBefore: boolean, checkExisting = false) => {
+    async (uploadId: string, isBefore: boolean, description: string, checkExisting = false) => {
       const isCurrentAction = beginAction();
       if (!isCurrentAction()) return;
       setUploading(true);
@@ -303,6 +310,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           uploadId,
           isBefore,
           isAfter: !isBefore,
+          description,
         });
         if (!isCurrentAction()) return;
         const updatedEntry = await fetchEntry();
@@ -311,7 +319,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         setPendingImageLink(null);
       } catch (error: unknown) {
         if (isCurrentAction()) {
-          setPendingImageLink({ uploadId, isBefore });
+          setPendingImageLink({ uploadId, isBefore, description });
           Alert.alert(
             t('common.error'),
             getApiErrorMessage(error, t('common.error')),
@@ -326,7 +334,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
   const retryPendingImageLink = useCallback(() => {
     if (pendingImageLink) {
-      void linkUploadedImage(pendingImageLink.uploadId, pendingImageLink.isBefore, true);
+      void linkUploadedImage(pendingImageLink.uploadId, pendingImageLink.isBefore, pendingImageLink.description, true);
     }
   }, [linkUploadedImage, pendingImageLink]);
 
@@ -336,6 +344,11 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
       if (!isCurrentAction()) return;
       if (pendingImageLink) {
         Alert.alert(t('common.error'), t('stylist.dailyLogDetail.imageUploadErrorFallback'));
+        return;
+      }
+      const description = (isBefore ? beforeDescription : afterDescription).trim();
+      if (description.length < 3) {
+        Alert.alert(t('common.error'), t('stylist.dailyLogDetail.descriptionHelp'));
         return;
       }
       try {
@@ -373,8 +386,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
             ? uploadResult.id
             : null;
         if (!uploadId) throw new Error('Invalid upload response');
-        setPendingImageLink({ uploadId, isBefore });
-        await linkUploadedImage(uploadId, isBefore);
+        setPendingImageLink({ uploadId, isBefore, description });
+        await linkUploadedImage(uploadId, isBefore, description);
       } catch (error: unknown) {
         if (isCurrentAction()) {
           Alert.alert(
@@ -386,7 +399,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         if (isCurrentAction()) setUploading(false);
       }
     },
-    [linkUploadedImage, pendingImageLink, t, beginAction],
+    [linkUploadedImage, pendingImageLink, beforeDescription, afterDescription, t, beginAction],
   );
 
   const openActionsMenu = useCallback(() => {
@@ -677,6 +690,13 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
               {t('stylist.dailyLogDetail.addPhotosHint')}
             </Text>
+          ) : null}
+          {canComplete ? (
+            <View style={{ marginTop: spacing.md }}>
+              <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>{t('stylist.dailyLogDetail.descriptionHelp')}</Text>
+              <Input label={t('stylist.dailyLogDetail.beforeDescription')} value={beforeDescription} onChangeText={setBeforeDescription} maxLength={500} />
+              <Input label={t('stylist.dailyLogDetail.afterDescription')} value={afterDescription} onChangeText={setAfterDescription} maxLength={500} />
+            </View>
           ) : null}
           {pendingImageLink && (
             <Button

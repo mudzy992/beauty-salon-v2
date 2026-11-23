@@ -39,8 +39,8 @@ interface GalleryCategory {
 
 interface ConsentedBeforeAfterPair {
   id: string
-  before: { pathOriginal: string; pathMedium: string | null; pathThumb: string | null }
-  after: { pathOriginal: string; pathMedium: string | null; pathThumb: string | null }
+  before: { pathOriginal: string; pathMedium: string | null; pathThumb: string | null; description?: string | null }
+  after: { pathOriginal: string; pathMedium: string | null; pathThumb: string | null; description?: string | null }
 }
 
 const MotionDiv = motion.div
@@ -123,6 +123,13 @@ export default function PublicGallery() {
       ? t('public.beforeAfter.sliderLabelIndexed', { current: index + 1, total: consentedPairs.length })
       : t('public.beforeAfter.sliderLabel')
     return category ? t('public.beforeAfter.sliderLabelCategory', { category, comparison }) : comparison
+  }
+
+  const categoryLabel = (category: GalleryCategory) => {
+    const sameName = sortedCategories.filter((item) => item.name.trim().toLocaleLowerCase() === category.name.trim().toLocaleLowerCase())
+    return sameName.length > 1
+      ? t('public.gallery.categoryOccurrence', { name: category.name, current: sameName.findIndex((item) => item.id === category.id) + 1, total: sameName.length })
+      : category.name
   }
 
   const lightboxTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -210,6 +217,8 @@ export default function PublicGallery() {
                           afterSrc={afterSrc}
                           alt={t('public.beforeAfter.comparisonLabels')}
                           ariaLabel={comparisonLabel(index)}
+                          beforeDescription={pair.before.description}
+                          afterDescription={pair.after.description}
                         />
                         <div className="mt-2 flex justify-between text-xs font-medium text-content-strong">
                           <span>{t('public.beforeAfter.before')}</span>
@@ -258,7 +267,9 @@ export default function PublicGallery() {
                                   beforeSrc={getUploadUrl(pair.before.pathOriginal)}
                                   afterSrc={getUploadUrl(pair.after.pathOriginal)}
                                   alt={t('public.beforeAfter.comparisonLabels')}
-                                  ariaLabel={comparisonLabel(index, cat.name)}
+                                  ariaLabel={comparisonLabel(index, categoryLabel(cat))}
+                                  beforeDescription={pair.before.description}
+                                  afterDescription={pair.after.description}
                                 />
                                 <div className="mt-2 flex justify-between text-xs font-medium text-content-strong">
                                   <span>{t('public.beforeAfter.before')}</span>

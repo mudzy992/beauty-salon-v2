@@ -142,7 +142,7 @@ export default function PublicSatisfiedClients() {
         ) : (
           <>
             <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:thin]">
-              {items.map((pair) => (
+              {items.map((pair, index) => (
                 <MotionDiv
                   key={pair.id}
                   initial={{ opacity: 0, y: 16 }}
@@ -163,6 +163,9 @@ export default function PublicSatisfiedClients() {
                           pair.after.pathOriginal,
                       )}
                       alt={t('public.beforeAfter.comparisonLabels')}
+                      ariaLabel={items.length > 1 ? t('public.beforeAfter.sliderLabelIndexed', { current: index + 1, total: items.length }) : t('public.beforeAfter.sliderLabel')}
+                      beforeDescription={pair.before.description}
+                      afterDescription={pair.after.description}
                       aspectRatio={1}
                     />
                   </div>

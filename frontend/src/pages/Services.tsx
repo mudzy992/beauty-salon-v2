@@ -7,7 +7,9 @@ import {
 } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ServiceDeletionImpactView } from '../features/services/service-deletion-impact'
+import type { ServiceDeletionImpact, ServiceMutationAction } from '../features/services/service-deletion-types'
 
 import api from '../api/client'
 import { getErrorMessage, getErrorCode } from '../api/error'
@@ -80,46 +82,6 @@ interface Category {
   subcategories?: Subcategory[]
 }
 
-interface ServiceDeletionImpact {
-  service: { id: string; name: string; imageRetained: boolean }
-  target: { id: string; name: string } | null
-  reservations: { primary: number; additionalServiceItems: number }
-  dailyLogs: {
-    primary: number
-    completed: number
-    additionalServiceItems: number
-    debtPaymentEntries: number
-  }
-  income: {
-    automaticEntries: number
-    automaticRevenue: number
-    automaticTips: number
-    manualEntries: number
-    manualRevenue: number
-    manualTips: number
-  }
-  debts: {
-    count: number
-    openCount: number
-    amount: number
-    openAmount: number
-  }
-  images: { dailyLogImages: number; consentRecordsRetained: number }
-  pendingOutboxEvents: number
-  reviews: number
-  stylistLinks: number
-  mergeConflicts: {
-    reservationItems: number
-    dailyLogItems: number
-    dailyLogReservations: number
-    reviews: number
-    processingOutboxEvents: number
-  }
-  duplicateStylistLinks: number
-  impactToken: string
-}
-
-type ServiceMutationAction = 'DELETE_LINKED_RECORDS' | 'MERGE'
 type ModalMode = 'category' | 'subcategory' | 'service'
 
 
@@ -488,6 +450,14 @@ export default function Services() {
     )
   }
 
+  const disambiguatedName = <T extends { id: string; name: string }>(item: T, all: T[]) => {
+    const matches = all.filter(candidate => candidate.name === item.name)
+    return matches.length > 1 ? `${item.name} (${matches.findIndex(candidate => candidate.id === item.id) + 1})` : item.name
+  }
+  const allSubcategories = categories.flatMap(category => category.subcategories ?? [])
+  const allServices = allSubcategories.flatMap(subcategory => subcategory.services ?? [])
+  const serviceAccessibleName = (service: Service) => disambiguatedName(service, allServices)
+
   const serviceColumns = (
     sub: { id: string },
   ): DataTableColumn<Service>[] => [
@@ -578,7 +548,7 @@ export default function Services() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label={t('services.aria.workGallery')}
+            aria-label={t('services.aria.workGallery', { name: serviceAccessibleName(s) })}
           >
             <RouterLink to={`/admin/services/${s.id}/work-gallery`}>
               <Eye className="h-4 w-4 text-purple-600" />
@@ -589,7 +559,7 @@ export default function Services() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label={t('services.aria.editService')}
+            aria-label={t('services.aria.editService', { name: serviceAccessibleName(s) })}
             onClick={() => openServiceForm(sub.id, s)}
           >
             <Pencil className="h-4 w-4 text-blue-600" />
@@ -599,7 +569,7 @@ export default function Services() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label={t('services.aria.deleteService')}
+            aria-label={t('services.aria.deleteService', { name: serviceAccessibleName(s) })}
             onClick={() => openServiceDeletion(s)}
           >
             <Trash2 className="h-4 w-4 text-rose-600" />
@@ -660,7 +630,7 @@ export default function Services() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
-                      aria-label={t('services.aria.addSubcategory')}
+                      aria-label={t('services.aria.addSubcategory', { name: disambiguatedName(cat, categories) })}
                       onClick={() => openSubcategoryForm(cat.id)}
                     >
                       <Plus className="h-4 w-4 text-emerald-600" />
@@ -670,7 +640,7 @@ export default function Services() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
-                      aria-label={t('services.aria.editCategory')}
+                      aria-label={t('services.aria.editCategory', { name: disambiguatedName(cat, categories) })}
                       onClick={() => openCategoryForm(cat)}
                     >
                       <Pencil className="h-4 w-4 text-blue-600" />
@@ -680,7 +650,7 @@ export default function Services() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8"
-                      aria-label={t('services.aria.deleteCategory')}
+                      aria-label={t('services.aria.deleteCategory', { name: disambiguatedName(cat, categories) })}
                       onClick={() => void handleDeleteCategory(cat.id)}
                     >
                       <Trash2 className="h-4 w-4 text-rose-600" />
@@ -724,7 +694,7 @@ export default function Services() {
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8"
-                                aria-label={t('services.aria.editSubcategory')}
+                                aria-label={t('services.aria.editSubcategory', { name: disambiguatedName(sub, allSubcategories) })}
                                 onClick={() => openSubcategoryForm(cat.id, sub)}
                               >
                                 <Pencil className="h-4 w-4 text-blue-600" />
@@ -735,7 +705,7 @@ export default function Services() {
                                 variant="ghost"
                                 className="h-8 w-8"
                                 aria-label={t(
-                                  'services.aria.deleteSubcategory',
+                                  'services.aria.deleteSubcategory', { name: disambiguatedName(sub, allSubcategories) },
                                 )}
                                 onClick={() =>
                                   void handleDeleteSubcategory(sub.id)
@@ -1197,260 +1167,12 @@ export default function Services() {
                   </Button>
                 </div>
               ) : deletionImpact ? (
-                <section
-                  aria-labelledby="service-deletion-impact-title"
-                  className="space-y-3 rounded-xl border border-line p-4"
-                >
-                  <h3
-                    id="service-deletion-impact-title"
-                    className="text-sm font-semibold text-content"
-                  >
-                    {t('services.deletion.impactTitle')}
-                  </h3>
-                  <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.primaryReservations')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.reservations.primary}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>
-                        {t('services.deletion.additionalReservationItems')}
-                      </dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.reservations.additionalServiceItems}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.dailyLogs')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.dailyLogs.primary}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.completedLogs')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.dailyLogs.completed}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.additionalDailyLogItems')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.dailyLogs.additionalServiceItems}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.debtPaymentEntries')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.dailyLogs.debtPaymentEntries}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.automaticIncomeEntries')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.income.automaticEntries}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.manualIncomeEntries')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.income.manualEntries}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.debts')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.debts.count}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.openDebts')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.debts.openCount}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.reviews')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.reviews}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.stylistLinks')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.stylistLinks}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.serviceImage')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.service.imageRetained ? 1 : 0}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>
-                        {t(
-                          deletionAction === 'MERGE'
-                            ? 'services.deletion.dailyLogImagesMerge'
-                            : 'services.deletion.dailyLogImages',
-                        )}
-                      </dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.images.dailyLogImages}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.imageConsentRecords')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.images.consentRecordsRetained}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt>{t('services.deletion.pendingOutboxEvents')}</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {deletionImpact.pendingOutboxEvents}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  <div className="rounded-lg bg-surface-muted p-3 text-sm">
-                    <p>
-                      {t(
-                        deletionAction === 'MERGE'
-                          ? 'services.deletion.automaticIncomeSummaryMerge'
-                          : 'services.deletion.automaticIncomeSummary',
-                        {
-                          revenue: formatLocalizedNumber(
-                            deletionImpact.income.automaticRevenue,
-                            i18n.language,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ),
-                          tips: formatLocalizedNumber(
-                            deletionImpact.income.automaticTips,
-                            i18n.language,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ),
-                        },
-                      )}
-                    </p>
-                    <p className="mt-1">
-                      {t(
-                        deletionAction === 'MERGE'
-                          ? 'services.deletion.manualIncomeSummaryMerge'
-                          : 'services.deletion.manualIncomeSummary',
-                        {
-                          revenue: formatLocalizedNumber(
-                            deletionImpact.income.manualRevenue,
-                            i18n.language,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ),
-                          tips: formatLocalizedNumber(
-                            deletionImpact.income.manualTips,
-                            i18n.language,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ),
-                        },
-                      )}
-                    </p>
-                    <p className="mt-1">
-                      {t(
-                        deletionAction === 'MERGE'
-                          ? 'services.deletion.totalDebtAmountMerge'
-                          : 'services.deletion.totalDebtAmount',
-                        {
-                          amount: formatLocalizedNumber(
-                            deletionImpact.debts.amount,
-                            i18n.language,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ),
-                        },
-                      )}
-                    </p>
-                    <p className="mt-1 font-medium">
-                      {t(
-                        deletionAction === 'MERGE'
-                          ? 'services.deletion.openDebtAmountMerge'
-                          : 'services.deletion.openDebtAmount',
-                        {
-                          amount: formatLocalizedNumber(
-                            deletionImpact.debts.openAmount,
-                            i18n.language,
-                            {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            },
-                          ),
-                        },
-                      )}
-                    </p>
-                  </div>
-
-                  {deletionAction === 'DELETE_LINKED_RECORDS' ? (
-                    <div className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-100">
-                      <AlertTriangle
-                        className="mt-0.5 h-5 w-5 shrink-0"
-                        aria-hidden="true"
-                      />
-                      <div>
-                        <p>{t('services.deletion.permanentWarning')}</p>
-                        {hasProcessingOutboxEvents ? (
-                          <p role="alert" className="mt-2 font-semibold">
-                            {t('services.deletion.processingOutboxWarning')}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100">
-                      <p>
-                        {t('services.deletion.mergeSummary', {
-                          target: deletionImpact.target?.name ?? '',
-                          stylistDuplicates:
-                            deletionImpact.duplicateStylistLinks,
-                        })}
-                      </p>
-                      {hasMergeConflicts ? (
-                        <div role="alert" className="flex gap-2 font-medium">
-                          <AlertTriangle
-                            className="h-5 w-5 shrink-0"
-                            aria-hidden="true"
-                          />
-                          <span>
-                            {t('services.deletion.mergeConflicts', {
-                              reservationItems:
-                                deletionImpact.mergeConflicts.reservationItems,
-                              dailyLogItems:
-                                deletionImpact.mergeConflicts.dailyLogItems,
-                              dailyLogReservations:
-                                deletionImpact.mergeConflicts
-                                  .dailyLogReservations,
-                              reviews: deletionImpact.mergeConflicts.reviews,
-                              processingOutboxEvents:
-                                deletionImpact.mergeConflicts
-                                  .processingOutboxEvents,
-                            })}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </section>
+                <ServiceDeletionImpactView
+                  impact={deletionImpact}
+                  action={deletionAction}
+                  hasMergeConflicts={hasMergeConflicts}
+                  hasProcessingOutboxEvents={hasProcessingOutboxEvents}
+                />
               ) : null}
 
               <div>

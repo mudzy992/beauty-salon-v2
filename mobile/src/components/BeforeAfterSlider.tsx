@@ -8,6 +8,9 @@ import { borderRadius } from '../theme';
 interface BeforeAfterSliderProps {
   beforeSrc: string;
   afterSrc: string;
+  beforeDescription?: string | null;
+  afterDescription?: string | null;
+  comparisonNumber?: number;
   width?: number;
   height?: number;
 }
@@ -17,6 +20,9 @@ const HANDLE_HIT = 44;
 export function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
+  beforeDescription,
+  afterDescription,
+  comparisonNumber,
   width: widthProp,
   height: heightProp,
 }: BeforeAfterSliderProps) {
@@ -51,14 +57,20 @@ export function BeforeAfterSlider({
   const accessibilityPercent = Math.round(position * 100);
   const lineColor = isDark ? colors.gray100 : colors.white;
   const knobBorder = colors.border;
+  const label = comparisonNumber ? `${t('home.beforeAfterSliderLabel')} ${comparisonNumber}` : t('home.beforeAfterSliderLabel');
+  const hint = [
+    beforeDescription ? `${t('profile.mediaConsent.beforeTreatment')}: ${beforeDescription}` : '',
+    afterDescription ? `${t('profile.mediaConsent.afterTreatment')}: ${afterDescription}` : '',
+    t('home.beforeAfterSliderHint'),
+  ].filter(Boolean).join('. ');
 
   return (
     <View
       style={[styles.container, { width, height, borderRadius: borderRadius.lg }]}
       accessible
       accessibilityRole="adjustable"
-      accessibilityLabel={t('home.beforeAfterSliderLabel')}
-      accessibilityHint={t('home.beforeAfterSliderHint')}
+      accessibilityLabel={label}
+      accessibilityHint={hint}
       accessibilityValue={{
         min: 0,
         max: 100,

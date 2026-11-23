@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { Select } from '../components/ui/select'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
@@ -44,6 +44,7 @@ export default function Profile() {
   const { user, refreshProfile } = useAuth()
   const toast = useAppToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const profileLoadGeneration = useRef(0)
   const usernameAvailabilityGeneration = useRef(0)
   const profileSaveGeneration = useRef(0)
   const profileSaveInFlight = useRef(false)
@@ -94,10 +95,14 @@ export default function Profile() {
   const [initialEmail, setInitialEmail] = useState('')
   const emailHasUnsavedChanges = email.trim() !== initialEmail.trim()
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
+    const generation = ++profileLoadGeneration.current
+    if (!user?.sub) return
     setLoading(true)
     try {
       const { data } = await api.get<ProfileData>('/api/users/profile')
+      if (generation !== profileLoadGeneration.current) return
+      if (data.id !== user.sub) throw new Error('Profile owner mismatch')
       setProfile(data)
       setProfileLoadErrorKey('profile.errors.loadFailed')
       setUsername(data.username ?? '')
@@ -111,33 +116,43 @@ export default function Profile() {
       setAvatar(data.avatar ?? null)
       setIsAvatarPublic(Boolean(data.isAvatarPublic))
     } catch (error) {
+      if (generation !== profileLoadGeneration.current) return
       setProfile(null)
       setProfileLoadErrorKey(
         resolveProfileApiErrorKey(getErrorMessage(error, ''), 'profile.errors.loadFailed', getErrorCode(error)),
       )
     } finally {
-      setLoading(false)
+      if (generation === profileLoadGeneration.current) setLoading(false)
     }
-  }
+  }, [user?.sub])
 
   useEffect(() => {
     void loadProfile()
-  }, [])
+    return () => { profileLoadGeneration.current += 1 }
+  }, [loadProfile])
 
   useEffect(() => {
     if (emailHasUnsavedChanges) setVerifyToken('')
   }, [emailHasUnsavedChanges])
 
-  useEffect(() => () => {
-    profileSaveGeneration.current += 1
-    profileSaveInFlight.current = false
-    avatarPrivacyGeneration.current += 1
-    avatarPrivacyInFlight.current = false
-    emailVerificationGeneration.current += 1
-    emailVerificationInFlight.current = false
-    avatarUploadGeneration.current += 1
-    avatarUploadInFlight.current = false
-  }, [])
+  useEffect(() => {
+    setSaving(false)
+    setUploadingAvatar(false)
+    setAvatarPrivacySaving(false)
+    setSendingCode(false)
+    setVerifying(false)
+    setVerifyToken('')
+    return () => {
+      profileSaveGeneration.current += 1
+      profileSaveInFlight.current = false
+      avatarPrivacyGeneration.current += 1
+      avatarPrivacyInFlight.current = false
+      emailVerificationGeneration.current += 1
+      emailVerificationInFlight.current = false
+      avatarUploadGeneration.current += 1
+      avatarUploadInFlight.current = false
+    }
+  }, [user?.sub])
 
   useEffect(() => {
     const generation = ++usernameAvailabilityGeneration.current
@@ -222,6 +237,7 @@ export default function Profile() {
       if (typeof payload?.avatar !== 'string' || !payload.avatar.trim()) {
         throw new Error('Invalid avatar upload response')
       }
+      if (generation !== avatarUploadGeneration.current) return
       const avatarPath = payload.avatar.trim()
       const isPublic =
         typeof payload.isAvatarPublic === 'boolean' ? payload.isAvatarPublic : false
@@ -282,6 +298,7 @@ export default function Profile() {
         return
       }
 
+      if (generation !== avatarPrivacyGeneration.current) return
       if (generation === avatarPrivacyGeneration.current) {
         setIsAvatarPublic(confirmedValue)
         setProfile((current) =>
@@ -342,7 +359,9 @@ export default function Profile() {
         phone,
         gender: gender || null,
       })
+      if (generation !== profileSaveGeneration.current) return
       await refreshProfile()
+      if (generation !== profileSaveGeneration.current) return
       let verificationCodeSent = false
       if (hasEmailChanged) {
         try {
@@ -430,6 +449,7 @@ export default function Profile() {
         return
       }
 
+      if (generation !== emailVerificationGeneration.current) return
       let refreshError: unknown = null
       try {
         await refreshProfile()
@@ -460,7 +480,7 @@ export default function Profile() {
         <div role="status" aria-live="polite" className="text-content-strong">
           {t('common.loading')}
         </div>
-      ) : profile ? (
+      ) : profile && profile.id === user?.sub ? (
         <div className="space-y-5">
           <Card data-aurum-surface>
             <CardContent className="p-6">
@@ -826,7 +846,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {profile.roles.includes('CLIENT') ? <MediaConsentPanel /> : null}
+          {profile.roles.includes('CLIENT') ? <MediaConsentPanel key={profile.id} /> : null}
         </div>
       ) : (
         <Card data-aurum-surface>

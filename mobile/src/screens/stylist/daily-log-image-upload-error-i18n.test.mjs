@@ -19,5 +19,5 @@ test('upload response is validated and the uploaded media id is reused for assoc
   assert.match(screen, /await api\.post<unknown>\('\/api\/uploads', formData, \{/)
   assert.match(screen, /if \(!uploadId\) throw new Error/)
   assert.match(screen, /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/images`, \{/)
-  assert.match(screen, /linkUploadedImage\(uploadId, isBefore\)/)
+  assert.match(screen, /linkUploadedImage\(uploadId, isBefore, description\)/)
 })

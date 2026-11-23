@@ -56,8 +56,8 @@ import {
 
 interface BeforeAfterPair {
   id: string;
-  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
-  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null; description?: string | null };
 }
 
 const HERO_HEIGHT = 220;
@@ -811,6 +811,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <BeforeAfterSlider
                   beforeSrc={getUploadUrl(beforeAfterPairs[0].before.pathMedium ?? beforeAfterPairs[0].before.pathThumb ?? beforeAfterPairs[0].before.pathOriginal)}
                   afterSrc={getUploadUrl(beforeAfterPairs[0].after.pathMedium ?? beforeAfterPairs[0].after.pathThumb ?? beforeAfterPairs[0].after.pathOriginal)}
+                  beforeDescription={beforeAfterPairs[0].before.description}
+                  afterDescription={beforeAfterPairs[0].after.description}
                   width={screenWidth - spacing.md * 4}
                   height={180}
                 />

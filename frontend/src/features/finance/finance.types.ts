@@ -38,6 +38,8 @@ export interface IncomeBookManualEntry {
   date: string
   serviceId: string
   stylistProfileId: string | null
+  /** Eligibility of the original service/stylist pair at the last book fetch. */
+  canEditOriginalService?: boolean
   clientId?: string | null
   amount: number | string
   tipAmount: number | string
@@ -78,6 +80,7 @@ export interface ServiceOption {
   id: string
   name: string
   price?: number | string
+  isActive?: boolean
   gender?: 'MALE' | 'FEMALE'
 }
 

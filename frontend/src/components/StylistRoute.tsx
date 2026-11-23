@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { IdentityBoundary } from './IdentityBoundary'
 import { normalizeRoles } from '../utils/clientOnboarding'
 
 export default function StylistRoute({ children }: { children: ReactNode }) {
@@ -27,6 +28,6 @@ export default function StylistRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/" replace />
   }
 
-  return <>{children}</>
+  return <IdentityBoundary>{children}</IdentityBoundary>
 }
 

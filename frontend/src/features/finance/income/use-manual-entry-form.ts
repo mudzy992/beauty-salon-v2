@@ -70,10 +70,18 @@ export const useManualEntryForm = (params: {
   const servicesQuery = useStylistServices(form.stylistProfileId || null)
   const clientsQuery = useClientSearch(clientQuery)
 
+  const services = useMemo(
+    () => (servicesQuery.data ?? []).filter((service) => service.isActive !== false),
+    [servicesQuery.data],
+  )
+  const selectedServiceMissing = Boolean(
+    form.stylistProfileId && form.serviceId && servicesQuery.data !== undefined &&
+    !services.some((service) => service.id === form.serviceId),
+  )
   const servicePrice = useMemo(() => {
-    const service = (servicesQuery.data ?? []).find((s) => s.id === form.serviceId)
+    const service = services.find((s) => s.id === form.serviceId)
     return toNumber(service?.price)
-  }, [servicesQuery.data, form.serviceId])
+  }, [services, form.serviceId])
 
   const paidAmount = form.paidAmount === '' ? 0 : Number(form.paidAmount)
   const debtAmount = Math.max(0, servicePrice - paidAmount)
@@ -91,6 +99,7 @@ export const useManualEntryForm = (params: {
   const validationError = (() => {
     if (!form.date) return t('finance.manualEntry.validation.dateRequired')
     if (!form.serviceId) return t('finance.manualEntry.validation.serviceRequired')
+    if (selectedServiceMissing) return t('finance.manualEntry.serviceUnsupported')
     if (form.paidAmount === '' || !Number.isFinite(paidAmount) || paidAmount < 0) {
       return t('finance.manualEntry.validation.validPaidAmount')
     }
@@ -121,10 +130,11 @@ export const useManualEntryForm = (params: {
     isLoadingStylists: stylistsQuery.isLoading,
     hasStylistLoadError: stylistsQuery.isError && stylistsQuery.data === undefined,
     retryStylists: stylistsQuery.refetch,
-    services: servicesQuery.data ?? [],
+    services,
+    selectedServiceMissing,
     isLoadingServices: Boolean(form.stylistProfileId) && servicesQuery.isPending,
     hasServiceLoadError: servicesQuery.isError && servicesQuery.data === undefined,
-    servicesUnavailable: Boolean(form.stylistProfileId) && servicesQuery.data === undefined,
+    servicesUnavailable: Boolean(form.stylistProfileId) && (servicesQuery.data === undefined || selectedServiceMissing),
     retryServices: servicesQuery.refetch,
     clientResults: clientsQuery.data ?? [],
     isSearchingClients: clientsQuery.isFetching,

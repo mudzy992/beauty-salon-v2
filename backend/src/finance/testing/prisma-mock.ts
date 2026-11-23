@@ -41,6 +41,7 @@ export const createFinancePrismaMock = () => {
     loyaltyTransaction: model(),
     outboxEvent: model(),
     stylistProfile: model(),
+    stylistService: model(),
   }
   mock.$transaction.mockImplementation(
     async (fn: (tx: typeof mock) => unknown) => fn(mock),

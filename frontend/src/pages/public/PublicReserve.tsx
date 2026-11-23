@@ -12,6 +12,7 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { useAuth } from '../../context/AuthContext'
+import { useAuthStore } from '../../stores/auth.store'
 import { useSettings } from '../../context/SettingsContext'
 import { publicAurum } from '../../features/shell/public/public-ui'
 import { useTheme } from '../../features/shell/theme/theme-context'
@@ -92,12 +93,81 @@ const ServiceAutocomplete = ({
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const addMoreRef = useRef<HTMLButtonElement>(null)
+  const stopFocusVisibilityWatch = useRef<() => void>(() => {})
+  const pendingFocusFrame = useRef<number | null>(null)
+  const cancelPendingFocus = useRef<() => void>(() => {})
+
+  useEffect(() => () => {
+    stopFocusVisibilityWatch.current()
+    cancelPendingFocus.current()
+  }, [])
 
   const focusAfterUpdate = (trigger: HTMLElement, target: 'search' | 'add') => {
-    requestAnimationFrame(() => {
+    stopFocusVisibilityWatch.current()
+    cancelPendingFocus.current()
+    const cancelPending = () => {
+      if (pendingFocusFrame.current !== null) cancelAnimationFrame(pendingFocusFrame.current)
+      pendingFocusFrame.current = null
+      for (const event of ['keydown', 'pointerdown', 'touchstart', 'wheel'] as const) {
+        window.removeEventListener(event, cancelPending, true)
+      }
+      if (cancelPendingFocus.current === cancelPending) cancelPendingFocus.current = () => {}
+    }
+    cancelPendingFocus.current = cancelPending
+    for (const event of ['keydown', 'pointerdown', 'touchstart', 'wheel'] as const) {
+      window.addEventListener(event, cancelPending, { capture: true, passive: true })
+    }
+    pendingFocusFrame.current = requestAnimationFrame(() => {
+      cancelPending()
       const active = document.activeElement
       if (active !== document.body && active !== trigger) return
-      ;(target === 'search' ? inputRef.current : addMoreRef.current)?.focus()
+      const control = target === 'search' ? inputRef.current : addMoreRef.current
+      if (!control) return
+      control.focus()
+      if (document.activeElement !== control) return
+
+      // Layout can continue changing after focus (calendar expansion or delayed
+      // data). Keep the focused control visible without ever moving focus.
+      // Any deliberate user input immediately ends this temporary assistance.
+      let frame = 0
+      const root = control.closest('[data-aurum-page="reserve"]')
+      const stop = () => {
+        observer?.disconnect()
+        cancelAnimationFrame(frame)
+        window.removeEventListener('scroll', schedule)
+        for (const event of ['keydown', 'pointerdown', 'touchstart', 'wheel'] as const) {
+          window.removeEventListener(event, stop, true)
+        }
+        control.removeEventListener('focusout', stop)
+        if (stopFocusVisibilityWatch.current === stop) stopFocusVisibilityWatch.current = () => {}
+      }
+      const ensureVisible = () => {
+        if (!control.isConnected || document.activeElement !== control) return stop()
+        const rect = control.getBoundingClientRect()
+        const header = document.querySelector('[data-aurum-shell="header"]')?.getBoundingClientRect()
+        const center = rect.top + rect.height / 2
+        const visibleTop = Math.max(0, header?.bottom ?? 0)
+        if (center < visibleTop) {
+          window.scrollBy({ top: center - visibleTop - 8, behavior: 'instant' })
+        } else if (center >= window.innerHeight) {
+          control.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' })
+        }
+      }
+      const schedule = () => {
+        cancelAnimationFrame(frame)
+        frame = requestAnimationFrame(ensureVisible)
+      }
+      const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(schedule)
+      if (root) observer?.observe(root)
+      // Browser scroll anchoring and scrollIntoView can move the control again
+      // without resizing the page. Check once more after each resulting scroll.
+      window.addEventListener('scroll', schedule, { passive: true })
+      for (const event of ['keydown', 'pointerdown', 'touchstart', 'wheel'] as const) {
+        window.addEventListener(event, stop, { capture: true, passive: true })
+      }
+      control.addEventListener('focusout', stop)
+      stopFocusVisibilityWatch.current = stop
+      ensureVisible()
     })
   }
 
@@ -544,8 +614,15 @@ export default function PublicReserve() {
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
   const dateSectionRef = useRef<HTMLDivElement | null>(null)
   const bookingAttemptRef = useRef<PendingIdempotentRequest>(null)
+  const submitGeneration = useRef(0)
+  const submitInFlight = useRef(false)
   const datesRequestIdRef = useRef(0)
   const slotsRequestIdRef = useRef(0)
+
+  useEffect(() => () => {
+    submitGeneration.current += 1
+    submitInFlight.current = false
+  }, [])
 
   const loadServices = useCallback(async () => {
     setLoadingServices(true)
@@ -726,7 +803,7 @@ export default function PublicReserve() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return
+    if (submitInFlight.current || selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return
     if (
       user?.mustChangePassword ||
       user?.genderOnboardingCompleted !== true ||
@@ -737,6 +814,10 @@ export default function PublicReserve() {
       navigate('/profil')
       return
     }
+    const generation = ++submitGeneration.current
+    const sessionVersion = useAuthStore.getState().sessionVersion
+    const isCurrent = () => generation === submitGeneration.current && useAuthStore.getState().sessionVersion === sessionVersion
+    submitInFlight.current = true
     setSubmitting(true)
     const payload = {
       serviceIds: selectedServiceIds,
@@ -756,8 +837,10 @@ export default function PublicReserve() {
       await api.post('/api/reservations', payload, {
         headers: { 'Idempotency-Key': idempotencyKey },
       })
+      if (!isCurrent()) return
       bookingAttemptRef.current = null
       await refreshProfile().catch(() => {})
+      if (!isCurrent()) return
       const svcLabel =
         selectedServices.length === 1
           ? selectedServices[0]!.name
@@ -779,6 +862,7 @@ export default function PublicReserve() {
       setDesiredLoyaltyPercent(0)
       navigate('/moje-rezervacije')
     } catch (err: unknown) {
+      if (!isCurrent()) return
       const backendMessage = (err as { response?: { data?: { message?: unknown } } })
         ?.response?.data?.message
       const localizedError = resolvePublicReservationError(backendMessage)
@@ -800,7 +884,10 @@ export default function PublicReserve() {
         toast.error(t(`public.reserve.${localizedError.key}`, values))
       }
     } finally {
-      setSubmitting(false)
+      if (generation === submitGeneration.current) {
+        submitInFlight.current = false
+        setSubmitting(false)
+      }
     }
   }
 

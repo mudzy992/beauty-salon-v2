@@ -159,8 +159,7 @@ export default function StylistLayout() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => {
-                    logout()
-                    navigate('/', { replace: true })
+                    if (logout()) navigate('/', { replace: true })
                   }}
                 >
                   {t('auth.logout')}

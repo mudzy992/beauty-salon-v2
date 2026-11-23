@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { IncomeManualEntriesService } from './income-manual-entries.service';
 import { IncomeBooksService } from './income-books.service';
@@ -46,12 +46,14 @@ describe('IncomeManualEntriesService', () => {
 
     prisma.incomeBook.findUnique.mockResolvedValue(openBook);
     prisma.user.findFirst.mockResolvedValue({ id: 'c1' });
-    prisma.service.findUnique.mockResolvedValue({ price: dec(100) });
+    prisma.service.findUnique.mockResolvedValue({ price: dec(100), isActive: true });
+    prisma.stylistService.findUnique.mockResolvedValue({ id: 'assignment-1' });
     prisma.incomeBookEntry.aggregate.mockResolvedValue({ _sum: {} });
     prisma.incomeBookManualEntry.aggregate.mockResolvedValue({ _sum: {} });
     prisma.incomeBookManualEntry.create.mockResolvedValue(makeEntry());
     prisma.incomeBookManualEntry.update.mockResolvedValue(makeEntry());
     prisma.clientDebt.findFirst.mockResolvedValue(null);
+    prisma.clientDebt.findMany.mockResolvedValue([]);
   });
 
   const baseDto = {
@@ -83,6 +85,12 @@ describe('IncomeManualEntriesService', () => {
       });
       expect(data.amount).toBe(100);
       expect(data.tipAmount).toBe(30);
+    });
+
+    it('odbija kreiranje za uslugu koja nije pridružena odabranom stilisti', async () => {
+      prisma.stylistService.findUnique.mockResolvedValue(null);
+      await expect(service.create('b1', { ...baseDto, paidAmount: 50 }, 'u1')).rejects.toThrow(ConflictException);
+      expect(prisma.incomeBookManualEntry.create).not.toHaveBeenCalled();
     });
 
     it('odbija ručni prihod za ID koji nije čist CLIENT račun', async () => {
@@ -156,6 +164,32 @@ describe('IncomeManualEntriesService', () => {
   describe('update', () => {
     beforeEach(() => {
       prisma.incomeBookManualEntry.findUnique.mockResolvedValue(makeEntry());
+    });
+
+    it('odbija izmjenu nepodržane postojeće usluge čak i kad payload predlaže drugu', async () => {
+      prisma.stylistService.findUnique.mockResolvedValue(null);
+      await expect(service.update('b1', 'e1', { serviceId: 's2', stylistProfileId: 'st2', paidAmount: 90 }, 'u1')).rejects.toThrow(ConflictException);
+      expect(prisma.incomeBookManualEntry.update).not.toHaveBeenCalled();
+      expect(prisma.incomeBookManualEntryAudit.create).not.toHaveBeenCalled();
+      expect(prisma.clientDebt.update).not.toHaveBeenCalled();
+    });
+
+    it('odbija promjenu na novi par usluge i stiliste koji nije pridružen', async () => {
+      prisma.stylistService.findUnique.mockResolvedValueOnce({ id: 'original' }).mockResolvedValueOnce(null);
+      await expect(service.update('b1', 'e1', { serviceId: 's2', paidAmount: 90 }, 'u1')).rejects.toThrow(ConflictException);
+      expect(prisma.incomeBookManualEntry.update).not.toHaveBeenCalled();
+    });
+
+    it('odbija izmjenu deaktivirane postojeće usluge', async () => {
+      prisma.service.findUnique.mockResolvedValue({ price: dec(100), isActive: false });
+      await expect(service.update('b1', 'e1', { paidAmount: 90 }, 'u1')).rejects.toThrow(ConflictException);
+      expect(prisma.incomeBookManualEntry.update).not.toHaveBeenCalled();
+    });
+
+    it('dopušta izmjenu podržane usluge bez stiliste za ranije unose', async () => {
+      prisma.incomeBookManualEntry.findUnique.mockResolvedValue(makeEntry({ stylistProfileId: null }));
+      await service.update('b1', 'e1', { paidAmount: 90 }, 'u1');
+      expect(prisma.incomeBookManualEntry.update).toHaveBeenCalled();
     });
 
     it('ažurira postojeći dug umjesto da kreira novi', async () => {
@@ -247,6 +281,29 @@ describe('IncomeManualEntriesService', () => {
   describe('remove', () => {
     beforeEach(() => {
       prisma.incomeBookManualEntry.findUnique.mockResolvedValue(makeEntry());
+    });
+
+    it('dopušta brisanje kad usluga više nije pridružena stilisti', async () => {
+      prisma.stylistService.findUnique.mockResolvedValue(null);
+      await service.remove('b1', 'e1', 'u1');
+      expect(prisma.incomeBookManualEntry.delete).toHaveBeenCalledWith({ where: { id: 'e1' } });
+    });
+
+    it('čuva naplaćeni dug i bilježi njegov ID pri brisanju nepodržane usluge', async () => {
+      prisma.stylistService.findUnique.mockResolvedValue(null);
+      prisma.clientDebt.findMany.mockResolvedValue([{ id: 'settled-1' }]);
+      await service.remove('b1', 'e1', 'u1');
+      expect(prisma.clientDebt.delete).not.toHaveBeenCalled();
+      expect(prisma.incomeBookManualEntryAudit.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ beforeJson: expect.objectContaining({ id: 'e1', retainedSettledDebtIds: ['settled-1'] }) }),
+      }));
+      expect(prisma.incomeBookManualEntry.delete).toHaveBeenCalled();
+    });
+
+    it('ne dopušta brisanje zaključane knjige', async () => {
+      prisma.incomeBook.findUnique.mockResolvedValue({ ...openBook, closedAt: new Date() });
+      await expect(service.remove('b1', 'e1', 'u1')).rejects.toThrow(BadRequestException);
+      expect(prisma.incomeBookManualEntry.delete).not.toHaveBeenCalled();
     });
 
     it('briše vezani otvoreni dug zajedno sa stavkom', async () => {

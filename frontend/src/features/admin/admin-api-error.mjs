@@ -1,6 +1,8 @@
 import { resolveApiErrorCodeKey } from '../api-errors/api-error-code-map.mjs'
 
 const SIMPLE_ERRORS = new Map([
+  ['Ova usluga više nije dostupna za stilistu. Unos se ne može urediti; u otključanoj knjizi možete ga obrisati.', 'finance.manualEntry.historicalServiceUnsupported'],
+  ['Odabrana usluga nije dostupna za odabranog stilistu. Osvježite podatke i odaberite dostupnu uslugu.', 'finance.manualEntry.serviceUnsupported'],
   ['Korisnik nije pronađen.', 'users.errors.notFound'],
   ['Korisničko ime je već u upotrebi.', 'users.errors.usernameTaken'],
   ['Email je već u upotrebi.', 'users.errors.emailTaken'],
