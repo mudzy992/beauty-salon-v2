@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { getErrorMessage, getErrorCode } from '../../api/error'
 import { resolveAdminApiErrorKey } from '../admin/admin-api-error.mjs'
 import { useSocketEvent } from '../../context/SocketContext'
 import { useAppToast } from '../../lib/toast/useAppToast'
+import { useAuthStore } from '../../stores/auth.store'
 import { getSalonDateOnly } from '../../../../shared/business-date.mjs'
 import type { AdminConfirmRequest } from '../shell/admin/ui/admin-confirm-dialog'
 import type { SalonSettings, WorkingHours, Holiday } from './salon-types'
@@ -21,6 +22,9 @@ export function useSalonManagement() {
 
   const [salon, setSalon] = useState<SalonSettings | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const sequence = useRef(0)
+  const sessionVersion = useAuthStore(state => state.sessionVersion)
   const [saving, setSaving] = useState(false)
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
   const [noSalonExists, setNoSalonExists] = useState(false)
@@ -51,22 +55,45 @@ export function useSalonManagement() {
   const [holForm, setHolForm] = useState({ date: '', name: '', message: '', sendPush: false })
 
   const loadSalon = useCallback(async () => {
+    const request = ++sequence.current
+    const current = () => request === sequence.current && useAuthStore.getState().sessionVersion === sessionVersion
     setLoading(true)
+    setLoadError(false)
     setNoSalonExists(false)
     try {
-      let s: SalonSettings | null = null
+      let list: SalonSettings[] | null = null
+      let listResponse: { data: SalonSettings[] } | null = null
       try {
-        const listRes = await api.get<SalonSettings[]>('/api/salon/list')
-        if (Array.isArray(listRes.data) && listRes.data.length > 0) s = listRes.data[0]
+        listResponse = await api.get<SalonSettings[]>('/api/salon/list')
       } catch {
-        try {
-          const pubRes = await api.get<SalonSettings | null>('/api/salon')
-          if (pubRes.data && pubRes.data.id) {
-            const detailRes = await api.get<SalonSettings>(`/api/salon/${pubRes.data.id}`)
-            s = detailRes.data
-          }
-        } catch {}
+        if (!current()) return
+        const pubRes = await api.get<SalonSettings | null>('/api/salon')
+        if (!current()) return
+        if (pubRes.data !== null) {
+          if (!pubRes.data || typeof pubRes.data.id !== 'string' || !pubRes.data.id) throw new Error('Invalid public salon')
+          const detailRes = await api.get<SalonSettings>(`/api/salon/${pubRes.data.id}`)
+          if (!current()) return
+          if (!detailRes.data || detailRes.data.id !== pubRes.data.id) throw new Error('Invalid salon detail')
+          list = [detailRes.data]
+        } else {
+          list = []
+        }
       }
+      if (!current()) return
+      if (listResponse) {
+        if (!Array.isArray(listResponse.data)) throw new Error('Invalid salon list')
+        list = listResponse.data
+      }
+      if (!list) throw new Error('Invalid salon list')
+      if (list.length > 0 && !list[0]) throw new Error('Invalid salon data')
+      const s = list[0] ?? null
+      if (s && (
+        typeof s.id !== 'string' || !s.id || typeof s.name !== 'string' ||
+        !Array.isArray(s.workingHours) || !Array.isArray(s.holidays) ||
+        s.workingHours.some(w => !w || !Number.isInteger(w.dayOfWeek) || w.dayOfWeek < 0 || w.dayOfWeek > 6 || typeof w.openTime !== 'string' || typeof w.closeTime !== 'string' || typeof w.isWorkingDay !== 'boolean') ||
+        new Set(s.workingHours.map(w => w.dayOfWeek)).size !== s.workingHours.length ||
+        s.holidays.some(h => !h || typeof h.id !== 'string' || typeof h.name !== 'string' || typeof h.date !== 'string')
+      )) throw new Error('Invalid salon data')
 
       if (!s) {
         setNoSalonExists(true)
@@ -103,22 +130,24 @@ export function useSalonManagement() {
         }))
         setWorkingHours(defaults)
         try {
+          if (!current()) return
           await api.post(`/api/salon/${s.id}/working-hours/ensure`)
         } catch {}
       }
 
-      setHolidays(s.holidays ?? [])
+      if (current()) setHolidays(s.holidays ?? [])
     } catch (err) {
-      setNoSalonExists(true)
-      setSalon(null)
+      if (!current()) return
+      setLoadError(true)
       showApiError(err, 'salon.errors.loadFailed')
     } finally {
-      setLoading(false)
+      if (current()) setLoading(false)
     }
-  }, [showApiError])
+  }, [showApiError, sessionVersion])
 
   useEffect(() => {
     loadSalon()
+    return () => { sequence.current += 1 }
   }, [loadSalon])
 
   useSocketEvent(
@@ -254,7 +283,7 @@ export function useSalonManagement() {
   }, [holidays])
 
   return {
-    salon, loading, saving, confirmRequest, setConfirmRequest, noSalonExists,
+    salon, loading, loadError, loadSalon, saving, confirmRequest, setConfirmRequest, noSalonExists,
     formData, setFormData, workingHours, holidays, sortedHolidays, holidaysSummary,
     holidayOpen, setHolidayOpen, editHoliday, holForm, setHolForm, updateWH,
     openHolidayForm, handleCreateSalon, handleSaveSettings, handleSaveWorkingHours,

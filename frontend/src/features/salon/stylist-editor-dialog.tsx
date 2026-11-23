@@ -10,23 +10,28 @@ import { Switch } from '../../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import { Textarea } from '../../components/ui/textarea'
 import { StylistWorkingHours } from './stylist-working-hours'
+import { ErrorState } from '../shell/admin/ui/data-state'
 import type { ServiceOption, StylistProfile, WorkingHours } from './stylist-types'
 
 type Form = { bio: string; specialization: string; isActive: boolean; hireDate: string }
 type Props = {
-  open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; selectedStylist: StylistProfile | null
+  open: boolean; setOpen: (open: boolean) => void; selectedStylist: StylistProfile | null
+  editorState: 'loading' | 'error' | 'ready'; editorErrorKey: string; retryEditor: () => void; onCloseAutoFocus: (event: Event) => void
   form: Form; setForm: Dispatch<SetStateAction<Form>>; workingHours: WorkingHours[]
   updateWH: (day: number, field: keyof WorkingHours, value: string | boolean) => void
   selectedServices: ServiceOption[]; unselectedServices: ServiceOption[]; allServices: ServiceOption[]
   stylistServiceIds: string[]; toggleService: (id: string) => void; saving: boolean; onSave: () => void
 }
-export function StylistEditorDialog({ open, setOpen, selectedStylist, form, setForm, workingHours, updateWH, selectedServices, unselectedServices, allServices, stylistServiceIds, toggleService, saving, onSave }: Props) {
+export function StylistEditorDialog({ open, setOpen, selectedStylist, editorState, editorErrorKey, retryEditor, onCloseAutoFocus, form, setForm, workingHours, updateWH, selectedServices, unselectedServices, allServices, stylistServiceIds, toggleService, saving, onSave }: Props) {
   const { t } = useTranslation()
-
+  const competencyName = (service: ServiceOption) => {
+    const matches = allServices.filter(candidate => candidate.name === service.name)
+    return matches.length > 1 ? `${service.name} (${matches.findIndex(candidate => candidate.id === service.id) + 1})` : service.name
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>
             {t('stylists.profileTitle')}{' '}
@@ -38,7 +43,9 @@ export function StylistEditorDialog({ open, setOpen, selectedStylist, form, setF
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="profile">
+        {editorState === 'loading' ? <div role="status" className="flex justify-center p-6"><span className="sr-only">{t('common.loading')}</span><Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" /></div> : null}
+        {editorState === 'error' ? <ErrorState description={t(editorErrorKey)} onRetry={retryEditor} /> : null}
+        {editorState === 'ready' ? <Tabs defaultValue="profile">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
             <TabsTrigger value="profile">{t('stylists.tabs.profile')}</TabsTrigger>
             <TabsTrigger value="hours">{t('stylists.tabs.hours')}</TabsTrigger>
@@ -106,7 +113,7 @@ export function StylistEditorDialog({ open, setOpen, selectedStylist, form, setF
                           size="icon"
                           onClick={() => toggleService(svc.id)}
                           className="h-5 w-5 rounded-full hover:bg-surface-sunken"
-                          aria-label={t('stylists.aria.removeCompetency')}
+                          aria-label={t('stylists.aria.removeCompetency', { name: competencyName(svc) })}
                         >
                           <X className="h-3 w-3" aria-hidden="true" />
                         </Button>
@@ -149,13 +156,13 @@ export function StylistEditorDialog({ open, setOpen, selectedStylist, form, setF
               </div>
             </div>
           </TabsContent>
-        </Tabs>
+        </Tabs> : null}
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
             {t('common.cancel')}
           </Button>
-          <Button type="button" onClick={onSave} disabled={saving}>
+          <Button type="button" onClick={onSave} disabled={saving || editorState !== 'ready'}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {saving ? t('common.saving') : t('common.save')}
           </Button>

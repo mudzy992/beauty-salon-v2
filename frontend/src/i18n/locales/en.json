@@ -1493,9 +1493,9 @@
       "endTime": "End of working hours for {{day}}",
       "activeToggle": "Stylist profile active",
       "workingDayToggle": "Working day for {{day}}",
-      "analytics": "Stylist analytics",
-      "edit": "Edit stylist profile",
-      "removeCompetency": "Remove competency"
+      "analytics": "Stylist analytics: {{name}}",
+      "edit": "Edit stylist profile: {{name}}",
+      "removeCompetency": "Remove competency: {{name}}"
     },
     "profileTitle": "Stylist profile",
     "tabs": {
@@ -1518,6 +1518,9 @@
     "addViaUsers": "Add a stylist from Users by assigning the STYLIST role.",
     "saveSuccess": "Changes saved.",
     "errors": {
+      "loadFailed": "Could not load stylists.",
+      "profileLoadFailed": "Could not load stylist profile data.",
+      "unsupportedHours": "This schedule contains date overrides or multiple shifts on the same day. This editor cannot safely change it.",
       "saveFailed": "Could not save the stylist profile.",
       "notFound": "Stylist not found.",
       "alreadyExists": "This user already has a stylist profile.",
@@ -1749,7 +1752,7 @@
     }
   },
   "stylistWorkbook": {
-    "profileLoadFailed": "The stylist profile could not be loaded right now.",
+      "profileLoadFailed": "The stylist profile could not be loaded right now.",
     "noProfile": "No profile available",
     "profileNotFound": "The stylist profile was not found.",
     "title": "Work log",

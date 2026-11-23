@@ -33,6 +33,10 @@ const stylistEditor = read('./stylist-editor-dialog.tsx')
 const stylistWorkingHours = read('./stylist-working-hours.tsx')
 assert.match(stylistEditor, /<StylistWorkingHours\b/)
 assert.match(stylistsPage, /<StylistEditorDialog\b/)
+const stylistManagement = read('./use-stylist-management.ts')
+const stylistEditorHook = read('./use-stylist-editor.ts')
+assert.match(stylistsPage, /useStylistManagement\(\)/)
+assert.match(stylistManagement, /useStylistEditor\(loadData\)/)
 const stylists = [stylistsPage, stylistEditor, stylistWorkingHours].join('\n')
 const css = read('../../index.css')
 const runtimeCss = read('../../styles/globals.css')
@@ -57,6 +61,16 @@ test('katalog zadržava naslov i ima status učitavanja i oporavljivu grešku', 
   assert.match(hook, /const request = \+\+requestSequence\.current/)
   assert.match(hook, /if \(request !== requestSequence\.current\) return/)
   assert.match(hook, /return \(\) => \{ requestSequence\.current \+= 1 \}/)
+})
+
+test('frizerski editor ne može spremati nepotpune read podatke', () => {
+  assert.match(stylistEditor, /disabled=\{saving \|\| editorState !== 'ready'\}/)
+  assert.match(stylistEditor, /<ErrorState description=\{t\(editorErrorKey\)\} onRetry=\{retryEditor\}/)
+  assert.match(stylistEditorHook, /fetchCompleteAdminStylistServices/)
+  assert.match(stylistEditorHook, /fetchCompleteAdminServices/)
+  assert.match(stylistEditorHook, /editorState !== 'ready'/)
+  assert.match(stylistEditorHook, /dateOverride != null/)
+  assert.match(stylistEditorHook, /useAuthStore\.getState\(\)\.sessionVersion/)
 })
 
 test('svaki Switch ima pristupačno ime (4.1.2)', () => {
@@ -191,11 +205,18 @@ test('svih 5 tabela opt-in u card mode (1.4.10)', () => {
   }
 })
 
-test('D1 iz plana NIJE prekršaj — dva <h1> su u međusobno isključivim granama', () => {
-  // Plan je tvrdio da Salon.tsx ima 2 <h1>. Ima ih u izvoru, ali jedan je u
-  // ranom return-u (`if (noSalonExists || !salon)`), drugi u konačnom.
-  assert.match(salon, /if \(noSalonExists \|\| !salon\) \{\s*return \(/)
-  assert.equal((salon.match(/<h1/g) || []).length, 2, 'u izvoru su 2, ali se ne renderuju zajedno')
+test('Salon ima po jedan <h1> u svakoj međusobno isključivoj grani', () => {
+  // Loading, error i absent završavaju ranim returnom; zadnja je učitana grana.
+  const loading = salonPage.indexOf('  if (loading) {')
+  const error = salonPage.indexOf('  if (loadError) {')
+  const absent = salonPage.indexOf('  if (noSalonExists || !salon) {')
+  const loaded = salonPage.indexOf('  return (\n    <div className="space-y-6">', absent)
+  assert.ok(loading >= 0 && error > loading && absent > error && loaded > absent)
+  for (const src of [salonPage.slice(loading, error), salonPage.slice(error, absent), salonPage.slice(absent, loaded)]) {
+    assert.match(src, /return \(/)
+    assert.equal((src.match(/<h1\b/g) || []).length, 1)
+  }
+  assert.equal((salonPage.slice(loaded).match(/<h1\b/g) || []).length, 1)
 })
 
 test('D6 (2.5.7) zadovoljen — upload ima native input, ne samo drag&drop', () => {

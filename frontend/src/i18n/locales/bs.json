@@ -1493,9 +1493,9 @@
       "endTime": "Kraj radnog vremena za {{day}}",
       "activeToggle": "Profil stiliste aktivan",
       "workingDayToggle": "Radni dan za {{day}}",
-      "analytics": "Analitika stiliste",
-      "edit": "Uredi profil stiliste",
-      "removeCompetency": "Ukloni kompetenciju"
+      "analytics": "Analitika stiliste: {{name}}",
+      "edit": "Uredi profil stiliste: {{name}}",
+      "removeCompetency": "Ukloni kompetenciju: {{name}}"
     },
     "profileTitle": "Profil stiliste",
     "tabs": {
@@ -1518,6 +1518,9 @@
     "addViaUsers": "Stilista se dodaje kroz Korisnike dodjelom uloge STYLIST.",
     "saveSuccess": "Promjene su sačuvane.",
     "errors": {
+      "loadFailed": "Nije moguće učitati stiliste.",
+      "profileLoadFailed": "Nije moguće učitati podatke profila stiliste.",
+      "unsupportedHours": "Ovaj raspored sadrži izmjene za određene datume ili više smjena u istom danu. Ovaj editor ga ne može sigurno mijenjati.",
       "saveFailed": "Nije moguće sačuvati profil stiliste.",
       "notFound": "Stilist nije pronađen.",
       "alreadyExists": "Korisnik već ima profil stiliste.",
@@ -1749,7 +1752,7 @@
     }
   },
   "stylistWorkbook": {
-    "profileLoadFailed": "Profil stiliste trenutno nije moguće učitati.",
+      "profileLoadFailed": "Profil stiliste trenutno nije moguće učitati.",
     "noProfile": "Profil nije dostupan",
     "profileNotFound": "Profil stiliste nije pronađen.",
     "title": "Dnevna knjiga",

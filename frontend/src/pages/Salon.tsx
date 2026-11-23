@@ -7,6 +7,7 @@ import {
 } from '../../../shared/business-date.mjs'
 
 import { AdminConfirmDialog } from '../features/shell/admin/ui/admin-confirm-dialog'
+import { ErrorState } from '../features/shell/admin/ui/data-state'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -22,7 +23,7 @@ export default function Salon() {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
   const {
-    salon, loading, saving, confirmRequest, setConfirmRequest, noSalonExists,
+    salon, loading, loadError, loadSalon, saving, confirmRequest, setConfirmRequest, noSalonExists,
     formData, setFormData, workingHours, holidays, sortedHolidays, holidaysSummary,
     holidayOpen, setHolidayOpen, editHoliday, holForm, setHolForm, updateWH,
     openHolidayForm, handleCreateSalon, handleSaveSettings, handleSaveWorkingHours,
@@ -31,8 +32,21 @@ export default function Salon() {
 
   if (loading) {
     return (
-      <div className="flex justify-center p-10 text-content-strong">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+      <div>
+        <h1 className="text-2xl font-semibold text-content">{t('nav.salon')}</h1>
+        <div role="status" className="flex justify-center p-10 text-content-strong">
+          <span className="sr-only">{t('common.loading')}</span>
+          <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold text-content">{t('nav.salon')}</h1>
+        <ErrorState description={t('salon.errors.loadFailed')} onRetry={() => void loadSalon()} />
       </div>
     )
   }

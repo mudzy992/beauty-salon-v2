@@ -5,6 +5,30 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Razlučivi nazivi frizerskih akcija (rad u toku)
+
+Akcije uređivanja/analitike u redovima sada u BS/EN sadrže korisničko ime (fallback user ID), a akcija uklanjanja kompetencije sadrži naziv usluge. Isti nazivi se na trenutnoj stranici/katalogu razlučuju rednim brojem; vizuelni podaci, link analitike, ciljni zapis i ponašanje ostaju isti. Mock BS/EN × 320/1280 uključuje sintetičke duplikate, cilj linka, uklanjanje kompetencije, povrat fokusa i ciljani axe (`button-name`, `link-name`, `label-content-name-mismatch` za tabelu). Prije promjene 4/4 padaju na nejedinstvenim nazivima redova; nakon promjene 4/4 prolaze, a negativna kontrola uklanjanja imena kompetencije ruši 4/4. Original vraćen. To nije potpuni audit pristupačnosti.
+
+Source test `generic-aria-and-row-actions-a11y` sada za frizere provjerava interpolirano ime i isti edit handler; ostale asercije ostaju nepromijenjene. Paket frizeri/admin 41/41, završni mock S8 Chromium 180/180, frontend Node 1001/1001, lint 0 grešaka/6 ranijih upozorenja, build 293,2/300 KiB, Analytics 115,9/140 KiB i typecheck prolaze. Preostali S8 i ograničenja dokumentovani su ispod. Nema merge/deploya.
+
+---
+
+## 2026-11-18 · S8 · Sigurniji frizerski editor i stanja salona (rad u toku)
+
+**Frizeri:** neuspjeh liste više nije prazna lista, već lokalizovana greška s retry; loading je status. Editor se otvara u loading stanju, ali ne dopušta spremanje dok radno vrijeme, dodijeljene kompetencije i kompletni katalog ne stignu i ne prođu validaciju. Kod neuspjeha ili neispravnog/nepotpunog read-a daje grešku/retry umjesto ranijih podrazumijevanih/praznih podataka. Namjenska stroga varijanta čitanja kataloga odbija malformirane i očigledno nepotpune/truncirane stranice; prethodni potrošači zadržavaju stari helper. Editor odbija datumske izuzetke i više smjena na isti dan, jer ih postojeći obrazac ne može sigurno predstaviti pri replacement write-u. Prikazuje objašnjenje; to namjerno ograničava uređivanje takvih rasporeda dok ne postoji odgovarajući editor.
+
+Postojeći PATCH i dva POST-a, sadržaj i role nisu namjerno mijenjani. Dodatni sequence/session guard sprječava starije read odgovore i sprječava započinjanje dva replacement POST-a nakon promjene sesije usred PATCH-a; već poslani PATCH se ne može povući i ta tri server zahtjeva nisu jedna transakcija. Osim toga, zakašnjeli uspjeh refresha trenutno odabranu stranicu, a ne onu s početka spremanja. Fokus se po zatvaranju vraća na pokretač ili naslov ako red više nije montiran. `use-stylist-management` 170 → 53, editor hook 136 linija. Paginacija nije snapshot izolovana od istovremenih server izmjena; kompletan katalog iz ovog klijentskog testa nije garancija konkurentne dosljednosti.
+
+**Salon:** BS/EN × 320/1280 baseline 16/16 očekivanih padova (loading heading/status te greške i malformiran odgovor); realan uspješan null fallback ostaje prazno stanje. Loading sada ima jedan heading i status, a neuspjela/malformirana čitanja grešku i retry umjesto obrasca za kreiranje. Zadržan je list → public/detail fallback i postojeći ensure za uspješno potvrđen prazan raspored. Salon read odbija nepotpune/neispravne podatke, a sequence/session guard ignoriše zastarjele rezultate i ne započinje fallback za njih. Gallery service loading sada ima naslov/status, a loading parova status. Izvorni heading test prilagođen je četiri međusobno isključive grane i i dalje zahtijeva tačno jedan h1 po grani; novi browser testovi to provjeravaju i renderovano. Prije popravke gallery loading 4/4 očekivano padao.
+
+**Dokazi:** frontend Node **1001/1001**, mock S8 Chromium **176/176**, build **293,2/300 KiB**, Analytics **115,9/140 KiB**, lint 0 grešaka/6 ranijih upozorenja, E2E typecheck, i18n **2816/2816**, CI indeks, hygiene, 758 doc linkova i 148 source kontrast parova prolaze. Mock S8 Chromium paket je pokrenut zasebno; provjera `npx playwright test --list` pokazuje da postojeći `test:a11y-routes` u CI-ju već obuhvata svih 176 aktuelnih S8 Chromium scenarija, pa nije dodavan dupli CI korak. Time se ispravlja raniji navod da S8 browser specovi nisu u CI-ju: nisu zaseban korak, ali ulaze kroz postojeći Playwright glob. Negativne kontrole ruše **3/3** (stari editor read 200/500 i sesija tokom PATCH-a) te **2/2** (salon stale 200/500); originali vraćeni. Late-save/stranica test prije ispravke očekivano pada. Mock API ne dokazuje stvarne DB transakcije, paralelne server izmjene, uređaje, čitač ekrana ili puni WCAG audit.
+
+CI [45241818125](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45241818125) za `864e1f6` je **5/5 success**; nakon toga pushan `9861370`, CI [45251212312](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45251212312) pri bilježenju 4 success, rendered a11y još traje. Ovaj zahvat još nije u tom CI-ju; ne pushati dok prethodni ne završi 5/5. Nema merge/deploya.
+
+**Preostalo S8:** Analytics 388, ClientAnalytics 161, Stylists 152, salon management hook 292 i više izdvojenih komponenti i dalje iznad ciljnog okvira; ne tvrditi DoD samo na osnovu veličine. Provjeriti jedinstvena imena akcija u frizerskim redovima/kompetencijama i utrke učitavanja galerije pri promjeni serviceId (pregled koda, još nije browser reprodukcija), te ostala tri stanja, grafičke alternative, tab/deep-link, fokus, prava i potvrde. S11 ručni AT/zoom i drugi ranije dokumentovani dokazi ostaju otvoreni.
+
+---
+
 ## 2026-11-18 · S8 · Users kompozicija i oporavak kataloga (rad u toku)
 
 `Users.tsx` 547 → 133 linije: uređivanje, kreiranje, akcije, jednokratne lozinke i panel liste premješteni su u feature hookove i komponente. Uloge, API ugovori, validacija, otkazivanje provjere korisničkog imena, potvrde i dijalozi nisu namjerno mijenjani. Source testovi Users/credentials i finance recovery prate stvarni render-chain i izdvojene hookove, uz zadržavanje ranijih asercija. Mock regresije uključuju create grešku/retry i izostalu lozinku, otpis duga i invalidaciju, te zakašnjele username 200/500 za create/edit. Namjerno uklanjanje username cancellation guardova ruši 4/4, original vraćen.

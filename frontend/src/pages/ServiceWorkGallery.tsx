@@ -20,11 +20,12 @@ export default function ServiceWorkGallery() {
 
   if (loadingService) {
     return (
-      <div className="flex justify-center py-14 text-content-strong">
-        <>
-          <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+      <div>
+        <h1 className="text-2xl font-semibold text-content">{t('admin.serviceWorkGallery.title')}</h1>
+        <div role="status" className="flex justify-center py-14 text-content-strong">
+          <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <span className="sr-only">{t('admin.serviceWorkGallery.loadingService')}</span>
-        </>
+        </div>
       </div>
     )
   }
@@ -72,8 +73,8 @@ export default function ServiceWorkGallery() {
       ) : null}
 
       {loadingPairs && items.length === 0 ? (
-        <div className="flex justify-center py-14 text-content-strong">
-          <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+        <div role="status" className="flex justify-center py-14 text-content-strong">
+          <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <span className="sr-only">{t('admin.serviceWorkGallery.loadingPairs')}</span>
         </div>
       ) : items.length === 0 ? (

@@ -14,6 +14,7 @@ export interface WorkingHours {
   startTime: string
   endTime: string
   isWorkingDay: boolean
+  dateOverride?: string | null
 }
 
 export interface ServiceOption {

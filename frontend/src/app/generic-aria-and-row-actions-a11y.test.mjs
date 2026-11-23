@@ -191,11 +191,15 @@ test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu',
     } else {
       assert.match(src, /<tr\b[^>]*onClick/s, `${rel}: očekivan klikabilan red`)
     }
-    assert.match(
-      src,
-      new RegExp(`<Button[^>]*aria-label=\\{t\\('${key.source}'\\)\\}`.replace(/\\\//g, '/'), 's'),
-      `${rel}: uz klikabilan red mora postojati dugme s aria-label ${key.source}`,
-    )
+    if (kind === 'datatable') {
+      assert.match(src, /<Button[^>]*aria-label=\{t\('stylists\.aria\.edit', \{ name: stylistAccessibleName\(s\) \}\)\}[^>]*onClick=\{\(\) => openEditor\(s\)\}/s, `${rel}: svaki red mora imati imenovano dugme za uređivanje`)
+    } else {
+      assert.match(
+        src,
+        new RegExp(`<Button[^>]*aria-label=\\{t\\('${key.source}'\\)\\}`.replace(/\\\//g, '/'), 's'),
+        `${rel}: uz klikabilan red mora postojati dugme s aria-label ${key.source}`,
+      )
+    }
   }
 })
 

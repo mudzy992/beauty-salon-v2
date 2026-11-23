@@ -16,7 +16,7 @@ interface CatalogPage<T> {
   nextPage?: number | null;
 }
 
-async function fetchAllPages<T>(path: string, params: CatalogParams = {}) {
+async function fetchAllPages<T>(path: string, params: CatalogParams = {}, requireComplete = false) {
   const items: T[] = [];
   let page = 0;
 
@@ -25,17 +25,30 @@ async function fetchAllPages<T>(path: string, params: CatalogParams = {}) {
       params: { ...params, page, pageSize: PAGE_SIZE },
     });
     if (Array.isArray(data)) {
+      if (requireComplete && (page !== 0 || data.length > MAX_ITEMS)) throw new Error('Incomplete catalog response');
       items.push(...data.slice(0, MAX_ITEMS));
       break;
     }
 
+    if (requireComplete && (!data || !Array.isArray(data.items) ||
+        (data.total != null && (!Number.isSafeInteger(data.total) || data.total < 0)) ||
+        (data.hasMore != null && typeof data.hasMore !== 'boolean') ||
+        (data.page != null && data.page !== page))) {
+      throw new Error('Invalid catalog response');
+    }
     const pageItems = Array.isArray(data.items) ? data.items : [];
+    if (requireComplete && items.length + pageItems.length > MAX_ITEMS) throw new Error('Incomplete catalog response');
     items.push(...pageItems.slice(0, MAX_ITEMS - items.length));
     const hasMore =
       data.hasMore ??
       (items.length < (data.total ?? items.length) &&
         (page + 1) * PAGE_SIZE <= MAX_OFFSET);
     const nextPage = data.nextPage ?? (hasMore ? page + 1 : null);
+    if (requireComplete && (
+      (data.total != null && data.total < items.length) ||
+      (!hasMore && data.total != null && data.total > items.length) ||
+      (hasMore && (nextPage == null || !Number.isSafeInteger(nextPage) || nextPage !== page + 1 || nextPage * PAGE_SIZE > MAX_OFFSET || items.length >= MAX_ITEMS))
+    )) throw new Error('Incomplete catalog response');
     if (!hasMore || nextPage == null || items.length >= MAX_ITEMS) break;
     page = nextPage;
   }
@@ -89,3 +102,11 @@ export const fetchAllAdminStylistServices = <T>(stylistProfileId: string) =>
   fetchAllPages<T>(
     `/api/stylists/admin/${encodeURIComponent(stylistProfileId)}/services`,
   );
+
+// A replacement write must never be based on a malformed or truncated read.
+// Other catalog consumers retain the existing permissive behavior.
+export const fetchCompleteAdminServices = <T>() =>
+  fetchAllPages<T>("/api/services/admin/services", {}, true);
+
+export const fetchCompleteAdminStylistServices = <T>(stylistProfileId: string) =>
+  fetchAllPages<T>(`/api/stylists/admin/${encodeURIComponent(stylistProfileId)}/services`, {}, true);
