@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Odobrenje i lista korisnika (rad u toku)
+
+Korisnik je izričito odobrio nastavak šireg razbijanja velikih admin fajlova prema S8 planu uz očuvanje API-ja i testova. Iz `Users.tsx` (1719 linija prije, 1619 poslije) izdvojeni su postojeći `UsersList` i tipovi u `features/users/`; obrada podataka, kolone, akcije i njihov redoslijed ostaju u stranici. Ovo je početak, ne završetak razbijanja niti S8 DoD.
+
+Statički `users-a11y.test.mjs` sada čita i izdvojenu listu, uz zasebnu provjeru importa i korištenja iz stranice. Test i dalje provjerava caption, jedan DataTable, loading status, redoslijed kolona, akcije i odsustvo lokalnih stilova. Puni web Node **990/990**, build **293,0/300 KiB**, E2E typecheck; mock Chromium **2/2** na 320/1280 px: kartica/tabela, podaci, tabovi/prazno stanje i otvaranje/zatvaranje uređivanja s povratkom fokusa bez write poziva. Test ne dokazuje stvarne upise ni sve korisničke tokove. CI ove dopune još ne postoji; prethodni run [45169104005](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45169104005) još traje. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Dijalog usluge i zakašnjela mutacija (rad u toku)
 
 **Šta i zašto:** prikaz dijaloga za brisanje/spajanje izdvojen je u `features/services/service-deletion-dialog.tsx`; state, API ugovor i pravila ostaju u stranici. `Services.tsx` je u ovom koraku smanjen na oko 1006 linija, a novi dijalog ima oko 209; ovo nije završeno planirano razbijanje velikih fajlova.

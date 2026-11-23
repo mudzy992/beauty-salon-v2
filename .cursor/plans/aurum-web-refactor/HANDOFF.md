@@ -1,5 +1,7 @@
 # HANDOFF — Aurum web refaktor
 
+> **Najnoviji S8 nastavak:** korisnik je izričito odobrio šire razbijanje admin fajlova prema S8 planu, uz očuvanje API-ja i testova. Rad je započet, ali S8 nije završen: Users i Services su još veliki, a ostali ekrani i DoD čekaju nastavak. Najnoviji detalji i testovi su na vrhu `CHANGELOG.md`; prethodni navodi o neodobrenom S8 u ovom historijskom dokumentu više ne važe. Nema merge/deploya.
+
 > **Najnoviji M4–M7 nastavak:** rezervacija ima zasebne oznake koraka i odabranih datuma/termina u emuliranim sistemskim bojama; provjerava se i JS širenje datuma; lokalni fokusirani skup 36/36. CI `60bf38f` 5/5, 2514/0/0, 15 nepotpunih axe uzoraka. **Otvoren nalaz:** u simuliranom 200% tekstu fokus na „Dodaj još“ povremeno ostaje ispod viewporta; uzrok nije potvrđen. M4/M5 i stvarni OS reduced-motion ostaju otvoreni. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).
 
 > **Najnoviji M4–M7 nastavak:** CI `b2fcf97` 5/5, 2496/0/0, uz 15 incomplete uzoraka. Ispravljen reduced-motion automatski scroll i AAA kontrast brojeva koraka rezervacije; lokalno 90/90 i dodatno 36/36. M4/M5 i stvarni OS reduced-motion ostaju otvoreni; [dokazi i neizvedeni protokol](19_m4_m7_protokol_i_izvjestaj.md). CI nove dopune na čekanju.

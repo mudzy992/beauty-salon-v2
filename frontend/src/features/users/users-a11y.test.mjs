@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const source = readFileSync(new URL('../../pages/Users.tsx', import.meta.url), 'utf8')
+const page = readFileSync(new URL('../../pages/Users.tsx', import.meta.url), 'utf8')
+const list = readFileSync(new URL('./users-list.tsx', import.meta.url), 'utf8')
+// UsersList is rendered by the page; inspect both files so moving its markup
+// does not drop the caption, loading status, and table-style guarantees.
+assert.match(page, /import \{ UsersList \} from '\.\.\/features\/users\/users-list'/)
+assert.match(page, /<UsersList\b/)
+const source = page + '\n' + list
 const dataTable = readFileSync(
   new URL('../shell/admin/ui/data-table.tsx', import.meta.url),
   'utf8',

@@ -27,7 +27,9 @@ import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
 
-import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
+import type { DataTableColumn } from '../features/shell/admin/ui/data-table'
+import type { UserRow, PaginatedResponse, StylistRemovalPreview, StylistOption, ClientDebtRow } from '../features/users/user-types'
+import { UsersList } from '../features/users/users-list'
 import { ErrorState } from '../features/shell/admin/ui/data-state'
 import { Alert, AlertDescription } from '../components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
@@ -49,67 +51,6 @@ import {
 } from '../components/ui/dropdown-menu'
 import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-
-interface UserRole {
-  role: { name: string }
-}
-
-interface UserRow {
-  id: string
-  username: string
-  email: string | null
-  firstName: string | null
-  lastName: string | null
-  phone: string | null
-  gender?: 'MALE' | 'FEMALE' | null
-  avatar: string | null
-  isActive: boolean
-  isEmailVerified: boolean
-  mustChangePassword?: boolean
-  createdAt: string
-  userRoles?: UserRole[]
-  stylistProfile?: { id: string; status?: string | null } | null
-}
-
-interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-}
-
-interface StylistRemovalPreview {
-  stylistProfileId: string
-  revision: string
-  financial: { clientDebtsCount: number; manualIncomeCount: number; bookedDailyLogsCount: number }
-  counts: {
-    dailyLogEntriesCount: number
-    confirmedReservationsCount: number
-    reservationResponsesCount: number
-    reviewsCount: number
-  }
-}
-
-interface StylistOption {
-  id: string
-  isActive?: boolean
-  user?: {
-    isActive?: boolean
-    firstName?: string | null
-    lastName?: string | null
-    username?: string | null
-  }
-  status?: 'PENDING' | 'ACTIVE' | string | null
-}
-
-type ClientDebtRow = {
-  id: string
-  amount: number | string
-  note?: string | null
-  createdAt: string
-  service?: { id: string; name: string } | null
-  createdBy?: { id: string; username: string } | null
-}
 
 const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT', 'STYLIST'] as const
 
@@ -1674,46 +1615,5 @@ export default function Users() {
         onConfirm={(reason) => void handleWriteOffClientDebt(reason)}
       />
     </div>
-  )
-}
-
-function UsersList({
-  loading,
-  items,
-  columns,
-  renderCard,
-}: {
-  loading: boolean
-  items: UserRow[]
-  columns: DataTableColumn<UserRow>[]
-  renderCard: (u: UserRow) => React.ReactNode
-}) {
-  const { t } = useTranslation()
-  if (loading) {
-    return (
-      <div role="status" aria-live="polite" className="flex justify-center p-10 text-content-strong">
-        <span className="sr-only">{t('common.loading')}</span>
-        <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-      </div>
-    )
-  }
-
-  if (items.length === 0) {
-    return <p className="p-6 text-sm text-content-strong">{t('common.noData')}</p>
-  }
-
-  return (
-    <>
-      <div className="grid grid-cols-1 gap-3 lg:hidden">{items.map((u) => renderCard(u))}</div>
-
-      <div className="hidden app-table-wrap lg:block">
-        <DataTable
-          caption={t('users.caption')}
-          columns={columns}
-          rows={items}
-          rowKey={(u) => u.id}
-        />
-      </div>
-    </>
   )
 }
