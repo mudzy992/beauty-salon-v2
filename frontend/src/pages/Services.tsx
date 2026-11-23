@@ -1,26 +1,17 @@
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from 'react'
+import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Plus } from 'lucide-react'
 import { ServiceDeletionDialog } from '../features/services/service-deletion-dialog'
 import { ServiceCatalog } from '../features/services/service-catalog'
-import type { Category, Subcategory } from '../features/services/service-catalog-types'
+import { useServiceCatalog } from '../features/services/use-service-catalog'
+import { ErrorState } from '../features/shell/admin/ui/data-state'
 import { ServiceEditorDialog } from '../features/services/service-editor-dialog'
 import { useServiceEditor } from '../features/services/use-service-editor'
 import { useServiceDeletion } from '../features/services/use-service-deletion'
-import type { Service } from '../features/services/service-types'
 
 import api from '../api/client'
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
-import {
-  fetchAllAdminServiceCategories,
-  fetchAllAdminServices,
-  fetchAllAdminServiceSubcategories,
-} from '../api/catalog'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
@@ -36,49 +27,8 @@ export default function Services() {
     [error, t],
   )
 
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
+  const { categories, loading, loadError, loadData } = useServiceCatalog({ showApiError })
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
-
-  const loadData = useCallback(() => {
-    setLoading(true)
-    Promise.all([
-      fetchAllAdminServiceCategories<Category>(),
-      fetchAllAdminServiceSubcategories<Subcategory>(),
-      fetchAllAdminServices<Service>(),
-    ])
-      .then(([categoryList, subcategoryList, serviceList]) => {
-        const subcategoriesById = new Map(
-          subcategoryList.map((subcategory) => [
-            subcategory.id,
-            { ...subcategory, services: [] as Service[] },
-          ]),
-        )
-        serviceList.forEach((service) => {
-          subcategoriesById.get(service.subcategoryId)?.services.push(service)
-        })
-        setCategories(
-          categoryList.map((category) => ({
-            ...category,
-            subcategories: subcategoryList
-              .filter((subcategory) => subcategory.categoryId === category.id)
-              .map(
-                (subcategory) =>
-                  subcategoriesById.get(subcategory.id) ?? subcategory,
-              ),
-          })),
-        )
-      })
-      .catch((err) => {
-        setCategories([])
-        showApiError(err, 'services.errors.loadFailed')
-      })
-      .finally(() => setLoading(false))
-  }, [showApiError])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
 
   const {
     open, setOpen, modalMode, saving, catForm, subForm, svcForm, setCatForm, setSubForm, setSvcForm,
@@ -127,29 +77,24 @@ export default function Services() {
     setDeletionTargetId, invalidateDeletionPreview, loadDeletionImpact, setDeletionConfirmationName, handleServiceMutation,
   } = useServiceDeletion({ categories, loadData, showApiError })
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-10 text-content-muted">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
-      </div>
-    )
-  }
-
-
-
-
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-content">
           {t('nav.services')}
         </h1>
-        <Button type="button" onClick={() => openCategoryForm()}>
+        {!loading && !loadError ? <Button type="button" onClick={() => openCategoryForm()}>
           <Plus className="mr-2 h-4 w-4" />
           {t('services.newCategory')}
-        </Button>
+        </Button> : null}
       </div>
 
+      {loading ? <div role="status" className="flex justify-center p-10 text-content-muted">
+        <span className="sr-only">{t('common.loading')}</span>
+        <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+      </div> : null}
+      {loadError && !loading ? <ErrorState description={t('services.errors.loadFailed')} onRetry={loadData} /> : null}
+      {!loading && !loadError ? <>
       <ServiceCatalog categories={categories} openCategoryForm={openCategoryForm} openSubcategoryForm={openSubcategoryForm}
         openServiceForm={openServiceForm} handleDeleteCategory={handleDeleteCategory} handleDeleteSubcategory={handleDeleteSubcategory}
         openServiceDeletion={openServiceDeletion} />
@@ -185,6 +130,7 @@ export default function Services() {
         onConfirm={() => void handleServiceMutation()}
       />
       <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      </> : null}
     </div>
   )
 }

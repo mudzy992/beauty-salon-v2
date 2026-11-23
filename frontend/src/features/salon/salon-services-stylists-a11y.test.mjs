@@ -24,6 +24,7 @@ const serviceFields = read('../services/service-fields.tsx')
 assert.match(servicesPage, /<ServiceEditorDialog\b/)
 assert.match(servicesPage, /useServiceEditor\(\{ loadData, showApiError \}\)/)
 assert.match(servicesPage, /useServiceDeletion\(\{ categories, loadData, showApiError \}\)/)
+assert.match(servicesPage, /useServiceCatalog\(\{ showApiError \}\)/)
 assert.match(editor, /<CategoryFields\b/)
 assert.match(editor, /<ServiceFields\b/)
 const services = [servicesPage, serviceCatalog, serviceTable, editor, categoryFields, serviceFields].join('\n')
@@ -47,6 +48,16 @@ const runtimeCss = read('../../styles/globals.css')
 const headers = (src) => src.match(/<th\b[^>]*>/g) || []
 const cells = (src) => src.match(/<td\b[^>]*>/g) || []
 const named = (arr) => arr.filter((t) => /data-label=\{t\(/.test(t))
+
+test('katalog zadržava naslov i ima status učitavanja i oporavljivu grešku', () => {
+  const hook = read('../services/use-service-catalog.ts')
+  assert.match(servicesPage, /<h1\b[\s\S]*?t\('nav\.services'\)/)
+  assert.match(servicesPage, /loading \? <div role="status"[\s\S]*?t\('common\.loading'\)/)
+  assert.match(servicesPage, /loadError && !loading \? <ErrorState description=\{t\('services\.errors\.loadFailed'\)\} onRetry=\{loadData\}/)
+  assert.match(hook, /const request = \+\+requestSequence\.current/)
+  assert.match(hook, /if \(request !== requestSequence\.current\) return/)
+  assert.match(hook, /return \(\) => \{ requestSequence\.current \+= 1 \}/)
+})
 
 test('svaki Switch ima pristupačno ime (4.1.2)', () => {
   const files = { salon, services, stylists }

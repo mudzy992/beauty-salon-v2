@@ -69,7 +69,7 @@ Nema osnova da se iz ovih opažanja zaključi da su se desili dupli emaili, pogr
 - dashboard [`use-dashboard-data.ts`](../../frontend/src/features/dashboard/use-dashboard-data.ts#L29-L48) kao listu radi summary izračuna;
 - finance `searchClients` (API-R1), koji šalje parametre koje backend ignoriše.
 
-User management ekran više nije osnovni consumer ove rute za CLIENT listu: koristi `/api/users/system-admins`, `/api/users/stylists`, `/api/users/clients/admin`, i reset-candidate ID endpoint ([`Users.tsx`](../../frontend/src/pages/Users.tsx#L230-L248)). Admin-only `system-admins` i `stylists` liste su i same nepagirane u [`UsersService`](../../backend/src/users/users.service.ts#L182-L203), ali su očekivano male staff-liste; nakon mjerljivog rasta treba paginirati ili postaviti tvrdu gornju granicu.
+User management ekran više nije osnovni consumer ove rute za CLIENT listu: koristi `/api/users/system-admins`, `/api/users/stylists`, `/api/users/clients/admin`, i reset-candidate ID endpoint ([`use-users-list.ts`](../../frontend/src/features/users/use-users-list.ts#L21-L32)). Admin-only `system-admins` i `stylists` liste su i same nepagirane u [`UsersService`](../../backend/src/users/users.service.ts#L182-L203), ali su očekivano male staff-liste; nakon mjerljivog rasta treba paginirati ili postaviti tvrdu gornju granicu.
 
 **Validacijski detalj:** controller radi `parseInt` direktno. Ako je samo `page` ili samo `pageSize` prisutan, service tretira upit kao ne-paginiran; ako su oba prisutna ali jedan postane `NaN`, `hasPagination` je ipak true i `skip`/`take` mogu biti neispravni. Nepoznati `search`, `role`, `limit` query parametri se ne mapiraju kroz DTO i tiho se ignorišu. U query DTO-u za client picker postoji numerička validacija; ovdje je nema.
 

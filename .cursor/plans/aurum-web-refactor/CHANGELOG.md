@@ -5,6 +5,18 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Users kompozicija i oporavak kataloga (rad u toku)
+
+`Users.tsx` 547 → 133 linije: uređivanje, kreiranje, akcije, jednokratne lozinke i panel liste premješteni su u feature hookove i komponente. Uloge, API ugovori, validacija, otkazivanje provjere korisničkog imena, potvrde i dijalozi nisu namjerno mijenjani. Source testovi Users/credentials i finance recovery prate stvarni render-chain i izdvojene hookove, uz zadržavanje ranijih asercija. Mock regresije uključuju create grešku/retry i izostalu lozinku, otpis duga i invalidaciju, te zakašnjele username 200/500 za create/edit. Namjerno uklanjanje username cancellation guardova ruši 4/4, original vraćen.
+
+`Services.tsx` 190 → 136 linija: read i izgradnja kataloga izdvojeni u hook. Prije popravke 8/8 novih testova padalo je jer loading nema heading/status, a greška read-a prikazuje prazan katalog bez retry. Sada su heading i lokalizovani status dostupni tokom učitavanja, greška ima retry, a sequence/cleanup štiti od zakašnjelih uspjeha i grešaka. Isti endpointi i grupisanje ostaju; izmjene source testa uključuju provjeru veze i novo stanje, bez uklanjanja prethodnih garancija. Negativna kontrola uklanjanja zaštite ruši stale 200/500 2/2; original vraćen, build i ciljani test ponovljeni 10/10. Istovremeni retry u testu je sintetički. Mock testovi ne dokazuju serverske transakcije ili rad čitača ekrana.
+
+Frontend Node **1000/1000**, kompletni mock S8 Chromium **116/116**, build **293,0/300 KiB**, Analytics **115,9/140 KiB**, E2E typecheck, pet Python provjera i lint 0 grešaka/6 ranijih upozorenja. Ažuriran je i audit link koji je nakon ekstrakcije pokazivao na nepostojeće linije Users stranice. Mock S8 specovi su zasad lokalni dokaz, nisu zaseban CI korak; uključivanje u CI treba riješiti prije zatvaranja S8. CI [45241818125](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45241818125) za `864e1f6` pri bilježenju 4 uspješna posla, rendered a11y još traje; `30d008e` i ovaj rad nisu u tom CI-ju. Nema merge/deploya.
+
+**S8 još nije završen:** Analytics (388) i ClientAnalytics (161), kao i više izdvojenih modula, prelaze ciljni okvir; sve DoD dokaze treba dovršiti. Dodatnim pregledom primijećeno: Salon nema heading/status pri loadingu i fallback može sakriti neuspjeh čitanja kao nepostojanje salona; Stylists read grešku tretira kao praznu listu, a neuspjeh učitavanja radnog vremena/usluga u editoru kao podrazumijevane vrijednosti (potreban posebno oprezan test prije promjene); ServiceWorkGallery loading nema heading ni status. To su nalazi pregleda koda, ne tvrdnja da su već reproducirani u browseru. Grafikoni, alternative, tab/deep-link, potvrde, fokus i sva tri stanja svih 6+1 ekrana zahtijevaju završni DoD pregled; S11 ručni AT/zoom i druga ranije dokumentovana ograničenja ostaju otvoreni.
+
+---
+
 ## 2026-11-18 · S8 · Učitavanje analitičkog pregleda (rad u toku)
 
 `Analytics.tsx` 477 → 388 linija: tipovi dashboarda i postojeći read/validacija/sequence/retry premješteni su u `use-analytics-dashboard`; preset logika, izračun grafikona i tabela ostaju nepromijenjeni u stranici. Source test API ugovora prati hook i provjerava njegovo povezivanje sa stranicom. S8 nije završen: stranica i dalje zahtijeva razbijanje te pregled svih DoD kriterija.

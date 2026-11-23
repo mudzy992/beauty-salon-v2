@@ -3,11 +3,13 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const page = readFileSync(new URL('../../pages/Users.tsx', import.meta.url), 'utf8')
+const panel = readFileSync(new URL('./users-panel.tsx', import.meta.url), 'utf8')
 const list = readFileSync(new URL('./users-list.tsx', import.meta.url), 'utf8')
-// UsersList is rendered by the page; inspect both files so moving its markup
-// does not drop the caption, loading status, and table-style guarantees.
-assert.match(page, /import \{ UsersList \} from '\.\.\/features\/users\/users-list'/)
-assert.match(page, /<UsersList\b/)
+// Trace the rendered chain rather than treating an extracted, unused module as proof.
+assert.match(page, /import \{ UsersPanel \} from '\.\.\/features\/users\/users-panel'/)
+assert.match(page, /<UsersPanel\b/)
+assert.match(panel, /import \{ UsersList \} from '\.\/users-list'/)
+assert.match(panel, /<UsersList\b/)
 const rowPresentation = readFileSync(new URL('./use-user-row-presentation.tsx', import.meta.url), 'utf8')
 const card = readFileSync(new URL('./user-card.tsx', import.meta.url), 'utf8')
 const roleActions = readFileSync(new URL('./user-role-actions.tsx', import.meta.url), 'utf8')
@@ -16,15 +18,21 @@ const listHook = readFileSync(new URL('./use-users-list.ts', import.meta.url), '
 // Keep the entire rendering chain covered, not just the extracted sources.
 assert.match(page, /useUserRowPresentation\(/)
 assert.match(page, /useUsersList\(/)
+assert.match(page, /useUserEditor\(\{ loadData, showApiError, getUserRoles, setSaving \}\)/)
+assert.match(page, /useUserCreation\(\{ loadData, showApiError, setSaving \}\)/)
+assert.match(page, /<EditUserDialog\b[\s\S]*?onSave=\{\(\) => void handleSave\(\)\}/)
+assert.match(page, /<CreateUserDialog\b[\s\S]*?onCreate=\{\(\) => void handleCreate\(\)\}/)
 assert.match(page, /useStylistRemoval\(\{ admins, stylists, clients, loadData, showApiError \}\)/)
 assert.match(page, /<StylistRemovalDialog\b/)
-assert.match(page, /<UsersPagination\b/)
+assert.match(panel, /import \{ UsersPagination \} from '\.\/users-pagination'/)
+assert.match(panel, /<UsersPagination\b/)
 assert.match(pagination, /aria-current=\{p === page \? 'page' : undefined\}/)
-assert.match(page, /columns=\{userColumns\} renderCard=\{renderUserCard\}/)
+assert.match(page, /userColumns=\{userColumns\} renderUserCard=\{renderUserCard\}/)
+assert.match(panel, /columns=\{userColumns\} renderCard=\{renderUserCard\}/)
 assert.match(rowPresentation, /<UserCard\b/)
 assert.match(rowPresentation, /<UserRoleActions\b/)
 assert.match(card, /\{renderRoles\(u\)\}/)
-const source = [page, list, rowPresentation, card, roleActions, listHook].join('\n')
+const source = [page, panel, list, rowPresentation, card, roleActions, listHook].join('\n')
 const dataTable = readFileSync(
   new URL('../shell/admin/ui/data-table.tsx', import.meta.url),
   'utf8',
