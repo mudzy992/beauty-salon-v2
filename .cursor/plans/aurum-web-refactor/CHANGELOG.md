@@ -5,6 +5,18 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Korisnički redovi i razlučive praznične akcije (rad u toku)
+
+**Opseg:** iz `Users.tsx` (1173 → 799 linija) izdvojeni su prikaz desktop kolona, kartice i akcije uloga te paginacija; stanje, učitavanje, API mutacije, fokusni refovi, debouncing i računanje stranica ostaju na stranici. Uloge, redoslijed kolona, prava i API ugovori nisu namjerno mijenjani. Razbijanje ostaje djelimično: stranica i `use-user-row-presentation.tsx` (184 linije) još prelaze planiranu veličinu, a S8 DoD nije zatvoren.
+
+**Pristupačnost:** praznični redovi su imali ista generička imena akcija. Uredi/obriši/pošalji sada sadrže ime i lokalizovani datum, a tačni duplikati imena/datuma dobijaju redni broj; vidljivi tekst dugmeta za uređivanje zadržan je u pristupačnom imenu. Na tri praznika s istim imenom (dva istog datuma) negativna kontrola prije izmjene pada **4/4** na generičkom nazivu; nakon izmjene prolaze **4/4** BS/EN × 320/1280, uključujući razlučivost svih akcija, `button-name`/`label-content-name-mismatch` axe sken tabele, otkazivanje uz povrat fokusa i simulirani DELETE tačno odabranog reda. Ovo nije puni axe/AT audit. Ažuriran O4 selektor za imenovanu prazničnu akciju; postojeća provjera opisa, Escape/fokusa i tačno jednog DELETE-a ostaje: izolovana mock O4 provjera **1/1**.
+
+**Regresije:** mock Chromium **71/71** uključuje nove korisničke role/reset/deaktivaciju i analitički deep-link, provjeru stranica i reset pretrage na 320/1280, te praznične akcije; nakon dodatka ciljanog axe pravila ista praznična matrica ponovo **4/4**. Testovi ne dokazuju stvarne serverske mutacije ni slanje e-maila/push poruke. Node **999/999**, lint 0 grešaka i 6 ranijih upozorenja, build **293,0/300 KiB** (Analytics **115,9/140 KiB**), E2E typecheck, strict BS/EN paritet **2813/2813**, CI indeks, hygiene, 758 linkova i odabrani source kontrast prolaze. Source testovi korisničkih akcija i analitičkih linkova sada prate cijeli lanac kompozicije; allowlista kontrasta samo premješta istu dekorativnu ikonu. Nema novih paketa.
+
+**CI:** prethodni [45193806331](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45193806331) za `7ce1538` pri bilježenju ima 4 uspješna posla i a11y u toku. Novi zahvat nije obuhvaćen tim runom. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Salon i prikaz kataloga (rad u toku)
 
 **Opseg:** `Salon.tsx` 632 → 122 linije; postojeći state, API tokovi i socket osvježavanje premješteni u `use-salon-management`, tipovi u `salon-types`, obrasci kreiranja i postavki te dvije tabele u zasebne komponente. `Services.tsx` 681 → 496: kategorije, potkategorije i tabela usluga izdvojene u `service-catalog` s tipovima kataloga. Nisu namjerno mijenjani payloadovi, proračuni, rute ni endpointi. Stranica Salon sada je kompozicija, ali njen hook ima 263 linije, katalog 186, a Users 1173 i Services 496: ovo nije završetak S8 ni provjera svih kriterija pristupačnosti (npr. jedinstvena imena prazničnih akcija ostaju za provjeru/popravku).

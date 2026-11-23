@@ -81,6 +81,17 @@ test('time inputi u radnom vremenu imaju pristupačno ime (4.1.2)', () => {
   }
 })
 
+test('praznični redovi imaju razlučive lokalizovane nazive akcija', () => {
+  for (const key of ['editHoliday', 'deleteHoliday', 'sendHolidayNotification']) {
+    assert.match(salonHolidayTable, new RegExp(`salon\\.aria\\.${key}', \\{ name: holidayAccessibleName\\(h\\) \\}`))
+    for (const lang of ['bs', 'en']) {
+      const locale = JSON.parse(read(`../../i18n/locales/${lang}.json`))
+      assert.match(locale.salon.aria[key], /\{\{name\}\}/)
+    }
+  }
+  assert.match(salonHolidayTable, /sameNameAndDate\.findIndex/)
+})
+
 test('radno vrijeme: ime kontrole uključuje dan (4.1.2)', () => {
   // Bez dana bi svih 7 redova imalo isto ime.
   assert.match(salon, /salon\.aria\.workingDayToggle', \{ day: formatWeekday\(wh\.dayOfWeek/)

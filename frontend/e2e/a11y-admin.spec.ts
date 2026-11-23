@@ -2243,7 +2243,7 @@ test('O4 salon holiday: cancel and confirm isolated deletion', async ({ page }) 
   await page.route('**/api/salon/holidays/o4-holiday', route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
   await page.goto('/admin/salon', { waitUntil: 'networkidle' })
   await page.getByRole('tab', { name: /praznici|holidays/i }).click()
-  await exerciseO4Confirmation(page, page.getByRole('table').getByRole('button', { name: /^(obriši|delete)$/i }).first(), /praznik|holiday/i, () => count)
+  await exerciseO4Confirmation(page, page.getByRole('table').getByRole('button', { name: /^(obriši praznik|delete holiday): O4 praznik/i }), /praznik|holiday/i, () => count)
 })
 
 for (const kind of ['category', 'subcategory'] as const) {

@@ -1268,7 +1268,10 @@
     "aria": {
       "opensTime": "Opening time for {{day}}",
       "closesTime": "Closing time for {{day}}",
-      "workingDayToggle": "Working day for {{day}}"
+      "workingDayToggle": "Working day for {{day}}",
+      "editHoliday": "Edit holiday: {{name}}",
+      "deleteHoliday": "Delete holiday: {{name}}",
+      "sendHolidayNotification": "Send notification for holiday: {{name}}"
     },
     "settings": "Basic settings",
     "workingHours": "Working hours",

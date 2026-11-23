@@ -2,17 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSessionQuery as useQuery } from '../query/use-session-query'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import {
-  Loader2,
-  Mail,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  Eye,
-  X,
-} from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 
 import api from '../api/client'
 import {
@@ -22,41 +12,22 @@ import {
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
-import { getUploadUrl } from '../utils/uploadUrl'
 
-import type { DataTableColumn } from '../features/shell/admin/ui/data-table'
 import type { UserRow, PaginatedResponse, StylistRemovalPreview, StylistOption, ClientDebtRow } from '../features/users/user-types'
 import { UsersList } from '../features/users/users-list'
+import { UsersPagination } from '../features/users/users-pagination'
+import { useUserRowPresentation } from '../features/users/use-user-row-presentation'
 import { EditUserDialog } from '../features/users/edit-user-dialog'
 import { CreateUserDialog } from '../features/users/create-user-dialog'
 import { StylistRemovalDialog } from '../features/users/stylist-removal-dialog'
 import { ErrorState } from '../features/shell/admin/ui/data-state'
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { ConfirmDialog } from '../features/finance/components/confirm-dialog'
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-
-const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT', 'STYLIST'] as const
-
-const getRoleBadgeVariant = (roleName: string) => {
-  if (roleName === 'SYSTEM_ADMIN') return 'danger'
-  if (roleName === 'OWNER') return 'brand'
-  if (roleName === 'STYLIST') return 'secondary'
-  if (roleName === 'CLIENT') return 'success'
-  return 'secondary'
-}
 
 type RemovalMode = 'DELETE' | 'TRANSFER'
 
@@ -74,16 +45,6 @@ const normalizeUsernameFromNames = (first: string, last: string): string => {
   return base
 }
 
-const getUserDisplayName = (u: Pick<UserRow, 'firstName' | 'lastName' | 'username'>) =>
-  [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username || '-'
-
-const initials = (firstName?: string | null, lastName?: string | null, username?: string | null) => {
-  const f = (firstName ?? '').trim()
-  const l = (lastName ?? '').trim()
-  if (f || l) return `${(f[0] ?? '').toUpperCase()}${(l[0] ?? '').toUpperCase()}`.trim() || 'U'
-  return (username ?? 'U')[0]?.toUpperCase() ?? 'U'
-}
-
 export default function Users() {
   const { t } = useTranslation()
   const { success, error, warning } = useAppToast()
@@ -93,7 +54,6 @@ export default function Users() {
   }
   const getRoleLabel = (roleName: string) =>
     t(`users.roleNames.${roleName}`, { defaultValue: roleName })
-  const navigate = useNavigate()
 
   const [admins, setAdmins] = useState<UserRow[]>([])
   const [stylists, setStylists] = useState<UserRow[]>([])
@@ -690,291 +650,10 @@ export default function Users() {
     }
   }
 
-  const getAvailableRolesToAssign = (u: UserRow) => {
-    const current = getUserRoles(u)
-    return ROLES_MANAGED_IN_UI.filter((r) => !current.includes(r))
-  }
-
-  const canRemoveRole = (roleName: string) => roleName !== 'CLIENT' && ROLES_MANAGED_IN_UI.includes(roleName as any)
-
-  const renderRoles = (u: UserRow) => {
-    const roles = getUserRoles(u)
-    const addable = getAvailableRolesToAssign(u)
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        {roles.map((roleName) => {
-          const isStylist = roleName === 'STYLIST'
-          const isPending = isStylist && String(u.stylistProfile?.status ?? '').toUpperCase() === 'PENDING'
-          return (
-            <Badge key={roleName} variant="outlineStrong" data-users-role-chip className="gap-1 border-line bg-surface-muted px-2 py-1 font-medium text-[11px] text-content-strong">
-              <Badge variant={getRoleBadgeVariant(roleName)} className="rounded-full px-2 py-0.5 text-[10px]">
-                {getRoleLabel(roleName)}
-              </Badge>
-              {isStylist ? <span className="text-content-strong">{t('users.stylistRoleBadge')}</span> : null}
-              {isPending ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-auto p-0 text-[10px] font-medium text-warn-fg underline underline-offset-2 hover:bg-transparent hover:text-warn-fg"
-                  onClick={() => navigate('/admin/stylists')}
-                >
-                  {t('users.status.profileIncomplete')}
-                </Button>
-              ) : null}
-              {canRemoveRole(roleName) ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="ml-1 h-6 w-6"
-                  aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName), username: u.username })}
-                  onClick={(event) => {
-                    if (roleName === 'STYLIST') removalTriggerRef.current = event.currentTarget
-                    void handleRemoveRole(u.id, roleName)
-                  }}
-                >
-                  <X className="h-3 w-3" aria-hidden="true" />
-                </Button>
-              ) : null}
-            </Badge>
-          )
-        })}
-
-        {addable.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" size="icon" variant="outline" className="h-8 w-8" aria-label={t('users.aria.addRole', { username: u.username })}>
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {addable.map((r) => (
-                <DropdownMenuItem key={r} onClick={() => void handleAssignRole(u.id, r)}>
-                  {getRoleLabel(r)}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/admin/stylists')}>{t('users.openStylists')}</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
-    )
-  }
-
-  const userColumns: DataTableColumn<UserRow>[] = [
-    {
-      key: 'avatar',
-      headerKey: 'users.table.avatar',
-      className: 'w-[56px] p-3',
-      render: (u) => (
-        <Avatar className="h-9 w-9">
-          <AvatarImage src={u.avatar ? getUploadUrl(u.avatar) : undefined} alt={getUserDisplayName(u)} />
-          <AvatarFallback>{initials(u.firstName, u.lastName, u.username)}</AvatarFallback>
-        </Avatar>
-      ),
-    },
-    {
-      key: 'username',
-      headerKey: 'users.username',
-      className: 'p-3',
-      render: (u) => (
-        <span className="font-medium text-content">{u.username}</span>
-      ),
-    },
-    {
-      key: 'email',
-      headerKey: 'users.email',
-      className: 'p-3',
-      render: (u) => (
-        <div className="flex items-center gap-2">
-          <span className="truncate">{u.email ?? '-'}</span>
-          {u.email ? (
-            <Badge variant={u.isEmailVerified ? 'success' : 'warning'} className="text-[10px]">
-              {u.isEmailVerified ? t('users.status.emailVerified') : t('users.status.emailUnverified')}
-            </Badge>
-          ) : null}
-          {u.mustChangePassword ? (
-            <Badge variant="warning" className="text-[10px]">
-              {t('users.credentials.changeRequired')}
-            </Badge>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      key: 'fullName',
-      headerKey: 'users.table.fullName',
-      className: 'p-3',
-      render: (u) => [u.firstName, u.lastName].filter(Boolean).join(' ') || '-',
-    },
-    {
-      key: 'phone',
-      headerKey: 'users.phone',
-      className: 'p-3',
-      render: (u) => u.phone ?? '-',
-    },
-    {
-      key: 'roles',
-      headerKey: 'users.roles',
-      className: 'p-3',
-      render: (u) => renderRoles(u),
-    },
-    {
-      key: 'status',
-      headerKey: 'common.status',
-      className: 'p-3',
-      render: (u) => (
-        <div className="flex flex-col items-end gap-1">
-          <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
-            {u.isActive ? t('common.active') : t('common.inactive')}
-          </Badge>
-          {u.mustChangePassword ? (
-            <Badge variant="warning" className="text-[10px]">
-              {t('users.credentials.changeRequired')}
-            </Badge>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      key: 'actions',
-      headerKey: 'common.actions',
-      align: 'right',
-      className: 'p-3',
-      render: (u) => (
-        <div className="flex justify-end gap-1">
-          {u.mustChangePassword ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="h-8 w-8"
-              disabled={resetLinkSendingId === u.id || !u.email || !u.isEmailVerified}
-              title={
-                u.email && u.isEmailVerified
-                  ? t('users.credentials.resetLinkAction')
-                  : t('users.credentials.resetLinkNeedsVerifiedEmail')
-              }
-              aria-label={t('users.aria.resetLink', { username: u.username })}
-              onClick={() => void handleIssueInitialPasswordResetLink(u)}
-            >
-              {resetLinkSendingId === u.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Mail className="h-4 w-4" aria-hidden="true" />
-              )}
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('users.aria.analytics', { username: u.username })}
-            onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}
-          >
-            <Eye className="h-4 w-4 text-teal-600" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('users.aria.edit', { username: u.username })}
-            onClick={(event) => { editTriggerRef.current = event.currentTarget; openEdit(u) }}
-          >
-            <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
-          </Button>
-          {u.isActive ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              aria-label={t('users.aria.deactivate', { username: u.username })}
-              onClick={() => void handleDeactivate(u.id, u.username)}
-            >
-              <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
-            </Button>
-          ) : null}
-        </div>
-      ),
-    },
-  ]
-
-  const renderUserCard = (u: UserRow) => (
-    <Card key={u.id} className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={u.avatar ? getUploadUrl(u.avatar) : undefined} alt={getUserDisplayName(u)} />
-            <AvatarFallback>{initials(u.firstName, u.lastName, u.username)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <p className="truncate font-medium text-content">{u.username}</p>
-            <p className="text-sm text-content-strong ">{getUserDisplayName(u)}</p>
-          </div>
-        </div>
-        <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
-          {u.isActive ? t('common.active') : t('common.inactive')}
-        </Badge>
-      </div>
-
-      <div className="mt-3 space-y-2 text-sm">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-content-strong">{t('users.email')}</span>
-          <span className="truncate text-content">{u.email ?? '-'}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-content-strong">{t('users.phone')}</span>
-          <span className="truncate text-content">{u.phone ?? '-'}</span>
-        </div>
-        <div className="space-y-2">
-          <p className="text-content-strong">{t('users.roles')}</p>
-          {renderRoles(u)}
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        {u.mustChangePassword ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={resetLinkSendingId === u.id || !u.email || !u.isEmailVerified}
-            title={
-              u.email && u.isEmailVerified
-                ? t('users.credentials.resetLinkAction')
-                : t('users.credentials.resetLinkNeedsVerifiedEmail')
-            }
-            aria-label={t('users.aria.resetLink', { username: u.username })}
-            onClick={() => void handleIssueInitialPasswordResetLink(u)}
-          >
-            {resetLinkSendingId === u.id ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
-            )}
-            {t('users.credentials.resetLinkAction')}
-          </Button>
-        ) : null}
-        <Button type="button" size="sm" variant="outline" aria-label={t('users.aria.analytics', { username: u.username })} onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}>
-          {/* i18n: `users.aria.analytics` je ARIA ključ i glasi „Analitika klijenta
-              {{username}}" — bez opcija bi se na ekranu ispisalo doslovno „{{username}}".
-              Kao vidljiva labela, uz susjedno {t('common.edit')}, ide kratki ključ. */}
-          {t('users.analytics')}
-        </Button>
-        <Button type="button" size="sm" aria-label={t('users.aria.edit', { username: u.username })} onClick={(event) => { editTriggerRef.current = event.currentTarget; openEdit(u) }}>
-          {t('common.edit')}
-        </Button>
-        {u.isActive ? (
-          <Button type="button" size="sm" variant="outline" aria-label={t('users.aria.deactivate', { username: u.username })} onClick={() => void handleDeactivate(u.id, u.username)}>
-            {t('users.deactivate')}
-          </Button>
-        ) : null}
-      </div>
-    </Card>
-  )
+  const { userColumns, renderUserCard } = useUserRowPresentation({
+    getUserRoles, getRoleLabel, resetLinkSendingId, editTriggerRef, removalTriggerRef,
+    openEdit, handleRemoveRole, handleAssignRole, handleIssueInitialPasswordResetLink, handleDeactivate,
+  })
 
   const tabCount = activeTab === 'admins' ? admins.length : activeTab === 'stylists' ? stylists.length : total
   const headerTitle = t(`users.tabs.${activeTab}`, { count: tabCount })
@@ -1036,62 +715,9 @@ export default function Users() {
         </div>
       </Card>
 
-      {activeTab === 'clients' ? <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-content-strong">{t('users.clientTotal', { count: total })}</p>
-
-        <div className="flex items-center gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-            {t('common.previous')}
-          </Button>
-
-          {visiblePageNumbers.pages[0] > 0 ? (
-            <>
-              <Button type="button" size="sm" variant="ghost" onClick={() => setPage(0)}>
-                1
-              </Button>
-              {visiblePageNumbers.pages[0] > 1 ? <span className="text-sm text-content-strong">…</span> : null}
-            </>
-          ) : null}
-
-          {visiblePageNumbers.pages.map((p) => (
-            <Button
-              key={p}
-              type="button"
-              size="sm"
-              variant={p === page ? 'default' : 'ghost'}
-              aria-current={p === page ? 'page' : undefined}
-              onClick={() => setPage(p)}
-            >
-              {p + 1}
-            </Button>
-          ))}
-
-          {visiblePageNumbers.totalPages - 1 > visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] ? (
-            <>
-              {visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] < visiblePageNumbers.totalPages - 2 ? (
-                <span className="text-sm text-content-strong">…</span>
-              ) : null}
-              <Button type="button" size="sm" variant="ghost" onClick={() => setPage(visiblePageNumbers.totalPages - 1)}>
-                {visiblePageNumbers.totalPages}
-              </Button>
-            </>
-          ) : null}
-
-          <span className="text-sm text-content-strong ">
-            {page + 1} / {totalPages}
-          </span>
-
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            {t('common.next')}
-          </Button>
-        </div>
-      </div> : null}
+      {activeTab === 'clients' ? (
+        <UsersPagination total={total} page={page} totalPages={totalPages} visiblePageNumbers={visiblePageNumbers} setPage={setPage} />
+      ) : null}
 
         </>
       )}

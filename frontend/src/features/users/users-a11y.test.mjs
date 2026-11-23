@@ -8,7 +8,19 @@ const list = readFileSync(new URL('./users-list.tsx', import.meta.url), 'utf8')
 // does not drop the caption, loading status, and table-style guarantees.
 assert.match(page, /import \{ UsersList \} from '\.\.\/features\/users\/users-list'/)
 assert.match(page, /<UsersList\b/)
-const source = page + '\n' + list
+const rowPresentation = readFileSync(new URL('./use-user-row-presentation.tsx', import.meta.url), 'utf8')
+const card = readFileSync(new URL('./user-card.tsx', import.meta.url), 'utf8')
+const roleActions = readFileSync(new URL('./user-role-actions.tsx', import.meta.url), 'utf8')
+const pagination = readFileSync(new URL('./users-pagination.tsx', import.meta.url), 'utf8')
+// Keep the entire rendering chain covered, not just the extracted sources.
+assert.match(page, /useUserRowPresentation\(/)
+assert.match(page, /<UsersPagination\b/)
+assert.match(pagination, /aria-current=\{p === page \? 'page' : undefined\}/)
+assert.match(page, /columns=\{userColumns\} renderCard=\{renderUserCard\}/)
+assert.match(rowPresentation, /<UserCard\b/)
+assert.match(rowPresentation, /<UserRoleActions\b/)
+assert.match(card, /\{renderRoles\(u\)\}/)
+const source = [page, list, rowPresentation, card, roleActions].join('\n')
 const dataTable = readFileSync(
   new URL('../shell/admin/ui/data-table.tsx', import.meta.url),
   'utf8',

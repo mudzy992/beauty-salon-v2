@@ -11,6 +11,12 @@ type Props = { sortedHolidays: Holiday[]; openHolidayForm: (holiday?: Holiday) =
 export function SalonHolidayTable({ sortedHolidays, openHolidayForm, handleSendNotification, handleDeleteHoliday }: Props) {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
+  const holidayAccessibleName = (holiday: Holiday) => {
+    const date = holiday.date.slice(0, 10)
+    const sameNameAndDate = sortedHolidays.filter((item) => item.name === holiday.name && item.date.slice(0, 10) === date)
+    const suffix = sameNameAndDate.length > 1 ? ` (${sameNameAndDate.findIndex((item) => item.id === holiday.id) + 1})` : ''
+    return `${holiday.name} — ${formatDateOnlyLocale(date, locale)}${suffix}`
+  }
   const holidayColumns: DataTableColumn<Holiday>[] = [
     {
       key: 'date',
@@ -53,13 +59,13 @@ export function SalonHolidayTable({ sortedHolidays, openHolidayForm, handleSendN
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              aria-label={t('salon.sendNotification')}
+              aria-label={t('salon.aria.sendHolidayNotification', { name: holidayAccessibleName(h) })}
               onClick={() => void handleSendNotification(h.id)}
             >
               <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
             </Button>
           ) : null}
-          <Button type="button" size="sm" variant="ghost" onClick={() => openHolidayForm(h)}>
+          <Button type="button" size="sm" variant="ghost" aria-label={t('salon.aria.editHoliday', { name: holidayAccessibleName(h) })} onClick={() => openHolidayForm(h)}>
             {t('common.edit')}
           </Button>
           <Button
@@ -67,7 +73,7 @@ export function SalonHolidayTable({ sortedHolidays, openHolidayForm, handleSendN
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label={t('common.delete')}
+            aria-label={t('salon.aria.deleteHoliday', { name: holidayAccessibleName(h) })}
             onClick={() => void handleDeleteHoliday(h.id)}
           >
             <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />

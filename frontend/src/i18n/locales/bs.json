@@ -1268,7 +1268,10 @@
     "aria": {
       "opensTime": "Vrijeme otvaranja za {{day}}",
       "closesTime": "Vrijeme zatvaranja za {{day}}",
-      "workingDayToggle": "Radni dan za {{day}}"
+      "workingDayToggle": "Radni dan za {{day}}",
+      "editHoliday": "Uredi praznik: {{name}}",
+      "deleteHoliday": "Obriši praznik: {{name}}",
+      "sendHolidayNotification": "Pošalji notifikaciju za praznik: {{name}}"
     },
     "settings": "Osnovne Postavke",
     "workingHours": "Radno Vrijeme",
