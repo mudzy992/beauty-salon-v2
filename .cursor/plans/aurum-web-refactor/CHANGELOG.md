@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Salon i prikaz kataloga (rad u toku)
+
+**Opseg:** `Salon.tsx` 632 → 122 linije; postojeći state, API tokovi i socket osvježavanje premješteni u `use-salon-management`, tipovi u `salon-types`, obrasci kreiranja i postavki te dvije tabele u zasebne komponente. `Services.tsx` 681 → 496: kategorije, potkategorije i tabela usluga izdvojene u `service-catalog` s tipovima kataloga. Nisu namjerno mijenjani payloadovi, proračuni, rute ni endpointi. Stranica Salon sada je kompozicija, ali njen hook ima 263 linije, katalog 186, a Users 1173 i Services 496: ovo nije završetak S8 ni provjera svih kriterija pristupačnosti (npr. jedinstvena imena prazničnih akcija ostaju za provjeru/popravku).
+
+**Regresije:** frontend Node **998/998** (src, scripts i e2e `*.test.mjs`), lint 0 grešaka/6 ranijih upozorenja, build 293,0/300 KiB, Analytics 115,9/140 KiB i E2E typecheck. Mock Chromium paket **60/60**, uključujući četiri nova Salon testa: postavke/radno vrijeme na 320/1280, edit/obavijest/odustajanje i potvrdu brisanja praznika, te validaciju i kreiranje salona s defaultima; dodatni fallback i inicijalizacija radnog vremena **1/1**. Testovi provjeravaju requeste i UI, ne stvarne transakcije ili rad push servisa. Source testovi za kontrole, tabele, kontrast i ESLint izuzetke preseljeni su na nove fajlove; provjerava se i veza komponenti sa stranicama, ranije garancije ostaju. Strict i18n, CI indeks, hygiene, 758 doc linkova i source kontrast prolaze; nema novih zavisnosti.
+
+**CI:** prethodni [45185754547](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45185754547) za `265e691` pri bilježenju ima četiri uspješna posla, rendered a11y još traje. Ovaj zahvat još nije u tom runu. Nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Širi refaktor korisnika, kataloga, salona i frizera (rad u toku)
 
 **Opseg:** izdvojeni su dijalozi kreiranja/uređivanja korisnika i uklanjanja uloge stiliste; dijalog uređivanja kataloga s posebnim poljima kategorije/podkategorije i usluge; dijalog praznika; te upravljanje stilistima, njihov editor i tabela radnog vremena. Iz galerije radova izdvojen je hook učitavanja/paginacije. Poslovni tokovi, API putanje, obračuni, prevodi i rute nisu namjerno mijenjani. Prije → poslije: `Users.tsx` 1619 → 1173, `Services.tsx` 1006 → 681, `Salon.tsx` 674 → 632, `Stylists.tsx` 520 → 136, `ServiceWorkGallery.tsx` 226 → 128 linija. Posljednje dvije stranice sada su tanke kompozicije, ali neki njihovi moduli ostaju oko 166–170 linija; ostale tri stranice i kompletan S8 DoD su još otvoreni.

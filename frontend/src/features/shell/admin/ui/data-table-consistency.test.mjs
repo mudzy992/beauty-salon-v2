@@ -119,7 +119,7 @@ const ALLOWED = {
     unsortedIndicator: 1,
     rowClassName: 1,
   },
-  'pages/Salon.tsx': {
+  'features/salon/salon-working-hours-table.tsx': {
     rowClassName: 1,
   },
   // 2026-11-17 (Faza C (9/) pilot): radno vrijeme stiliste je isti obrazac kao Salon —

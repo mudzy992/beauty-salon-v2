@@ -1,308 +1,33 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Plus, Send, Trash2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 
-import api from '../api/client'
-import { getErrorMessage, getErrorCode } from '../api/error'
-import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
-import { formatLocalizedDateTime, formatWeekday, getIntlLocale } from '../i18n/locale-utils.mjs'
-import { useSocketEvent } from '../context/SocketContext'
-import { useAppToast } from '../lib/toast/useAppToast'
+import { getIntlLocale } from '../i18n/locale-utils.mjs'
 import {
   formatDateOnlyLocale,
-  getSalonDateOnly,
 } from '../../../shared/business-date.mjs'
 
-import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
-import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
+import { AdminConfirmDialog } from '../features/shell/admin/ui/admin-confirm-dialog'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { HolidayDialog } from '../features/salon/holiday-dialog'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Switch } from '../components/ui/switch'
+import { CreateSalonForm } from '../features/salon/create-salon-form'
+import { SalonSettingsForm } from '../features/salon/salon-settings-form'
+import { SalonWorkingHoursTable } from '../features/salon/salon-working-hours-table'
+import { SalonHolidayTable } from '../features/salon/salon-holiday-table'
+import { useSalonManagement } from '../features/salon/use-salon-management'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { Textarea } from '../components/ui/textarea'
-
-interface SalonSettings {
-  id: string
-  name: string
-  address: string | null
-  phone: string | null
-  email: string | null
-  description: string | null
-  logo: string | null
-  pauseBetweenServices: number
-  cancellationDeadlineHours: number
-  maxCancellationsBeforePenalty: number
-  penaltyDurationDays: number
-  reservationLockMinutes: number
-  workingHours?: WorkingHours[]
-  holidays?: Holiday[]
-}
-
-interface WorkingHours {
-  id?: string
-  dayOfWeek: number
-  openTime: string
-  closeTime: string
-  isWorkingDay: boolean
-}
-
-interface Holiday {
-  id: string
-  date: string
-  name: string
-  message: string | null
-  sendPush: boolean
-  pushSentAt: string | null
-}
 
 export default function Salon() {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
-  const { success, error, warning } = useAppToast()
-  const showApiError = useCallback(
-    (err: unknown, fallbackKey: string) => {
-      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), fallbackKey, getErrorCode(err))))
-    },
-    [error, t],
-  )
-
-  const [salon, setSalon] = useState<SalonSettings | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
-  const [noSalonExists, setNoSalonExists] = useState(false)
-
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone: '',
-    email: '',
-    description: '',
-    pauseBetweenServices: 10,
-    cancellationDeadlineHours: 24,
-    maxCancellationsBeforePenalty: 3,
-    penaltyDurationDays: 30,
-    reservationLockMinutes: 15,
-  })
-
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
-  const [holidays, setHolidays] = useState<Holiday[]>([])
-  const sortedHolidays = useMemo(
-    () => holidays.slice().sort((a, b) => a.date.localeCompare(b.date)),
-    [holidays],
-  )
-
-
-  const [holidayOpen, setHolidayOpen] = useState(false)
-  const [editHoliday, setEditHoliday] = useState<Holiday | null>(null)
-  const [holForm, setHolForm] = useState({ date: '', name: '', message: '', sendPush: false })
-
-  const loadSalon = useCallback(async () => {
-    setLoading(true)
-    setNoSalonExists(false)
-    try {
-      let s: SalonSettings | null = null
-      try {
-        const listRes = await api.get<SalonSettings[]>('/api/salon/list')
-        if (Array.isArray(listRes.data) && listRes.data.length > 0) s = listRes.data[0]
-      } catch {
-        try {
-          const pubRes = await api.get<SalonSettings | null>('/api/salon')
-          if (pubRes.data && pubRes.data.id) {
-            const detailRes = await api.get<SalonSettings>(`/api/salon/${pubRes.data.id}`)
-            s = detailRes.data
-          }
-        } catch {}
-      }
-
-      if (!s) {
-        setNoSalonExists(true)
-        setSalon(null)
-        return
-      }
-
-      setSalon(s)
-      setFormData({
-        name: s.name ?? '',
-        address: s.address ?? '',
-        phone: s.phone ?? '',
-        email: s.email ?? '',
-        description: s.description ?? '',
-        pauseBetweenServices: s.pauseBetweenServices ?? 10,
-        cancellationDeadlineHours: s.cancellationDeadlineHours ?? 24,
-        maxCancellationsBeforePenalty: s.maxCancellationsBeforePenalty ?? 3,
-        penaltyDurationDays: s.penaltyDurationDays ?? 30,
-        reservationLockMinutes: s.reservationLockMinutes ?? 15,
-      })
-
-      if (s.workingHours && s.workingHours.length > 0) {
-        const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
-          const found = s!.workingHours!.find((w) => w.dayOfWeek === i)
-          return found ?? { dayOfWeek: i, openTime: '09:00', closeTime: '17:00', isWorkingDay: i >= 1 && i <= 5 }
-        })
-        setWorkingHours(full)
-      } else {
-        const defaults: WorkingHours[] = Array.from({ length: 7 }, (_, i) => ({
-          dayOfWeek: i,
-          openTime: '09:00',
-          closeTime: '17:00',
-          isWorkingDay: i >= 1 && i <= 5,
-        }))
-        setWorkingHours(defaults)
-        try {
-          await api.post(`/api/salon/${s.id}/working-hours/ensure`)
-        } catch {}
-      }
-
-      setHolidays(s.holidays ?? [])
-    } catch (err) {
-      setNoSalonExists(true)
-      setSalon(null)
-      showApiError(err, 'salon.errors.loadFailed')
-    } finally {
-      setLoading(false)
-    }
-  }, [showApiError])
-
-  useEffect(() => {
-    loadSalon()
-  }, [loadSalon])
-
-  useSocketEvent(
-    'salon:updated',
-    useCallback(() => {
-      loadSalon()
-    }, [loadSalon]),
-  )
-
-  const updateWH = (dayOfWeek: number, field: keyof WorkingHours, value: string | boolean) => {
-    setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === dayOfWeek ? { ...w, [field]: value } : w)))
-  }
-
-  const reloadHolidays = async () => {
-    if (!salon) return
-    try {
-      const { data } = await api.get<SalonSettings>(`/api/salon/${salon.id}`)
-      setHolidays(data.holidays ?? [])
-    } catch (err) {
-      showApiError(err, 'salon.errors.loadHolidaysFailed')
-    }
-  }
-
-  const openHolidayForm = (h?: Holiday) => {
-    if (h) {
-      setEditHoliday(h)
-      setHolForm({ date: h.date.slice(0, 10), name: h.name, message: h.message ?? '', sendPush: h.sendPush })
-    } else {
-      setEditHoliday(null)
-      setHolForm({ date: '', name: '', message: '', sendPush: false })
-    }
-    setHolidayOpen(true)
-  }
-
-  const handleCreateSalon = async () => {
-    if (!formData.name) {
-      warning(t('salon.validation.nameRequired'))
-      return
-    }
-    setSaving(true)
-    try {
-      await api.post('/api/salon', formData)
-      success(t('salon.toast.created'))
-      loadSalon()
-    } catch (err) {
-      showApiError(err, 'salon.errors.createFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveSettings = async () => {
-    if (!salon) return
-    setSaving(true)
-    try {
-      await api.patch(`/api/salon/${salon.id}`, formData)
-      success(t('salon.toast.settingsSaved'))
-      loadSalon()
-    } catch (err) {
-      showApiError(err, 'salon.errors.saveSettingsFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveWorkingHours = async () => {
-    if (!salon) return
-    setSaving(true)
-    try {
-      await api.post(`/api/salon/${salon.id}/working-hours`, { workingHours })
-      success(t('salon.toast.workingHoursSaved'))
-    } catch (err) {
-      showApiError(err, 'salon.errors.saveWorkingHoursFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveHoliday = async () => {
-    if (!salon) return
-    if (!holForm.date || !holForm.name) {
-      warning(t('salon.validation.holidayRequired'))
-      return
-    }
-    setSaving(true)
-    try {
-      if (editHoliday) await api.patch(`/api/salon/holidays/${editHoliday.id}`, holForm)
-      else await api.post(`/api/salon/${salon.id}/holidays`, holForm)
-      success(t('salon.toast.holidaySaved'))
-      reloadHolidays()
-      setHolidayOpen(false)
-    } catch (err) {
-      showApiError(err, 'salon.errors.saveHolidayFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteHoliday = (id: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('salon.confirmDeleteHoliday'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/salon/holidays/${id}`)
-          success(t('salon.toast.holidayDeleted'))
-          reloadHolidays()
-        } catch (err) {
-          showApiError(err, 'salon.errors.deleteHolidayFailed')
-        }
-      },
-    })
-  }
-
-  const handleSendNotification = async (holidayId: string) => {
-    try {
-      await api.post(`/api/salon/holidays/${holidayId}/send-notification`)
-      success(t('salon.toast.notificationSent'))
-      reloadHolidays()
-    } catch (err) {
-      showApiError(err, 'salon.errors.sendNotificationFailed')
-    }
-  }
-
-  const holidaysSummary = useMemo(() => {
-    const today = getSalonDateOnly()
-    const future = holidays
-      .slice()
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .filter((holiday) => holiday.date.slice(0, 10) >= today)
-    return future.slice(0, 3)
-  }, [holidays])
+  const {
+    salon, loading, saving, confirmRequest, setConfirmRequest, noSalonExists,
+    formData, setFormData, workingHours, holidays, sortedHolidays, holidaysSummary,
+    holidayOpen, setHolidayOpen, editHoliday, holForm, setHolForm, updateWH,
+    openHolidayForm, handleCreateSalon, handleSaveSettings, handleSaveWorkingHours,
+    handleSaveHoliday, handleDeleteHoliday, handleSendNotification,
+  } = useSalonManagement()
 
   if (loading) {
     return (
@@ -320,157 +45,11 @@ export default function Salon() {
           <p className="mt-1 text-sm text-content-strong ">{t('salon.notConfigured')}</p>
         </div>
 
-        <Card>
-          <div className="p-6 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="salon-salon-name">{t('salon.salonName')}</Label>
-              <Input id="salon-salon-name" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="salon-phone">{t('salon.phone')}</Label>
-                <Input id="salon-phone" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="salon-email">{t('salon.email')}</Label>
-                <Input id="salon-email" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salon-address">{t('salon.address')}</Label>
-              <Input id="salon-address" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salon-description">{t('salon.description')}</Label>
-              <Textarea id="salon-description" rows={3} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
-            </div>
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => void handleCreateSalon()} disabled={saving}>
-                {saving ? t('common.saving') : t('salon.createButton')}
-              </Button>
-            </div>
-          </div>
-        </Card>
+        <CreateSalonForm formData={formData} setFormData={setFormData} saving={saving} handleCreateSalon={handleCreateSalon} />
       </div>
     )
   }
 
-  const workingHoursColumns: DataTableColumn<WorkingHours>[] = [
-    {
-      key: 'day',
-      headerKey: 'salon.workingHoursTable.day',
-      className: 'p-3 font-medium text-content',
-      render: (wh) => formatWeekday(wh.dayOfWeek, i18n.language),
-    },
-    {
-      key: 'workday',
-      headerKey: 'salon.workingHoursTable.workday',
-      className: 'p-3',
-      render: (wh) => (
-        <Switch
-          aria-label={t('salon.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-          checked={wh.isWorkingDay}
-          onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
-        />
-      ),
-    },
-    {
-      key: 'opens',
-      headerKey: 'salon.workingHoursTable.opens',
-      className: 'p-3',
-      render: (wh) => (
-        <Input
-          type="time"
-          aria-label={t('salon.aria.opensTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-          className="h-9 w-[140px]"
-          value={wh.openTime}
-          disabled={!wh.isWorkingDay}
-          onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)}
-        />
-      ),
-    },
-    {
-      key: 'closes',
-      headerKey: 'salon.workingHoursTable.closes',
-      className: 'p-3',
-      render: (wh) => (
-        <Input
-          type="time"
-          aria-label={t('salon.aria.closesTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-          className="h-9 w-[140px]"
-          value={wh.closeTime}
-          disabled={!wh.isWorkingDay}
-          onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)}
-        />
-      ),
-    },
-  ]
-
-  const holidayColumns: DataTableColumn<Holiday>[] = [
-    {
-      key: 'date',
-      headerKey: 'salon.holidayTable.date',
-      className: 'p-3',
-      render: (h) => formatDateOnlyLocale(h.date.slice(0, 10), locale),
-    },
-    {
-      key: 'name',
-      headerKey: 'salon.holidayTable.name',
-      className: 'p-3 font-medium text-content',
-      render: (h) => h.name,
-    },
-    {
-      key: 'push',
-      headerKey: 'salon.holidayTable.push',
-      className: 'p-3',
-      render: (h) => (
-        <Badge variant={h.sendPush ? 'success' : 'secondary'}>
-          {h.sendPush ? t('common.yes') : t('common.no')}
-        </Badge>
-      ),
-    },
-    {
-      key: 'sent',
-      headerKey: 'salon.holidayTable.sent',
-      className: 'p-3',
-      render: (h) => (h.pushSentAt ? formatLocalizedDateTime(h.pushSentAt, i18n.language) : '—'),
-    },
-    {
-      key: 'actions',
-      headerKey: 'salon.holidayTable.actions',
-      align: 'right',
-      className: 'p-3',
-      render: (h) => (
-        <div className="flex justify-end gap-1">
-          {h.sendPush ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              aria-label={t('salon.sendNotification')}
-              onClick={() => void handleSendNotification(h.id)}
-            >
-              <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
-            </Button>
-          ) : null}
-          <Button type="button" size="sm" variant="ghost" onClick={() => openHolidayForm(h)}>
-            {t('common.edit')}
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('common.delete')}
-            onClick={() => void handleDeleteHoliday(h.id)}
-          >
-            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
-          </Button>
-        </div>
-      ),
-    },
-  ]
 
 
   return (
@@ -499,94 +78,11 @@ export default function Salon() {
             </TabsList>
 
             <TabsContent value="general" className="mt-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="salon-salon-salon-name-2">{t('salon.salonName')}</Label>
-                  <Input id="salon-salon-salon-name-2" value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-salon-address-2">{t('salon.address')}</Label>
-                  <Input id="salon-salon-address-2" value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-salon-phone-2">{t('salon.phone')}</Label>
-                  <Input id="salon-salon-phone-2" value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-salon-email-2">{t('salon.email')}</Label>
-                  <Input id="salon-salon-email-2" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="salon-salon-description-2">{t('salon.description')}</Label>
-                  <Textarea id="salon-salon-description-2" rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="salon-pause-between">{t('salon.pauseBetween')}</Label>
-                  <Input id="salon-pause-between"
-                    type="number"
-                    min={0}
-                    value={String(formData.pauseBetweenServices)}
-                    onChange={(e) => setFormData((p) => ({ ...p, pauseBetweenServices: Number(e.target.value || 0) }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-cancellation-deadline">{t('salon.cancellationDeadline')}</Label>
-                  <Input id="salon-cancellation-deadline"
-                    type="number"
-                    min={0}
-                    value={String(formData.cancellationDeadlineHours)}
-                    onChange={(e) => setFormData((p) => ({ ...p, cancellationDeadlineHours: Number(e.target.value || 0) }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-reservation-lock">{t('salon.reservationLock')}</Label>
-                  <Input id="salon-reservation-lock"
-                    type="number"
-                    min={1}
-                    value={String(formData.reservationLockMinutes)}
-                    onChange={(e) => setFormData((p) => ({ ...p, reservationLockMinutes: Number(e.target.value || 0) }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-max-cancellations">{t('salon.maxCancellations')}</Label>
-                  <Input id="salon-max-cancellations"
-                    type="number"
-                    min={0}
-                    value={String(formData.maxCancellationsBeforePenalty)}
-                    onChange={(e) => setFormData((p) => ({ ...p, maxCancellationsBeforePenalty: Number(e.target.value || 0) }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salon-penalty-duration">{t('salon.penaltyDuration')}</Label>
-                  <Input id="salon-penalty-duration"
-                    type="number"
-                    min={0}
-                    value={String(formData.penaltyDurationDays)}
-                    onChange={(e) => setFormData((p) => ({ ...p, penaltyDurationDays: Number(e.target.value || 0) }))}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <Button type="button" onClick={() => void handleSaveSettings()} disabled={saving}>
-                  {saving ? t('common.saving') : t('common.save')}
-                </Button>
-              </div>
+              <SalonSettingsForm formData={formData} setFormData={setFormData} saving={saving} handleSaveSettings={handleSaveSettings} />
             </TabsContent>
 
             <TabsContent value="hours" className="mt-4">
-              <div className="app-table-wrap rounded-md border border-line ">
-                <DataTable
-                  caption={t('salon.workingHoursCaption')}
-                  columns={workingHoursColumns}
-                  rows={workingHours}
-                  rowKey={(wh) => String(wh.dayOfWeek)}
-                  rowClassName={(wh) => (!wh.isWorkingDay ? 'opacity-60' : undefined)}
-                />
-              </div>
+              <SalonWorkingHoursTable workingHours={workingHours} updateWH={updateWH} />
 
               <div className="mt-4 flex justify-end">
                 <Button type="button" onClick={() => void handleSaveWorkingHours()} disabled={saving}>
@@ -610,14 +106,8 @@ export default function Salon() {
               {holidays.length === 0 ? (
                 <p className="text-sm text-content-strong">{t('salon.noHolidays')}</p>
               ) : (
-                <div className="app-table-wrap rounded-md border border-line ">
-                  <DataTable
-                    caption={t('salon.holidaysCaption')}
-                    columns={holidayColumns}
-                    rows={sortedHolidays}
-                    rowKey={(h) => h.id}
-                    />
-                </div>
+                <SalonHolidayTable sortedHolidays={sortedHolidays} openHolidayForm={openHolidayForm}
+                  handleSendNotification={handleSendNotification} handleDeleteHoliday={handleDeleteHoliday} />
               )}
             </TabsContent>
           </Tabs>

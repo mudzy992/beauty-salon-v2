@@ -117,7 +117,7 @@ const DOZVOLJENI_DISABLE = [
     koliko: 1,
   },
   {
-    fajl: 'src/pages/Services.tsx',
+    fajl: 'src/features/services/service-catalog.tsx',
     pravila: ['click-events-have-key-events', 'no-static-element-interactions'],
     kljucnaRijec: 'propagacij',
     koliko: 1,

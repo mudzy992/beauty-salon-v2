@@ -5,10 +5,17 @@ import test from 'node:test'
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const salonPage = read('../../pages/Salon.tsx')
 const holidayDialog = read('./holiday-dialog.tsx')
-assert.match(salonPage, /<HolidayDialog\b/)
-const salon = [salonPage, holidayDialog].join('\n')
+const salonHoursTable = read('./salon-working-hours-table.tsx')
+const salonHolidayTable = read('./salon-holiday-table.tsx')
+for (const component of ['HolidayDialog', 'SalonWorkingHoursTable', 'SalonHolidayTable', 'CreateSalonForm', 'SalonSettingsForm']) {
+  assert.match(salonPage, new RegExp(`<${component}\\b`))
+}
+const salon = [salonPage, holidayDialog, salonHoursTable, salonHolidayTable].join('\n')
 const servicesPage = read('../../pages/Services.tsx')
 const serviceTable = read('../services/service-table.tsx')
+const serviceCatalog = read('../services/service-catalog.tsx')
+assert.match(servicesPage, /<ServiceCatalog\b/)
+assert.match(serviceCatalog, /<ServiceTable\b/)
 const editor = read('../services/service-editor-dialog.tsx')
 const categoryFields = read('../services/category-fields.tsx')
 const serviceFields = read('../services/service-fields.tsx')
@@ -17,7 +24,7 @@ const serviceFields = read('../services/service-fields.tsx')
 assert.match(servicesPage, /<ServiceEditorDialog\b/)
 assert.match(editor, /<CategoryFields\b/)
 assert.match(editor, /<ServiceFields\b/)
-const services = [servicesPage, serviceTable, editor, categoryFields, serviceFields].join('\n')
+const services = [servicesPage, serviceCatalog, serviceTable, editor, categoryFields, serviceFields].join('\n')
 const stylistsPage = read('../../pages/Stylists.tsx')
 const stylistEditor = read('./stylist-editor-dialog.tsx')
 const stylistWorkingHours = read('./stylist-working-hours.tsx')
@@ -82,8 +89,8 @@ test('radno vrijeme: ime kontrole uključuje dan (4.1.2)', () => {
 })
 
 test('svih 5 tabela ima scope i caption (1.3.1)', () => {
-  assert.match(servicesPage, /import \{ ServiceTable \} from '\.\.\/features\/services\/service-table'/)
-  assert.match(servicesPage, /<ServiceTable\b/)
+  assert.match(serviceCatalog, /import \{ ServiceTable \} from '\.\/service-table'/)
+  assert.match(serviceCatalog, /<ServiceTable\b/)
   assert.match(serviceTable, /<DataTable\b/)
   // 2026-11-09 — Salon.tsx je prešao na dijeljenu `DataTable` komponentu, pa njegova
   // 2 tabele (4 + 5 = 9 <th>) više nemaju ručni markup.
