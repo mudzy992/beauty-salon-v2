@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Revizijska zaštita vidljivosti galerije
+
+- Negativna kontrola na `2a8dfc3`: nakon hide → restore stari hide je pogrešno dobio **200 umjesto 409** na stvarnoj izolovanoj PostgreSQL bazi. Sada boolean stanje i revizija moraju odgovarati; atomski update rotira UUID, zastarjeli zahtjevi dobijaju 409, no-op se odbija. Početna vrijednost `0` nije tajna; UUID ne zamjenjuje autorizaciju. Zaštita se odnosi na promjene vidljivosti, ne verzionira sve izmjene zapisa/saglasnosti.
+- Privilegirani `visible` odgovor čita reviziju s prikazanim zapisom; skrivena lista također je vraća. Oba su `private, no-store`; public feed ne vraća token. Klijent zadržava prikaz na konfliktu i traži osvježenje, bez tihog retryja. Neispravni ili nedostajući tokeni zatvaraju akcije. Stari frontend bez tokena dobija 400: koordinisati migraciju/backend/frontend prije budućeg rollouta, ovdje nema deploya.
+- HTTP/PostgreSQL **6/6**, uključujući ABA oba smjera, konkurentna dva zahtjeva, provjere rola, validaciju, javni feed i izvornike/saglasnosti (JWT potpisan; `validateUser` mock). Svih **24 migracijska SQL fajla** ručno primijenjeno u praznoj lokalnoj bazi; to nije dokaz Prisma migrate deploy. Stari testovi ažurirani zbog proširenog zahtjeva i privilegovanog feeda, uz očuvanje potvrde, fokusa, paginacije, sesijskih guardova i consent asertacija.
+- Mock Chromium S8 **427/427** uz zasebni kasnije dodani test neispravne revizije skrivene liste 1/1 PASS; Node **1005/1005**, backend unit **845/845**, frontend/backend build, E2E typecheck, Prisma validate, lint 0 errors/6 ranijih warnings i pet Python provjera PASS. Mock i sintetički viewport nisu AT ili produkcijski dokaz.
+- [CI 45488631000](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45488631000) za prethodni `2a8dfc3` je **5/5**, ne obuhvata ovaj paket. S8 ostaje otvoren: privatni upload, redoslijed i završni CI/ručne provjere. STOP prije S9 i bez merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Ugniježđeni analitički paneli u rendered testovima
 
 [CI 45469817621](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45469817621) za `4c0fc1c` pao je u rendered a11y poslu: testni `getByRole('tabpanel')` postao je višeznačan jer su stvarni analitički tablist i detalji klijenta sada ugniježđeni. Dva selektora u `a11y-admin.spec.ts` ograničena su na aktivni unutrašnji panel; tekstualne, tastaturne, fokusne i axe asertacije ostaju nepromijenjene. Lokalno s pravom prijavom i izolovanim PostgreSQL/Redisom prošlo je **48 M2 slučajeva + 2 auth setup**, te **4 tastaturna slučaja + 2 auth setup**. Podaci M2 testova su mockirani; lokalni Chromium nije isti CI build. Migracijski SQL primijenjen je ručno, ne preko Prisma migrate deploy. Novi CI treba potvrditi na novom commit-u; S8 nije završen (verzionisanje vidljivosti, privatni upload i redoslijed ostaju). Nema merge/deploya, S9 tek nakon STOP-a i odobrenja.

@@ -38,7 +38,7 @@ export class DailyLogPublicService {
     offset?: number;
     serviceId?: string;
     random?: boolean;
-  }): Promise<{
+  }, includeAdminRevision = false): Promise<{
     items: BeforeAfterPair[];
     hasMore: boolean;
     nextOffset: number;
@@ -86,7 +86,7 @@ export class DailyLogPublicService {
       }),
     ]);
 
-    const items = this.mapPairs(entries);
+    const items = this.mapPairs(entries, includeAdminRevision);
     const nextOffset = offset + entries.length;
     return {
       items,
@@ -147,6 +147,7 @@ export class DailyLogPublicService {
     return {
       id: true,
       clientId: true,
+      workGalleryRevision: true,
       images: {
         where: {
           OR: [
@@ -215,6 +216,7 @@ export class DailyLogPublicService {
     entries: Array<{
       id: string;
       clientId: string | null;
+      workGalleryRevision: string;
       images: Array<{
         id: string;
         isBefore: boolean;
@@ -222,6 +224,7 @@ export class DailyLogPublicService {
         consent: { id: string; clientId: string | null; approvedDescription: string | null } | null;
       }>;
     }>,
+    includeAdminRevision = false,
   ): BeforeAfterPair[] {
     const pairs: BeforeAfterPair[] = [];
     for (const entry of entries) {
@@ -235,6 +238,7 @@ export class DailyLogPublicService {
         continue;
       pairs.push({
         id: entry.id,
+        ...(includeAdminRevision ? { revision: entry.workGalleryRevision } : {}),
         before: {
           pathOriginal: `/api/media/consents/${beforeImg.consent.id}/file`,
           pathMedium: null,

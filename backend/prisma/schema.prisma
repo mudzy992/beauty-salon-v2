@@ -520,6 +520,7 @@ model DailyLogEntry {
   sourceEntryId         String?   @map("source_entry_id")
   randomKey             Float     @default(dbgenerated("random()")) @map("random_key")
   workGalleryHidden     Boolean   @default(false) @map("work_gallery_hidden")
+  workGalleryRevision   String    @default("0") @map("work_gallery_revision")
   deletedAt             DateTime? @map("deleted_at")
   deletedById           String?   @map("deleted_by_id")
   deleteReason          String?   @map("delete_reason") @db.Text

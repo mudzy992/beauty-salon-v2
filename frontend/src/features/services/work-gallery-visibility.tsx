@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores/auth.store'
 import { Button } from '../../components/ui/button'
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../shell/admin/ui/admin-confirm-dialog'
 
-type HiddenEntry = { id: string; completedAt: string | null }
+type HiddenEntry = { id: string; completedAt: string | null; revision: string }
 type HiddenPage = { items: HiddenEntry[]; hasMore: boolean; nextOffset: number }
 
 /** Gallery-only visibility; original images and client consent are not changed. */
@@ -15,7 +15,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
   enabled: boolean
   headingRef: { current: HTMLElement | null }
   onChanged: () => void
-  children: (hide: (id: string, trigger: HTMLButtonElement) => void, busy: boolean) => ReactNode
+  children: (hide: (id: string, revision: string, trigger: HTMLButtonElement) => void, busy: boolean) => ReactNode
 }) {
   const { t, i18n } = useTranslation()
   const [request, setRequest] = useState<AdminConfirmRequest | null>(null)
@@ -50,7 +50,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
       const { data } = await api.get<HiddenPage>(`${base}/hidden`, { params: { offset: nextOffset, limit: 20 } })
       if (!current()) return
       if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !Number.isSafeInteger(data.nextOffset) || data.nextOffset < nextOffset ||
-        (data.hasMore && data.nextOffset <= nextOffset) || data.items.some(item => !item || typeof item.id !== 'string' || !item.id || (item.completedAt !== null && (typeof item.completedAt !== 'string' || !Number.isFinite(Date.parse(item.completedAt)))))) throw new Error('Invalid hidden gallery page')
+        (data.hasMore && data.nextOffset <= nextOffset) || data.items.some(item => !item || typeof item.id !== 'string' || !item.id || typeof item.revision !== 'string' || !/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/.test(item.revision) || (item.completedAt !== null && (typeof item.completedAt !== 'string' || !Number.isFinite(Date.parse(item.completedAt)))))) throw new Error('Invalid hidden gallery page')
       setHidden(previous => append ? [...previous, ...data.items] : data.items)
       setOffset(data.nextOffset)
       setHasMore(data.hasMore)
@@ -61,7 +61,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
     }
   }, [base, sessionVersion])
 
-  const change = (entryId: string, hide: boolean, trigger: HTMLButtonElement) => {
+  const change = (entryId: string, revision: string, hide: boolean, trigger: HTMLButtonElement) => {
     if (busyRef.current) return
     setRequest({
       title: t(hide ? 'admin.serviceWorkGallery.hideTitle' : 'admin.serviceWorkGallery.restoreTitle'),
@@ -75,7 +75,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
         setBusy(true)
         setError('')
         try {
-          await api.patch(`${base}/entries/${encodeURIComponent(entryId)}/visibility`, { hidden: hide, expectedHidden: !hide })
+          await api.patch(`${base}/entries/${encodeURIComponent(entryId)}/visibility`, { hidden: hide, expectedHidden: !hide, expectedRevision: revision })
           if (!isCurrent()) return
           // Do not pull focus back if the user moved elsewhere while the request ran.
           if (document.activeElement === trigger) headingRef.current?.focus()
@@ -94,7 +94,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
   return (
     <>
       {error ? <p role="alert" className="my-3 text-sm text-content-strong">{error}</p> : null}
-      {children((id, trigger) => change(id, true, trigger), busy)}
+      {children((id, revision, trigger) => change(id, revision, true, trigger), busy)}
       {enabled ? <details className="mt-6" onToggle={event => {
         const open = event.currentTarget.open
         setOpened(open)
@@ -108,7 +108,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
           {hidden.map(item => (
             <li key={item.id} className="flex flex-wrap items-center gap-3">
               <span>{t('admin.serviceWorkGallery.hiddenEntry', { date: item.completedAt ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(item.completedAt)) : t('admin.serviceWorkGallery.unknownDate'), id: item.id })}</span>
-              <Button type="button" variant="outline" aria-disabled={busy} onClick={event => { if (!busyRef.current) change(item.id, false, event.currentTarget) }}>
+              <Button type="button" variant="outline" aria-disabled={busy} onClick={event => { if (!busyRef.current) change(item.id, item.revision, false, event.currentTarget) }}>
                 {t('admin.serviceWorkGallery.restorePair', { id: item.id })}
               </Button>
             </li>

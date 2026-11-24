@@ -11,15 +11,16 @@ type Service = {
 
 type BeforeAfterPair = {
   id: string
+  revision?: string
   before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
 }
 
 const PAGE_SIZE = 18
 
-export function useServiceWorkGallery(id: string) {
+export function useServiceWorkGallery(id: string, canManage: boolean) {
   const sessionVersion = useAuthStore(state => state.sessionVersion)
-  const owner = JSON.stringify([sessionVersion, id])
+  const owner = JSON.stringify([sessionVersion, id, canManage])
   const ownerRef = useRef(owner)
   ownerRef.current = owner
   const serviceSequence = useRef(0)
@@ -69,13 +70,13 @@ export function useServiceWorkGallery(id: string) {
     if (nextOffset === 0) setLoadingPairs(true)
     else setLoadingMore(true)
     try {
-      const { data } = await api.get<{ items: BeforeAfterPair[]; hasMore: boolean; nextOffset: number }>('/api/daily-log/before-after', {
-        params: { serviceId: id, limit: PAGE_SIZE, offset: nextOffset },
+      const { data } = await api.get<{ items: BeforeAfterPair[]; hasMore: boolean; nextOffset: number }>(canManage ? `/api/services/admin/work-gallery/${encodeURIComponent(id)}/visible` : '/api/daily-log/before-after', {
+        params: { ...(canManage ? {} : { serviceId: id }), limit: PAGE_SIZE, offset: nextOffset },
       })
       if (!current()) return
       if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !Number.isSafeInteger(data.nextOffset) || data.nextOffset < 0 ||
           (data.hasMore && data.nextOffset <= nextOffset) ||
-          data.items.some(pair => !pair || typeof pair.id !== 'string' || !pair.id || [pair.before, pair.after].some(image => !image || typeof image.pathOriginal !== 'string' || !image.pathOriginal.trim() || (image.pathMedium != null && typeof image.pathMedium !== 'string') || (image.pathThumb != null && typeof image.pathThumb !== 'string')))) {
+          data.items.some(pair => !pair || typeof pair.id !== 'string' || !pair.id || (canManage && (typeof pair.revision !== 'string' || !/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/.test(pair.revision))) || [pair.before, pair.after].some(image => !image || typeof image.pathOriginal !== 'string' || !image.pathOriginal.trim() || (image.pathMedium != null && typeof image.pathMedium !== 'string') || (image.pathThumb != null && typeof image.pathThumb !== 'string')))) {
         throw new Error('Invalid gallery page')
       }
       setItems(prev => append ? [...prev, ...data.items] : data.items)
@@ -87,7 +88,7 @@ export function useServiceWorkGallery(id: string) {
       if (pageInFlight.current?.sequence === request) pageInFlight.current = null
       if (current()) { setLoadingPairs(false); setLoadingMore(false) }
     }
-  }, [id, owner, sessionVersion])
+  }, [id, owner, sessionVersion, canManage])
 
   // Invalidate an in-flight page before a mutation-triggered reload; otherwise
   // an older append can reintroduce an item that was just hidden.

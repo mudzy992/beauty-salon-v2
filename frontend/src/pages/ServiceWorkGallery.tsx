@@ -23,7 +23,7 @@ export default function ServiceWorkGallery() {
   const sessionVersion = useAuthStore(state => state.sessionVersion)
   const canManage = useAuthStore(state => state.user?.roles.some(role => role === 'SYSTEM_ADMIN' || role === 'OWNER') ?? false)
 
-  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage, reloadPairs } = useServiceWorkGallery(id)
+  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage, reloadPairs } = useServiceWorkGallery(id, canManage)
 
 
   return (
@@ -99,7 +99,7 @@ export default function ServiceWorkGallery() {
                     alt={t('public.beforeAfter.comparisonLabels')}
                     aspectRatio={1}
                   />
-                  {canManage && service ? <div className="p-3"><Button type="button" variant="outline" aria-disabled={busy} onClick={event => { if (!busy) hide(pair.id, event.currentTarget) }}>
+                  {canManage && service ? <div className="p-3"><Button type="button" variant="outline" aria-disabled={busy} onClick={event => { if (!busy && pair.revision) hide(pair.id, pair.revision, event.currentTarget) }}>
                     {t('admin.serviceWorkGallery.hidePair', { current: index + 1 })}
                   </Button></div> : null}
                 </Card>
