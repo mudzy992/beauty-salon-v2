@@ -8,21 +8,22 @@ type Props = {
   totalPages: number
   visiblePageNumbers: { pages: number[]; totalPages: number }
   setPage: Dispatch<SetStateAction<number>>
+  onFocusFallback: () => void
 }
-export function UsersPagination({ total, page, totalPages, visiblePageNumbers, setPage }: Props) {
+export function UsersPagination({ total, page, totalPages, visiblePageNumbers, setPage, onFocusFallback }: Props) {
   const { t } = useTranslation()
   return (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm text-content-strong">{t('users.clientTotal', { count: total })}</p>
 
       <div className="flex items-center gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+        <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => { if (page === 1) onFocusFallback(); setPage((p) => Math.max(0, p - 1)) }}>
           {t('common.previous')}
         </Button>
 
         {visiblePageNumbers.pages[0] > 0 ? (
           <>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setPage(0)}>
+            <Button type="button" size="sm" variant="ghost" onClick={() => { onFocusFallback(); setPage(0) }}>
               1
             </Button>
             {visiblePageNumbers.pages[0] > 1 ? <span className="text-sm text-content-strong">…</span> : null}
@@ -47,7 +48,7 @@ export function UsersPagination({ total, page, totalPages, visiblePageNumbers, s
             {visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] < visiblePageNumbers.totalPages - 2 ? (
               <span className="text-sm text-content-strong">…</span>
             ) : null}
-            <Button type="button" size="sm" variant="ghost" onClick={() => setPage(visiblePageNumbers.totalPages - 1)}>
+            <Button type="button" size="sm" variant="ghost" onClick={() => { onFocusFallback(); setPage(visiblePageNumbers.totalPages - 1) }}>
               {visiblePageNumbers.totalPages}
             </Button>
           </>
@@ -62,7 +63,7 @@ export function UsersPagination({ total, page, totalPages, visiblePageNumbers, s
           size="sm"
           variant="outline"
           disabled={page >= totalPages - 1}
-          onClick={() => setPage((p) => p + 1)}
+          onClick={() => { if (page === totalPages - 2) onFocusFallback(); setPage((p) => p + 1) }}
         >
           {t('common.next')}
         </Button>

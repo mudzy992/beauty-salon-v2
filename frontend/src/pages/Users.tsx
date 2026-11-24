@@ -26,6 +26,10 @@ import { AdminConfirmDialog } from '../features/shell/admin/ui/admin-confirm-dia
 export default function Users() {
   const { t } = useTranslation()
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const focusBeforePanelError = useCallback(() => {
+    if (panelRef.current?.contains(document.activeElement)) headingRef.current?.focus()
+  }, [])
   const { error } = useAppToast()
   const showApiError = (err: unknown, fallbackKey: string) => {
     const message = getErrorMessage(err, '')
@@ -40,7 +44,7 @@ export default function Users() {
   const {
     admins, stylists, clients, loading, loadError, clientsSearch, setClientsSearch,
     page, setPage, total, totalPages, visiblePageNumbers, loadData,
-  } = useUsersList()
+  } = useUsersList(focusBeforePanelError)
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], [])
 
@@ -84,13 +88,13 @@ export default function Users() {
       </div>
 
       {loadError && !loading ? (
-        <ErrorState description={t('users.errors.loadFailed')} onRetry={loadData} />
+        <ErrorState description={t('users.errors.loadFailed')} onRetry={() => { headingRef.current?.focus(); loadData() }} />
       ) : (
-        <>
+        <div ref={panelRef}>
       <UsersPanel activeTab={activeTab} setActiveTab={setActiveTab} admins={admins} stylists={stylists} clients={clients} loading={loading}
         clientsSearch={clientsSearch} setClientsSearch={setClientsSearch} page={page} setPage={setPage} total={total} totalPages={totalPages}
-        visiblePageNumbers={visiblePageNumbers} userColumns={userColumns} renderUserCard={renderUserCard} />
-        </>
+        visiblePageNumbers={visiblePageNumbers} onPaginationFocusFallback={() => headingRef.current?.focus()} userColumns={userColumns} renderUserCard={renderUserCard} />
+        </div>
       )}
 
       <StylistRemovalDialog removeStylistOpen={removeStylistOpen} removalSubmitting={removalSubmitting}

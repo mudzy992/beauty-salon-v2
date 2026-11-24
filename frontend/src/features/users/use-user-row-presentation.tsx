@@ -18,10 +18,10 @@ type Props = {
   editTriggerRef: MutableRefObject<HTMLButtonElement | null>
   removalTriggerRef: MutableRefObject<HTMLButtonElement | null>
   openEdit: (user: UserRow) => void
-  handleRemoveRole: (userId: string, roleName: string) => Promise<void>
+  handleRemoveRole: (userId: string, roleName: string, trigger: HTMLButtonElement) => Promise<void>
   handleAssignRole: (userId: string, username: string, roleName: string, trigger: HTMLButtonElement | null) => void
-  handleIssueInitialPasswordResetLink: (user: UserRow) => void
-  handleDeactivate: (id: string, username: string) => void
+  handleIssueInitialPasswordResetLink: (user: UserRow, trigger: HTMLButtonElement) => void
+  handleDeactivate: (id: string, username: string, trigger: HTMLButtonElement) => void
 }
 
 export function useUserRowPresentation({ getUserRoles, getRoleLabel, resetLinkSendingId, assigningUsers, editTriggerRef, removalTriggerRef, openEdit, handleRemoveRole, handleAssignRole, handleIssueInitialPasswordResetLink, handleDeactivate }: Props) {

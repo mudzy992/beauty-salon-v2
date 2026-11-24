@@ -158,7 +158,11 @@ test('failed user-list loads show retry instead of an empty list and ignore stal
   assert.match(source, /const requestSequence = \+\+requestSequenceRef\.current/)
   assert.match(source, /if \(requestSequence !== requestSequenceRef\.current\) return/)
   assert.match(source, /if \(requestSequence === requestSequenceRef\.current\) setLoading\(false\)/)
-  assert.match(source, /loadError && !loading[\s\S]*?<ErrorState description=\{t\('users\.errors\.loadFailed'\)\} onRetry=\{loadData\}/)
+  assert.match(source, /loadError && !loading[\s\S]*?<ErrorState description=\{t\('users\.errors\.loadFailed'\)\} onRetry=\{\(\) => \{ headingRef\.current\?\.focus\(\); loadData\(\) \}\}/)
+  assert.match(page, /useUsersList\(focusBeforePanelError\)/)
+  assert.match(page, /panelRef\.current\?\.contains\(document\.activeElement\)/)
+  assert.match(page, /<div ref=\{panelRef\}>[\s\S]*?<UsersPanel\b/)
+  assert.match(listHook, /if \(requestSequence !== requestSequenceRef\.current\) return\s+onLoadErrorRef\.current\(\)\s+setLoadError\(true\)/)
   assert.match(source, /role="status" aria-live="polite"[\s\S]*?t\('common\.loading'\)/)
 })
 

@@ -5,6 +5,29 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Prethodni CI: test upravljanja ulogama
+
+[CI 45407428201](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45407428201) za `097d82d` završio je **4/5**, rendered **3066 passed / 1 failed / 0 skipped**; pao je `a11y-admin.spec.ts` test upravljanja ulogama. Backend, frontend, mobile i repo poslovi prošli su. CI log host vraća EOF, pa se tačna asertacija iz CI-ja ne može nezavisno provjeriti; ima 15 axe incomplete `color-contrast` uzoraka.
+
+Postojeći admin test nakon novog koraka potvrde i dalje je čekao POST odmah po izboru menija. U izolovanom admin browser projektu s lažnim tokenom, mock profilom i API fiksurama taj isti test prije izmjene **1/1 fail** na `additions: očekivano 1, stvarno 0`; kompatibilno je s promjenom UI-ja, ali nije potvrđen tačan CI failure stack. Test sada provjerava potvrdu, ime i ulogu, odsustvo POST-a prije potvrde i tek onda potvrđuje. Zadržane su provjere klijentske uloge, POST payload-a, potvrde/cancel/DELETE uklanjanja uloge i njihovih brojila. Nakon izmjene **5/5** ponavljanja te **4/4** ciljnih admin akcija (uključujući deactivation i reset); mock server je ugašen i privremeni auth fajlovi uklonjeni. Ovo nisu stvarna CI baza, produkcijske mutacije ni AT pregled.
+
+E2E typecheck prolazi, prethodna objedinjena S8 regresija **371/371** ne uključuje admin projekt; novi CI treba provjeriti za cijeli paket. S8 ostaje otvoren.
+
+---
+
+## 2026-11-18 · S8 · Fokus potvrda, paginacije i greške korisnika (rad u toku)
+
+- U korisničkim redovima i karticama explicitni `event.currentTarget` sada prolazi do potvrda reset linka, uklanjanja ne-stilističke uloge i deaktivacije; editor i uklanjanje stiliste već pamte okidače. Sintetički nefokusirajući klik u BS/EN × 320/1280 prije **4/4 fail** na reset potvrdi (editor je prethodno prošao); poslije **4/4** prolaze sva četiri okidača po scenariju i odustajanje bez mockiranih `/api` ili `/auth` writeova. Ovo nije dokaz stvarnog pointer ponašanja svih OS/browser kombinacija.
+- Retry neuspjelog učitavanja i paginacija sada fokusiraju stabilni naslov prije uklanjanja ili onesposobljavanja aktivne kontrole: prvi/posljednji skok i Previous/Next samo kada postaju disabled. Prije **16/16 fail** (retry, zadnji broj, Next do posljednje, Previous do prve u BS/EN × viewporti); poslije prolaze uključujući provjeru da odgođeni odgovor ne oduzima fokus koji je korisnik premjestio. Dodatna **4/4** potvrđuju da običan broj i Next koji ostaju omogućeni čuvaju fokus. Četiri scoped axe skena error stanja za `button-name`, `label-content-name-mismatch` i `aria-valid-attr` nemaju violations; nisu potpuni audit.
+- Ako učitavanje pretrage ili stranice ne uspije, panel s kontrolama se uklanja. Ranije je fokus ostajao bez cilja: prije **8 stay fail / 8 leave pass** u BS/EN × 320/1280 × pretraga/paginacija; sada je **16/16**. Samo ako je aktivni element još unutar panela neposredno prije važeće greške fokus prelazi na naslov; korisniku koji je otišao drugdje fokus se ne preuzima, a guard starih odgovora ostaje. To ne dokazuje sve browser/AT i asinkrone rasporede.
+- `users-a11y.test.mjs` ažuriran da prati novi retry poziv, zadržavajući provjeru izvornog `loadData`, error/status prikaza i sequence guarda, te dodaje provjeru panela i uslovnog fokusa. Prvi Node run **1004/1005** pao je samo na starom tekstualnom obliku `onRetry={loadData}`; nakon ažuriranja **1005/1005**.
+
+Završna samostalna S8 Chromium mock regresija **371/371** (uključuje četiri nova fokusna/axe scenarija s očuvanjem fokusa), Node **1005/1005**, build, E2E typecheck, pet Python provjera i diff check PASS; lint **0 grešaka / 6 ranijih upozorenja**. Initial **293,7/300 KiB**, Analytics **116,4/140 KiB**. Testovi su mockirani, ne potvrđuju stvarne upise niti AT/WCAG audit. Pokriveni su odabrani fokusni tokovi, ne svi redovi ili kombinacije.
+
+[CI 45407428201](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45407428201) za prethodni `097d82d` završio je **4/5**, uz pad admin testa uloga; analiza i ispravka fiksure iznad. Run ne pokriva ovaj nastavak; pushati i pratiti novi CI. S8 ostaje otvoren do CI-ja i pregleda DoD-a, uključujući nesklad plana za galeriju i analitičku navigaciju; STOP prije S9, bez merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Prethodni CI pad paginacijske fiksure
 
 [CI 45399201915](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45399201915) za `9360e86` je **4/5**, rendered **3042 passed / 1 failed / 0 skipped**; pao je `s8-users-pagination.spec.ts` 1280. Backend, frontend, mobile i repo poslovi prošli su, uključujući standardni Prisma generate i backend test nove galerijske fiksure. Puni log i report/trace nisu dostupni zbog EOF na GitHub Actions storage hostovima, pa tačna asertacija i uzrok CI pada nisu potvrđeni. Axe je iznio 15 incomplete `color-contrast` uzoraka, nisu violations niti dokaz pristupačnosti.

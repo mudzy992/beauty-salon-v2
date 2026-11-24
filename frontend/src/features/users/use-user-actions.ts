@@ -19,7 +19,7 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
   const assigningUsersRef = useRef(new Set<string>())
   const [assigningUsers, setAssigningUsers] = useState<Set<string>>(() => new Set())
 
-  const handleIssueInitialPasswordResetLink = (user: UserRow) => {
+  const handleIssueInitialPasswordResetLink = (user: UserRow, trigger: HTMLButtonElement) => {
     if (!user.mustChangePassword) return
     if (!user.email || !user.isEmailVerified) {
       warning(t('users.credentials.resetLinkNeedsVerifiedEmail'))
@@ -28,6 +28,7 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
     setConfirmRequest({
       title: t('common.confirmTitle'),
       description: t('users.credentials.resetLinkConfirm', { email: user.email }),
+      trigger,
       confirmLabel: t('common.confirm'),
       action: async () => {
         setResetLinkSendingId(user.id)
@@ -44,10 +45,11 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
     })
   }
 
-  const handleDeactivate = (id: string, username: string) => {
+  const handleDeactivate = (id: string, username: string, trigger: HTMLButtonElement) => {
     setConfirmRequest({
       title: t('common.confirmTitle'),
       description: t('users.confirmDeactivate', { username }),
+      trigger,
       confirmLabel: t('common.confirm'),
       action: async () => {
         try {
@@ -91,7 +93,7 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
     })
   }
 
-  const handleRemoveRole = async (userId: string, roleName: string) => {
+  const handleRemoveRole = async (userId: string, roleName: string, trigger: HTMLButtonElement) => {
     if (roleName === 'STYLIST') {
       await openRemoveStylist(userId)
       return
@@ -99,6 +101,7 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
     setConfirmRequest({
       title: t('common.confirmTitle'),
       description: t('users.confirmRemoveRole', { role: getRoleLabel(roleName) }),
+      trigger,
       confirmLabel: t('common.confirm'),
       action: async () => {
         try {

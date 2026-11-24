@@ -16,8 +16,8 @@ type Props = {
   resetLinkSendingId: string | null
   editTriggerRef: MutableRefObject<HTMLButtonElement | null>
   openEdit: (user: UserRow) => void
-  handleIssueInitialPasswordResetLink: (user: UserRow) => void
-  handleDeactivate: (id: string, username: string) => void
+  handleIssueInitialPasswordResetLink: (user: UserRow, trigger: HTMLButtonElement) => void
+  handleDeactivate: (id: string, username: string, trigger: HTMLButtonElement) => void
 }
 export function UserCard({ u, renderRoles, resetLinkSendingId, editTriggerRef, openEdit, handleIssueInitialPasswordResetLink, handleDeactivate }: Props) {
   const { t } = useTranslation()
@@ -68,7 +68,7 @@ export function UserCard({ u, renderRoles, resetLinkSendingId, editTriggerRef, o
                 : t('users.credentials.resetLinkNeedsVerifiedEmail')
             }
             aria-label={t('users.aria.resetLink', { username: u.username })}
-            onClick={() => void handleIssueInitialPasswordResetLink(u)}
+            onClick={(event) => void handleIssueInitialPasswordResetLink(u, event.currentTarget)}
           >
             {resetLinkSendingId === u.id ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
@@ -88,7 +88,7 @@ export function UserCard({ u, renderRoles, resetLinkSendingId, editTriggerRef, o
           {t('common.edit')}
         </Button>
         {u.isActive ? (
-          <Button type="button" size="sm" variant="outline" aria-label={t('users.aria.deactivate', { username: u.username })} onClick={() => void handleDeactivate(u.id, u.username)}>
+          <Button type="button" size="sm" variant="outline" aria-label={t('users.aria.deactivate', { username: u.username })} onClick={(event) => void handleDeactivate(u.id, u.username, event.currentTarget)}>
             {t('users.deactivate')}
           </Button>
         ) : null}

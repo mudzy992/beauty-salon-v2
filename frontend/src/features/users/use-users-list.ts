@@ -3,7 +3,9 @@ import api from '../../api/client'
 import { fetchAllAdminUserRoleList } from '../../api/catalog'
 import type { PaginatedResponse, UserRow } from './user-types'
 
-export function useUsersList() {
+export function useUsersList(onLoadError: () => void) {
+  const onLoadErrorRef = useRef(onLoadError)
+  onLoadErrorRef.current = onLoadError
   const [admins, setAdmins] = useState<UserRow[]>([])
   const [stylists, setStylists] = useState<UserRow[]>([])
   const [clients, setClients] = useState<UserRow[]>([])
@@ -50,6 +52,7 @@ export function useUsersList() {
       })
       .catch(() => {
         if (requestSequence !== requestSequenceRef.current) return
+        onLoadErrorRef.current()
         setLoadError(true)
       })
       .finally(() => {

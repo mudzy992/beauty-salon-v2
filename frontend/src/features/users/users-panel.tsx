@@ -17,9 +17,10 @@ type Props = {
   clientsSearch: string; setClientsSearch: Dispatch<SetStateAction<string>>
   page: number; setPage: Dispatch<SetStateAction<number>>; total: number; totalPages: number
   visiblePageNumbers: { pages: number[]; totalPages: number }
+  onPaginationFocusFallback: () => void
   userColumns: DataTableColumn<UserRow>[]; renderUserCard: (user: UserRow) => ReactNode
 }
-export function UsersPanel({ activeTab, setActiveTab, admins, stylists, clients, loading, clientsSearch, setClientsSearch, page, setPage, total, totalPages, visiblePageNumbers, userColumns, renderUserCard }: Props) {
+export function UsersPanel({ activeTab, setActiveTab, admins, stylists, clients, loading, clientsSearch, setClientsSearch, page, setPage, total, totalPages, visiblePageNumbers, onPaginationFocusFallback, userColumns, renderUserCard }: Props) {
   const { t } = useTranslation()
   const tabCount = activeTab === 'admins' ? admins.length : activeTab === 'stylists' ? stylists.length : total
   const headerTitle = t(`users.tabs.${activeTab}`, { count: tabCount })
@@ -66,7 +67,7 @@ export function UsersPanel({ activeTab, setActiveTab, admins, stylists, clients,
     </Card>
 
     {activeTab === 'clients' ? (
-      <UsersPagination total={total} page={page} totalPages={totalPages} visiblePageNumbers={visiblePageNumbers} setPage={setPage} />
+      <UsersPagination total={total} page={page} totalPages={totalPages} visiblePageNumbers={visiblePageNumbers} setPage={setPage} onFocusFallback={onPaginationFocusFallback} />
     ) : null}
 
     </>

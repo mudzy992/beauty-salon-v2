@@ -23,7 +23,7 @@ type Props = {
   getRoleLabel: (role: string) => string
   removalTriggerRef: MutableRefObject<HTMLButtonElement | null>
   assigningUsers: ReadonlySet<string>
-  handleRemoveRole: (userId: string, roleName: string) => Promise<void>
+  handleRemoveRole: (userId: string, roleName: string, trigger: HTMLButtonElement) => Promise<void>
   handleAssignRole: (userId: string, username: string, roleName: string, trigger: HTMLButtonElement | null) => void
 }
 
@@ -70,7 +70,7 @@ export function UserRoleActions({ u, getUserRoles, getRoleLabel, removalTriggerR
                 aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName), username: u.username })}
                 onClick={(event) => {
                   if (roleName === 'STYLIST') removalTriggerRef.current = event.currentTarget
-                  void handleRemoveRole(u.id, roleName)
+                  void handleRemoveRole(u.id, roleName, event.currentTarget)
                 }}
               >
                 <X className="h-3 w-3" aria-hidden="true" />
