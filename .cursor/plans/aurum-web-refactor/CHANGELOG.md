@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Kompozicija analitičkog pregleda (rad u toku)
+
+`Analytics.tsx` 388 → 68 linija: filter perioda, finansijski sažetak, graf/tabela i tabele uspješnosti izdvojeni su u četiri modula od 80–98 linija. Učitavanje, redoslijed hookova i izračun grafa/sumarnog opisa ostaju na stranici; preset vrijednosti, formati, obračuni, sadržaj, deep-link, endpoint i query parametri nisu namjerno promijenjeni. Filter je stalno montiran tokom loading/error stanja, pa zadržava izabrane datume i za retry.
+
+Tri postojeća source-testa prilagođena su novim putanjama uz dodatne provjere importa i renderovanja komponenti; zadržane su provjere datuma, iznosa, deep-linka, sažetka, pet imenovanih kolona i `data-label` vrijednosti. Četiri nove mock BS/EN × 320/1280 fiksure provjeravaju stanje filtera tokom odgođenog zahtjeva i greške, iste retry parametre, deep-link i vrijednosti grafa/tabele. Ciljani browser 7/7, puni mock S8 **194/194**, frontend Node **1001/1001**, lint 0 grešaka/6 ranijih upozorenja, build **293,2/300 KiB** i Analytics **116,4/140 KiB**, typecheck te svih pet Python provjera prolaze. Negativna kontrola koja namjerno remounta filter pri promjeni loading stanja ruši sva 4 testa na gubitku unesenog datuma; izvor i build vraćeni, 4/4 potom ponovo prolazi. Lokalni Chromium 153 nije Playwrightov očekivani 158; mock API i source provjere nisu stvarni backend niti puni WCAG/AT audit. CI za ovaj nastavak tek slijedi. S8 i ručni S11 dokazi ostaju otvoreni; nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Učitavanje galerije i zakašnjeli odgovori (rad u toku)
 
 Simulirana promjena usluge tokom odgođenog čitanja pokazala je da stari uspjeh/greška može prepisati novi naziv, slike ili stanje greške; četiri takva browser scenarija prije popravke padaju. Malformiran `items` se ranije prikazivao kao prazna galerija: sva četiri BS/EN × 320/1280 scenarija padaju prije ispravke. Hook sada zasebno prati generaciju čitanja usluge i stranice, vlasništvo prema serviceId/sesiji i paralelni zahtjev za stranicu, te odbacuje neispravne podatke/offset uz postojeći retry. Kod greške naredne stranice već učitane slike ostaju; retry ponavlja istu stranicu. Nisu promijenjeni endpointi, parametri ili server. Nije dokaz snapshot dosljednosti pri istovremenim izmjenama baze.

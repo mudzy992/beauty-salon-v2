@@ -5,10 +5,16 @@ import test from 'node:test'
 const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
-const source = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
+const page = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
+const modules = ['analytics-period-filter', 'analytics-summary', 'analytics-finance-chart', 'analytics-performance-tables']
+const source = [page, ...modules.map(name => readFileSync(new URL(`./${name}.tsx`, import.meta.url), 'utf8'))].join('\n')
 const hook = readFileSync(new URL('./use-analytics-dashboard.ts', import.meta.url), 'utf8')
-assert.match(source, /import \{ useAnalyticsDashboard \} from '..\/features\/analytics\/use-analytics-dashboard'/)
-assert.match(source, /useAnalyticsDashboard\(\)/)
+assert.match(page, /import \{ useAnalyticsDashboard \} from '..\/features\/analytics\/use-analytics-dashboard'/)
+assert.match(page, /useAnalyticsDashboard\(\)/)
+for (const [name, component] of modules.map((name, index) => [name, ['AnalyticsPeriodFilter', 'AnalyticsSummary', 'AnalyticsFinanceChart', 'AnalyticsPerformanceTables'][index]])) {
+  assert.ok(page.includes(`import { ${component} } from '../features/analytics/${name}'`))
+  assert.match(page, new RegExp(`<${component}\\b`))
+}
 const literalKeys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>

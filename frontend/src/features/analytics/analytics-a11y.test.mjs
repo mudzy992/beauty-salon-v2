@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const analytics = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
+const analyticsPage = readFileSync(new URL('../../pages/Analytics.tsx', import.meta.url), 'utf8')
+const analytics = [analyticsPage, readFileSync(new URL('./analytics-finance-chart.tsx', import.meta.url), 'utf8')].join('\n')
+assert.match(analyticsPage, /import \{ AnalyticsFinanceChart \} from '..\/features\/analytics\/analytics-finance-chart'/)
+assert.match(analyticsPage, /<AnalyticsFinanceChart data=\{data\} chartData=\{chartData\} chartSummary=\{chartSummary\} \/>/)
 const client = readFileSync(new URL('../../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
 const summary = readFileSync(new URL('../client-analytics/client-analytics-summary.tsx', import.meta.url), 'utf8')
 const reservations = readFileSync(new URL('../client-analytics/client-reservations-table.tsx', import.meta.url), 'utf8')
