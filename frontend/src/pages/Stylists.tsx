@@ -13,6 +13,7 @@ import { Card } from '../components/ui/card'
 import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { EmptyState, ErrorState } from '../features/shell/admin/ui/data-state'
 import { StylistEditorDialog } from '../features/salon/stylist-editor-dialog'
+import { StylistPagination } from '../features/salon/stylist-pagination'
 import type { StylistProfile } from '../features/salon/stylist-types'
 import { useStylistManagement } from '../features/salon/use-stylist-management'
 
@@ -107,7 +108,6 @@ export default function Stylists() {
     },
   ]
 
-
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -121,7 +121,7 @@ export default function Stylists() {
             <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           </div>
         ) : loadError ? (
-          <ErrorState description={t('stylists.errors.loadFailed')} onRetry={loadData} />
+          <ErrorState description={t('stylists.errors.loadFailed')} onRetry={() => { headingRef.current?.focus(); loadData() }} />
         ) : (
           <div className="app-table-wrap">
             <DataTable
@@ -136,20 +136,7 @@ export default function Stylists() {
         )}
       </Card>
 
-      {!loading && !loadError ? <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-content-strong">{t('stylists.table.total', { count: total })}</p>
-        <div className="flex items-center gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
-            {t('common.previous')}
-          </Button>
-          <p className="text-sm text-content-strong ">
-            {page + 1} / {Math.max(1, Math.ceil(total / pageSize))}
-          </p>
-          <Button type="button" size="sm" variant="outline" disabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
-            {t('common.next')}
-          </Button>
-        </div>
-      </div> : null}
+      {!loading && !loadError ? <StylistPagination page={page} pageSize={pageSize} total={total} setPage={setPage} headingRef={headingRef} /> : null}
 
       <StylistEditorDialog open={open} setOpen={setOpen} selectedStylist={selectedStylist} editorState={editorState} editorErrorKey={editorErrorKey} retryEditor={retryEditor} onCloseAutoFocus={returnFocus} form={form} setForm={setForm}
         workingHours={workingHours} updateWH={updateWH} selectedServices={selectedServices} unselectedServices={unselectedServices}

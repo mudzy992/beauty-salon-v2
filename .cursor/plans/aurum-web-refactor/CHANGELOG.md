@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Paginacija frizera i fokus (rad u toku)
+
+Kod promjene stranice lista sakrije paginaciju tokom čitanja, pa se fokusirani okidač ukloni. Reprodukcija odgođenog odgovora prije popravke daje **4/4** padova fokusa (BS/EN × 320/1280); test koji pomjeri fokus drugdje tokom čitanja prolazio je i ranije. Odvojeni retry nakon greške je prije popravke također izgubio fokus **2/2**. Paginacija je izdvojena iz `Stylists.tsx` (**159 → 146 linija**, novi modul **36**); prije promjene stranice fokus se sinhrono prebaci na postojeći fokusabilni naslov, koji se ne uklanja tokom učitavanja. Isto vrijedi za retry liste nakon greške; nema naknadnog preuzimanja fokusa ako korisnik ode drugdje. Zadržani su onemogućeni krajevi paginacije, parametri page/pageSize, broj stranica, error/retry i izbor tražene stranice.
+
+Nove fiksure provjeravaju tastaturu, odgođen odgovor, prvu/zadnju stranicu, povrat, pomjeranje fokusa i 500 → retry na istoj stranici, kao i retry inicijalne greške. U početnom pisanju testova pogrešni nazivi kontrola i dva `status` čvora su ispravljeni prije navedene negativne kontrole. Nakon promjene ciljano **40/40** frizerskih scenarija (prije dodavanja još jednog page-error retry testa), završno kompletan mock S8 **243/243**, Node **1003/1003**, build, E2E typecheck, lint 0 grešaka/6 ranijih upozorenja i pet Python provjera prolaze. Budžeti 293,4/300 KiB i Analytics 116,4/140 KiB. Ovo je automatizovana mock provjera na Chromium 153, ne OS/AT audit ni dokaz svih rasporeda odgovora. CI [45362275720](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45362275720) za `8dc9e02` pri pisanju još traje; ne pushati dok ne završi jer bi workflow otkazao postojeći run. S8 ostaje otvoren.
+
+---
+
 ## 2026-11-18 · S8 · Izdvajanje prazničnog panela salona (rad u toku)
 
 `Salon.tsx` izmjeren na **162 linije** prije i **128** poslije izdvajanja u `salon-holidays-panel.tsx` (**57** linija). Panel preuzima samo prikaz praznika i retry s istim fokusnim pravilom; hook, endpointi, potvrda, editor, tab i handleri ostaju kao prije. `holidayTabRef` se prosljeđuje iz stranice, a ref retry dugmeta živi u panelu. Source test sada eksplicitno povezuje stranicu → panel → tabelu i provjerava proslijeđene radnje, blokadu i retry; ranije semantičke provjere svih pet tabela ostaju. Posebno su ponovo pokrenute postojeće fiksure kasnog čitanja i prebacivanja fokusa/tabova kako bi se pokrili mount/unmount i pending retry.

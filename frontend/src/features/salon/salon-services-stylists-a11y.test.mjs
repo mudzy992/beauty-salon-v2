@@ -33,8 +33,10 @@ const services = [servicesPage, serviceCatalog, serviceTable, editor, categoryFi
 const stylistsPage = read('../../pages/Stylists.tsx')
 const stylistEditor = read('./stylist-editor-dialog.tsx')
 const stylistWorkingHours = read('./stylist-working-hours.tsx')
+const stylistPagination = read('./stylist-pagination.tsx')
 assert.match(stylistEditor, /<StylistWorkingHours\b/)
 assert.match(stylistsPage, /<StylistEditorDialog\b/)
+assert.match(stylistsPage, /<StylistPagination\b[^>]*setPage=\{setPage\} headingRef=\{headingRef\}/)
 const stylistManagement = read('./use-stylist-management.ts')
 const stylistEditorHook = read('./use-stylist-editor.ts')
 assert.match(stylistsPage, /useStylistManagement\(\)/)
@@ -63,6 +65,13 @@ test('katalog zadržava naslov i ima status učitavanja i oporavljivu grešku', 
   assert.match(hook, /const request = \+\+requestSequence\.current/)
   assert.match(hook, /if \(request !== requestSequence\.current\) return/)
   assert.match(hook, /return \(\) => \{ requestSequence\.current \+= 1 \}/)
+})
+
+test('paginacija i retry frizera čuvaju fokus prije uklanjanja okidača', () => {
+  assert.match(stylistsPage, /onRetry=\{\(\) => \{ headingRef\.current\?\.focus\(\); loadData\(\) \}\}/)
+  assert.match(stylistPagination, /headingRef\.current\?\.focus\(\)[\s\S]*?setPage\(previous =>/)
+  assert.match(stylistPagination, /disabled=\{page <= 0\}/)
+  assert.match(stylistPagination, /disabled=\{page >= Math\.ceil\(total \/ pageSize\) - 1\}/)
 })
 
 test('frizerski editor ne može spremati nepotpune read podatke', () => {
