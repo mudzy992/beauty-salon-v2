@@ -1,5 +1,6 @@
 import { Bar, CartesianGrid, ComposedChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useTranslation } from 'react-i18next'
+import { useId } from 'react'
 import { formatDateOnlyLocale } from '../../../../shared/business-date.mjs'
 import { formatLocalizedAmount } from '../../i18n/locale-utils.mjs'
 import { Card } from '../../components/ui/card'
@@ -10,6 +11,7 @@ type ChartSummary = { months: number; revenue: string; expenses: string; tips: s
 
 export function AnalyticsFinanceChart({ data, chartData, chartSummary }: { data: AnalyticsDashboard; chartData: ChartRow[]; chartSummary: ChartSummary }) {
   const { t, i18n } = useTranslation()
+  const descriptionId = useId()
   return (
       <Card className="min-w-0 p-5">
         <h2 className="mb-4 text-sm font-semibold text-content">
@@ -22,13 +24,12 @@ export function AnalyticsFinanceChart({ data, chartData, chartSummary }: { data:
             : t('adminAnalytics.monthlyChartLast12')}
         </h2>
         <figure className="m-0">
-        <div
-          className="h-80 w-full min-w-0"
-          role="img"
-          aria-label={t('adminAnalytics.chartAriaLabel', chartSummary)}
-        >
+        <figcaption id={descriptionId} className="mb-3 text-sm text-content-strong">
+          {t('adminAnalytics.chartAriaLabel', chartSummary)} {t('adminAnalytics.chartKeyboardHelp')}
+        </figcaption>
+        <div className="h-80 w-full min-w-0">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <ComposedChart data={chartData} role="application" aria-label={t('adminAnalytics.chartName')} aria-describedby={descriptionId} accessibilityLayer margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="hsl(var(--line))" strokeDasharray="3 3" />
               <XAxis dataKey="label" fontSize={12} stroke="hsl(var(--text-muted-strong))" />
               <YAxis fontSize={12} stroke="hsl(var(--text-muted-strong))" tickFormatter={(v) => formatLocalizedAmount(v, i18n.language)} />

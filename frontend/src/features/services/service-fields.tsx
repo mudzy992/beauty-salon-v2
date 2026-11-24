@@ -1,13 +1,10 @@
 import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2 } from 'lucide-react'
-import { MediaImage } from '../../components/media-image'
-import { getUploadUrl } from '../../utils/uploadUrl'
-import { Button } from '../../components/ui/button'
+import { ServiceHeroImageField } from './service-hero-image-field'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Select } from '../../components/ui/select'
-import { Switch } from '../../components/ui/switch'
+import { ServiceStatusFields } from './service-status-fields'
 import { Textarea } from '../../components/ui/textarea'
 import type { ServiceForm } from './service-form-types'
 
@@ -37,40 +34,7 @@ export function ServiceFields({ svcForm, setSvcForm, svcFileRef, uploadingImg, h
           rows={2}
         />
       </div>
-      <div>
-        <Label>{t('services.heroImage')}</Label>
-        <MediaImage
-          src={getUploadUrl(svcForm.heroImage)}
-          alt={t('services.heroImage')}
-          className="mt-2 max-h-32 w-full rounded-md object-cover"
-        />
-        <input
-          type="file"
-          accept="image/*"
-          ref={svcFileRef}
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) void handleUploadHeroImage(file)
-          }}
-        />
-        <div className="mt-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => svcFileRef.current?.click()}
-            disabled={uploadingImg}
-          >
-            {uploadingImg ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            {svcForm.heroImage
-              ? t('services.changeImage')
-              : t('services.uploadImage')}
-          </Button>
-        </div>
-      </div>
+      <ServiceHeroImageField heroImage={svcForm.heroImage} svcFileRef={svcFileRef} uploadingImg={uploadingImg} handleUploadHeroImage={handleUploadHeroImage} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
@@ -142,52 +106,7 @@ export function ServiceFields({ svcForm, setSvcForm, svcFileRef, uploadingImg, h
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
-        <div className="flex items-center justify-between gap-3">
-          <Label className="mb-0">
-            {t('services.status.serviceActive')}
-          </Label>
-          <Switch
-            aria-label={t('services.aria.serviceActiveToggle')}
-            checked={svcForm.isActive}
-            onCheckedChange={(checked) =>
-              setSvcForm({ ...svcForm, isActive: checked })
-            }
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <Label className="mb-0">{t('services.loyalty')}</Label>
-          <Switch
-            aria-label={t('services.aria.loyaltyToggle')}
-            checked={svcForm.loyaltyEnabled}
-            onCheckedChange={(checked) =>
-              setSvcForm({ ...svcForm, loyaltyEnabled: checked })
-            }
-          />
-        </div>
-      </div>
-
-      {svcForm.loyaltyEnabled ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="services-max-discount">{t('services.maxDiscount')}</Label>
-            <Input id="services-max-discount"
-              className="mt-1"
-              type="number"
-              min={0}
-              max={100}
-              value={svcForm.loyaltyMaxDiscountPercent}
-              onChange={(e) =>
-                setSvcForm({
-                  ...svcForm,
-                  loyaltyMaxDiscountPercent:
-                    Number(e.target.value) || 0,
-                })
-              }
-            />
-          </div>
-        </div>
-      ) : null}
+      <ServiceStatusFields svcForm={svcForm} setSvcForm={setSvcForm} />
     </div>
   )
 }

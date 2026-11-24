@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import type { Category, Subcategory } from './service-catalog-types'
 import type { Service } from './service-types'
 import type { ModalMode } from './service-form-types'
+import { useServiceImageUpload } from './use-service-image-upload'
 
 type Dependencies = { loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void }
 export function useServiceEditor({ loadData, showApiError }: Dependencies) {
@@ -40,8 +41,7 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
     loyaltyEnabled: false,
     loyaltyMaxDiscountPercent: 0,
   })
-  const [uploadingImg, setUploadingImg] = useState(false)
-  const svcFileRef = useRef<HTMLInputElement>(null)
+  const { uploadingImg, svcFileRef, handleUploadHeroImage } = useServiceImageUpload({ setSvcForm, showApiError })
 
   const getDialogTitle = () => {
     if (modalMode === 'category')
@@ -120,26 +120,6 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
       })
     }
     setOpen(true)
-  }
-
-  const handleUploadHeroImage = async (file: File) => {
-    setUploadingImg(true)
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('assetKind', 'service')
-      const { data } = await api.post('/api/uploads/public', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      const path = data.pathMedium || data.pathOriginal || ''
-      setSvcForm((prev) => ({ ...prev, heroImage: path }))
-      success(t('services.toast.imageUploaded'))
-    } catch (err) {
-      showApiError(err, 'services.errors.uploadFailed')
-    } finally {
-      setUploadingImg(false)
-      if (svcFileRef.current) svcFileRef.current.value = ''
-    }
   }
 
   const handleSave = async () => {

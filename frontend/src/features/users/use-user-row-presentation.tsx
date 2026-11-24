@@ -1,16 +1,14 @@
 import type { MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
-import { Eye, Loader2, Mail, Pencil, Trash2 } from 'lucide-react'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import type { DataTableColumn } from '../shell/admin/ui/data-table'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
 import type { UserRow } from './user-types'
 import { getUserDisplayName, initials } from './user-display'
 import { UserRoleActions } from './user-role-actions'
 import { UserCard } from './user-card'
+import { UserRowActions } from './user-row-actions'
 
 type Props = {
   getUserRoles: (user: UserRow) => string[]
@@ -27,7 +25,6 @@ type Props = {
 
 export function useUserRowPresentation({ getUserRoles, getRoleLabel, resetLinkSendingId, editTriggerRef, removalTriggerRef, openEdit, handleRemoveRole, handleAssignRole, handleIssueInitialPasswordResetLink, handleDeactivate }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const renderRoles = (u: UserRow) => (
     <UserRoleActions u={u} getUserRoles={getUserRoles} getRoleLabel={getRoleLabel} removalTriggerRef={removalTriggerRef}
       handleRemoveRole={handleRemoveRole} handleAssignRole={handleAssignRole} />
@@ -114,62 +111,8 @@ export function useUserRowPresentation({ getUserRoles, getRoleLabel, resetLinkSe
       align: 'right',
       className: 'p-3',
       render: (u) => (
-        <div className="flex justify-end gap-1">
-          {u.mustChangePassword ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="h-8 w-8"
-              disabled={resetLinkSendingId === u.id || !u.email || !u.isEmailVerified}
-              title={
-                u.email && u.isEmailVerified
-                  ? t('users.credentials.resetLinkAction')
-                  : t('users.credentials.resetLinkNeedsVerifiedEmail')
-              }
-              aria-label={t('users.aria.resetLink', { username: u.username })}
-              onClick={() => void handleIssueInitialPasswordResetLink(u)}
-            >
-              {resetLinkSendingId === u.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Mail className="h-4 w-4" aria-hidden="true" />
-              )}
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('users.aria.analytics', { username: u.username })}
-            onClick={() => navigate(`/admin/analytics?tab=clients&userId=${u.id}`)}
-          >
-            <Eye className="h-4 w-4 text-teal-600" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            aria-label={t('users.aria.edit', { username: u.username })}
-            onClick={(event) => { editTriggerRef.current = event.currentTarget; openEdit(u) }}
-          >
-            <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
-          </Button>
-          {u.isActive ? (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              aria-label={t('users.aria.deactivate', { username: u.username })}
-              onClick={() => void handleDeactivate(u.id, u.username)}
-            >
-              <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
-            </Button>
-          ) : null}
-        </div>
+        <UserRowActions u={u} resetLinkSendingId={resetLinkSendingId} editTriggerRef={editTriggerRef} openEdit={openEdit}
+          handleIssueInitialPasswordResetLink={handleIssueInitialPasswordResetLink} handleDeactivate={handleDeactivate} />
       ),
     },
   ]

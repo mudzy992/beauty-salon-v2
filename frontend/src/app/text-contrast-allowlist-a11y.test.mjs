@@ -85,7 +85,7 @@ const ALLOWLIST = {
   'pages/Stylists.tsx::teal-600': 'ikona (Eye), 3.74:1 ≥ 3:1',
   // 2026-11-17 (Faza C (9/)): `pages/Users.tsx::slate-400` obrisan — Search ikona
   // sada koristi AAA token `text-content-strong` (≥7:1), allowlist više ne treba unos.
-  'features/users/use-user-row-presentation.tsx::teal-600': 'ikona (Eye) aria-hidden, 3.74:1 ≥ 3:1',
+  'features/users/user-row-actions.tsx::teal-600': 'ikona (Eye) aria-hidden, 3.74:1 ≥ 3:1',
 }
 
 const SCAN_DIRS = ['pages', 'features', 'components', 'layouts']

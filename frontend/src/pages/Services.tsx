@@ -27,8 +27,15 @@ export default function Services() {
     [error, t],
   )
 
-  const { categories, loading, loadError, loadData } = useServiceCatalog({ showApiError })
+  const { categories, loading, loadError, loadData: loadCatalog } = useServiceCatalog({ showApiError })
+  const pageRef = useRef<HTMLDivElement>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const loadData = useCallback(() => {
+    if (pageRef.current?.contains(document.activeElement) && document.activeElement !== headingRef.current) headingRef.current?.focus()
+    loadCatalog()
+  }, [loadCatalog])
   const editorOpener = useRef<HTMLElement | null>(null)
+  const deletionOpener = useRef<HTMLElement | null>(null)
   const rememberEditorOpener = () => {
     editorOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
   }
@@ -82,9 +89,9 @@ export default function Services() {
   } = useServiceDeletion({ categories, loadData, showApiError })
 
   return (
-    <div>
+    <div ref={pageRef}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-content">
+        <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-content">
           {t('nav.services')}
         </h1>
         {!loading && !loadError ? <Button type="button" onClick={() => { rememberEditorOpener(); openCategoryForm() }}>
@@ -101,13 +108,16 @@ export default function Services() {
       {!loading && !loadError ? <>
       <ServiceCatalog categories={categories} openCategoryForm={(category) => { rememberEditorOpener(); openCategoryForm(category) }} openSubcategoryForm={(categoryId, subcategory) => { rememberEditorOpener(); openSubcategoryForm(categoryId, subcategory) }}
         openServiceForm={(subcategoryId, service) => { rememberEditorOpener(); openServiceForm(subcategoryId, service) }} handleDeleteCategory={handleDeleteCategory} handleDeleteSubcategory={handleDeleteSubcategory}
-        openServiceDeletion={openServiceDeletion} />
+        openServiceDeletion={(service) => {
+          deletionOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          openServiceDeletion(service)
+        }} />
 
-      <ServiceEditorDialog openerRef={editorOpener} open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving}
+      <ServiceEditorDialog openerRef={editorOpener} fallbackFocusRef={headingRef} open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving}
         catForm={catForm} subForm={subForm} svcForm={svcForm} setCatForm={setCatForm} setSubForm={setSubForm} setSvcForm={setSvcForm}
         svcFileRef={svcFileRef} uploadingImg={uploadingImg} handleUploadHeroImage={handleUploadHeroImage} onSave={() => void handleSave()} />
 
-      <ServiceDeletionDialog
+      <ServiceDeletionDialog openerRef={deletionOpener} fallbackFocusRef={headingRef}
         deletionOpen={deletionOpen}
         deletionService={deletionService}
         deletionImpact={deletionImpact}
@@ -133,7 +143,7 @@ export default function Services() {
         }}
         onConfirm={() => void handleServiceMutation()}
       />
-      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      <AdminConfirmDialog fallbackFocusRef={headingRef} request={confirmRequest} onClose={() => setConfirmRequest(null)} />
       </> : null}
     </div>
   )

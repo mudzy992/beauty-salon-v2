@@ -10,10 +10,12 @@ import type { AdminConfirmRequest } from '../shell/admin/ui/admin-confirm-dialog
 import type { SalonSettings, WorkingHours } from './salon-types'
 import { useSalonHolidays } from './use-salon-holidays'
 import { isHolidayList } from './salon-holiday-validation'
+import { completeWorkingHours, emptySalonForm, salonFormFrom } from './salon-settings-data'
+import { useSalonSettingsMutations } from './use-salon-settings-mutations'
 
 export function useSalonManagement(onHolidayReadStart: () => void) {
   const { t } = useTranslation()
-  const { success, error, warning } = useAppToast()
+  const { error } = useAppToast()
   const showApiError = useCallback(
     (err: unknown, fallbackKey: string) => {
       error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), fallbackKey, getErrorCode(err))))
@@ -33,18 +35,7 @@ export function useSalonManagement(onHolidayReadStart: () => void) {
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
   const [noSalonExists, setNoSalonExists] = useState(false)
 
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phone: '',
-    email: '',
-    description: '',
-    pauseBetweenServices: 10,
-    cancellationDeadlineHours: 24,
-    maxCancellationsBeforePenalty: 3,
-    penaltyDurationDays: 30,
-    reservationLockMinutes: 15,
-  })
+  const [formData, setFormData] = useState(emptySalonForm)
 
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
   const {
@@ -106,33 +97,9 @@ export function useSalonManagement(onHolidayReadStart: () => void) {
       }
 
       setSalon(s)
-      setFormData({
-        name: s.name ?? '',
-        address: s.address ?? '',
-        phone: s.phone ?? '',
-        email: s.email ?? '',
-        description: s.description ?? '',
-        pauseBetweenServices: s.pauseBetweenServices ?? 10,
-        cancellationDeadlineHours: s.cancellationDeadlineHours ?? 24,
-        maxCancellationsBeforePenalty: s.maxCancellationsBeforePenalty ?? 3,
-        penaltyDurationDays: s.penaltyDurationDays ?? 30,
-        reservationLockMinutes: s.reservationLockMinutes ?? 15,
-      })
-
-      if (s.workingHours && s.workingHours.length > 0) {
-        const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
-          const found = s!.workingHours!.find((w) => w.dayOfWeek === i)
-          return found ?? { dayOfWeek: i, openTime: '09:00', closeTime: '17:00', isWorkingDay: i >= 1 && i <= 5 }
-        })
-        setWorkingHours(full)
-      } else {
-        const defaults: WorkingHours[] = Array.from({ length: 7 }, (_, i) => ({
-          dayOfWeek: i,
-          openTime: '09:00',
-          closeTime: '17:00',
-          isWorkingDay: i >= 1 && i <= 5,
-        }))
-        setWorkingHours(defaults)
+      setFormData(salonFormFrom(s))
+      setWorkingHours(completeWorkingHours(s.workingHours))
+      if (!s.workingHours?.length) {
         try {
           if (!current()) return
           await api.post(`/api/salon/${s.id}/working-hours/ensure`)
@@ -166,49 +133,9 @@ export function useSalonManagement(onHolidayReadStart: () => void) {
     setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === dayOfWeek ? { ...w, [field]: value } : w)))
   }
 
-  const handleCreateSalon = async () => {
-    if (!formData.name) {
-      warning(t('salon.validation.nameRequired'))
-      return
-    }
-    setSaving(true)
-    try {
-      await api.post('/api/salon', formData)
-      success(t('salon.toast.created'))
-      loadSalon()
-    } catch (err) {
-      showApiError(err, 'salon.errors.createFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveSettings = async () => {
-    if (!salon) return
-    setSaving(true)
-    try {
-      await api.patch(`/api/salon/${salon.id}`, formData)
-      success(t('salon.toast.settingsSaved'))
-      loadSalon()
-    } catch (err) {
-      showApiError(err, 'salon.errors.saveSettingsFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveWorkingHours = async () => {
-    if (!salon) return
-    setSaving(true)
-    try {
-      await api.post(`/api/salon/${salon.id}/working-hours`, { workingHours })
-      success(t('salon.toast.workingHoursSaved'))
-    } catch (err) {
-      showApiError(err, 'salon.errors.saveWorkingHoursFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
+  const { handleCreateSalon, handleSaveSettings, handleSaveWorkingHours } = useSalonSettingsMutations({
+    salon, formData, workingHours, setSaving, loadSalon, showApiError,
+  })
 
   return {
     salon, loading, loadError, loadSalon, saving, confirmRequest, setConfirmRequest, noSalonExists,

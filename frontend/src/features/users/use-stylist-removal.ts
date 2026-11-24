@@ -5,6 +5,7 @@ import { getErrorCode } from '../../api/error'
 import { fetchAllAdminStylists } from '../../api/catalog'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import type { UserRow, StylistRemovalPreview, StylistOption } from './user-types'
+import { assertRemovalPreview, buildRemovalPayload, removalTargetOptions } from './stylist-removal-domain'
 
 type RemovalMode = 'DELETE' | 'TRANSFER'
 type Dependencies = { admins: UserRow[]; stylists: UserRow[]; clients: UserRow[]; loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void }
@@ -40,16 +41,7 @@ export function useStylistRemoval({ admins, stylists, clients, loadData, showApi
     reviews?: string
   }>({})
 
-  const getTargetOptions = () => {
-    const currentStylistId = removalPreview?.stylistProfileId
-    return allStylists
-      .filter((s) => typeof s.id === 'string' && s.id.trim() !== '' && s.id !== currentStylistId && ['ACTIVE', 'PENDING'].includes(String(s.status ?? '').toUpperCase()))
-      .map((s) => ({
-        id: s.id,
-        label: [s.user?.firstName, s.user?.lastName].filter(Boolean).join(' ') || s.user?.username || s.id,
-        isPending: String(s.status ?? '').toUpperCase() !== 'ACTIVE' || s.isActive !== true || s.user?.isActive !== true,
-      }))
-  }
+  const getTargetOptions = () => removalTargetOptions(allStylists, removalPreview)
 
   const removalSummary = useMemo(() => {
     if (!removalPreview) return []
@@ -64,7 +56,7 @@ export function useStylistRemoval({ admins, stylists, clients, loadData, showApi
       .filter((r) => (r.count ?? 0) > 0)
       .map((r) => {
         const mode = removalModes[r.key]
-        const target = (removalTargets as any)[r.key] as string | undefined
+        const target = removalTargets[r.key]
         return { key: r.key, label: r.label, count: r.count, mode, target }
       })
   }, [removalPreview, removalModes, removalTargets, t])
@@ -101,16 +93,7 @@ export function useStylistRemoval({ admins, stylists, clients, loadData, showApi
       const previewRes = await api.get<StylistRemovalPreview>(`/api/users/${userId}/stylist-removal-preview`)
       if (sequence !== removalPreviewSequence.current) return
       const preview = previewRes.data
-      if (!preview || typeof preview.stylistProfileId !== 'string' ||
-          typeof preview.revision !== 'string' || !/^[a-f0-9]{64}$/.test(preview.revision) ||
-          !preview.counts || !preview.financial || [preview.counts.dailyLogEntriesCount, preview.counts.confirmedReservationsCount,
-            preview.counts.reservationResponsesCount, preview.counts.reviewsCount, preview.financial.clientDebtsCount,
-            preview.financial.manualIncomeCount, preview.financial.bookedDailyLogsCount].some(value => !Number.isSafeInteger(value) || value < 0)) {
-        throw new Error('Invalid stylist removal preview')
-      }
-      if (preview.financial.bookedDailyLogsCount > preview.counts.dailyLogEntriesCount) {
-        throw new Error('Inconsistent stylist removal preview')
-      }
+      assertRemovalPreview(preview)
       const c = preview.counts
       const hasAnyLinks =
         (c.dailyLogEntriesCount ?? 0) > 0 ||
@@ -138,30 +121,7 @@ export function useStylistRemoval({ admins, stylists, clients, loadData, showApi
 
   const handleConfirmRemoveStylist = async () => {
     if (!removeStylistUser || !removalPreview) return
-    const counts = removalPreview.counts
-    const payload = {
-      previewRevision: removalPreview.revision,
-      financialTargetStylistProfileId: financialTarget || undefined,
-      confirmFinancialTransfer: financialConfirmed,
-      dailyLogs: {
-        mode: counts.dailyLogEntriesCount > 0 ? removalModes.dailyLogs : 'DELETE',
-        targetStylistProfileId: removalModes.dailyLogs === 'TRANSFER' ? removalTargets.dailyLogs : undefined,
-      },
-      confirmedReservations: {
-        mode: counts.confirmedReservationsCount > 0 ? removalModes.confirmedReservations : 'DELETE',
-        targetStylistProfileId:
-          removalModes.confirmedReservations === 'TRANSFER' ? removalTargets.confirmedReservations : undefined,
-      },
-      reservationResponses: {
-        mode: counts.reservationResponsesCount > 0 ? removalModes.reservationResponses : 'DELETE',
-        targetStylistProfileId:
-          removalModes.reservationResponses === 'TRANSFER' ? removalTargets.reservationResponses : undefined,
-      },
-      reviews: {
-        mode: counts.reviewsCount > 0 ? removalModes.reviews : 'DELETE',
-        targetStylistProfileId: removalModes.reviews === 'TRANSFER' ? removalTargets.reviews : undefined,
-      },
-    } as const
+    const payload = buildRemovalPayload(removalPreview, financialTarget, financialConfirmed, removalModes, removalTargets)
 
     const missingTarget = (key: 'dailyLogs' | 'confirmedReservations' | 'reservationResponses' | 'reviews') =>
       payload[key].mode === 'TRANSFER' && !payload[key].targetStylistProfileId

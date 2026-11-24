@@ -26,12 +26,13 @@ const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), '
 const headers = (src) => src.match(/<th\b[^>]*>/g) || []
 
 test('recharts graf ima tekstualnu alternativu (1.1.1)', () => {
-  assert.match(analytics, /role="img"/, 'graf mora imati role="img"')
+  assert.match(analytics, /<ComposedChart[^>]*role="application"[^>]*aria-label=\{t\('adminAnalytics\.chartName'\)\}[^>]*aria-describedby=\{descriptionId\}[^>]*accessibilityLayer/, 'interaktivni graf mora imati ime, opis i tastaturni sloj')
   assert.match(
     analytics,
-    /aria-label=\{t\('adminAnalytics\.chartAriaLabel', chartSummary\)\}/,
-    'aria-label mora nositi kljucne brojeve iz chartSummary',
+    /\{t\('adminAnalytics\.chartAriaLabel', chartSummary\)\}/,
+    'figcaption mora nositi kljucne brojeve iz chartSummary',
   )
+  assert.match(analytics, /<figcaption id=\{descriptionId\}/, 'sažetak je povezan s grafom')
   assert.match(analytics, /<figure className="m-0">/, 'graf mora biti omotan u <figure>')
   assert.equal((analytics.match(/<\/figure>/g) || []).length, 1)
 
