@@ -74,6 +74,7 @@ export class MediaConsentService {
             id: true,
             date: true,
             completedAt: true,
+            workGalleryHidden: true,
             service: { select: { name: true } },
           },
         },
@@ -102,6 +103,7 @@ export class MediaConsentService {
     }
     const autoPublishedImageIds = new Set<string>();
     for (const entryImages of activeByEntry.values()) {
+      if (entryImages[0]?.dailyLogEntry.workGalleryHidden) continue;
       const pair = selectBeforeAfterPair(entryImages);
       if (pair) {
         autoPublishedImageIds.add(pair.before.id);

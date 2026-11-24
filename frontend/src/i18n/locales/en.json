@@ -2891,7 +2891,25 @@
       "loadedCount": "Comparisons loaded: {{count}}",
       "loadingPairs": "Loading completed work…",
       "pairsLoadFailed": "Completed work couldn’t be loaded right now.",
-      "empty": "There are no available transformations for this service."
+      "empty": "There are no available transformations for this service.",
+      "hidePair": "Hide comparison {{current}} from gallery",
+      "hideTitle": "Hide comparison?",
+      "hideDescription": "The comparison will be removed from the gallery. Original photos and client consent are not deleted. A previously known direct link may remain accessible while consent is valid.",
+      "hideConfirm": "Hide from gallery",
+      "restoreTitle": "Restore comparison?",
+      "restoreDescription": "The comparison can appear in the gallery again only if both photos have valid client consent.",
+      "restoreConfirm": "Restore to gallery",
+      "visibilityFailed": "The change failed or the data is stale. Refresh the page and try again.",
+      "entryNotFound": "The entry was not found.",
+      "visibilityConflict": "Gallery visibility has changed. Refresh the data.",
+      "hiddenHeading": "Hidden comparisons",
+      "hiddenLoading": "Loading hidden comparisons…",
+      "hiddenFailed": "Hidden comparisons could not be loaded.",
+      "hiddenEmpty": "There are no hidden comparisons.",
+      "hiddenEntry": "Entry {{date}} · {{id}}",
+      "unknownDate": "no date",
+      "restorePair": "Restore comparison from entry {{id}}",
+      "loadMoreHidden": "Load more hidden comparisons"
     }
   },
   "public": {

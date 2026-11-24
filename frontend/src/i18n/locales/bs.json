@@ -2891,7 +2891,25 @@
       "loadedCount": "Učitanih poređenja: {{count}}",
       "loadingPairs": "Učitavanje urađenih radova…",
       "pairsLoadFailed": "Urađene radove trenutno nije moguće učitati.",
-      "empty": "Nema dostupnih transformacija za ovaj servis."
+      "empty": "Nema dostupnih transformacija za ovaj servis.",
+      "hidePair": "Sakrij poređenje {{current}} iz galerije",
+      "hideTitle": "Sakriti poređenje?",
+      "hideDescription": "Poređenje će biti uklonjeno iz galerije. Izvorne fotografije i saglasnosti klijenta se ne brišu. Već poznat direktni link može ostati dostupan dok saglasnost vrijedi.",
+      "hideConfirm": "Sakrij iz galerije",
+      "restoreTitle": "Vratiti poređenje?",
+      "restoreDescription": "Poređenje se može ponovo pojaviti u galeriji samo ako obje fotografije imaju važeću saglasnost klijenta.",
+      "restoreConfirm": "Vrati u galeriju",
+      "visibilityFailed": "Promjena nije uspjela ili su podaci zastarjeli. Osvježite stranicu i pokušajte ponovo.",
+      "entryNotFound": "Zapis nije pronađen.",
+      "visibilityConflict": "Vidljivost galerije se promijenila. Osvježite podatke.",
+      "hiddenHeading": "Skrivena poređenja",
+      "hiddenLoading": "Učitavanje skrivenih poređenja…",
+      "hiddenFailed": "Skrivena poređenja nije moguće učitati.",
+      "hiddenEmpty": "Nema skrivenih poređenja.",
+      "hiddenEntry": "Zapis {{date}} · {{id}}",
+      "unknownDate": "bez datuma",
+      "restorePair": "Vrati poređenje iz zapisa {{id}}",
+      "loadMoreHidden": "Učitaj još skrivenih poređenja"
     }
   },
   "public": {

@@ -10,6 +10,8 @@
  * Parnost s backend registrom cuva `test:api-error-code-parity`.
  */
 export const API_ERROR_CODE_TO_KEY = {
+  WORK_GALLERY_ENTRY_NOT_FOUND: 'admin.serviceWorkGallery.entryNotFound',
+  WORK_GALLERY_VISIBILITY_CONFLICT: 'admin.serviceWorkGallery.visibilityConflict',
   MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID: 'mediaConsent.errors.descriptionDecisionInvalid',
   MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED: 'mediaConsent.errors.descriptionNotApproved',
   MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE: 'mediaConsent.errors.reviewedDescriptionStale',

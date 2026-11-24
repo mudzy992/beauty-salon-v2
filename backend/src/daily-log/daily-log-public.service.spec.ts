@@ -179,6 +179,7 @@ describe('DailyLogPublicService', () => {
         where: expect.objectContaining({
           status: 'COMPLETED',
           deletedAt: null,
+          workGalleryHidden: false,
           kind: 'SERVICE',
           clientId: { not: null },
           images: {

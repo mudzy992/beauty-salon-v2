@@ -1,5 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { DailyLogController } from './daily-log.controller';
+import { WorkGalleryVisibilityController } from './work-gallery-visibility.controller';
+import { WorkGalleryVisibilityService } from './work-gallery-visibility.service';
 import { DailyLogService } from './daily-log.service';
 import { DailyLogPublicService } from './daily-log-public.service';
 import { DailyLogReversalService } from './daily-log-reversal.service';
@@ -22,8 +24,9 @@ import { ReservationsModule } from '../reservations/reservations.module';
     NotificationsModule,
     forwardRef(() => ReservationsModule),
   ],
-  controllers: [DailyLogController],
+  controllers: [DailyLogController, WorkGalleryVisibilityController],
   providers: [
+    WorkGalleryVisibilityService,
     DailyLogService,
     DailyLogPublicService,
     DailyLogReversalService,

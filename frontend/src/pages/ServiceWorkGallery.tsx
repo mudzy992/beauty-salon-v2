@@ -4,6 +4,8 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { useServiceWorkGallery } from '../features/services/use-service-work-gallery'
+import { WorkGalleryVisibility } from '../features/services/work-gallery-visibility'
+import { useAuthStore } from '../stores/auth.store'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { BeforeAfterSlider } from '../components/BeforeAfterSlider'
 
@@ -18,8 +20,10 @@ export default function ServiceWorkGallery() {
   const [moreFocused, setMoreFocused] = useState(false)
   const { serviceId } = useParams()
   const id = useMemo(() => (serviceId ?? '').trim(), [serviceId])
+  const sessionVersion = useAuthStore(state => state.sessionVersion)
+  const canManage = useAuthStore(state => state.user?.roles.some(role => role === 'SYSTEM_ADMIN' || role === 'OWNER') ?? false)
 
-  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage } = useServiceWorkGallery(id)
+  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage, reloadPairs } = useServiceWorkGallery(id)
 
 
   return (
@@ -77,7 +81,8 @@ export default function ServiceWorkGallery() {
         </div>
       ) : (
         <>
-          {items.length > 0 ? (
+          <WorkGalleryVisibility key={`${sessionVersion}:${id}`} serviceId={id} sessionVersion={sessionVersion} enabled={canManage && Boolean(service)} headingRef={headingRef} onChanged={reloadPairs}>
+            {(hide, busy) => items.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
               {items.map((pair, index) => (
                 <Card key={pair.id} className="overflow-hidden">
@@ -94,12 +99,16 @@ export default function ServiceWorkGallery() {
                     alt={t('public.beforeAfter.comparisonLabels')}
                     aspectRatio={1}
                   />
+                  {canManage && service ? <div className="p-3"><Button type="button" variant="outline" aria-disabled={busy} onClick={event => { if (!busy) hide(pair.id, event.currentTarget) }}>
+                    {t('admin.serviceWorkGallery.hidePair', { current: index + 1 })}
+                  </Button></div> : null}
                 </Card>
               ))}
             </div>
           ) : !hasMore && !pairsLoadError && !loadingMore ? (
             <p className="py-10 text-center text-sm text-content-strong">{t('admin.serviceWorkGallery.empty')}</p>
           ) : null}
+          </WorkGalleryVisibility>
           {items.length > 0 || hasMore || offset > 0 ? (
             <p ref={resultsRef} tabIndex={-1} className="mt-4 text-sm text-content-strong">{t('admin.serviceWorkGallery.loadedCount', { count: items.length })}</p>
           ) : null}

@@ -117,6 +117,7 @@ export class DailyLogPublicService {
     return {
       status: 'COMPLETED',
       deletedAt: null,
+      workGalleryHidden: false,
       kind: 'SERVICE',
       clientId: { not: null },
       images: {

@@ -89,6 +89,19 @@ export function useServiceWorkGallery(id: string) {
     }
   }, [id, owner, sessionVersion])
 
+  // Invalidate an in-flight page before a mutation-triggered reload; otherwise
+  // an older append can reintroduce an item that was just hidden.
+  const reloadPairs = useCallback(() => {
+    pageSequence.current += 1
+    pageInFlight.current = null
+    setItems([])
+    setOffset(0)
+    setHasMore(Boolean(id))
+    setPairsLoadError(false)
+    setLoadingMore(false)
+    if (id) void loadPage(0, false)
+  }, [id, loadPage])
+
   useEffect(() => {
     void loadService()
     return () => { serviceSequence.current += 1 }
@@ -129,6 +142,6 @@ export function useServiceWorkGallery(id: string) {
     loadingMore: currentPairs && loadingMore,
     hasMore: currentPairs && hasMore,
     offset: currentPairs ? offset : 0,
-    sentinelRef, loadService, loadPage,
+    sentinelRef, loadService, loadPage, reloadPairs,
   }
 }

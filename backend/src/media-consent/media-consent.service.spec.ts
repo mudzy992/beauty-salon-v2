@@ -146,6 +146,21 @@ describe('MediaConsentService', () => {
     ).toBe(true);
   });
 
+  it('does not report a hidden pair as auto-published but preserves separate manual publication', async () => {
+    const before = consentedListImage('before-image', true, false);
+    const after = consentedListImage('after-image', false, true);
+    Object.assign(before.dailyLogEntry, { workGalleryHidden: true });
+    Object.assign(after.dailyLogEntry, { workGalleryHidden: true });
+    before.consent!.publishedUpload.galleryImages.push({ category: { id: 'manual-category', name: 'Manual' } } as never);
+    prisma.dailyLogImage.findMany.mockResolvedValue([before, after]);
+    prisma.galleryCategory.findFirst.mockResolvedValue({ id: 'auto-category', name: 'Rezultati' });
+    const result = await service.listForClient(client);
+    expect(result.active.map(image => [image.imageId, image.isPublished, image.publishedCategories])).toEqual([
+      ['before-image', true, [{ id: 'manual-category', name: 'Manual' }]],
+      ['after-image', false, []],
+    ]);
+  });
+
   it('marks only the two selected active photos as auto-published, not pending or extra photos', async () => {
     const pending = consentedListImage('pending-image', true, false);
     pending.consent = null as never;

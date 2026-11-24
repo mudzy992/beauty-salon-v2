@@ -10,6 +10,8 @@
  * zadrzi konkretan razlog u polju `message`.
  */
 export const API_ERROR_CODES = {
+  WORK_GALLERY_ENTRY_NOT_FOUND: 'Zapis nije pronađen.',
+  WORK_GALLERY_VISIBILITY_CONFLICT: 'Vidljivost galerije je promijenjena. Osvježite podatke.',
   MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID: 'Odluka o objavi opisa mora biti logička vrijednost.',
   MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED: 'Aktivna saglasnost ne obuhvata pregledani opis. Osvježite podatke.',
   MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE: 'Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.',
