@@ -18,7 +18,7 @@ export function ClientReviews({ analytics, formatInstantDate, openReviewDetail }
         <p className="text-sm text-content-strong">{t('common.noData')}</p>
       ) : (
         <div className="space-y-3">
-          {analytics.reviews.map((r) => (
+          {analytics.reviews.map((r, index) => (
             <Card
               key={r.id}
               className="relative cursor-pointer p-4 transition-shadow hover:shadow-md"
@@ -39,7 +39,7 @@ export function ClientReviews({ analytics, formatInstantDate, openReviewDetail }
                       type="button"
                       onClick={(event) => openReviewDetail(r, event.currentTarget)}
                       aria-label={t('clientAnalyticsPage.reviewDetailsAction', {
-                        service: r.service?.name ?? '-',
+                        service: r.service?.name ?? '-', date: formatInstantDate(r.createdAt), number: index + 1,
                       })}
                       className="cursor-pointer rounded text-left font-medium text-content after:absolute after:inset-0 after:content-['']"
                     >

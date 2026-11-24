@@ -42,7 +42,7 @@ export function ClientReservationsTable({ analytics, formatDateOnly, getStylistN
                 </td>
               </tr>
             ) : (
-              analytics.reservations.map((r) => (
+              analytics.reservations.map((r, index) => (
                 <tr
                   key={r.id}
                   className="cursor-pointer border-b border-line hover:bg-surface-muted"
@@ -65,7 +65,10 @@ export function ClientReservationsTable({ analytics, formatDateOnly, getStylistN
                     </Badge>
                   </td>
                   <td data-label={t('clientAnalyticsPage.details')} className="py-3 pr-4 text-right">
-                    <Button type="button" size="icon" variant="ghost" aria-label={t('clientAnalyticsPage.details')} onClick={(e) => {
+                    <Button type="button" size="icon" variant="ghost" aria-label={t('clientAnalyticsPage.reservationDetailsAction', {
+                      service: r.service?.name ?? '-', date: formatDateOnly(r.reservationDate),
+                      time: `${r.startTime} - ${r.endTime}`, number: index + 1,
+                    })} onClick={(e) => {
                       e.stopPropagation()
                       openReservationDetail(r, e.currentTarget)
                     }}

@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Razlučivi detalji klijentske analitike (rad u toku)
+
+U tabeli rezervacija sva dugmad za detalje zvala su se samo „Detalji“, a kartice recenzija za istu uslugu imale su jednak naziv. Nova fiksura s po dvije stavke iste usluge, datuma i vremena prije promjene pada **8/8** (BS/EN × 320/1280 × rezervacije/recenzije). Imena sada uključuju vidljivu uslugu i lokalizovani datum, rezervacije i vrijeme, te lokalizovani redni broj u aktuelnoj listi — razlikuju se i kad su ostali podaci jednaki. Redni broj prati redoslijed liste i može se promijeniti kada se lista promijeni; nije identifikator zapisa. Test otvara svaku stavku tastaturom, provjerava baš njenu bilješku/komentar, Escape i povrat fokusa. Osam ciljanih `button-name`/`label-content-name-mismatch` axe skenova po aktivnom panelu ne prijavljuje violations; to nije potpun WCAG ni AT pregled.
+
+Sačuvane su garancije source-contract testa: klikabilan red bez nedozvoljenog tab fokusa i posebno imenovano dugme; ažurirani su očekivani ključ i provjera BS/EN placeholdera. Prvi Node run pao je 2/1001 zbog prethodnog doslovnog ključa, poslije ažuriranja **1001/1001** prolazi. Mock S8 **235/235** prije dodavanja ciljnih axe asertacija, zatim nova fiksura s axe **8/8**, E2E typecheck, build **293,4/300 KiB**, Analytics **116,4/140 KiB**, lint 0 grešaka/6 ranijih upozorenja i pet Python provjera prolaze. Lokalni Chromium 153 umjesto CI 158; testovi koriste mock API. CI [45362275720](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45362275720) za `8dc9e02` pri pisanju je **4 uspješna i rendered u toku**; ne pushati novi commit dok taj run traje jer workflow otkazuje prethodni run za istu granu.
+
+---
+
 ## 2026-11-18 · S8 · CI O4 praznik: ispravka fiksure (rad u toku)
 
 CI [45349480169](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45349480169) za `1458f91` završio je **4/5**: rendered a11y **2953 passed / 1 failed**, `O4 salon holiday: cancel and confirm isolated deletion` timeout 60 s; 15 axe uzoraka ostaje incomplete. Puni CI log nije dostupan (EOF); anotacija ne navodi tačan korak. O4 mock praznik nije sadržavao `message` i `pushSentAt`, iako backendov Prisma `Holiday` uključuje oba nullable polja, pa ga validator koji je stigao u `1458f91` odbija. Lokalno pokretanje istog testa u izolovanoj mock admin sesiji s izvornom fiksurom reproduciralo je timeout čekanja taba Praznici i ekran greške. Nakon dodavanja dva `null` polja test prolazi **5/5**, bez uklanjanja provjera otkazivanja, fokusa i jednog DELETE zahtjeva; eksplicitno čekanje taba ograničeno na 10 s daje konkretniju CI anotaciju ako učitavanje ponovo padne. Budući da CI detaljni log nije dostupan, fiksura je potvrđen lokalni uzrok identičnog simptoma, ne dokaz stvarnog poziva koji je istekao u CI-ju. Mock admin sesija i Chromium 153 nisu CI izolovana baza i Chromium 158; potreban je novi CI.

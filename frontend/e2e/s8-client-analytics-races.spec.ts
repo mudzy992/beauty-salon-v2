@@ -103,7 +103,7 @@ for (const width of [320, 1280]) {
     await page.goto('/admin/analytics?tab=clients&userId=client-one', { waitUntil: 'networkidle' })
     await expect(page.getByRole('heading', { name: 'New Client' })).toBeVisible()
     await expect(page.locator('h1')).toHaveCount(1)
-    const details = page.getByRole('button', { name: 'Details', exact: true })
+    const details = page.getByRole('button', { name: /^Details: Fixture service,/ })
     await details.focus()
     await page.keyboard.press('Enter')
     const dialog = page.getByRole('dialog')

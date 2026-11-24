@@ -169,8 +169,8 @@ test('4.1.2: ClientAnalytics — red tabele nije fokusabilan bez role', () => {
   )
   assert.match(
     src,
-    /aria-label=\{t\('clientAnalyticsPage\.details'\)\}\s+onClick/s,
-    'pristupačni put do detalja rezervacije mora ostati dugme s aria-label',
+    /<Button[^>]*aria-label=\{t\('clientAnalyticsPage\.reservationDetailsAction',\s*\{[\s\S]*?service:[\s\S]*?date:[\s\S]*?time:[\s\S]*?number:[\s\S]*?\}\)\}\s+onClick/s,
+    'pristupačni put do detalja rezervacije mora ostati dugme s kontekstualnim aria-label',
   )
 })
 
@@ -181,7 +181,7 @@ test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu',
   const cases = [
     ['../pages/Reservations.tsx', /reservations\.adminList\.details/, 'raw'],
     ['../pages/Stylists.tsx', /stylists\.aria\.edit/, 'datatable'],
-    ['../features/client-analytics/client-reservations-table.tsx', /clientAnalyticsPage\.details/, 'raw'],
+    ['../features/client-analytics/client-reservations-table.tsx', /clientAnalyticsPage\.reservationDetailsAction/, 'client'],
     ['../pages/Reviews.tsx', /reviews\.details/, 'raw'],
   ]
   for (const [rel, key, kind] of cases) {
@@ -193,6 +193,8 @@ test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu',
     }
     if (kind === 'datatable') {
       assert.match(src, /<Button[^>]*aria-label=\{t\('stylists\.aria\.edit', \{ name: stylistAccessibleName\(s\) \}\)\}[^>]*onClick=\{\(\) => openEditor\(s\)\}/s, `${rel}: svaki red mora imati imenovano dugme za uređivanje`)
+    } else if (kind === 'client') {
+      assert.match(src, /<Button[^>]*aria-label=\{t\('clientAnalyticsPage\.reservationDetailsAction',\s*\{[\s\S]*?\}\)\}[^>]*onClick/s, `${rel}: svaki red mora imati imenovano dugme za detalje`)
     } else {
       assert.match(
         src,
@@ -270,5 +272,9 @@ test('i18n: reviews.details postoji u oba jezika (aria-label nije goli ključ)',
       /\{\{service\}\}/,
       `${loc}: ključ mora primati naziv usluge, inače ime dugmeta ne sadrži vidljivi tekst (2.5.3)`,
     )
+    for (const placeholder of ['date', 'number']) assert.ok(action.includes(`{{${placeholder}}}`), `${loc}: review action missing ${placeholder}`)
+    const reservationAction = json.clientAnalyticsPage?.reservationDetailsAction
+    assert.ok(reservationAction?.includes(json.clientAnalyticsPage.details), `${loc}: reservation action must include Details`)
+    for (const placeholder of ['service', 'date', 'time', 'number']) assert.ok(reservationAction.includes(`{{${placeholder}}}`), `${loc}: reservation action missing ${placeholder}`)
   }
 })
