@@ -7,10 +7,12 @@ const salonPage = read('../../pages/Salon.tsx')
 const holidayDialog = read('./holiday-dialog.tsx')
 const salonHoursTable = read('./salon-working-hours-table.tsx')
 const salonHolidayTable = read('./salon-holiday-table.tsx')
-for (const component of ['HolidayDialog', 'SalonWorkingHoursTable', 'SalonHolidayTable', 'CreateSalonForm', 'SalonSettingsForm']) {
+const salonHolidaysPanel = read('./salon-holidays-panel.tsx')
+for (const component of ['HolidayDialog', 'SalonWorkingHoursTable', 'SalonHolidaysPanel', 'CreateSalonForm', 'SalonSettingsForm']) {
   assert.match(salonPage, new RegExp(`<${component}\\b`))
 }
-const salon = [salonPage, holidayDialog, salonHoursTable, salonHolidayTable].join('\n')
+assert.match(salonHolidaysPanel, /<SalonHolidayTable\b/)
+const salon = [salonPage, holidayDialog, salonHoursTable, salonHolidaysPanel, salonHolidayTable].join('\n')
 const servicesPage = read('../../pages/Services.tsx')
 const serviceTable = read('../services/service-table.tsx')
 const serviceCatalog = read('../services/service-catalog.tsx')
@@ -106,6 +108,14 @@ test('time inputi u radnom vremenu imaju pristupačno ime (4.1.2)', () => {
       assert.match(i, /aria-label=\{t\(/, `${name}: time input bez aria-label`)
     }
   }
+})
+
+test('praznični panel zadržava blokadu akcija i povezane povratne pozive', () => {
+  assert.match(salonPage, /<TabsContent value="holidays"[\s\S]*?<SalonHolidaysPanel\b[\s\S]*?holidayTabRef=\{holidayTabRef\}/)
+  assert.match(salonPage, /reloadHolidays=\{reloadHolidays\}[\s\S]*?handleSendNotification=\{handleSendNotification\}[\s\S]*?handleDeleteHoliday=\{handleDeleteHoliday\}/)
+  assert.match(salonHolidaysPanel, /<Button type="button" data-salon-holiday-action disabled=\{holidayReadError \|\| holidayReloading\}/)
+  assert.match(salonHolidaysPanel, /<SalonHolidayTable\b[^>]*actionsDisabled=\{holidayReadError \|\| holidayReloading\}/s)
+  assert.match(salonHolidaysPanel, /role="alert"[\s\S]*?onClick=\{\(\) => void retryHolidayRead\(\)\}/)
 })
 
 test('praznični redovi imaju razlučive lokalizovane nazive akcija', () => {

@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Izdvajanje prazničnog panela salona (rad u toku)
+
+`Salon.tsx` izmjeren na **162 linije** prije i **128** poslije izdvajanja u `salon-holidays-panel.tsx` (**57** linija). Panel preuzima samo prikaz praznika i retry s istim fokusnim pravilom; hook, endpointi, potvrda, editor, tab i handleri ostaju kao prije. `holidayTabRef` se prosljeđuje iz stranice, a ref retry dugmeta živi u panelu. Source test sada eksplicitno povezuje stranicu → panel → tabelu i provjerava proslijeđene radnje, blokadu i retry; ranije semantičke provjere svih pet tabela ostaju. Posebno su ponovo pokrenute postojeće fiksure kasnog čitanja i prebacivanja fokusa/tabova kako bi se pokrili mount/unmount i pending retry.
+
+Rezultati: Salon **64/64**, kompletan mock S8 **235/235**, Node **1002/1002**, build i E2E typecheck, lint 0 grešaka/6 ranijih upozorenja, pet Python provjera i diff check prolaze. Initial bundle **293,4/300 KiB**, Analytics **116,4/140 KiB**. Mock podaci i lokalni Chromium 153 (CI očekuje 158) nisu nezavisni AT/WCAG pregled ni stvarne server mutacije. CI [45362275720](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45362275720) za raniji `8dc9e02` pri zapisivanju još radi (4 uspješna, rendered u toku); novi lokalni commit ne pushati dok prethodni run traje jer bi ga workflow otkazao. Zatim verificirati zaključak i pokrenuti CI za sve nove commitove. S8 ostaje otvoren.
+
+---
+
 ## 2026-11-18 · S8 · Razlučivi detalji klijentske analitike (rad u toku)
 
 U tabeli rezervacija sva dugmad za detalje zvala su se samo „Detalji“, a kartice recenzija za istu uslugu imale su jednak naziv. Nova fiksura s po dvije stavke iste usluge, datuma i vremena prije promjene pada **8/8** (BS/EN × 320/1280 × rezervacije/recenzije). Imena sada uključuju vidljivu uslugu i lokalizovani datum, rezervacije i vrijeme, te lokalizovani redni broj u aktuelnoj listi — razlikuju se i kad su ostali podaci jednaki. Redni broj prati redoslijed liste i može se promijeniti kada se lista promijeni; nije identifikator zapisa. Test otvara svaku stavku tastaturom, provjerava baš njenu bilješku/komentar, Escape i povrat fokusa. Osam ciljanih `button-name`/`label-content-name-mismatch` axe skenova po aktivnom panelu ne prijavljuje violations; to nije potpun WCAG ni AT pregled.
