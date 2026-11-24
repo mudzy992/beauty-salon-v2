@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -13,10 +13,12 @@ import { Card } from '../components/ui/card'
 
 export default function ServiceWorkGallery() {
   const { t, i18n } = useTranslation()
+  const resultsRef = useRef<HTMLParagraphElement>(null)
+  const [moreFocused, setMoreFocused] = useState(false)
   const { serviceId } = useParams()
   const id = useMemo(() => (serviceId ?? '').trim(), [serviceId])
 
-  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, offset, sentinelRef, loadService, loadPage } = useServiceWorkGallery(id)
+  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage } = useServiceWorkGallery(id)
 
   if (loadingService) {
     return (
@@ -111,18 +113,26 @@ export default function ServiceWorkGallery() {
               </Card>
             ))}
           </div>
+          <p ref={resultsRef} tabIndex={-1} className="mt-4 text-sm text-content-strong">{t('admin.serviceWorkGallery.loadedCount', { count: items.length })}</p>
           <div ref={sentinelRef} className="h-4 mt-8" />
+          {hasMore || moreFocused ? (
+            <Button type="button" variant="outline" aria-disabled={loadingMore || !hasMore} onFocus={() => setMoreFocused(true)} onBlur={() => setMoreFocused(false)}
+              onClick={() => { if (!hasMore || loadingMore) return; resultsRef.current?.focus(); void loadPage(offset, true) }}>
+              {t('admin.serviceWorkGallery.loadMore')}
+            </Button>
+          ) : null}
           {pairsLoadError ? (
             <div className="py-4 text-center" role="alert">
               <p className="text-sm text-content-strong">{t('admin.serviceWorkGallery.pairsLoadFailed')}</p>
-              <Button variant="outline" className="mt-3" onClick={() => void loadPage(offset, true)}>
+              <Button variant="outline" className="mt-3" onClick={() => { resultsRef.current?.focus(); void loadPage(offset, true) }}>
                 {t('admin.serviceWorkGallery.retry')}
               </Button>
             </div>
           ) : null}
           {loadingMore ? (
-            <div className="flex justify-center py-8 text-content-strong">
-              <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+            <div role="status" aria-live="polite" className="flex justify-center py-8 text-content-strong">
+              <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+              <span className="sr-only">{t('admin.serviceWorkGallery.loadingPairs')}</span>
             </div>
           ) : null}
         </>

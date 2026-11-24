@@ -36,9 +36,6 @@ export default function Services() {
   }, [loadCatalog])
   const editorOpener = useRef<HTMLElement | null>(null)
   const deletionOpener = useRef<HTMLElement | null>(null)
-  const rememberEditorOpener = () => {
-    editorOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-  }
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
 
   const {
@@ -47,9 +44,10 @@ export default function Services() {
     handleUploadHeroImage, handleSave,
   } = useServiceEditor({ loadData, showApiError })
 
-  const handleDeleteCategory = (id: string) => {
+  const handleDeleteCategory = (id: string, trigger: HTMLButtonElement) => {
     setConfirmRequest({
       title: t('common.confirmDestructiveTitle'),
+      trigger,
       description: t('services.confirmDeleteCategory'),
       confirmLabel: t('common.delete'),
       action: async () => {
@@ -64,9 +62,10 @@ export default function Services() {
     })
   }
 
-  const handleDeleteSubcategory = (id: string) => {
+  const handleDeleteSubcategory = (id: string, trigger: HTMLButtonElement) => {
     setConfirmRequest({
       title: t('common.confirmDestructiveTitle'),
+      trigger,
       description: t('services.confirmDeleteSubcategory'),
       confirmLabel: t('common.delete'),
       action: async () => {
@@ -94,7 +93,7 @@ export default function Services() {
         <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-content">
           {t('nav.services')}
         </h1>
-        {!loading && !loadError ? <Button type="button" onClick={() => { rememberEditorOpener(); openCategoryForm() }}>
+        {!loading && !loadError ? <Button type="button" onClick={(event) => { editorOpener.current = event.currentTarget; openCategoryForm() }}>
           <Plus className="mr-2 h-4 w-4" />
           {t('services.newCategory')}
         </Button> : null}
@@ -106,10 +105,10 @@ export default function Services() {
       </div> : null}
       {loadError && !loading ? <ErrorState description={t('services.errors.loadFailed')} onRetry={loadData} /> : null}
       {!loading && !loadError ? <>
-      <ServiceCatalog categories={categories} openCategoryForm={(category) => { rememberEditorOpener(); openCategoryForm(category) }} openSubcategoryForm={(categoryId, subcategory) => { rememberEditorOpener(); openSubcategoryForm(categoryId, subcategory) }}
-        openServiceForm={(subcategoryId, service) => { rememberEditorOpener(); openServiceForm(subcategoryId, service) }} handleDeleteCategory={handleDeleteCategory} handleDeleteSubcategory={handleDeleteSubcategory}
-        openServiceDeletion={(service) => {
-          deletionOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      <ServiceCatalog categories={categories} openCategoryForm={(category, opener) => { editorOpener.current = opener; openCategoryForm(category) }} openSubcategoryForm={(categoryId, subcategory, opener) => { editorOpener.current = opener; openSubcategoryForm(categoryId, subcategory) }}
+        openServiceForm={(subcategoryId, service, opener) => { editorOpener.current = opener; openServiceForm(subcategoryId, service) }} handleDeleteCategory={handleDeleteCategory} handleDeleteSubcategory={handleDeleteSubcategory}
+        openServiceDeletion={(service, opener) => {
+          deletionOpener.current = opener
           openServiceDeletion(service)
         }} />
 

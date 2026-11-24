@@ -107,7 +107,7 @@ export function useServiceWorkGallery(id: string) {
   }, [id, owner, loadPage])
 
   useEffect(() => {
-    if (pairsOwner !== owner || !hasMore || loadingMore || loadingPairs) return
+    if (pairsOwner !== owner || !hasMore || loadingMore || loadingPairs || typeof IntersectionObserver === 'undefined') return
     const el = sentinelRef.current
     if (!el) return
     const observer = new IntersectionObserver(entries => {
@@ -127,6 +127,7 @@ export function useServiceWorkGallery(id: string) {
     pairsLoadError: currentPairs && pairsLoadError,
     loadingPairs: !currentPairs || loadingPairs,
     loadingMore: currentPairs && loadingMore,
+    hasMore: currentPairs && hasMore,
     offset: currentPairs ? offset : 0,
     sentinelRef, loadService, loadPage,
   }

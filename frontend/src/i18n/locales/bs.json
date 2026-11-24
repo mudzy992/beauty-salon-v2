@@ -2883,6 +2883,8 @@
       "back": "Nazad",
       "serviceLoadFailed": "Uslugu trenutno nije moguće učitati.",
       "retry": "Pokušaj ponovo",
+      "loadMore": "Učitaj još radova",
+      "loadedCount": "Učitanih poređenja: {{count}}",
       "loadingPairs": "Učitavanje urađenih radova…",
       "pairsLoadFailed": "Urađene radove trenutno nije moguće učitati.",
       "empty": "Nema dostupnih transformacija za ovaj servis."

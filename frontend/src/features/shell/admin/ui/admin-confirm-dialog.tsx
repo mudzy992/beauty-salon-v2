@@ -6,6 +6,7 @@ export type AdminConfirmRequest = {
   title: string
   description: string
   confirmLabel?: string
+  trigger?: HTMLElement | null
   action: () => Promise<void> | void
 }
 
@@ -27,7 +28,7 @@ export function AdminConfirmDialog({
         if (!next) onClose()
       }}
       onOpenAutoFocus={() => {
-        triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        triggerRef.current = request?.trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
       }}
       onCloseAutoFocus={(event) => {
         const trigger = triggerRef.current

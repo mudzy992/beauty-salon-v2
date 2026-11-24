@@ -2883,6 +2883,8 @@
       "back": "Back",
       "serviceLoadFailed": "This service couldn’t be loaded right now.",
       "retry": "Try again",
+      "loadMore": "Load more work",
+      "loadedCount": "Comparisons loaded: {{count}}",
       "loadingPairs": "Loading completed work…",
       "pairsLoadFailed": "Completed work couldn’t be loaded right now.",
       "empty": "There are no available transformations for this service."

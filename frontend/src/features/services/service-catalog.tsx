@@ -8,12 +8,12 @@ import type { Category, Subcategory } from './service-catalog-types'
 
 type Props = {
   categories: Category[]
-  openCategoryForm: (category?: Category) => void
-  openSubcategoryForm: (categoryId: string, subcategory?: Subcategory) => void
-  openServiceForm: (subcategoryId: string, service?: Service) => void
-  handleDeleteCategory: (id: string) => void
-  handleDeleteSubcategory: (id: string) => void
-  openServiceDeletion: (service: Service) => void
+  openCategoryForm: (category: Category | undefined, opener: HTMLButtonElement) => void
+  openSubcategoryForm: (categoryId: string, subcategory: Subcategory | undefined, opener: HTMLButtonElement) => void
+  openServiceForm: (subcategoryId: string, service: Service | undefined, opener: HTMLButtonElement) => void
+  handleDeleteCategory: (id: string, opener: HTMLButtonElement) => void
+  handleDeleteSubcategory: (id: string, opener: HTMLButtonElement) => void
+  openServiceDeletion: (service: Service, opener: HTMLButtonElement) => void
 }
 export function ServiceCatalog({ categories, openCategoryForm, openSubcategoryForm, openServiceForm, handleDeleteCategory, handleDeleteSubcategory, openServiceDeletion }: Props) {
   const { t } = useTranslation()

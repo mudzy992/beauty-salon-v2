@@ -10,8 +10,8 @@ import type { Service } from './service-types'
 type ServiceTableProps = {
   rows: Service[]
   serviceAccessibleName: (service: Service) => string
-  onEdit: (service: Service) => void
-  onDelete: (service: Service) => void
+  onEdit: (service: Service, opener: HTMLButtonElement) => void
+  onDelete: (service: Service, opener: HTMLButtonElement) => void
 }
 
 export function ServiceTable({ rows, serviceAccessibleName, onEdit, onDelete }: ServiceTableProps) {
@@ -116,7 +116,7 @@ export function ServiceTable({ rows, serviceAccessibleName, onEdit, onDelete }: 
             variant="ghost"
             className="h-8 w-8"
             aria-label={t('services.aria.editService', { name: serviceAccessibleName(s) })}
-            onClick={() => onEdit(s)}
+            onClick={(event) => onEdit(s, event.currentTarget)}
           >
             <Pencil className="h-4 w-4 text-blue-600" />
           </Button>
@@ -126,7 +126,7 @@ export function ServiceTable({ rows, serviceAccessibleName, onEdit, onDelete }: 
             variant="ghost"
             className="h-8 w-8"
             aria-label={t('services.aria.deleteService', { name: serviceAccessibleName(s) })}
-            onClick={() => onDelete(s)}
+            onClick={(event) => onDelete(s, event.currentTarget)}
           >
             <Trash2 className="h-4 w-4 text-rose-600" />
           </Button>

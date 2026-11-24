@@ -5,6 +5,16 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Pointer fokus i ručna paginacija galerije (rad u toku)
+
+- U Services dijalozima `document.activeElement` nije pouzdan okidač kada klik ne fokusira dugme. Eksplicitni `event.currentTarget` prolazi kroz katalog i tabelu do editor/deletion dijaloga i opcionalnog `trigger` u zajedničkoj potvrdi; drugi pozivači zadržavaju prethodni fallback. BS/EN × 320/1280 fiksura je prije promjene **4/4 pala na prvom okidaču**, poslije **4/4** prolazi svih devet okidača i cancel bez mock writeova. `dispatchEvent` simulira nefokusirajući klik, ne dokazuje ponašanje stvarnog miša u svim OS/browser kombinacijama.
+- Work Gallery je zapravo read-only before/after prikaz dnevnika, bez UI-ja za upload, brisanje i reorder koji se spominju u S8 planu. Nismo dodavali niti tvrdimo pokrivenost nepostojećih akcija; nesklad treba razriješiti prije zatvaranja faze. Automatska paginacija dosad nije nudila alternativu ako observer ne javlja presjek; početna fiksura nakon korekcije putanje slike **4/4 fail** na nedostajućem dugmetu. Dodani lokalizovano ručno učitavanje, status učitavanja, vidljivi broj učitanih poređenja i fokusni fallback prije uklanjanja dugmeta; observer i zaštita od paralelnih zahtjeva ostaju. BS/EN × 320/1280 × tihi/nedostajući observer **8/8**, uključujući tastaturu, jedan zahtjev, zadržavanje ranijih podataka i nepreuzimanje fokusa nakon odgovora. Zajedno sa starim race i slider testovima **23/23**. Nije simuliran stvarni assistive technology ni sve moguće kombinacije observera i fokusa.
+- Build **293,7/300 KiB** initial i **116,4/140 KiB** Analytics; cijeli S8 mock Chromium **283/283**, Node **1005/1005**, E2E typecheck, pet Python provjera i diff check prolaze; lint **0 grešaka / 6 upozorenja**. Nakon tipografske ispravke TypeScript fiksure (bez promjene scenarija) ciljani run galerije opet **8/8**. S8 sadrži Salon i Users pozivače zajedničke potvrde; ostale pozivače i stvarni AT/backend ne predstavljamo kao potpuno provjerene.
+
+[CI 45385829364](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45385829364) za prethodni `482fa2f` završen je **5/5**, rendered **3007 passed / 0 failed / 0 skipped**; ne obuhvata ovaj nastavak. Potreban je novi CI za nastavak. S8 ostaje otvoren, uključujući dogovor o tablist/sidebar i nesklad galerije, bez merge/deploya i bez prelaska u S9 prije STOP-a i odobrenja.
+
+---
+
 ## 2026-11-18 · S8 · Objedinjeni paket: graf, fokus i veći moduli (rad u toku)
 
 Prethodni [CI 45376878389](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45376878389) za `258ad4b` završio je **5/5**, rendered **2991 prošao / 0 palo / 0 preskočeno**; axe `color-contrast` ima 6 incomplete uzoraka u tom runu. On ne obuhvata nove izmjene ispod.

@@ -12,10 +12,10 @@ type Props = {
   categoryId: string
   allSubcategories: Subcategory[]
   serviceAccessibleName: (service: Service) => string
-  openSubcategoryForm: (categoryId: string, subcategory?: Subcategory) => void
-  openServiceForm: (subcategoryId: string, service?: Service) => void
-  handleDeleteSubcategory: (id: string) => void
-  openServiceDeletion: (service: Service) => void
+  openSubcategoryForm: (categoryId: string, subcategory: Subcategory | undefined, opener: HTMLButtonElement) => void
+  openServiceForm: (subcategoryId: string, service: Service | undefined, opener: HTMLButtonElement) => void
+  handleDeleteSubcategory: (id: string, opener: HTMLButtonElement) => void
+  openServiceDeletion: (service: Service, opener: HTMLButtonElement) => void
 }
 export function ServiceSubcategory({ sub, categoryId, allSubcategories, serviceAccessibleName, openSubcategoryForm, openServiceForm, handleDeleteSubcategory, openServiceDeletion }: Props) {
   const { t } = useTranslation()
@@ -30,16 +30,16 @@ export function ServiceSubcategory({ sub, categoryId, allSubcategories, serviceA
           </Badge>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button type="button" size="sm" variant="outline" aria-label={t('services.aria.addService', { name })} onClick={() => openServiceForm(sub.id)}>
+          <Button type="button" size="sm" variant="outline" aria-label={t('services.aria.addService', { name })} onClick={(event) => openServiceForm(sub.id, undefined, event.currentTarget)}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('services.addService')}
           </Button>
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8"
-            aria-label={t('services.aria.editSubcategory', { name })} onClick={() => openSubcategoryForm(categoryId, sub)}>
+            aria-label={t('services.aria.editSubcategory', { name })} onClick={(event) => openSubcategoryForm(categoryId, sub, event.currentTarget)}>
             <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
           </Button>
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8"
-            aria-label={t('services.aria.deleteSubcategory', { name })} onClick={() => void handleDeleteSubcategory(sub.id)}>
+            aria-label={t('services.aria.deleteSubcategory', { name })} onClick={(event) => void handleDeleteSubcategory(sub.id, event.currentTarget)}>
             <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
           </Button>
         </div>
@@ -47,7 +47,7 @@ export function ServiceSubcategory({ sub, categoryId, allSubcategories, serviceA
       {sub.services?.length ? (
         <div className="app-table-wrap rounded-md border border-line bg-surface  ">
           <ServiceTable rows={sub.services} serviceAccessibleName={serviceAccessibleName}
-            onEdit={(service) => openServiceForm(sub.id, service)} onDelete={openServiceDeletion} />
+            onEdit={(service, opener) => openServiceForm(sub.id, service, opener)} onDelete={openServiceDeletion} />
         </div>
       ) : <p className="text-sm italic text-content-muted">{t('services.noServices')}</p>}
     </div>
