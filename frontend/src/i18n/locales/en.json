@@ -1369,6 +1369,8 @@
     "shortDescription": "Short description",
     "heroImage": "Main image",
     "changeImage": "Change image",
+    "savePending": "Saving is in progress. Closing does not cancel the submitted request.",
+    "uploadPending": "Image upload is in progress. Closing does not cancel the submitted request.",
     "uploadImage": "Upload image",
     "price": "Price (KM)",
     "gender": "Service gender",

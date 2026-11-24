@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
@@ -6,13 +6,21 @@ import type { Category, Subcategory } from './service-catalog-types'
 import type { Service } from './service-types'
 import type { ModalMode } from './service-form-types'
 import { useServiceImageUpload } from './use-service-image-upload'
+import { useAuthStore } from '../../stores/auth.store'
 
 type Dependencies = { loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void }
 export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   const { t } = useTranslation()
   const { success } = useAppToast()
+  const sessionVersion = useAuthStore(state => state.sessionVersion)
   const [saving, setSaving] = useState(false)
-  const [open, setOpen] = useState(false)
+  const [open, setOpenState] = useState(false)
+  const editorGeneration = useRef(0)
+  const editorOpen = useRef(false)
+  const saveSequence = useRef(0)
+  const saveInFlight = useRef(false)
+  const refreshPending = useRef(false)
+  const mounted = useRef(false)
   const [modalMode, setModalMode] = useState<ModalMode>('category')
   const [editId, setEditId] = useState<string | null>(null)
   const [parentId, setParentId] = useState<string | null>(null)
@@ -41,7 +49,34 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
     loyaltyEnabled: false,
     loyaltyMaxDiscountPercent: 0,
   })
-  const { uploadingImg, svcFileRef, handleUploadHeroImage } = useServiceImageUpload({ setSvcForm, showApiError })
+  const { uploadingImg, svcFileRef, handleUploadHeroImage, resetUploads, isUploading } = useServiceImageUpload({ setSvcForm, showApiError })
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false; editorGeneration.current += 1; saveSequence.current += 1 }
+  }, [])
+  useEffect(() => {
+    editorGeneration.current += 1
+    saveSequence.current += 1
+    editorOpen.current = false
+    saveInFlight.current = false
+    refreshPending.current = false
+    setSaving(false)
+    setOpenState(false)
+  }, [sessionVersion])
+
+  const setOpen = (next: boolean) => {
+    if (!next) {
+      editorGeneration.current += 1
+      editorOpen.current = false
+      resetUploads()
+      setOpenState(false)
+      if (refreshPending.current) { refreshPending.current = false; loadData() }
+    } else {
+      editorOpen.current = true
+      setOpenState(true)
+    }
+  }
+  const beginEditor = () => { editorGeneration.current += 1; resetUploads(); editorOpen.current = true }
 
   const getDialogTitle = () => {
     if (modalMode === 'category')
@@ -52,6 +87,7 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   }
 
   const openCategoryForm = (cat?: Category) => {
+    beginEditor()
     setModalMode('category')
     setParentId(null)
     if (cat) {
@@ -70,6 +106,7 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   }
 
   const openSubcategoryForm = (categoryId: string, sub?: Subcategory) => {
+    beginEditor()
     setModalMode('subcategory')
     setParentId(categoryId)
     if (sub) {
@@ -88,6 +125,7 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   }
 
   const openServiceForm = (subcategoryId: string, svc?: Service) => {
+    beginEditor()
     setModalMode('service')
     setParentId(subcategoryId)
     if (svc) {
@@ -123,6 +161,13 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   }
 
   const handleSave = async () => {
+    if (!editorOpen.current || saveInFlight.current || isUploading()) return
+    const generation = editorGeneration.current
+    const request = ++saveSequence.current
+    const session = useAuthStore.getState().sessionVersion
+    const currentSession = () => mounted.current && useAuthStore.getState().sessionVersion === session
+    const sameEditor = () => currentSession() && editorOpen.current && editorGeneration.current === generation
+    saveInFlight.current = true
     setSaving(true)
     try {
       if (modalMode === 'category') {
@@ -145,13 +190,24 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
             subcategoryId: parentId,
           })
       }
+      if (!currentSession()) return
       success(t('services.toast.saved'))
-      loadData()
-      setOpen(false)
+      if (sameEditor()) {
+        refreshPending.current = false
+        setOpen(false)
+        loadData()
+      } else if (editorOpen.current) {
+        refreshPending.current = true
+      } else {
+        loadData()
+      }
     } catch (err) {
-      showApiError(err, 'services.errors.saveFailed')
+      if (currentSession()) showApiError(err, 'services.errors.saveFailed')
     } finally {
-      setSaving(false)
+      if (mounted.current && saveSequence.current === request) {
+        saveInFlight.current = false
+        setSaving(false)
+      }
     }
   }
 

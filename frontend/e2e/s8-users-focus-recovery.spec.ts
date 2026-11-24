@@ -31,6 +31,7 @@ for (const language of ['bs', 'en'] as const) {
           await page.goto('/admin/users', { waitUntil: 'networkidle' })
           const root = page.locator('[data-admin-users]')
           if (scenario === 'retry') {
+            await expect(root.locator('[data-admin-state="error"]')).toBeVisible()
             const axe = await new AxeBuilder({ page }).include('[data-admin-state="error"]').withRules(['button-name', 'label-content-name-mismatch', 'aria-valid-attr']).analyze()
             expect(axe.violations).toEqual([])
           }

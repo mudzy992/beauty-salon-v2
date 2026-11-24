@@ -5,6 +5,17 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Async editor usluga i stabilnost retry fiksure
+
+- Upload slike: nakon zatvaranja i ponovnog otvaranja editora zastarjeli uspjeh ili greška više ne mijenja novi obrazac, njegov upload, file input ili toast; generation/sequence i promjena auth sesije obezvređuju stare odgovore. Ref blokira dupli upload i Save tokom uploada, uz lokalizovan status. Prije ispravke **8/8 fail** jer je Save ostao omogućen, a odvojena provjera prije **4/4 fail** jer je kasna slika A zamijenila original usluge B. Nakon ispravke testira se i uspješan drugi upload i njegov tačan mock PATCH payload.
+- Već poslani save ne zatvara niti reloadom briše novootvoreni editor: ref serijalizuje spremanja, a uspješan stari save dok je drugi editor otvoren odgađa refresh do zatvaranja tog editora. Ishod savea ostaje vidljiv; ako nema otvorenog editora uspjeh odmah refreshuje, neuspjeh ne. Prije ispravke odgođeni uspjeh **4/4 fail**, neuspjeh **4/4 pass**. U oba slučaja status objašnjava da zatvaranje ne otkazuje poslani zahtjev. To ne otkazuje ni upload niti dokazuje da je server poništio/izvršio mutaciju; učitani fajl nakon zatvaranja može ostati na serveru. Guard se odnosi na editor usluga, ne sve druge otvorene dijaloge ili buduće mutacije.
+- Nove mock browser fiksure pokrivaju BS/EN, 320/1280 i uspjeh/neuspjeh, te kasni save nakon zatvaranja bez novog editora. **24/24**, uključujući četiri scoped axe skena pravila `button-name`, `aria-valid-attr`, `aria-allowed-attr` bez violations. To nije puni WCAG/AT pregled; upload picker simulira `setInputFiles`, mock nije backend ni stvarni OS.
+- Prvi objedinjeni run **390 passed / 1 failed**: `s8-users-focus-recovery` je pokrenuo scoped axe prije pojave error elementa (`No elements found for include`). Dodato eksplicitno čekanje njegove vidljivosti, bez uklanjanja ijedne axe, retry ili fokus asertacije; ponovljeni retry **20/20**. Ponovljena potpuna S8 regresija **395/395** (prije dodatka četiri scoped axe skena u novom editor testu), zatim taj novi test **24/24** s axe.
+
+Frontend Node **1005/1005**, build, E2E typecheck, pet Python provjera i diff check PASS; lint 0 errors/6 ranijih warnings. Initial **293,7/300 KiB**, Analytics **116,4/140 KiB**. [CI 45416015805](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45416015805) za prethodni `f58097f` završio je **5/5**, rendered **3107/0/0**, uz 15 nepotpunih axe contrast uzoraka. Ovaj paket nije obuhvaćen tim CI-jem; nakon pusha provjeriti novi CI. S8 je otvoren, uključujući nesklad plana za upravljanje galerijom i tablist/sidebar; STOP prije S9, bez merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Prethodni CI: test upravljanja ulogama
 
 [CI 45407428201](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45407428201) za `097d82d` završio je **4/5**, rendered **3066 passed / 1 failed / 0 skipped**; pao je `a11y-admin.spec.ts` test upravljanja ulogama. Backend, frontend, mobile i repo poslovi prošli su. CI log host vraća EOF, pa se tačna asertacija iz CI-ja ne može nezavisno provjeriti; ima 15 axe incomplete `color-contrast` uzoraka.
