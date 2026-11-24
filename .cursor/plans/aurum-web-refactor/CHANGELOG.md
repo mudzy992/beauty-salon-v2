@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Učitavanje galerije i zakašnjeli odgovori (rad u toku)
+
+Simulirana promjena usluge tokom odgođenog čitanja pokazala je da stari uspjeh/greška može prepisati novi naziv, slike ili stanje greške; četiri takva browser scenarija prije popravke padaju. Malformiran `items` se ranije prikazivao kao prazna galerija: sva četiri BS/EN × 320/1280 scenarija padaju prije ispravke. Hook sada zasebno prati generaciju čitanja usluge i stranice, vlasništvo prema serviceId/sesiji i paralelni zahtjev za stranicu, te odbacuje neispravne podatke/offset uz postojeći retry. Kod greške naredne stranice već učitane slike ostaju; retry ponavlja istu stranicu. Nisu promijenjeni endpointi, parametri ili server. Nije dokaz snapshot dosljednosti pri istovremenim izmjenama baze.
+
+Poslije ispravke 14/14 ciljanih testova, uključujući retry malformirane naredne stranice i zakašnjeli odgovor te stranice nakon promjene usluge; kompletni mock S8 **190/190**, frontend Node **1001/1001**, lint 0 grešaka/6 ranijih upozorenja, build **293,2/300 KiB**, Analytics **115,9/140 KiB** i E2E typecheck prolaze. Browser je lokalni Chromium 153 uz Playwright koji očekuje 158; CI koristi propisanu verziju. Mock testovi ne dokazuju stvarni backend, asistivnu tehnologiju ili puni WCAG audit. CI za ovaj nastavak tek slijedi. S8 ostaje otvoren, uključujući preostalo razbijanje velikih fajlova i završnu DoD provjeru; nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Razlučivi nazivi frizerskih akcija (rad u toku)
 
 Akcije uređivanja/analitike u redovima sada u BS/EN sadrže korisničko ime (fallback user ID), a akcija uklanjanja kompetencije sadrži naziv usluge. Isti nazivi se na trenutnoj stranici/katalogu razlučuju rednim brojem; vizuelni podaci, link analitike, ciljni zapis i ponašanje ostaju isti. Mock BS/EN × 320/1280 uključuje sintetičke duplikate, cilj linka, uklanjanje kompetencije, povrat fokusa i ciljani axe (`button-name`, `link-name`, `label-content-name-mismatch` za tabelu). Prije promjene 4/4 padaju na nejedinstvenim nazivima redova; nakon promjene 4/4 prolaze, a negativna kontrola uklanjanja imena kompetencije ruši 4/4. Original vraćen. To nije potpuni audit pristupačnosti.
