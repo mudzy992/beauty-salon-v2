@@ -87,6 +87,23 @@ describe('DailyLogPublicService', () => {
     expect(actual.nextOffset).toBe(1);
   });
 
+  it('uses deterministic manual ordering only for a service-filtered non-random feed', async () => {
+    mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([makePairEntry('e1')]);
+    await service.findBeforeAfterPairs({ serviceId: 's1', limit: 1 });
+    expect(mockPrisma.dailyLogEntry.findMany.mock.calls[0][0].orderBy).toEqual([
+      { workGallerySortOrder: { sort: 'asc', nulls: 'first' } },
+      { completedAt: { sort: 'desc', nulls: 'first' } },
+      { id: 'desc' },
+    ]);
+    mockPrisma.dailyLogEntry.findMany.mockClear();
+    await service.findBeforeAfterPairs({ limit: 1 });
+    expect(mockPrisma.dailyLogEntry.findMany.mock.calls[0][0].orderBy).toEqual({ completedAt: 'desc' });
+    mockPrisma.dailyLogEntry.findMany.mockClear();
+    await service.findBeforeAfterPairs({ serviceId: 's1', random: true, limit: 1 });
+    expect(mockPrisma.dailyLogEntry.findMany.mock.calls[0][0].orderBy).toEqual([{ randomKey: 'asc' }, { id: 'asc' }]);
+  });
+
   it('publishes only separately approved description snapshots, never the private image description', async () => {
     const entry = makePairEntry('private');
     Object.assign(entry.images[0], { description: 'PRIVATE BEFORE', consent: { id: 'before-consent', clientId: 'client-1', approvedDescription: null } });

@@ -5,6 +5,15 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Ručni redoslijed galerije po usluzi
+
+- Zasebna revizija reda po usluzi i rangovi u migraciji; OWNER/SYSTEM_ADMIN endpoint čita konzistentnu stranicu i vrši transakcijsku CAS zamjenu susjednih validnih parova. Validira i revizije vidljivosti; konflikt traži eksplicitni refresh. Samo filtrirani feed mijenja red, ne globalni/random. Prvi ili nerangirani pomak normalizuje cijelu uslugu i može stvarati opterećenje/zaključavanja; to nije benchmarkovano. Revizija ne verzionira sve promjene zapisa i saglasnosti, a eligibility nije dokaz potpune serializacije svih consent utrka.
+- BS/EN dugmad podržavaju tastaturu, učitavanje preko granice stranice, status i čuvanje fokusa/sesije; 320px/200% reflow test. Stranica 147 linija, hook 150, izdvojene akcije i validacija. Postojeće visibility fiksure proširene novim tokenom/putanjom, njihove potvrde, fokus, retry i ABA garancije zadržane. i18n source test proširen na izdvojene fajlove; postojeće asertacije ostaju. Prvi Node run otkrio je ternarni izraz koji statički skener nije prepoznavao; oba poziva sada su eksplicitna i ciljano prolaze.
+- PostgreSQL/JWT HTTP **7/7** (auth lookup mock) obuhvata uloge, feedove, stranice, stale/invalid, susjednost, konkurentna sortiranja i hide; 25 migracijskih SQL datoteka je ručno primijenjeno, ne Prisma migrate deploy. Backend unit **846/846**, frontend/backend build i typecheck, Prisma validate i pet Python provjera PASS. CI za prethodni `af08f07` [45502852329](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45502852329) u vrijeme pisanja još traje; ne pokriva ovaj paket. Puni mock Chromium S8 **437/437**, Node **1005/1005**, lint 0 errors/6 ranijih warnings. Browser build prethodi samo ekvivalentnoj prepravci ternarnog prevoda radi statičkog skenera; poslije nje ponovni build, ciljani i18n test i browser redoslijed **9/9** prolaze.
+- S8 nije završen: privatni upload nije implementiran, ostaju završne/ručne provjere. Nema merge/deploya; STOP prije S9. Mock browser i sintetički viewport nisu stvarni AT/OS audit.
+
+---
+
 ## 2026-11-18 · S8 · Revizijska zaštita vidljivosti galerije
 
 - Negativna kontrola na `2a8dfc3`: nakon hide → restore stari hide je pogrešno dobio **200 umjesto 409** na stvarnoj izolovanoj PostgreSQL bazi. Sada boolean stanje i revizija moraju odgovarati; atomski update rotira UUID, zastarjeli zahtjevi dobijaju 409, no-op se odbija. Početna vrijednost `0` nije tajna; UUID ne zamjenjuje autorizaciju. Zaštita se odnosi na promjene vidljivosti, ne verzionira sve izmjene zapisa/saglasnosti.

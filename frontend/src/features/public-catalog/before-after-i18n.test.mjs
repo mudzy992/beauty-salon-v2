@@ -19,6 +19,10 @@ test('public home, before-and-after, and service-work UI keys exist in both loca
     new URL('../../pages/public/PublicSatisfiedClients.tsx', import.meta.url),
     new URL('../../pages/public/PublicGallery.tsx', import.meta.url),
     new URL('../../pages/ServiceWorkGallery.tsx', import.meta.url),
+    new URL('../../features/services/use-service-work-gallery.ts', import.meta.url),
+    new URL('../../features/services/use-work-gallery-order.ts', import.meta.url),
+    new URL('../../features/services/work-gallery-actions.tsx', import.meta.url),
+    new URL('../../features/services/work-gallery-visibility.tsx', import.meta.url),
   ]
   const keys = new Set()
 

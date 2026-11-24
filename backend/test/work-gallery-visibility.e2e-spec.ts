@@ -15,6 +15,7 @@ import { RolesGuard } from '../src/common/guards/roles.guard';
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
 import { WorkGalleryVisibilityController } from '../src/daily-log/work-gallery-visibility.controller';
 import { WorkGalleryVisibilityService } from '../src/daily-log/work-gallery-visibility.service';
+import { WorkGalleryOrderService } from '../src/daily-log/work-gallery-order.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { MediaConsentService } from '../src/media-consent/media-consent.service';
 import { UploadsService } from '../src/uploads/uploads.service';
@@ -33,8 +34,8 @@ class FeedController {
   constructor(private readonly feed: DailyLogPublicService) {}
   @Public()
   @Get()
-  get(@Query('serviceId') serviceId?: string, @Query('random') random?: string) {
-    return this.feed.findBeforeAfterPairs({ serviceId, random: random === 'true' });
+  get(@Query('serviceId') serviceId?: string, @Query('random') random?: string, @Query('limit') limit?: string, @Query('offset') offset?: string) {
+    return this.feed.findBeforeAfterPairs({ serviceId, random: random === 'true', limit: limit ? Number(limit) : undefined, offset: offset ? Number(offset) : undefined });
   }
 }
 
@@ -57,7 +58,7 @@ describe('work-gallery visibility (HTTP and real PostgreSQL)', () => {
     const module = await Test.createTestingModule({
       imports: [PassportModule.register({ defaultStrategy: 'jwt' }), JwtModule.register({ secret })],
       controllers: [WorkGalleryVisibilityController, FeedController],
-      providers: [WorkGalleryVisibilityService, DailyLogPublicService, RolesGuard, JwtStrategy,
+      providers: [WorkGalleryVisibilityService, WorkGalleryOrderService, DailyLogPublicService, RolesGuard, JwtStrategy,
         { provide: ConfigService, useValue: config }, { provide: PrismaService, useValue: db },
         { provide: AuthService, useValue: auth }, { provide: APP_GUARD, useClass: JwtAuthGuard }],
     }).compile();
@@ -196,6 +197,78 @@ describe('work-gallery visibility (HTTP and real PostgreSQL)', () => {
     await request(app.getHttpServer()).patch(endpoint()).set('Authorization', owner()).send({ hidden: false, expectedHidden: true, expectedRevision: stale }).expect(409);
     expect((await db.dailyLogEntry.findUniqueOrThrow({ where: { id: entryId } })).workGalleryHidden).toBe(true);
     await request(app.getHttpServer()).patch(endpoint()).set('Authorization', owner()).send({ hidden: false, expectedHidden: true, expectedRevision: hideAgain.body.revision }).expect(200);
+  });
+
+  it('orders service pages only, rejects stale and ineligible targets, and serializes concurrent swaps', async () => {
+    const extraEntries: string[] = [], extraImages: string[] = [], extraUploads: string[] = [], extraConsents: string[] = [];
+    const orderEndpoint = `/api/services/admin/work-gallery/${serviceId}/order`;
+    const visibleEndpoint = `/api/services/admin/work-gallery/${serviceId}/visible`;
+    const publicFeed = (query: string) => request(app.getHttpServer()).get(`/test-work-gallery-feed${query}`);
+    try {
+      for (const day of [2, 3]) {
+        const entry = await db.dailyLogEntry.create({ data: { stylistProfileId: stylistId, serviceId, clientId: userId, date: new Date(`2026-01-0${day}T00:00:00Z`), actualPrice: 30, publicReferenceCode: randomUUID(), status: 'COMPLETED', completedAt: new Date(`2026-01-0${day}T12:00:00Z`) } });
+        extraEntries.push(entry.id);
+        for (const side of ['before', 'after']) {
+          const original = await db.upload.create({ data: { originalName: 'fixture.jpg', mimeType: 'image/jpeg', sizeBytes: 1, pathOriginal: `private/${randomUUID()}.jpg`, storageClass: 'PRIVATE', uploadedById: userId } });
+          const derivative = await db.upload.create({ data: { originalName: 'fixture.webp', mimeType: 'image/webp', sizeBytes: 1, pathOriginal: `private/${randomUUID()}.webp`, storageClass: 'CONSENTED_PUBLIC' } });
+          extraUploads.push(original.id, derivative.id);
+          const image = await db.dailyLogImage.create({ data: { dailyLogEntryId: entry.id, uploadId: original.id, isBefore: side === 'before', isAfter: side === 'after' } });
+          extraImages.push(image.id);
+          const consent = await db.dailyLogImageConsent.create({ data: { dailyLogImageId: image.id, clientId: userId, policyVersion: 'client-media-publication-v1', consentedAt: new Date(), publishedUploadId: derivative.id } });
+          extraConsents.push(consent.id);
+        }
+      }
+      const initial = (await request(app.getHttpServer()).get(visibleEndpoint).set('Authorization', owner()).expect(200)).body;
+      expect(initial.items.map((item: { id: string }) => item.id)).toEqual([extraEntries[1], extraEntries[0], entryId]);
+      expect(initial.orderRevision).toBe('0');
+      const originalGlobal = (await publicFeed('').expect(200)).body.items.map((item: { id: string }) => item.id);
+      const body = { firstId: extraEntries[1], secondId: extraEntries[0], firstRevision: '0', secondRevision: '0', expectedOrderRevision: initial.orderRevision };
+      await request(app.getHttpServer()).patch(orderEndpoint).send(body).expect(401);
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', `Bearer ${clientToken}`).send(body).expect(403);
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send({ ...body, secondId: body.firstId }).expect(400);
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send({ ...body, firstRevision: 'bogus' }).expect(400);
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send({ ...body, firstRevision: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }).expect(409);
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send({ ...body, secondId: entryId, secondRevision: initial.items[2].revision }).expect(409);
+      const moved = await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send(body).expect(200);
+      expect(moved.body.orderRevision).not.toBe('0');
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send(body).expect(409);
+      const expected = [extraEntries[0], extraEntries[1], entryId];
+      const current = (await request(app.getHttpServer()).get(visibleEndpoint).set('Authorization', owner()).expect(200)).body;
+      expect(current.orderRevision).toBe(moved.body.orderRevision);
+      expect(current.items.map((item: { id: string }) => item.id)).toEqual(expected);
+      expect((await publicFeed(`?serviceId=${serviceId}`).expect(200)).body.items.map((item: { id: string }) => item.id)).toEqual(expected);
+      const pages: string[] = [];
+      for (let offset = 0; offset < 3; offset++) {
+        const page = (await publicFeed(`?serviceId=${serviceId}&limit=1&offset=${offset}`).expect(200)).body;
+        pages.push(page.items[0].id);
+        expect(page.items[0]).not.toHaveProperty('revision');
+        expect(page).not.toHaveProperty('orderRevision');
+      }
+      expect(pages).toEqual(expected);
+      expect((await publicFeed('').expect(200)).body.items.map((item: { id: string }) => item.id)).toEqual(originalGlobal);
+      expect((await publicFeed('?random=true').expect(200)).body.items.map((item: { id: string }) => item.id).sort()).toEqual([...expected].sort());
+      const nextBody = { ...body, expectedOrderRevision: moved.body.orderRevision };
+      await db.dailyLogImageConsent.update({ where: { id: extraConsents[0] }, data: { revokedAt: new Date() } });
+      await request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send(nextBody).expect(409);
+      await db.dailyLogImageConsent.update({ where: { id: extraConsents[0] }, data: { revokedAt: null } });
+      const attempts = await Promise.all([1, 2].map(() => request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send(nextBody)));
+      expect(attempts.map(response => response.status).sort()).toEqual([200, 409]);
+      expect((await publicFeed(`?serviceId=${serviceId}`).expect(200)).body.items.map((item: { id: string }) => item.id)).toEqual([extraEntries[1], extraEntries[0], entryId]);
+      const currentRevision = attempts.find(response => response.status === 200)!.body.orderRevision;
+      const [hide, concurrentOrder] = await Promise.all([
+        request(app.getHttpServer()).patch(`/api/services/admin/work-gallery/${serviceId}/entries/${extraEntries[0]}/visibility`).set('Authorization', owner()).send({ hidden: true, expectedHidden: false, expectedRevision: '0' }),
+        request(app.getHttpServer()).patch(orderEndpoint).set('Authorization', owner()).send({ ...body, expectedOrderRevision: currentRevision }),
+      ]);
+      expect(hide.status).toBe(200);
+      expect([200, 409]).toContain(concurrentOrder.status);
+      expect((await publicFeed(`?serviceId=${serviceId}`).expect(200)).body.items.map((item: { id: string }) => item.id)).not.toContain(extraEntries[0]);
+      await request(app.getHttpServer()).patch(`/api/services/admin/work-gallery/${serviceId}/entries/${extraEntries[0]}/visibility`).set('Authorization', owner()).send({ hidden: false, expectedHidden: true, expectedRevision: hide.body.revision }).expect(200);
+    } finally {
+      await db.dailyLogImageConsent.deleteMany({ where: { id: { in: extraConsents } } });
+      await db.dailyLogImage.deleteMany({ where: { id: { in: extraImages } } });
+      await db.dailyLogEntry.deleteMany({ where: { id: { in: extraEntries } } });
+      await db.upload.deleteMany({ where: { id: { in: extraUploads } } });
+    }
   });
 
   it('accepts only one of two simultaneous actions with the same expected state and token', async () => {

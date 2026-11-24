@@ -1,6 +1,6 @@
 # S8 — work-gallery: odobreni ugovor i implementacijski kontrolni spisak
 
-Rad u toku: implementirani su sakrivanje, vraćanje i revizijska ABA zaštita vidljivosti; upload i redoslijed nisu implementirani. Vlasnik je odabrao dodati upload, uklanjanje i redoslijed u S8:
+Rad u toku: implementirani su sakrivanje, vraćanje, revizijska ABA zaštita vidljivosti i ručni redoslijed; privatni upload nije implementiran. Vlasnik je odabrao dodati upload, uklanjanje i redoslijed u S8:
 
 - Novi before/after par veže se za postojeći **završeni zapis usluge**. Novi originali su privatni; javni prikaz zahtijeva zasebnu aktivnu saglasnost stvarnog klijenta za svaku fotografiju.
 - Uklanjanje iz galerije znači sakriti par u javnim i admin prikazima galerije, bez brisanja originala ili saglasnosti. Ovo nije opoziv saglasnosti; trenutni direktni URL izvedene slike je provjerava i sam po sebi ostaje dostupan dok saglasnost vrijedi. Ako se pod „sakriti“ očekuje i ukidanje direktnog URL-a, mora se dodatno promijeniti ugovor javnog fajla i provjeriti uticaj na druga mjesta.
@@ -23,9 +23,15 @@ Sada OWNER/SYSTEM_ADMIN dobija reviziju iz istog čitanja zapisa kao i vidljivi 
 
 Testovi: realni PostgreSQL/JWT (mock `validateUser`) pokriva ABA u oba smjera, dva konkurentna writea, uloge, validaciju, no-op, `no-store`, javne feedove bez tokena i očuvanje originala/saglasnosti. Ručno je primijenjeno svih 24 SQL migracija, **ne** Prisma migrate deploy. Puni mock S8 browser **427/427** (posebna kasnije dodana provjera neispravne revizije skrivene liste 1/1 PASS), Node **1005/1005**, backend unit **845/845**, build/typecheck i pet Python provjera PASS. Ovi dokazi nisu produkcijski rollout ni AT audit.
 
+## Ručni redoslijed — implementirano, s granicama
+
+OWNER/SYSTEM_ADMIN može tastaturom zamijeniti susjedne učitane parove. Za pomak preko granice učitane stranice prvo treba učitati još radova. Samo feed filtriran po usluzi koristi rang, s determinističnim tie-breakerima; globalni i random feed zadržavaju prethodni red. Skriveni zapisi zadržavaju rang. Admin stranicu i reviziju reda čita isti MVCC snapshot; paginacija odbija kombinovanje različitih revizija, a konkurentni pomaci koriste CAS i konflikt/refresh bez tihog retryja. Tokeni vidljivosti ciljeva i eligibility se ponovno provjeravaju, kao i susjednost mapiranih parova. Javnom feedu token reda nije izložen.
+
+Prvi pomak ili dodavanje nerangiranog zapisa može normalizovati sve završene zapise usluge, uključujući skrivene; inače se mijenjaju samo dva ranga. To može izazvati opterećenje/zaključavanja za veliku galeriju i nije profilisano pod produkcijskim opterećenjem. Revizija reda verzionira samo pomake preko ovog API-ja, ne sve izmjene/umetanja/brisanja ili saglasnosti; provjere nisu dokaz serializacije svih konkurentnih grant/revoke operacija. Feed i dalje primjenjuje nezavisne provjere saglasnosti, a UI osvježava poslije writea. Direktni URL prethodno odobrenog derivata i dalje nije uklonjen sakrivanjem. Izolirana baza je migraciju reda dobila ručnim SQL-om, ne preko Prisma migrate deploy; rollout mora koordinisati migraciju i verzije aplikacije.
+
 ## Redoslijed rada i provjere
 
-1. Vidljivost: zaseban API za OWNER/SYSTEM_ADMIN, skrivena lista i ponovno prikazivanje sada koriste revizijski CAS protiv ABA ciklusa, uz stvarne DB/HTTP provjere. **Preostaje** model/API reda po usluzi, server validacija i rješavanje konkurentnog sortiranja uz konflikt/refresh.
+1. Vidljivost: zaseban API za OWNER/SYSTEM_ADMIN, skrivena lista i ponovno prikazivanje sada koriste revizijski CAS protiv ABA ciklusa, uz stvarne DB/HTTP provjere. Red po usluzi sada ima zasebnu reviziju, server validaciju i konflikt/refresh; privatni upload ostaje.
 2. Napisati DB-backed HTTP testove za autorizaciju, upload/vezivanje, pojedinačne saglasnosti i njihovo povlačenje, sakrivanje/vraćanje bez brisanja originala/saglasnosti, kontrolisane konkurentne promjene i migraciju. Testirati javni feed po usluzi, nefiltrirani i random feed, više stranica, prazne mapirane stranice i stabilnost poretka; ne oslanjati se samo na mock Prisma.
 3. UI: izbor završenog zapisa i obje slike, prikaz privatnog statusa i čekanja saglasnosti, rukovanje djelimičnim greškama, imenovane akcije, potvrda, tastaturni pomak gore/dolje bez drag-only uslova, statusi i povrat fokusa nakon nestanka/ponovnog učitavanja. Odvojeno BS/EN, mobilni i desktop viewport, race/duplicate-submit testovi i scoped axe.
 4. Lokalni build/Node/backend/Playwright/pet Python provjera; CI za tačno konačni commit. Ručni AT/OS ostaju označeni odvojeno. Ne opisivati sintetičke ili mock dokaze kao produkcijsku validaciju privatnosti.

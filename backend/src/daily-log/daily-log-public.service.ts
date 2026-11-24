@@ -38,7 +38,7 @@ export class DailyLogPublicService {
     offset?: number;
     serviceId?: string;
     random?: boolean;
-  }, includeAdminRevision = false): Promise<{
+  }, includeAdminRevision = false, db: Prisma.TransactionClient | PrismaService = this.prisma): Promise<{
     items: BeforeAfterPair[];
     hasMore: boolean;
     nextOffset: number;
@@ -59,7 +59,7 @@ export class DailyLogPublicService {
         `offset mora biti cijeli broj između 0 i ${MAX_BEFORE_AFTER_OFFSET}.`,
       );
     }
-    const autoCategory = await this.prisma.galleryCategory.findFirst({
+    const autoCategory = await db.galleryCategory.findFirst({
       where: { autoPublishConsentedPairs: true },
       select: { id: true },
     });
@@ -76,11 +76,15 @@ export class DailyLogPublicService {
     const offset = requestedOffset;
 
     const [total, entries] = await Promise.all([
-      this.prisma.dailyLogEntry.count({ where }),
-      this.prisma.dailyLogEntry.findMany({
+      db.dailyLogEntry.count({ where }),
+      db.dailyLogEntry.findMany({
         where,
         select: this.publicSelect(),
-        orderBy: { completedAt: 'desc' },
+        orderBy: serviceId ? [
+          { workGallerySortOrder: { sort: 'asc', nulls: 'first' } },
+          { completedAt: { sort: 'desc', nulls: 'first' } },
+          { id: 'desc' },
+        ] : { completedAt: 'desc' },
         skip: offset,
         take: limit,
       }),
@@ -96,6 +100,26 @@ export class DailyLogPublicService {
         nextOffset <= MAX_BEFORE_AFTER_OFFSET,
       nextOffset,
     };
+  }
+
+  /** Validate both targets with the same consent rules used by the public mapper. */
+  async eligibleReorderIds(db: Prisma.TransactionClient, serviceId: string, ids: string[]): Promise<string[]> {
+    const category = await db.galleryCategory.findFirst({ where: { autoPublishConsentedPairs: true }, select: { id: true } });
+    if (!category) return [];
+    const entries = await db.dailyLogEntry.findMany({
+      where: { ...this.buildEligibleWhere(serviceId), id: { in: ids } },
+      select: this.publicSelect(),
+    });
+    return this.mapPairs(entries).map(pair => pair.id);
+  }
+
+  /** Ignore unmappable records when checking adjacency, just as the visible feed does. */
+  async hasEligibleReorderBetween(db: Prisma.TransactionClient, serviceId: string, low: number, high: number): Promise<boolean> {
+    const entries = await db.dailyLogEntry.findMany({
+      where: { ...this.buildEligibleWhere(serviceId), workGallerySortOrder: { gt: low, lt: high } },
+      select: this.publicSelect(),
+    });
+    return this.mapPairs(entries).length > 0;
   }
 
   private activeConsentWhere(): Prisma.DailyLogImageConsentWhereInput {

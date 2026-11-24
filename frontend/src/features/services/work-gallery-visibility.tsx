@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAuthStore } from '../../stores/auth.store'
+import { isWorkGalleryRevision } from './work-gallery-revision'
 import { Button } from '../../components/ui/button'
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../shell/admin/ui/admin-confirm-dialog'
 
@@ -50,7 +51,7 @@ export function WorkGalleryVisibility({ serviceId, sessionVersion, enabled, head
       const { data } = await api.get<HiddenPage>(`${base}/hidden`, { params: { offset: nextOffset, limit: 20 } })
       if (!current()) return
       if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !Number.isSafeInteger(data.nextOffset) || data.nextOffset < nextOffset ||
-        (data.hasMore && data.nextOffset <= nextOffset) || data.items.some(item => !item || typeof item.id !== 'string' || !item.id || typeof item.revision !== 'string' || !/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/.test(item.revision) || (item.completedAt !== null && (typeof item.completedAt !== 'string' || !Number.isFinite(Date.parse(item.completedAt)))))) throw new Error('Invalid hidden gallery page')
+        (data.hasMore && data.nextOffset <= nextOffset) || data.items.some(item => !item || typeof item.id !== 'string' || !item.id || !isWorkGalleryRevision(item.revision) || (item.completedAt !== null && (typeof item.completedAt !== 'string' || !Number.isFinite(Date.parse(item.completedAt)))))) throw new Error('Invalid hidden gallery page')
       setHidden(previous => append ? [...previous, ...data.items] : data.items)
       setOffset(data.nextOffset)
       setHasMore(data.hasMore)

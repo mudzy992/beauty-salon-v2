@@ -10,7 +10,7 @@ for (const lang of ['bs', 'en'] as const) {
       if (path === '/api/settings/public') return route.fulfill({ json: [] })
       if (path === '/api/users/profile') return route.fulfill({ json: profile })
       if (path === '/api/services/admin/services/svc-1') return route.fulfill({ json: { id: 'svc-1', name: 'Fixture service', durationMinutes: 30 } })
-      if (path === '/api/daily-log/before-after' || path === '/api/services/admin/work-gallery/svc-1/visible') return route.fulfill({ json: { items: [], hasMore: false, nextOffset: 0 } })
+      if (path === '/api/daily-log/before-after' || path === '/api/services/admin/work-gallery/svc-1/visible') return route.fulfill({ json: { items: [], hasMore: false, orderRevision: '0', nextOffset: 0 } })
       if (path === '/api/services/admin/work-gallery/svc-1/hidden') {
         count++
         return route.fulfill(count === 1 ? { status: 503, json: {} } : { json: { items: [], hasMore: false, nextOffset: 0 } })

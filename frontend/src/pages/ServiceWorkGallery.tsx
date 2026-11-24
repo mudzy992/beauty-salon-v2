@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 
 import { useServiceWorkGallery } from '../features/services/use-service-work-gallery'
 import { WorkGalleryVisibility } from '../features/services/work-gallery-visibility'
+import { WorkGalleryActions } from '../features/services/work-gallery-actions'
+import { useWorkGalleryOrder } from '../features/services/use-work-gallery-order'
 import { useAuthStore } from '../stores/auth.store'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { BeforeAfterSlider } from '../components/BeforeAfterSlider'
@@ -23,8 +25,10 @@ export default function ServiceWorkGallery() {
   const sessionVersion = useAuthStore(state => state.sessionVersion)
   const canManage = useAuthStore(state => state.user?.roles.some(role => role === 'SYSTEM_ADMIN' || role === 'OWNER') ?? false)
 
-  const { service, loadingService, serviceLoadError, items, pairsLoadError, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage, reloadPairs } = useServiceWorkGallery(id, canManage)
+  const { service, loadingService, serviceLoadError, items, pairsLoadError, pairsStale, orderRevision, loadingPairs, loadingMore, hasMore, offset, sentinelRef, loadService, loadPage, reloadPairs } = useServiceWorkGallery(id, canManage)
 
+
+  const ordering = useWorkGalleryOrder(id, sessionVersion, headingRef, reloadPairs)
 
   return (
     <div>
@@ -54,6 +58,9 @@ export default function ServiceWorkGallery() {
         </Button> : null}
       </div>
 
+      {ordering.message ? <p role="status" className="mb-3 text-sm text-content-strong">{ordering.message}</p> : null}
+      {ordering.error ? <p role="alert" className="mb-3 text-sm text-content-strong">{ordering.error}</p> : null}
+      {canManage && items.length > 0 ? <p className="mb-3 text-sm text-content-strong">{t('admin.serviceWorkGallery.orderHelp')}</p> : null}
       {loadingService ? (
         <div role="status" className="flex justify-center py-14 text-content-strong">
           <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
@@ -99,9 +106,8 @@ export default function ServiceWorkGallery() {
                     alt={t('public.beforeAfter.comparisonLabels')}
                     aspectRatio={1}
                   />
-                  {canManage && service ? <div className="p-3"><Button type="button" variant="outline" aria-disabled={busy} onClick={event => { if (!busy && pair.revision) hide(pair.id, pair.revision, event.currentTarget) }}>
-                    {t('admin.serviceWorkGallery.hidePair', { current: index + 1 })}
-                  </Button></div> : null}
+                  {canManage && service ? <WorkGalleryActions pair={pair} index={index} items={items} busy={busy} orderBusy={ordering.busy}
+                    orderBlocked={loadingMore || pairsLoadError} orderRevision={orderRevision} onHide={hide} onMove={ordering.move} /> : null}
                 </Card>
               ))}
             </div>
@@ -121,8 +127,8 @@ export default function ServiceWorkGallery() {
           ) : null}
           {pairsLoadError ? (
             <div className="py-4 text-center" role="alert">
-              <p className="text-sm text-content-strong">{t('admin.serviceWorkGallery.pairsLoadFailed')}</p>
-              <Button variant="outline" className="mt-3" onClick={() => { (resultsRef.current ?? headingRef.current)?.focus(); void loadPage(offset, offset > 0) }}>
+              <p className="text-sm text-content-strong">{pairsStale ? t('admin.serviceWorkGallery.orderChanged') : t('admin.serviceWorkGallery.pairsLoadFailed')}</p>
+              <Button variant="outline" className="mt-3" onClick={() => { (resultsRef.current ?? headingRef.current)?.focus(); if (pairsStale) reloadPairs(); else void loadPage(offset, offset > 0) }}>
                 {t('admin.serviceWorkGallery.retry')}
               </Button>
             </div>

@@ -1,5 +1,7 @@
 # S8 — Admin: Analitika, Korisnici, Salon, Usluge, Frizeri (+ Work Gallery)
 
+> Status nastavka: sakrivanje/vraćanje i ručni redoslijed po usluzi su implementirani, ali privatni upload para nije. S8 ostaje otvoren; stvarne granice i testovi su u `25_s8_work_gallery_implementacija.md` i `CHANGELOG.md`.
+
 **Status:** 🟡 čeka odobrenje S7 · **Uključuje obavezno razbijanje velikih fajlova po `code-hygiene-and-matrices.mdc`.**
 
 ---

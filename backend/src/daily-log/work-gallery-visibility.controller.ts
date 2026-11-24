@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Header, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsString, Matches, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsString, IsUUID, Matches, Max, Min } from 'class-validator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { WorkGalleryVisibilityService } from './work-gallery-visibility.service';
-import { DailyLogPublicService } from './daily-log-public.service';
+import { WorkGalleryOrderService } from './work-gallery-order.service';
 import { MAX_BEFORE_AFTER_OFFSET } from './before-after-query.constants';
 
 class VisibilityDto {
@@ -17,6 +17,26 @@ class VisibilityDto {
   @IsString()
   @Matches(/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/)
   expectedRevision!: string;
+}
+
+class OrderDto {
+  @IsUUID()
+  firstId!: string;
+
+  @IsUUID()
+  secondId!: string;
+
+  @IsString()
+  @Matches(/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/)
+  firstRevision!: string;
+
+  @IsString()
+  @Matches(/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/)
+  secondRevision!: string;
+
+  @IsString()
+  @Matches(/^(0|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/)
+  expectedOrderRevision!: string;
 }
 
 class HiddenQueryDto {
@@ -45,12 +65,17 @@ class VisibleQueryDto extends HiddenQueryDto {
 @UseGuards(RolesGuard)
 @Roles('SYSTEM_ADMIN', 'OWNER')
 export class WorkGalleryVisibilityController {
-  constructor(private readonly visibility: WorkGalleryVisibilityService, private readonly feed: DailyLogPublicService) {}
+  constructor(private readonly visibility: WorkGalleryVisibilityService, private readonly order: WorkGalleryOrderService) {}
 
   @Get(':serviceId/visible')
   @Header('Cache-Control', 'private, no-store')
   listVisible(@Param('serviceId') serviceId: string, @Query() query: VisibleQueryDto) {
-    return this.feed.findBeforeAfterPairs({ serviceId, limit: query.limit, offset: query.offset }, true);
+    return this.order.listVisible(serviceId, query.offset, query.limit);
+  }
+
+  @Patch(':serviceId/order')
+  swap(@Param('serviceId') serviceId: string, @Body() dto: OrderDto) {
+    return this.order.swap(serviceId, { id: dto.firstId, revision: dto.firstRevision }, { id: dto.secondId, revision: dto.secondRevision }, dto.expectedOrderRevision);
   }
 
   @Get(':serviceId/hidden')

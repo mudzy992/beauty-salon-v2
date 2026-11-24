@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { DailyLogController } from './daily-log.controller';
 import { WorkGalleryVisibilityController } from './work-gallery-visibility.controller';
 import { WorkGalleryVisibilityService } from './work-gallery-visibility.service';
+import { WorkGalleryOrderService } from './work-gallery-order.service';
 import { DailyLogService } from './daily-log.service';
 import { DailyLogPublicService } from './daily-log-public.service';
 import { DailyLogReversalService } from './daily-log-reversal.service';
@@ -27,6 +28,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
   controllers: [DailyLogController, WorkGalleryVisibilityController],
   providers: [
     WorkGalleryVisibilityService,
+    WorkGalleryOrderService,
     DailyLogService,
     DailyLogPublicService,
     DailyLogReversalService,

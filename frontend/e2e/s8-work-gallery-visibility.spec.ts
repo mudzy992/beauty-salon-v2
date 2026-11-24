@@ -18,7 +18,7 @@ async function setup(page: Page, language: 'bs' | 'en') {
     if (url.pathname === '/api/settings/public') return route.fulfill({ json: [] })
     if (url.pathname === '/api/users/profile') return route.fulfill({ json: profile })
     if (url.pathname === '/api/services/admin/services/svc-1') return route.fulfill({ json: { id: 'svc-1', name: 'Fixture service', durationMinutes: 30 } })
-    if (url.pathname === '/api/daily-log/before-after' || url.pathname === '/api/services/admin/work-gallery/svc-1/visible') return route.fulfill({ json: { items: hidden ? [] : [{ ...pair, revision }], hasMore: false, nextOffset: hidden ? 0 : 1 } })
+    if (url.pathname === '/api/daily-log/before-after' || url.pathname === '/api/services/admin/work-gallery/svc-1/visible') return route.fulfill({ json: { items: hidden ? [] : [{ ...pair, revision }], hasMore: false, orderRevision: '0', nextOffset: hidden ? 0 : 1 } })
     if (url.pathname === '/api/services/admin/work-gallery/svc-1/hidden') return route.fulfill({ json: { items: hidden ? [{ id: 'entry-1', completedAt: '2026-01-01T12:00:00.000Z', revision }] : [], hasMore: false, nextOffset: hidden ? 1 : 0 } })
     if (url.pathname === '/api/services/admin/work-gallery/svc-1/entries/entry-1/visibility' && route.request().method() === 'PATCH') {
       const body = route.request().postDataJSON()
@@ -72,7 +72,7 @@ test('a delayed successful hide does not steal focus after the user moves away',
   await setup(page, 'en')
   let release!: () => void, started = false, hidden = false
   const gate = new Promise<void>(resolve => { release = resolve })
-  await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', route => route.fulfill({ json: { items: hidden ? [] : [pair], hasMore: false, nextOffset: hidden ? 0 : 1 } }))
+  await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', route => route.fulfill({ json: { items: hidden ? [] : [pair], hasMore: false, orderRevision: '0', nextOffset: hidden ? 0 : 1 } }))
   await page.route('**/api/services/admin/work-gallery/svc-1/entries/entry-1/visibility', async route => {
     started = true
     await gate
@@ -125,8 +125,8 @@ test('stale in-flight page cannot reintroduce a just-hidden pair', async ({ page
   const gate = new Promise<void>(resolve => { release = resolve })
   await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', async route => {
     const offset = Number(new URL(route.request().url()).searchParams.get('offset'))
-    if (offset === 1) { appendStarted = true; await gate; return route.fulfill({ json: { items: [pair], hasMore: false, nextOffset: 2 } }) }
-    return route.fulfill({ json: { items: hidden ? [] : [pair], hasMore: !hidden, nextOffset: hidden ? 0 : 1 } })
+    if (offset === 1) { appendStarted = true; await gate; return route.fulfill({ json: { items: [pair], hasMore: false, orderRevision: '0', nextOffset: 2 } }) }
+    return route.fulfill({ json: { items: hidden ? [] : [pair], hasMore: !hidden, orderRevision: '0', nextOffset: hidden ? 0 : 1 } })
   })
   await page.route('**/api/services/admin/work-gallery/svc-1/entries/entry-1/visibility', route => { hidden = true; return route.fulfill({ json: { hidden: true } }) })
   try {
@@ -149,7 +149,7 @@ for (const language of ['bs', 'en'] as const) {
     const updated = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     let revision = '0', hidden = false
     const writes: { hidden: boolean; expectedHidden: boolean; expectedRevision: string }[] = []
-    await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', route => route.fulfill({ json: { items: hidden ? [] : [{ ...pair, revision }], hasMore: false, nextOffset: hidden ? 0 : 1 } }))
+    await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', route => route.fulfill({ json: { items: hidden ? [] : [{ ...pair, revision }], hasMore: false, orderRevision: '0', nextOffset: hidden ? 0 : 1 } }))
     await page.route('**/api/services/admin/work-gallery/svc-1/entries/entry-1/visibility', route => {
       const body = route.request().postDataJSON()
       writes.push(body)
@@ -180,7 +180,7 @@ for (const language of ['bs', 'en'] as const) {
 
 test('invalid admin revision fails closed before showing hide action', async ({ page }) => {
   await setup(page, 'en')
-  await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', route => route.fulfill({ json: { items: [{ ...pair, revision: 'not-a-token' }], hasMore: false, nextOffset: 1 } }))
+  await page.route('**/api/services/admin/work-gallery/svc-1/visible?**', route => route.fulfill({ json: { items: [{ ...pair, revision: 'not-a-token' }], hasMore: false, orderRevision: '0', nextOffset: 1 } }))
   await page.goto('/admin/services/svc-1/work-gallery', { waitUntil: 'networkidle' })
   await expect(page.getByRole('alert')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Hide comparison 1 from gallery' })).toHaveCount(0)
