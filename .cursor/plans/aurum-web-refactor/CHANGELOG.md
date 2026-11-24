@@ -5,6 +5,22 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Akcije otpisa u editoru korisnika (rad u toku)
+
+Više otvorenih dugovanja imalo je isti pristupačni naziv „Otpiši dug“. Novi BS/EN × 320/1280 mock scenariji s dva ista iznosa/usluge i jednom stavkom bez usluge prije promjene padaju **4/4**. Izdvojen je `user-debts-panel.tsx` (76 linija; `edit-user-dialog.tsx` **213 → 158**), uz očuvanje klijentskog query/retry/invalidation ugovora. Naziv radnje sada zadržava vidljivi tekst i dodaje uslugu ili lokalizovani fallback, formatirani iznos i redni broj liste (broj se može promijeniti kad se lista promijeni). Fiksura tastaturom provjerava odustajanje bez zahtjeva, fokus i potvrdu upravo drugog duga s ispravnim mock PATCH tijelom; četiri scoped axe provjere `button-name` i `label-content-name-mismatch` ne prijavljuju violations.
+
+Pri prvoj široj regresiji nakon imenovanja desktop Escape je povremeno zatvarao roditeljski editor umjesto ugniježđene potvrde, ostavljajući potvrdu otvorenom (mobilne fiksure prolazile). Čekanje da se fokus uspostavi unutar potvrde samo po sebi nije uklonilo problem: široki run **249 prošlo / 2 pala**. Editor sada, ako dobije zahtjev za zatvaranje dok potvrda postoji, zatvara potvrdu umjesto sebe; odustajanje ne šalje PATCH. Poslije popravke **20/20** ponovljenih fiksura prolazi. Namjernim isključivanjem guard-a reproducirano **3 pada / 7 prolaza**, potvrđujući intermitentnost; izvor i pozitivni build su vraćeni. Ova zaštita ne otkazuje već poslani server zahtjev niti dokazuje sve rasporede događaja.
+
+Završno mock S8 **251/251**, Node **1003/1003**, build/E2E typecheck, lint 0 grešaka/6 ranijih upozorenja i pet Python provjera prolaze; Initial **293,5/300 KiB**, Analytics **116,4/140 KiB**. Mock API i Chromium 153 nisu dokaz stvarnog finansijskog otpisa niti nezavisni AT/WCAG audit. [CI 45370301929](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45370301929) za prethodni `73726f6` pri zapisivanju još traje; novi push bi ga otkazao. S8 ostaje otvoren.
+
+---
+
+## 2026-11-18 · S8 · CI ažuriranje
+
+[CI 45362275720](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45362275720) za `8dc9e02` završio je **5/5**, rendered **2963 prošla / 0 pala / 0 preskočenih**, sa 15 incomplete axe uzoraka kontrasta. Nakon toga pushani su `39421cd`, `d09f266`, `ab2e229` i `73726f6`; [CI 45370301929](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45370301929) za zadnji commit tek počinje. Prethodni zeleni CI ne dokazuje ovaj novi skup promjena; S8 i dalje otvoren.
+
+---
+
 ## 2026-11-18 · S8 · Prezentacija klijentske analitike (rad u toku)
 
 `ClientAnalytics.tsx` izmjeren na **161 liniju** i smanjen na **134**, premještanjem postojećeg lokalizovanog formatiranja datuma, statusa, imena i fallbacka u `use-client-analytics-presentation.ts` (**32** linije). Pozivi, route/deep-link i izračuni nisu mijenjani. Source-contract i18n test sada prati vezu stranica → hook i iste provjere datuma/statusa, umjesto da traži izdvojeni kod po staroj putanji.

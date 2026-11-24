@@ -103,7 +103,7 @@ export default function Users() {
       <EditUserDialog editOpen={editOpen} setEditOpen={setEditOpen} saving={saving} editTriggerRef={editTriggerRef}
         editUser={editUser} formData={formData} setFormData={setFormData} setEditIsUsernameManuallyEdited={setEditIsUsernameManuallyEdited}
         initialUsername={initialUsername} initialEmail={initialEmail} editUsernameStatus={editUsernameStatus} getUserRoles={getUserRoles}
-        clientDebtsQuery={clientDebtsQuery} setDebtToWriteOff={setDebtToWriteOff} onSave={() => void handleSave()} />
+        clientDebtsQuery={clientDebtsQuery} debtToWriteOff={debtToWriteOff} setDebtToWriteOff={setDebtToWriteOff} onSave={() => void handleSave()} />
 
       <CreateUserDialog createOpen={createOpen} setCreateOpen={setCreateOpen} saving={saving}
         transitioningToCredentials={transitioningToCredentials} createTriggerRef={createTriggerRef}

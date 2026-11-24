@@ -1,7 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { UserRound } from 'lucide-react'
-import { formatLocalizedAmount } from '../../i18n/locale-utils.mjs'
 import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -11,6 +10,7 @@ import { Label } from '../../components/ui/label'
 import { Select } from '../../components/ui/select'
 import { Switch } from '../../components/ui/switch'
 import type { ClientDebtRow, UserRow } from './user-types'
+import { UserDebtsPanel } from './user-debts-panel'
 
 type Form = { username: string; email: string; firstName: string; lastName: string; phone: string; gender: '' | 'MALE' | 'FEMALE'; isActive: boolean }
 type Props = {
@@ -20,12 +20,15 @@ type Props = {
   editUsernameStatus: { loading: boolean; available: boolean | null; suggestions: string[] }
   getUserRoles: (user: UserRow) => string[]
   clientDebtsQuery: { isLoading: boolean; isError: boolean; data: ClientDebtRow[] | undefined; refetch: () => Promise<unknown> }
-  setDebtToWriteOff: Dispatch<SetStateAction<string | null>>; onSave: () => void
+  debtToWriteOff: string | null; setDebtToWriteOff: Dispatch<SetStateAction<string | null>>; onSave: () => void
 }
-export function EditUserDialog({ editOpen, setEditOpen, saving, editTriggerRef, editUser, formData, setFormData, setEditIsUsernameManuallyEdited, initialUsername, initialEmail, editUsernameStatus, getUserRoles, clientDebtsQuery, setDebtToWriteOff, onSave }: Props) {
-  const { t, i18n } = useTranslation()
+export function EditUserDialog({ editOpen, setEditOpen, saving, editTriggerRef, editUser, formData, setFormData, setEditIsUsernameManuallyEdited, initialUsername, initialEmail, editUsernameStatus, getUserRoles, clientDebtsQuery, debtToWriteOff, setDebtToWriteOff, onSave }: Props) {
+  const { t } = useTranslation()
   return (
-    <Dialog open={editOpen} onOpenChange={(open) => { if (open || !saving) setEditOpen(open) }}>
+    <Dialog open={editOpen} onOpenChange={(open) => {
+      if (!open && debtToWriteOff) { setDebtToWriteOff(null); return }
+      if (open || !saving) setEditOpen(open)
+    }}>
       <DialogContent data-users-dialog className="max-w-3xl" onCloseAutoFocus={(event) => {
         if (editTriggerRef.current?.isConnected) {
           event.preventDefault()
@@ -137,65 +140,7 @@ export function EditUserDialog({ editOpen, setEditOpen, saving, editTriggerRef, 
           </div>
 
           {editUser && getUserRoles(editUser).includes('CLIENT') ? (
-            <div className="space-y-2 md:col-span-2">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="mb-0">{t('users.debts.title')}</Label>
-                {clientDebtsQuery.isLoading ? (
-                  <span role="status" className="text-xs text-content-strong">
-                    {t('users.debts.loading')}
-                  </span>
-                ) : null}
-              </div>
-
-              {clientDebtsQuery.isLoading ? null : clientDebtsQuery.isError ? (
-                <div
-                  role="alert"
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200"
-                >
-                  <span>{t('finance.states.errorTitle')}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void clientDebtsQuery.refetch()}
-                  >
-                    {t('finance.states.retry')}
-                  </Button>
-                </div>
-              ) : (clientDebtsQuery.data ?? []).length === 0 ? (
-                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200">
-                  {t('users.debts.none')}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {(clientDebtsQuery.data ?? []).map((d) => (
-                    <div
-                      key={d.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface p-3 text-sm  "
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-content">
-                          {formatLocalizedAmount(d.amount, i18n.language)}
-                          {d.service?.name ? <span className="ml-2 text-xs text-content-strong">• {d.service.name}</span> : null}
-                        </div>
-                        {d.note ? <div className="mt-1 text-xs text-content-strong ">{d.note}</div> : null}
-                        {d.createdBy?.username ? (
-                          <div className="mt-1 text-xs text-content-strong ">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
-                        ) : null}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDebtToWriteOff(d.id)}
-                      >
-                        {t('users.debts.writeOff')}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <UserDebtsPanel clientDebtsQuery={clientDebtsQuery} setDebtToWriteOff={setDebtToWriteOff} />
           ) : null}
         </div>
 

@@ -1169,6 +1169,8 @@
       "none": "Nema otvorenih dugovanja.",
       "enteredBy": "Evidentirao/la: {{username}}",
       "writeOff": "Otpiši dug",
+      "writeOffAction": "Otpiši dug: {{service}}, {{amount}} — dug {{number}}",
+      "unspecifiedService": "Usluga nije navedena",
       "confirmTitle": "Otpis duga",
       "confirmDescription": "Otpis zatvara dug bez knjiženja prihoda u KIF. Za naplatu koristite dnevnu knjigu.",
       "reason": "Razlog otpisa",

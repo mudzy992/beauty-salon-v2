@@ -1169,6 +1169,8 @@
       "none": "No open debts.",
       "enteredBy": "Recorded by: {{username}}",
       "writeOff": "Write off debt",
+      "writeOffAction": "Write off debt: {{service}}, {{amount}} — debt {{number}}",
+      "unspecifiedService": "Service not specified",
       "confirmTitle": "Write off debt",
       "confirmDescription": "Writing off closes the debt without recording income in the Income Book. Use the daily log to collect payment.",
       "reason": "Reason for write-off",
