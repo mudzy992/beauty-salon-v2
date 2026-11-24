@@ -45,7 +45,7 @@ for (const width of [320, 1280]) {
       await expect(dialog).toBeHidden()
       expect(writes[1]).toEqual({ path: '/api/services/subcategories', body: { name: 'New sub fixture', description: '', sortOrder: 0, isActive: true, categoryId: 'cat' } })
       await page.getByRole('button', { name: /Category fixture/, expanded: false }).click()
-      await page.getByRole('button', { name: 'Add service', exact: true }).click()
+      await page.getByRole('button', { name: 'Add service: Subcategory fixture', exact: true }).click()
       dialog = page.getByRole('dialog', { name: 'New service' })
       await dialog.locator('#services-service-name').fill('New service fixture')
       await dialog.locator('#services-price').fill('45.5')

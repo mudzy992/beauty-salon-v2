@@ -1447,6 +1447,7 @@
       "subcategoryActiveToggle": "Potkategorija aktivna",
       "serviceActiveToggle": "Usluga aktivna",
       "loyaltyToggle": "Loyalty omogućen za uslugu",
+      "addService": "Dodaj uslugu: {{name}}",
       "addSubcategory": "Dodaj potkategoriju: {{name}}",
       "editCategory": "Uredi kategoriju: {{name}}",
       "deleteCategory": "Obriši kategoriju: {{name}}",

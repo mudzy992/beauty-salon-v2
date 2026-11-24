@@ -116,12 +116,6 @@ const DOZVOLJENI_DISABLE = [
     kljucnaRijec: 'combobox',
     koliko: 1,
   },
-  {
-    fajl: 'src/features/services/service-catalog.tsx',
-    pravila: ['click-events-have-key-events', 'no-static-element-interactions'],
-    kljucnaRijec: 'propagacij',
-    koliko: 1,
-  },
 ]
 
 /** Rekursivno sakupi `.ts`/`.tsx` fajlove ispod `SRC`. */

@@ -81,7 +81,7 @@ const ALLOWLIST = {
   'pages/Reviews.tsx::slate-300': 'neoznačena zvijezda, dekorativna',
   'pages/Reviews.tsx::yellow-400': 'ikona zvijezde (fill) aria-hidden',
   'features/salon/salon-holiday-table.tsx::teal-600': 'ikona (Send), 3.74:1 ≥ 3:1',
-  'features/services/service-catalog.tsx::emerald-600': 'ikona (Plus), 3.77:1 ≥ 3:1',
+  'features/services/service-category-item.tsx::emerald-600': 'ikona (Plus), 3.77:1 ≥ 3:1',
   'pages/Stylists.tsx::teal-600': 'ikona (Eye), 3.74:1 ≥ 3:1',
   // 2026-11-17 (Faza C (9/)): `pages/Users.tsx::slate-400` obrisan — Search ikona
   // sada koristi AAA token `text-content-strong` (≥7:1), allowlist više ne treba unos.

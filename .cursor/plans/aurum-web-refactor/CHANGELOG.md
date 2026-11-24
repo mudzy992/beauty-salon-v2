@@ -5,6 +5,18 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Semantika kataloga i objedinjena regresija (rad u toku)
+
+U kategorijskom Radix accordion triggeru bili su ugniježđeni zasebni buttoni; prethodni komentar da je to pristupačno nije bio ispravan. Nova BS/EN × 320/1280 mock fiksura je prije promjene našla **šest ugniježđenih buttona u sva četiri scenarija**. Akcije kategorije su sada semantička braća triggera; kategorije/potkategorije su izdvojene iz kataloga u komponente, a zajednička funkcija za imena čuva dotadašnje razlučivanje duplikata po redoslijedu. Dodani su BS/EN nazivi „Dodaj uslugu“ sa potkategorijom, i skriveni redni broj za istoimene accordion triggere. Brojevi nisu stabilni identifikatori. U editoru se pri zatvaranju vraća fokus zapamćenom elementu ako je još u DOM-u; testirano je tastaturno odustajanje, ne svi scenariji uklanjanja okidača ili fokus mišem u svim preglednicima.
+
+Fiksura provjerava da kategorijske akcije ne mijenjaju accordion, cilj novog mock POST-a (`cat-2`), jedinstvena imena, tastaturno otvaranje i povrat fokusa, te scoped axe `nested-interactive`, `button-name` i `label-content-name-mismatch`. Nakon promjene **4/4** (uključeno u paket ispod). Prva objedinjena regresija **253 prošla / 2 pala** jer je postojeći test tražio stari tačan naziv „Add service“; selektor je promijenjen u novi tačan naziv s potkategorijom, dok asertacije kreiranja, uploada i cjelokupnog tijela zahtjeva ostaju iste. Source-contract test prati potpunu kompoziciju stranica → katalog → kategorija → potkategorija → tabela; uklonjen je sada nepotreban `jsx-a11y` disable, a kontrast allowlist seli se s ikonom u novi fajl, bez promjene praga.
+
+Završna lokalna S8 mock regresija **255/255**, Node **1003/1003**, build i E2E typecheck prolaze; lint **0 grešaka / 6 ranijih upozorenja**, pet Python provjera i diff check prolaze. Initial **293,5/300 KiB**, Analytics **116,4/140 KiB**. Lokalni Chromium 153 i mock write nisu provjera produkcijske baze, stvarnog OS pickera ili AT/WCAG audita. [CI 45370301929](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45370301929) za `73726f6` ima četiri uspješna posla, rendered još traje u trenutku zapisa; ove izmjene nisu njime obuhvaćene.
+
+S8 nije proglašen gotovim: CI za konačni commit nije potvrđen 5/5; 13 izdvojenih TS/TSX modula prelazi 150 linija (najveći 221), a nisu dovršeni pregled svih DoD polja, tooltip tastatura/AT i fokus nakon nestanka okidača. Nazivi s rednim brojevima nisu trajni ID. Prije S9 potrebno je dovršiti otvoreno i slijediti STOP iz S8 plana; nema merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Akcije otpisa u editoru korisnika (rad u toku)
 
 Više otvorenih dugovanja imalo je isti pristupačni naziv „Otpiši dug“. Novi BS/EN × 320/1280 mock scenariji s dva ista iznosa/usluge i jednom stavkom bez usluge prije promjene padaju **4/4**. Izdvojen je `user-debts-panel.tsx` (76 linija; `edit-user-dialog.tsx` **213 → 158**), uz očuvanje klijentskog query/retry/invalidation ugovora. Naziv radnje sada zadržava vidljivi tekst i dodaje uslugu ili lokalizovani fallback, formatirani iznos i redni broj liste (broj se može promijeniti kad se lista promijeni). Fiksura tastaturom provjerava odustajanje bez zahtjeva, fokus i potvrdu upravo drugog duga s ispravnim mock PATCH tijelom; četiri scoped axe provjere `button-name` i `label-content-name-mismatch` ne prijavljuju violations.

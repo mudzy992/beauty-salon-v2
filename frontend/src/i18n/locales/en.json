@@ -1447,6 +1447,7 @@
       "subcategoryActiveToggle": "Subcategory active",
       "serviceActiveToggle": "Service active",
       "loyaltyToggle": "Loyalty enabled for service",
+      "addService": "Add service: {{name}}",
       "addSubcategory": "Add subcategory: {{name}}",
       "editCategory": "Edit category: {{name}}",
       "deleteCategory": "Delete category: {{name}}",

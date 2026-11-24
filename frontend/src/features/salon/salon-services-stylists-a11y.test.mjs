@@ -16,8 +16,12 @@ const salon = [salonPage, holidayDialog, salonHoursTable, salonHolidaysPanel, sa
 const servicesPage = read('../../pages/Services.tsx')
 const serviceTable = read('../services/service-table.tsx')
 const serviceCatalog = read('../services/service-catalog.tsx')
+const serviceCategoryItem = read('../services/service-category-item.tsx')
+const serviceSubcategory = read('../services/service-subcategory.tsx')
 assert.match(servicesPage, /<ServiceCatalog\b/)
-assert.match(serviceCatalog, /<ServiceTable\b/)
+assert.match(serviceCatalog, /<ServiceCategoryItem\b/)
+assert.match(serviceCategoryItem, /<ServiceSubcategory\b/)
+assert.match(serviceSubcategory, /<ServiceTable\b/)
 const editor = read('../services/service-editor-dialog.tsx')
 const categoryFields = read('../services/category-fields.tsx')
 const serviceFields = read('../services/service-fields.tsx')
@@ -29,7 +33,7 @@ assert.match(servicesPage, /useServiceDeletion\(\{ categories, loadData, showApi
 assert.match(servicesPage, /useServiceCatalog\(\{ showApiError \}\)/)
 assert.match(editor, /<CategoryFields\b/)
 assert.match(editor, /<ServiceFields\b/)
-const services = [servicesPage, serviceCatalog, serviceTable, editor, categoryFields, serviceFields].join('\n')
+const services = [servicesPage, serviceCatalog, serviceCategoryItem, serviceSubcategory, serviceTable, editor, categoryFields, serviceFields].join('\n')
 const stylistsPage = read('../../pages/Stylists.tsx')
 const stylistEditor = read('./stylist-editor-dialog.tsx')
 const stylistWorkingHours = read('./stylist-working-hours.tsx')
@@ -146,8 +150,10 @@ test('radno vrijeme: ime kontrole uključuje dan (4.1.2)', () => {
 })
 
 test('svih 5 tabela ima scope i caption (1.3.1)', () => {
-  assert.match(serviceCatalog, /import \{ ServiceTable \} from '\.\/service-table'/)
-  assert.match(serviceCatalog, /<ServiceTable\b/)
+  assert.match(serviceSubcategory, /import \{ ServiceTable \} from '\.\/service-table'/)
+  assert.match(serviceCatalog, /<ServiceCategoryItem\b/)
+  assert.match(serviceCategoryItem, /<ServiceSubcategory\b/)
+  assert.match(serviceSubcategory, /<ServiceTable\b/)
   assert.match(serviceTable, /<DataTable\b/)
   // 2026-11-09 — Salon.tsx je prešao na dijeljenu `DataTable` komponentu, pa njegova
   // 2 tabele (4 + 5 = 9 <th>) više nemaju ručni markup.

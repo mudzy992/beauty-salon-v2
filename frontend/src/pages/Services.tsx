@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Plus } from 'lucide-react'
 import { ServiceDeletionDialog } from '../features/services/service-deletion-dialog'
@@ -28,6 +28,10 @@ export default function Services() {
   )
 
   const { categories, loading, loadError, loadData } = useServiceCatalog({ showApiError })
+  const editorOpener = useRef<HTMLElement | null>(null)
+  const rememberEditorOpener = () => {
+    editorOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  }
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
 
   const {
@@ -83,7 +87,7 @@ export default function Services() {
         <h1 className="text-2xl font-semibold text-content">
           {t('nav.services')}
         </h1>
-        {!loading && !loadError ? <Button type="button" onClick={() => openCategoryForm()}>
+        {!loading && !loadError ? <Button type="button" onClick={() => { rememberEditorOpener(); openCategoryForm() }}>
           <Plus className="mr-2 h-4 w-4" />
           {t('services.newCategory')}
         </Button> : null}
@@ -95,11 +99,11 @@ export default function Services() {
       </div> : null}
       {loadError && !loading ? <ErrorState description={t('services.errors.loadFailed')} onRetry={loadData} /> : null}
       {!loading && !loadError ? <>
-      <ServiceCatalog categories={categories} openCategoryForm={openCategoryForm} openSubcategoryForm={openSubcategoryForm}
-        openServiceForm={openServiceForm} handleDeleteCategory={handleDeleteCategory} handleDeleteSubcategory={handleDeleteSubcategory}
+      <ServiceCatalog categories={categories} openCategoryForm={(category) => { rememberEditorOpener(); openCategoryForm(category) }} openSubcategoryForm={(categoryId, subcategory) => { rememberEditorOpener(); openSubcategoryForm(categoryId, subcategory) }}
+        openServiceForm={(subcategoryId, service) => { rememberEditorOpener(); openServiceForm(subcategoryId, service) }} handleDeleteCategory={handleDeleteCategory} handleDeleteSubcategory={handleDeleteSubcategory}
         openServiceDeletion={openServiceDeletion} />
 
-      <ServiceEditorDialog open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving}
+      <ServiceEditorDialog openerRef={editorOpener} open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving}
         catForm={catForm} subForm={subForm} svcForm={svcForm} setCatForm={setCatForm} setSubForm={setSubForm} setSvcForm={setSvcForm}
         svcFileRef={svcFileRef} uploadingImg={uploadingImg} handleUploadHeroImage={handleUploadHeroImage} onSave={() => void handleSave()} />
 
