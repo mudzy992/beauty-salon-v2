@@ -44,7 +44,8 @@ for (const language of ['bs', 'en'] as const) {
           await expect(dialog).toBeHidden()
           await expect(action).toBeFocused()
         }
-        const activePanel = '[role="tabpanel"][data-state="active"]'
+        // The client detail tabs are nested inside the analytics hub tabpanel.
+        const activePanel = '[role="tabpanel"][data-state="active"] [role="tabpanel"][data-state="active"]'
         await expect(page.locator(activePanel)).toHaveCount(1)
         const axe = await new AxeBuilder({ page }).include(activePanel).withRules(['button-name', 'label-content-name-mismatch']).analyze()
         expect(axe.violations).toEqual([])

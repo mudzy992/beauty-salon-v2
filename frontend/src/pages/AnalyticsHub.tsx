@@ -2,7 +2,8 @@ import { Suspense, lazy } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { RouteLoadingFallback } from '../app/route-loading-fallback'
-import { isAnalyticsTab, type AnalyticsTab } from '../features/analytics/analytics-tab-nav'
+import { ANALYTICS_TABS, AnalyticsTabNav, isAnalyticsTab, type AnalyticsTab } from '../features/analytics/analytics-tab-nav'
+import { Tabs, TabsContent } from '../components/ui/tabs'
 
 /**
  * M1 (Q3 + Q7) — `/admin/analytics` hub sa `?tab=`.
@@ -29,18 +30,28 @@ const PANELS = {
 } as const
 
 export default function AnalyticsHub() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const requested = searchParams.get('tab')
   // type guard sužava tip; bez toga ternary proširi na `string` i PANELS[tab]
   // postane implicitno `any` (TS7053) — ista zamka kao u SettingsHub.
   const tab: AnalyticsTab = isAnalyticsTab(requested) ? requested : 'overview'
-  const Panel = PANELS[tab]
 
   return (
-    <div data-analytics-hub className="min-w-0 max-w-full space-y-6">
-      <Suspense fallback={<RouteLoadingFallback />}>
-        <Panel />
-      </Suspense>
-    </div>
+    <Tabs data-analytics-hub value={tab} onValueChange={value => {
+      if (!isAnalyticsTab(value) || value === tab) return
+      const next = new URLSearchParams(searchParams)
+      next.set('tab', value)
+      setSearchParams(next)
+    }} className="min-w-0 max-w-full space-y-6">
+      <AnalyticsTabNav />
+      {ANALYTICS_TABS.map(value => {
+        const Panel = PANELS[value]
+        return (
+          <TabsContent key={value} value={value} forceMount hidden={value !== tab}>
+            {value === tab ? <Suspense fallback={<RouteLoadingFallback />}><Panel /></Suspense> : null}
+          </TabsContent>
+        )
+      })}
+    </Tabs>
   )
 }

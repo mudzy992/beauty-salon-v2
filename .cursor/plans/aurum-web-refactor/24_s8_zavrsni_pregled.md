@@ -1,12 +1,12 @@
 # S8 — pregled preostalih kriterija i odluka
 
-Stanje pri lokalnom nastavku nakon `d6cde2c`; ovo je pregled dokaza, **ne potvrda završetka S8**. Opseg su analitika (tri pogleda i hub), korisnici, salon, usluge, frizeri i galerija radova uz uslugu. S9 i produkcijski deploy nisu pokrenuti.
+Stanje nakon vlasnikovih odluka i lokalne implementacije tablista; ovo je pregled dokaza, **ne potvrda završetka S8**. Opseg su analitika (tri pogleda i hub), korisnici, salon, usluge, frizeri i galerija radova uz uslugu. S9 i produkcijski deploy nisu pokrenuti.
 
 ## Implementirani obuhvat i granice dokaza
 
 | Područje | Dokazi i pregledani tokovi | Ograničenje |
 |---|---|---|
-| Analytics hub i overview | `analytics-hub-redirect.test.mjs`, `s8-analytics-dashboard.spec.ts`, `s8-analytics-chart-keyboard.spec.ts`; `?tab=`, legacy redirect, odabrani read/retry, tastaturni graf, tekst i tabela iz istih podataka. | Plan traži `tablist`, a postojeća odobrena M1/Q7 navigacija su tri sidebar linka s `aria-current`; odluka ispod. Test nije stvarni čitač ekrana. |
+| Analytics hub i overview | `analytics-hub-redirect.test.mjs`, `s8-analytics-tabs.spec.ts`, `s8-analytics-dashboard.spec.ts`, `s8-analytics-chart-keyboard.spec.ts`; tablist, `?tab=`, legacy redirect, read/retry, tastaturni graf, tekst i tabela iz istih podataka. | Sidebar linkovi ostaju uz novi tablist; stvarni čitač ekrana nije testiran. |
 | Klijentska analitika | `s8-client-analytics-races.spec.ts`, `s8-client-analytics-action-names.spec.ts`, `s8-client-analytics-presentation.spec.ts`; podaci u panelima, greške i retry, detalji i fokus. | API je mockiran, nisu sve kombinacije stvarnih podataka i AT. |
 | Frizerska analitika | `s8-stylist-analytics.spec.ts`; identitet/period, odgođeni read, retry i imenovane tabele. | Ne dokazuje svaki historijski obračun ili veliki server dataset. |
 | Korisnici | `s8-users-list.spec.ts`, `s8-users-read-races.spec.ts`, `s8-users-change-confirmation.spec.ts`, `s8-admin-refactor.spec.ts`; lista, kredencijali, role, deaktivacija i dijelovi uklanjanja stiliste. | Mock write nije potvrda produkcijske transakcije; rezultati scoped axe nisu potpuni audit. |
@@ -19,16 +19,16 @@ Cijela lokalna mock S8 regresija nakon naknadne ekstrakcije **411/411**, ciljano
 
 ## Izmjerena veličina stranica
 
-Početno mjerenje iz CHANGELOG-a: AnalyticsHub 46, Analytics 477, ClientAnalytics 821, StylistAnalytics 248, Users 1718, Services 1519, Salon 674, Stylists 520, ServiceWorkGallery 226 linija. Trenutno: **46 / 68 / 134 / 119 / 138 / 139 / 128 / 146 / 132** istim redom. `Services.tsx` je nakon izdvajanja potvrda kategorija 171 → 139; logika je u `use-service-category-deletion.ts` (54). Izdvojeni moduli nisu svi unutar ~100–150 linija (npr. `use-service-editor.ts` 209 i `edit-user-dialog.tsx` 173); cilj je približan, ali dužina tih modula i njihovo eventualno dalje izdvajanje nisu skriveni.
+Početno mjerenje iz CHANGELOG-a: AnalyticsHub 46, Analytics 477, ClientAnalytics 821, StylistAnalytics 248, Users 1718, Services 1519, Salon 674, Stylists 520, ServiceWorkGallery 226 linija. Trenutno: **57 / 68 / 134 / 119 / 138 / 139 / 128 / 146 / 132** istim redom. `Services.tsx` je nakon izdvajanja potvrda kategorija 171 → 139; logika je u `use-service-category-deletion.ts` (54). Izdvojeni moduli nisu svi unutar ~100–150 linija (npr. `use-service-editor.ts` 209 i `edit-user-dialog.tsx` 173); cilj je približan, ali dužina tih modula i njihovo eventualno dalje izdvajanje nisu skriveni.
 
-## Dvije odluke prije zatvaranja
+## Odluke vlasnika i novo stanje
 
-1. **Galerija radova:** `git show c5267fa:frontend/src/pages/ServiceWorkGallery.tsx` potvrđuje da je početni ekran imao samo GET za uslugu i `/api/daily-log/before-after`; nema upload/delete/reorder kontrola. Zasebni `/admin/gallery` (`Gallery.tsx`, `/api/gallery/*`) ima upravljanje sadržajem i po planu je S9. Preporuka: za S8 očuvati postojeći read-only work-gallery ugovor, a postojeću zasebnu admin galeriju obrađivati u S9. Dodavanje uređivanja before/after parova u ovaj ekran bio bi novi funkcionalni i privacy opseg, ne očuvanje postojeće funkcije.
-2. **Analitička navigacija:** implementacija i `analytics-hub-redirect.test.mjs` čuvaju tri sidebar linka, `?tab=` i `aria-current`; komentar `analytics-tab-nav.tsx` bilježi da je gornji tab-menu uklonjen u S6. Preporuka: zadržati odobrenu sidebar navigaciju i uskladiti formulaciju S8 plana umjesto uvođenja drugog navigacijskog obrasca. Ako se želi pravi ARIA tablist, to je promjena interakcije i zahtijeva zasebnu implementaciju i dokaz.
+1. **Galerija radova:** vlasnik je odabrao implementaciju uređivanja u S8. Novi par povezuje se s postojećim završenim zapisom usluge; upload je privatan i objava čeka zasebnu klijentovu saglasnost za svaku sliku. Uklanjanje skriva par iz admin i javne galerije bez brisanja originala ili povlačenja saglasnosti; redoslijed vrijedi u admin prikazu i javnom feedu filtriranom po usluzi, ostali feedovi ostaju nepromijenjeni. Ovo **još nije implementirano**. Početni work-gallery je read-only i javni feed je izveden iz dnevnih zapisa (`git show c5267fa:frontend/src/pages/ServiceWorkGallery.tsx`); zasebni `/admin/gallery` je i dalje S9. Posebno zaštititi autorizaciju, privatne fajlove, revokaciju saglasnosti, transakcijske utrke, paginaciju i stabilan redoslijed. Postojeći `DELETE /api/daily-log/:id/images/:imageId` briše sliku iz zapisa i nije ekvivalent odabranom skrivanju.
+2. **Analitička navigacija:** vlasnik je odabrao pravi tablist. Lokalno uveden kontrolisani Radix tablist i paneli, automatsko biranje strelicama, Home/End, očuvanje query parametara, browser historije i sidebar deep linkova. Prije izmjene nova browser fiksura 4/4 FAIL (tablist nije postojao); nakon izmjene ciljana regresija **26/26**, puni S8 **415/415**, uključujući četiri scoped axe skena tablista bez violations za pet ARIA/button pravila. Prva puna regresija bila je **407/415**, zbog testnog selektora koji nije očekivao ugniježđene tabove; selektor je ograničen na unutrašnji panel, zatim 415/415. Mock podaci i scoped axe nisu stvarni AT audit. Node **1005/1005**, build i E2E typecheck PASS, lint 0/6; CI za ovu promjenu još nije provjeren.
 
 ## Do kraja S8
 
-- Donijeti dvije gore navedene odluke i eksplicitno evidentirati eventualne promjene plana.
+- Implementirati i testirati odobreni tok galerije; ne objavljivati slike bez aktivne saglasnosti i ne koristiti destruktivno brisanje za sakrivanje.
 - Završiti postojeći CI, pushati lokalne commitove, te potvrditi **5/5 na tačno završnom HEAD-u**; ne miješati rezultate različitih commitova.
 - Pregledati otvorene stavke i dokaze nakon tih odluka; zadržati stvarni AT/400% i druge ručne dokaze koji su u planu dodijeljeni S11, bez pretvaranja mock/axe rezultata u WCAG certifikaciju.
 - Tek nakon zadovoljenih S8 kriterija stati i pitati za odobrenje S9. Nema merge/deploya.

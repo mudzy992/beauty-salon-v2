@@ -52,8 +52,10 @@ test('analytics je grupisan u sidebar pod „Analitika"; 3 pod-pogleda kao ?tab=
   assert.match(tabNav, /export type AnalyticsTab = \(typeof ANALYTICS_TABS\)\[number\]/)
   assert.match(tabNav, /export const isAnalyticsTab = \(value: string \| null\): value is AnalyticsTab =>/)
 
-  // gornji tab-menu je uklonjen — navigacija je sada u bočnoj traci
-  assert.doesNotMatch(tabNav, /export function AnalyticsTabNav/)
+  // Sidebar deep linkovi ostaju; vlasnik je u S8 odobrio i lokalni tablist.
+  assert.match(tabNav, /export function AnalyticsTabNav/)
+  assert.match(tabNav, /<TabsList aria-label=\{t\('adminAnalytics\.tabsLabel'\)\}/)
+  assert.match(hub, /<TabsContent key=\{value\} value=\{value\} forceMount hidden=\{value !== tab\}>/)
 
   // nova grupa u sidebaru
   assert.match(adminNav, /labelKey: 'nav\.sectionAnalytics'/)
