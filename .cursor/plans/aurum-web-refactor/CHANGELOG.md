@@ -5,6 +5,12 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Nazivi klizača galerije radova (rad u toku)
+
+Više prije/poslije klizača uz uslugu imalo je isto pristupačno ime. BS/EN × 320/1280 browser fiksure prije ispravke padaju 4/4, jer traženi razlučivi nazivi ne postoje. Pri više trenutno učitanih parova koriste se postojeći lokalizovani nazivi s rednim brojem i brojem učitanih parova; jedan par zadržava postojeći naziv. Pri učitavanju sljedeće stranice broj se ažurira i odnosi se samo na trenutno učitane parove, ne na ukupan broj na serveru. Testovi provjeravaju neovisno upravljanje tastaturom, te prijelaz jednog para u dva nakon paginacije. Ciljani galerijski skup 19/19, puni mock S8 199/199, Node 1001/1001, lint 0 grešaka/6 ranijih upozorenja, build 293,2/300 KiB i typecheck prolaze; API i fotografije nisu mijenjani. Sintetički preglednik nije stvarni AT ni dokaz sadržaja/slikovnih opisa. CI ovog nastavka tek slijedi; S8 ostaje otvoren.
+
+---
+
 ## 2026-11-18 · S8 · Kompozicija analitičkog pregleda (rad u toku)
 
 `Analytics.tsx` 388 → 68 linija: filter perioda, finansijski sažetak, graf/tabela i tabele uspješnosti izdvojeni su u četiri modula od 80–98 linija. Učitavanje, redoslijed hookova i izračun grafa/sumarnog opisa ostaju na stranici; preset vrijednosti, formati, obračuni, sadržaj, deep-link, endpoint i query parametri nisu namjerno promijenjeni. Filter je stalno montiran tokom loading/error stanja, pa zadržava izabrane datume i za retry.

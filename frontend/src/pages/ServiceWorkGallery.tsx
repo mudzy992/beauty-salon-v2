@@ -93,9 +93,12 @@ export default function ServiceWorkGallery() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {items.map((pair) => (
+            {items.map((pair, index) => (
               <Card key={pair.id} className="overflow-hidden">
                 <BeforeAfterSlider
+                  ariaLabel={items.length > 1
+                    ? t('public.beforeAfter.sliderLabelIndexed', { current: index + 1, total: items.length })
+                    : t('public.beforeAfter.sliderLabel')}
                   beforeSrc={getUploadUrl(
                     pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal,
                   )}
