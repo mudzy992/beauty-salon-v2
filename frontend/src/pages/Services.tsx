@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Plus } from 'lucide-react'
 import { ServiceDeletionDialog } from '../features/services/service-deletion-dialog'
@@ -30,19 +30,32 @@ export default function Services() {
   const { categories, loading, loadError, loadData: loadCatalog } = useServiceCatalog({ showApiError })
   const pageRef = useRef<HTMLDivElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const catalogReloadingRef = useRef(false)
   const loadData = useCallback(() => {
-    if (pageRef.current?.contains(document.activeElement) && document.activeElement !== headingRef.current) headingRef.current?.focus()
+    const active = document.activeElement
+    if ((active === document.body || pageRef.current?.contains(active)) && active !== headingRef.current) headingRef.current?.focus()
+    catalogReloadingRef.current = true
     loadCatalog()
   }, [loadCatalog])
+  useEffect(() => { if (!loading) catalogReloadingRef.current = false }, [loading])
   const editorOpener = useRef<HTMLElement | null>(null)
   const deletionOpener = useRef<HTMLElement | null>(null)
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
+  // A completed mutation invalidates every open catalog dialog, not only its own.
+  // Keep its draft visible but prevent writes until the dialog closes and refresh completes.
+  const [refreshRequested, setRefreshRequested] = useState(false)
+  const refreshRequestedRef = useRef(false)
+  const requestMutationRefresh = useCallback(() => {
+    refreshRequestedRef.current = true
+    setRefreshRequested(true)
+  }, [])
+  const isCatalogStale = useCallback(() => refreshRequestedRef.current, [])
 
   const {
     open, setOpen, modalMode, saving, catForm, subForm, svcForm, setCatForm, setSubForm, setSvcForm,
     svcFileRef, uploadingImg, getDialogTitle, openCategoryForm, openSubcategoryForm, openServiceForm,
     handleUploadHeroImage, handleSave,
-  } = useServiceEditor({ loadData, showApiError })
+  } = useServiceEditor({ loadData: requestMutationRefresh, showApiError, isCatalogStale })
 
   const handleDeleteCategory = (id: string, trigger: HTMLButtonElement) => {
     setConfirmRequest({
@@ -54,7 +67,7 @@ export default function Services() {
         try {
           await api.delete(`/api/services/categories/${id}`)
           success(t('services.toast.categoryDeleted'))
-          loadData()
+          requestMutationRefresh()
         } catch (err) {
           showApiError(err, 'services.errors.deleteCategoryFailed')
         }
@@ -72,7 +85,7 @@ export default function Services() {
         try {
           await api.delete(`/api/services/subcategories/${id}`)
           success(t('services.toast.subcategoryDeleted'))
-          loadData()
+          requestMutationRefresh()
         } catch (err) {
           showApiError(err, 'services.errors.deleteSubcategoryFailed')
         }
@@ -85,7 +98,15 @@ export default function Services() {
     deletionSaving, deletionLoading, deletionLoadError, availableMergeTargets, hasMergeConflicts,
     hasProcessingOutboxEvents, closeServiceDeletion, selectDeletionAction, openServiceDeletion,
     setDeletionTargetId, invalidateDeletionPreview, loadDeletionImpact, setDeletionConfirmationName, handleServiceMutation,
-  } = useServiceDeletion({ categories, loadData, showApiError })
+  } = useServiceDeletion({ categories, loadData: requestMutationRefresh, showApiError, isCatalogStale })
+
+  useEffect(() => {
+    if (refreshRequested && refreshRequestedRef.current && !open && !deletionOpen && !confirmRequest) {
+      refreshRequestedRef.current = false
+      setRefreshRequested(false)
+      loadData()
+    }
+  }, [refreshRequested, open, deletionOpen, confirmRequest, loadData])
 
   return (
     <div ref={pageRef}>
@@ -112,11 +133,12 @@ export default function Services() {
           openServiceDeletion(service)
         }} />
 
-      <ServiceEditorDialog openerRef={editorOpener} fallbackFocusRef={headingRef} open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving}
+      <ServiceEditorDialog openerRef={editorOpener} fallbackFocusRef={headingRef} catalogReloadingRef={catalogReloadingRef} open={open} setOpen={setOpen} modalMode={modalMode} title={getDialogTitle()} saving={saving} catalogStale={refreshRequested}
         catForm={catForm} subForm={subForm} svcForm={svcForm} setCatForm={setCatForm} setSubForm={setSubForm} setSvcForm={setSvcForm}
         svcFileRef={svcFileRef} uploadingImg={uploadingImg} handleUploadHeroImage={handleUploadHeroImage} onSave={() => void handleSave()} />
 
-      <ServiceDeletionDialog openerRef={deletionOpener} fallbackFocusRef={headingRef}
+      <ServiceDeletionDialog openerRef={deletionOpener} fallbackFocusRef={headingRef} catalogReloadingRef={catalogReloadingRef}
+        catalogStale={refreshRequested}
         deletionOpen={deletionOpen}
         deletionService={deletionService}
         deletionImpact={deletionImpact}
@@ -142,7 +164,7 @@ export default function Services() {
         }}
         onConfirm={() => void handleServiceMutation()}
       />
-      <AdminConfirmDialog fallbackFocusRef={headingRef} request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      <AdminConfirmDialog fallbackFocusRef={headingRef} request={confirmRequest} onClose={() => setConfirmRequest(null)} blockedReason={refreshRequested ? t('services.catalogChanged') : undefined} shouldBlock={isCatalogStale} />
       </> : null}
     </div>
   )

@@ -7,8 +7,8 @@ import type { Category } from './service-catalog-types'
 import type { Service } from './service-types'
 import type { ServiceDeletionImpact, ServiceMutationAction } from './service-deletion-types'
 
-type Dependencies = { categories: Category[]; loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void }
-export function useServiceDeletion({ categories, loadData, showApiError }: Dependencies) {
+type Dependencies = { categories: Category[]; loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void; isCatalogStale: () => boolean }
+export function useServiceDeletion({ categories, loadData, showApiError, isCatalogStale }: Dependencies) {
   const { t } = useTranslation()
   const { success } = useAppToast()
   const [deletionOpen, setDeletionOpen] = useState(false)
@@ -27,7 +27,6 @@ export function useServiceDeletion({ categories, loadData, showApiError }: Depen
   const deletionDialogGeneration = useRef(0)
   const deletionOpenRef = useRef(false)
   const deletionMutationInFlight = useRef(false)
-  const deletionRefreshPending = useRef(false)
   const deletionMounted = useRef(false)
 
   useEffect(() => {
@@ -51,12 +50,6 @@ export function useServiceDeletion({ categories, loadData, showApiError }: Depen
     deletionDialogGeneration.current += 1
     invalidateDeletionPreview()
     setDeletionOpen(false)
-    // A previous mutation may have completed while a newer dialog was open.
-    // Refresh only after it closes, so its contents and focus are not lost.
-    if (deletionRefreshPending.current) {
-      deletionRefreshPending.current = false
-      loadData()
-    }
   }
 
   const loadDeletionImpact = async (
@@ -97,7 +90,7 @@ export function useServiceDeletion({ categories, loadData, showApiError }: Depen
   }
 
   const handleServiceMutation = async () => {
-    if (!deletionService || !deletionImpact || deletionMutationInFlight.current) return
+    if (!deletionService || !deletionImpact || deletionMutationInFlight.current || isCatalogStale()) return
     deletionMutationInFlight.current = true
     const dialogGeneration = deletionDialogGeneration.current
     const sessionVersion = useAuthStore.getState().sessionVersion
@@ -118,15 +111,10 @@ export function useServiceDeletion({ categories, loadData, showApiError }: Depen
       if (!stillMountedInSession()) return
       success(t(deletionAction === 'MERGE' ? 'services.toast.serviceMerged' : 'services.toast.serviceDeleted'))
       if (sameDialog()) {
-        deletionRefreshPending.current = false
         closeServiceDeletion()
         setDeletionService(null)
-        loadData()
-      } else if (deletionOpenRef.current) {
-        deletionRefreshPending.current = true
-      } else {
-        loadData()
       }
+      loadData()
     } catch (err) {
       if (!stillMountedInSession()) return
       showApiError(err, 'services.errors.deleteServiceFailed')

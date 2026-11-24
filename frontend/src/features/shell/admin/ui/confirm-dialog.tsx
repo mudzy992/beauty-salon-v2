@@ -14,6 +14,7 @@ type ConfirmDialogProps = {
   confirmLabel?: string
   isDestructive?: boolean
   isPending?: boolean
+  blockedReason?: string
   /** Kada je postavljeno, potvrda traži tekstualni razlog. */
   reasonLabel?: string
   minReasonLength?: number
@@ -30,6 +31,7 @@ export function ConfirmDialog({
   confirmLabel,
   isDestructive = false,
   isPending = false,
+  blockedReason,
   reasonLabel,
   minReasonLength = 3,
   onConfirm,
@@ -64,7 +66,7 @@ export function ConfirmDialog({
   }, [isPending])
 
   const handleConfirm = () => {
-    if (isPending || !isReasonValid || confirmInFlightRef.current) return
+    if (isPending || blockedReason || !isReasonValid || confirmInFlightRef.current) return
     confirmInFlightRef.current = true
     setConfirmLocked(true)
     onConfirm(reason.trim())
@@ -109,6 +111,8 @@ export function ConfirmDialog({
             variant={isDestructive ? 'danger' : 'default'}
             onClick={handleConfirm}
             disabled={isPending || !isReasonValid || confirmLocked}
+            aria-disabled={blockedReason ? true : undefined}
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             aria-busy={isPending}
           >
             {isPending
@@ -118,6 +122,7 @@ export function ConfirmDialog({
         </div>
       }
     >
+      {blockedReason ? <p role="alert" className="text-sm text-content-strong">{blockedReason}</p> : null}
       {requiresReason ? (
         <div className="space-y-2">
           <Label htmlFor="confirm-reason">{reasonLabel}</Label>

@@ -15,10 +15,14 @@ export function AdminConfirmDialog({
   request,
   onClose,
   fallbackFocusRef,
+  blockedReason,
+  shouldBlock,
 }: {
   request: AdminConfirmRequest | null
   onClose: () => void
   fallbackFocusRef?: { current: HTMLElement | null }
+  blockedReason?: string
+  shouldBlock?: () => boolean
 }) {
   const triggerRef = useRef<HTMLElement | null>(null)
 
@@ -46,7 +50,9 @@ export function AdminConfirmDialog({
       description={request?.description}
       confirmLabel={request?.confirmLabel}
       isDestructive={request?.isDestructive ?? true}
+      blockedReason={blockedReason}
       onConfirm={() => {
+        if (blockedReason || shouldBlock?.()) return
         const action = request?.action
         onClose()
         void action?.()

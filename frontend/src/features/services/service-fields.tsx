@@ -8,8 +8,8 @@ import { ServiceStatusFields } from './service-status-fields'
 import { Textarea } from '../../components/ui/textarea'
 import type { ServiceForm } from './service-form-types'
 
-type Props = { svcForm: ServiceForm; setSvcForm: Dispatch<SetStateAction<ServiceForm>>; svcFileRef: RefObject<HTMLInputElement>; uploadingImg: boolean; handleUploadHeroImage: (file: File) => Promise<void> }
-export function ServiceFields({ svcForm, setSvcForm, svcFileRef, uploadingImg, handleUploadHeroImage }: Props) {
+type Props = { svcForm: ServiceForm; setSvcForm: Dispatch<SetStateAction<ServiceForm>>; svcFileRef: RefObject<HTMLInputElement>; uploadingImg: boolean; catalogStale: boolean; handleUploadHeroImage: (file: File) => Promise<void> }
+export function ServiceFields({ svcForm, setSvcForm, svcFileRef, uploadingImg, catalogStale, handleUploadHeroImage }: Props) {
   const { t } = useTranslation()
   return (
     <div className="space-y-4">
@@ -34,7 +34,7 @@ export function ServiceFields({ svcForm, setSvcForm, svcFileRef, uploadingImg, h
           rows={2}
         />
       </div>
-      <ServiceHeroImageField heroImage={svcForm.heroImage} svcFileRef={svcFileRef} uploadingImg={uploadingImg} handleUploadHeroImage={handleUploadHeroImage} />
+      <ServiceHeroImageField heroImage={svcForm.heroImage} svcFileRef={svcFileRef} uploadingImg={uploadingImg} catalogStale={catalogStale} handleUploadHeroImage={handleUploadHeroImage} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>

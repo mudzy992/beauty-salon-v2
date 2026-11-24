@@ -30,8 +30,10 @@ const serviceStatusFields = read('../services/service-status-fields.tsx')
 // Include extracted components; assert the rendering chain as well as the
 // original switch, file-picker and table guarantees below.
 assert.match(servicesPage, /<ServiceEditorDialog\b/)
-assert.match(servicesPage, /useServiceEditor\(\{ loadData, showApiError \}\)/)
-assert.match(servicesPage, /useServiceDeletion\(\{ categories, loadData, showApiError \}\)/)
+assert.match(servicesPage, /useServiceEditor\(\{ loadData: requestMutationRefresh, showApiError, isCatalogStale \}\)/)
+assert.match(servicesPage, /useServiceDeletion\(\{ categories, loadData: requestMutationRefresh, showApiError, isCatalogStale \}\)/)
+assert.match(servicesPage, /refreshRequestedRef\.current = false[\s\S]*?loadData\(\)/)
+assert.match(servicesPage, /!open && !deletionOpen && !confirmRequest/)
 assert.match(servicesPage, /useServiceCatalog\(\{ showApiError \}\)/)
 assert.match(editor, /<CategoryFields\b/)
 assert.match(editor, /<ServiceFields\b/)

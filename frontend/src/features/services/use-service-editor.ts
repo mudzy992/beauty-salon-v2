@@ -8,8 +8,8 @@ import type { ModalMode } from './service-form-types'
 import { useServiceImageUpload } from './use-service-image-upload'
 import { useAuthStore } from '../../stores/auth.store'
 
-type Dependencies = { loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void }
-export function useServiceEditor({ loadData, showApiError }: Dependencies) {
+type Dependencies = { loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void; isCatalogStale: () => boolean }
+export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dependencies) {
   const { t } = useTranslation()
   const { success } = useAppToast()
   const sessionVersion = useAuthStore(state => state.sessionVersion)
@@ -19,7 +19,6 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   const editorOpen = useRef(false)
   const saveSequence = useRef(0)
   const saveInFlight = useRef(false)
-  const refreshPending = useRef(false)
   const mounted = useRef(false)
   const [modalMode, setModalMode] = useState<ModalMode>('category')
   const [editId, setEditId] = useState<string | null>(null)
@@ -59,7 +58,6 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
     saveSequence.current += 1
     editorOpen.current = false
     saveInFlight.current = false
-    refreshPending.current = false
     setSaving(false)
     setOpenState(false)
   }, [sessionVersion])
@@ -70,7 +68,6 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
       editorOpen.current = false
       resetUploads()
       setOpenState(false)
-      if (refreshPending.current) { refreshPending.current = false; loadData() }
     } else {
       editorOpen.current = true
       setOpenState(true)
@@ -161,7 +158,7 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   }
 
   const handleSave = async () => {
-    if (!editorOpen.current || saveInFlight.current || isUploading()) return
+    if (!editorOpen.current || saveInFlight.current || isUploading() || isCatalogStale()) return
     const generation = editorGeneration.current
     const request = ++saveSequence.current
     const session = useAuthStore.getState().sessionVersion
@@ -192,15 +189,8 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
       }
       if (!currentSession()) return
       success(t('services.toast.saved'))
-      if (sameEditor()) {
-        refreshPending.current = false
-        setOpen(false)
-        loadData()
-      } else if (editorOpen.current) {
-        refreshPending.current = true
-      } else {
-        loadData()
-      }
+      if (sameEditor()) setOpen(false)
+      loadData()
     } catch (err) {
       if (currentSession()) showApiError(err, 'services.errors.saveFailed')
     } finally {
@@ -214,6 +204,6 @@ export function useServiceEditor({ loadData, showApiError }: Dependencies) {
   return {
     open, setOpen, modalMode, saving, catForm, subForm, svcForm, setCatForm, setSubForm, setSvcForm,
     svcFileRef, uploadingImg, getDialogTitle, openCategoryForm, openSubcategoryForm, openServiceForm,
-    handleUploadHeroImage, handleSave,
+    handleUploadHeroImage: async (file: File) => { if (!isCatalogStale()) await handleUploadHeroImage(file) }, handleSave,
   }
 }

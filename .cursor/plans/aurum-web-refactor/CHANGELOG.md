@@ -5,6 +5,17 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Osvježavanje kataloga između različitih dijaloga
+
+- Pri odgođenom mock uspjehu spremanja usluge dok je otvoreno brisanje druge, ili odgođenom uspjehu brisanja dok je otvoren drugi editor, raniji kod je odmah pokretao refresh. Kada je odgovor kataloga zadržan, svih **8/8** BS/EN × 320/1280 × save/delete negativnih kontrola izgubilo je otvoreni dijalog; raniji test s instant katalogom pokazivao je rani dodatni read, ali ne pouzdano gubitak dijaloga.
+- Osvježavanje je koordinirano kroz otvoreni editor, dijalog brisanja i potvrdu kategorije/potkategorije. Kada raniji write uspije dok je drugi dijalog otvoren, njegov nacrt ostaje vidljiv; lokalizovani alert traži kopiranje nespremljenog teksta i zatvaranje prije refresh-a. Save, upload i destruktivne potvrde su `aria-disabled`, ostaju fokusabilni, a handler/ref guard sprečava stvarni poziv. Nakon zatvaranja ide odgođeni refresh. To je konzervativan UX: nacrt nije automatski sačuvan niti se ponovo primjenjuje; već poslani server zahtjevi se ne otkazuju i već uploadovan fajl može ostati na serveru. Zaštita obuhvata ove dijaloge na Services stranici, ne druge stranice ili sve moguće promjene sesije.
+- Novi mock testovi pokrivaju oba smjera, četiri potvrde kategorije pri kasnom saveu i četiri kasna brisanja kategorije pri otvorenom editoru; provjeravaju očuvanje nacrta, fokus, Enter bez dodatnog writea i refresh tek nakon zatvaranja. Šest ograničenih axe skenova (pravila `button-name`, `aria-valid-attr`, `aria-allowed-attr`) bez violations. Mockirani API i `setInputFiles` nisu stvarna baza, OS picker ili AT audit.
+- Prvi objedinjeni run nakon koordinacije imao je **399 passed / 8 failed**: fokusni testovi su pokazali da, dok Radix još zatvara dialog, fokus na naslov nije uspio. Fokusni fallback pri reloadu sada se primjenjuje i u `onCloseAutoFocus`; ciljano **32/32**, a novi kompletni S8 **411/411**. Ranije garancije povrata fokusa, bez preuzimanja nakon što korisnik pomjeri fokus, ostaju u testovima. Dva statička testa su usklađena s novim koordiniranim callbackom i dodatnim guardom potvrde, uz zadržane provjere pending/reason/duplicate/focus i rendering lanca.
+
+Frontend Node **1005/1005**, build, E2E typecheck, pet Python provjera i diff check PASS, lint 0 errors/6 ranijih warnings. Initial **293,9/300 KiB**, Analytics **116,4/140 KiB**. Lokalni Chromium **158.0.8127.0**, ne potpuno isti CI build 158.0.8127.18. [CI 45448858670](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45448858670) za pushani `c34c12f` još traje pri zapisu (četiri success, rendered u toku); ovaj lokalni nastavak nije u njemu. Sačekati završetak prije pusha, potom pratiti novi CI. S8 ostaje otvoren, uključujući nesklad gallery upravljanja i tablist/sidebar; STOP prije S9 i bez merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Async editor usluga i stabilnost retry fiksure
 
 - Upload slike: nakon zatvaranja i ponovnog otvaranja editora zastarjeli uspjeh ili greška više ne mijenja novi obrazac, njegov upload, file input ili toast; generation/sequence i promjena auth sesije obezvređuju stare odgovore. Ref blokira dupli upload i Save tokom uploada, uz lokalizovan status. Prije ispravke **8/8 fail** jer je Save ostao omogućen, a odvojena provjera prije **4/4 fail** jer je kasna slika A zamijenila original usluge B. Nakon ispravke testira se i uspješan drugi upload i njegov tačan mock PATCH payload.

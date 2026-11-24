@@ -13,7 +13,9 @@ import type { Service } from './service-types'
 type Props = {
   openerRef: RefObject<HTMLElement>
   fallbackFocusRef: RefObject<HTMLElement>
+  catalogReloadingRef: RefObject<boolean>
   deletionOpen: boolean
+  catalogStale: boolean
   deletionService: Service | null
   deletionImpact: ServiceDeletionImpact | null
   deletionAction: ServiceMutationAction
@@ -34,7 +36,7 @@ type Props = {
 }
 
 export function ServiceDeletionDialog({
-  openerRef, fallbackFocusRef, deletionOpen, deletionService, deletionImpact, deletionAction, deletionTargetId,
+  openerRef, fallbackFocusRef, catalogReloadingRef, catalogStale, deletionOpen, deletionService, deletionImpact, deletionAction, deletionTargetId,
   deletionConfirmationName, deletionSaving, deletionLoading, deletionLoadError,
   availableMergeTargets, hasMergeConflicts, hasProcessingOutboxEvents,
   closeServiceDeletion, selectDeletionAction, onTargetChange, onConfirmationChange, onRetry, onConfirm,
@@ -45,7 +47,7 @@ export function ServiceDeletionDialog({
       if (!nextOpen) closeServiceDeletion()
     }}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto" onCloseAutoFocus={(event) => {
-        const target = openerRef.current?.isConnected ? openerRef.current : fallbackFocusRef.current
+        const target = catalogReloadingRef.current ? fallbackFocusRef.current : (openerRef.current?.isConnected ? openerRef.current : fallbackFocusRef.current)
         if (target?.isConnected) { event.preventDefault(); target.focus() }
       }}>
         <DialogHeader>
@@ -84,6 +86,7 @@ export function ServiceDeletionDialog({
             </div>
           </div>
         ) : null}
+        {catalogStale ? <p role="alert" className="text-sm text-content-strong">{t('services.catalogChanged')}</p> : null}
         <DialogFooter className="gap-2 sm:gap-0">
           <Button
             type="button"
@@ -100,6 +103,8 @@ export function ServiceDeletionDialog({
                 : 'default'
             }
             onClick={onConfirm}
+            aria-disabled={catalogStale || undefined}
+            className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
             disabled={
               deletionSaving ||
               deletionLoading ||
