@@ -1342,7 +1342,10 @@
       "deleteHolidayFailed": "Nije moguće obrisati praznik.",
       "sendNotificationFailed": "Nije moguće poslati obavijest.",
       "loadHolidaysFailed": "Nije moguće učitati praznike.",
-      "holidaysMayBeStale": "Prikazani praznici možda nisu ažurni."
+      "holidaysMayBeStale": "Prikazani praznici možda nisu ažurni.",
+      "holidaysActionsUnavailable": "Radnje nad praznicima nisu dostupne dok se ne učita najnovija lista.",
+      "closeHolidayDialogToRetry": "Zatvorite ovaj dijalog i ponovite učitavanje praznika prije spremanja.",
+      "holidaysRefreshing": "Osvježavanje praznika…"
     }
   },
   "services": {

@@ -12,9 +12,11 @@ export type AdminConfirmRequest = {
 export function AdminConfirmDialog({
   request,
   onClose,
+  fallbackFocusRef,
 }: {
   request: AdminConfirmRequest | null
   onClose: () => void
+  fallbackFocusRef?: { current: HTMLElement | null }
 }) {
   const triggerRef = useRef<HTMLElement | null>(null)
 
@@ -28,9 +30,13 @@ export function AdminConfirmDialog({
         triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
       }}
       onCloseAutoFocus={(event) => {
-        if (triggerRef.current?.isConnected) {
+        const trigger = triggerRef.current
+        const target = trigger?.isConnected && !trigger.matches(':disabled')
+          ? trigger
+          : fallbackFocusRef?.current
+        if (target?.isConnected) {
           event.preventDefault()
-          triggerRef.current.focus()
+          target.focus()
         }
         triggerRef.current = null
       }}

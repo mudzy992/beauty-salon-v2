@@ -11,7 +11,7 @@ import type { SalonSettings, WorkingHours } from './salon-types'
 import { useSalonHolidays } from './use-salon-holidays'
 import { isHolidayList } from './salon-holiday-validation'
 
-export function useSalonManagement() {
+export function useSalonManagement(onHolidayReadStart: () => void) {
   const { t } = useTranslation()
   const { success, error, warning } = useAppToast()
   const showApiError = useCallback(
@@ -52,7 +52,7 @@ export function useSalonManagement() {
     reloadHolidays, resetHolidayReadState, holidayOpen, setHolidayOpen,
     editHoliday, holForm, setHolForm, openHolidayForm, handleSaveHoliday,
     handleDeleteHoliday, handleSendNotification,
-  } = useSalonHolidays({ salon, sessionVersion, sequence, holidaySequence, salonIdRef, activeRef, setSaving, setConfirmRequest, showApiError })
+  } = useSalonHolidays({ salon, sessionVersion, sequence, holidaySequence, salonIdRef, activeRef, setSaving, setConfirmRequest, showApiError, onHolidayReadStart })
 
   const loadSalon = useCallback(async () => {
     const request = ++sequence.current

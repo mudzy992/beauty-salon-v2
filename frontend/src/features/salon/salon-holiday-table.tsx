@@ -7,8 +7,8 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import type { Holiday } from './salon-types'
 
-type Props = { sortedHolidays: Holiday[]; openHolidayForm: (holiday?: Holiday) => void; handleSendNotification: (id: string) => Promise<void>; handleDeleteHoliday: (id: string) => void }
-export function SalonHolidayTable({ sortedHolidays, openHolidayForm, handleSendNotification, handleDeleteHoliday }: Props) {
+type Props = { sortedHolidays: Holiday[]; actionsDisabled: boolean; openHolidayForm: (holiday?: Holiday) => void; handleSendNotification: (id: string) => Promise<void>; handleDeleteHoliday: (id: string) => void }
+export function SalonHolidayTable({ sortedHolidays, actionsDisabled, openHolidayForm, handleSendNotification, handleDeleteHoliday }: Props) {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
   const holidayAccessibleName = (holiday: Holiday) => {
@@ -56,23 +56,27 @@ export function SalonHolidayTable({ sortedHolidays, openHolidayForm, handleSendN
           {h.sendPush ? (
             <Button
               type="button"
+              data-salon-holiday-action
               size="icon"
               variant="ghost"
               className="h-8 w-8"
+              disabled={actionsDisabled}
               aria-label={t('salon.aria.sendHolidayNotification', { name: holidayAccessibleName(h) })}
               onClick={() => void handleSendNotification(h.id)}
             >
               <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
             </Button>
           ) : null}
-          <Button type="button" size="sm" variant="ghost" aria-label={t('salon.aria.editHoliday', { name: holidayAccessibleName(h) })} onClick={() => openHolidayForm(h)}>
+          <Button type="button" data-salon-holiday-action size="sm" variant="ghost" disabled={actionsDisabled} aria-label={t('salon.aria.editHoliday', { name: holidayAccessibleName(h) })} onClick={() => openHolidayForm(h)}>
             {t('common.edit')}
           </Button>
           <Button
             type="button"
+            data-salon-holiday-action
             size="icon"
             variant="ghost"
             className="h-8 w-8"
+            disabled={actionsDisabled}
             aria-label={t('salon.aria.deleteHoliday', { name: holidayAccessibleName(h) })}
             onClick={() => void handleDeleteHoliday(h.id)}
           >

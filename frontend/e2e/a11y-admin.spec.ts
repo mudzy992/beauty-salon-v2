@@ -2236,13 +2236,15 @@ test('O4 review from details: nested confirmation preserves cancellation and sen
 })
 
 test('O4 salon holiday: cancel and confirm isolated deletion', async ({ page }) => {
-  const salon = { id: 'o4-salon', name: 'O4 salon', workingHours: [{ dayOfWeek: 1, openTime: '09:00', closeTime: '17:00', isWorkingDay: true }], holidays: [{ id: 'o4-holiday', name: 'O4 praznik', date: '2026-12-25', sendPush: false }] }
+  const salon = { id: 'o4-salon', name: 'O4 salon', workingHours: [{ dayOfWeek: 1, openTime: '09:00', closeTime: '17:00', isWorkingDay: true }], holidays: [{ id: 'o4-holiday', name: 'O4 praznik', date: '2026-12-25', message: null, sendPush: false, pushSentAt: null }] }
   let count = 0
   await page.route('**/api/salon/list', route => route.fulfill({ json: [salon] }))
   await page.route('**/api/salon/o4-salon', route => route.fulfill({ json: salon }))
   await page.route('**/api/salon/holidays/o4-holiday', route => { expect(route.request().method()).toBe('DELETE'); count++; return route.fulfill({ json: {} }) })
   await page.goto('/admin/salon', { waitUntil: 'networkidle' })
-  await page.getByRole('tab', { name: /praznici|holidays/i }).click()
+  const holidaysTab = page.getByRole('tab', { name: /praznici|holidays/i })
+  await expect(holidaysTab, 'O4 salon fixture must load before testing the holiday confirmation').toBeVisible({ timeout: 10_000 })
+  await holidaysTab.click()
   await exerciseO4Confirmation(page, page.getByRole('table').getByRole('button', { name: /^(obriši praznik|delete holiday): O4 praznik/i }), /praznik|holiday/i, () => count)
 })
 

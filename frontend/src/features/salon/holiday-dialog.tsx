@@ -8,12 +8,17 @@ import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 
 type HolidayForm = { date: string; name: string; message: string; sendPush: boolean }
-type Props = { holidayOpen: boolean; setHolidayOpen: Dispatch<SetStateAction<boolean>>; isEditing: boolean; holForm: HolidayForm; setHolForm: Dispatch<SetStateAction<HolidayForm>>; saving: boolean; onSave: () => void }
-export function HolidayDialog({ holidayOpen, setHolidayOpen, isEditing, holForm, setHolForm, saving, onSave }: Props) {
+type Props = { holidayOpen: boolean; setHolidayOpen: Dispatch<SetStateAction<boolean>>; isEditing: boolean; holForm: HolidayForm; setHolForm: Dispatch<SetStateAction<HolidayForm>>; saving: boolean; readBlocked: 'loading' | 'error' | null; fallbackFocusRef: { current: HTMLElement | null }; onSave: () => void }
+export function HolidayDialog({ holidayOpen, setHolidayOpen, isEditing, holForm, setHolForm, saving, readBlocked, fallbackFocusRef, onSave }: Props) {
   const { t } = useTranslation()
   return (
     <Dialog open={holidayOpen} onOpenChange={setHolidayOpen}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" onCloseAutoFocus={(event) => {
+        if (readBlocked && fallbackFocusRef.current?.isConnected) {
+          event.preventDefault()
+          fallbackFocusRef.current.focus()
+        }
+      }}>
         <DialogHeader>
           <DialogTitle>{t(isEditing ? 'salon.holidayForm.editTitle' : 'salon.holidayForm.newTitle')}</DialogTitle>
         </DialogHeader>
@@ -46,11 +51,20 @@ export function HolidayDialog({ holidayOpen, setHolidayOpen, isEditing, holForm,
           </div>
         </div>
 
+        {readBlocked === 'loading' ? (
+          <p role="status" className="text-sm text-content">{t('salon.errors.holidaysRefreshing')}</p>
+        ) : readBlocked === 'error' ? (
+          <div role="alert" className="text-sm text-content">
+            <p>{t('salon.errors.loadHolidaysFailed')}</p>
+            <p>{t('salon.errors.closeHolidayDialogToRetry')}</p>
+          </div>
+        ) : null}
+
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="ghost" onClick={() => setHolidayOpen(false)}>
             {t('common.cancel')}
           </Button>
-          <Button type="button" onClick={onSave} disabled={saving}>
+          <Button type="button" onClick={onSave} disabled={saving || Boolean(readBlocked)}>
             {saving ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>

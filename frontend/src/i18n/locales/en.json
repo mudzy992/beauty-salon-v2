@@ -1342,7 +1342,10 @@
       "deleteHolidayFailed": "Could not delete the holiday.",
       "sendNotificationFailed": "Could not send the notification.",
       "loadHolidaysFailed": "Could not load holidays.",
-      "holidaysMayBeStale": "Displayed holidays may be out of date."
+      "holidaysMayBeStale": "Displayed holidays may be out of date.",
+      "holidaysActionsUnavailable": "Holiday actions are unavailable until the latest list is loaded.",
+      "closeHolidayDialogToRetry": "Close this dialog and retry loading holidays before saving.",
+      "holidaysRefreshing": "Refreshing holidays…"
     }
   },
   "services": {

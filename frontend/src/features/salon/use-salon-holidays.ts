@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
+import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
@@ -18,15 +18,18 @@ type Props = {
   setSaving: Dispatch<SetStateAction<boolean>>
   setConfirmRequest: Dispatch<SetStateAction<AdminConfirmRequest | null>>
   showApiError: (err: unknown, fallbackKey: string) => void
+  onHolidayReadStart: () => void
 }
 
-export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySequence, salonIdRef, activeRef, setSaving, setConfirmRequest, showApiError }: Props) {
+export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySequence, salonIdRef, activeRef, setSaving, setConfirmRequest, showApiError, onHolidayReadStart }: Props) {
   const { t } = useTranslation()
   const { success, warning } = useAppToast()
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [holidayReadError, setHolidayReadError] = useState(false)
   const [holidayReloading, setHolidayReloading] = useState(false)
-  const resetHolidayReadState = useCallback(() => { setHolidayReadError(false); setHolidayReloading(false) }, [])
+  // Synchronous guard also covers event handlers and confirmations captured before a rerender.
+  const readBlockedRef = useRef(false)
+  const resetHolidayReadState = useCallback(() => { readBlockedRef.current = false; setHolidayReadError(false); setHolidayReloading(false) }, [])
   const sortedHolidays = useMemo(
     () => holidays.slice().sort((a, b) => a.date.localeCompare(b.date)),
     [holidays],
@@ -42,12 +45,16 @@ export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySeque
     const request = ++holidaySequence.current
     const salonRequest = sequence.current
     const current = () => activeRef.current && request === holidaySequence.current && salonRequest === sequence.current && salonIdRef.current === salon.id && useAuthStore.getState().sessionVersion === sessionVersion
+    readBlockedRef.current = true
+    onHolidayReadStart()
+    setConfirmRequest(null)
     setHolidayReloading(true)
     try {
       const { data } = await api.get<SalonSettings>(`/api/salon/${salon.id}`)
       if (!current()) return false
       if (!data || data.id !== salon.id || !isHolidayList(data.holidays)) throw new Error('Invalid holidays')
       setHolidays(data.holidays)
+      readBlockedRef.current = false
       setHolidayReadError(false)
       return true
     } catch (err) {
@@ -59,6 +66,7 @@ export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySeque
   }
 
   const openHolidayForm = (h?: Holiday) => {
+    if (readBlockedRef.current) return
     if (h) {
       setEditHoliday(h)
       setHolForm({ date: h.date.slice(0, 10), name: h.name, message: h.message ?? '', sendPush: h.sendPush })
@@ -70,7 +78,7 @@ export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySeque
   }
 
   const handleSaveHoliday = async () => {
-    if (!salon) return
+    if (!salon || readBlockedRef.current) return
     if (!holForm.date || !holForm.name) {
       warning(t('salon.validation.holidayRequired'))
       return
@@ -90,11 +98,13 @@ export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySeque
   }
 
   const handleDeleteHoliday = (id: string) => {
+    if (readBlockedRef.current) return
     setConfirmRequest({
       title: t('common.confirmDestructiveTitle'),
       description: t('salon.confirmDeleteHoliday'),
       confirmLabel: t('common.delete'),
       action: async () => {
+        if (readBlockedRef.current) return
         try {
           await api.delete(`/api/salon/holidays/${id}`)
           success(t('salon.toast.holidayDeleted'))
@@ -107,6 +117,7 @@ export function useSalonHolidays({ salon, sessionVersion, sequence, holidaySeque
   }
 
   const handleSendNotification = async (holidayId: string) => {
+    if (readBlockedRef.current) return
     try {
       await api.post(`/api/salon/holidays/${holidayId}/send-notification`)
       success(t('salon.toast.notificationSent'))

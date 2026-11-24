@@ -10,14 +10,20 @@ async function init(page: Page) {
 for (const status of [200, 500]) {
   test(`older holiday reload ${status} cannot replace a newer result`, async ({ page }) => {
     await init(page)
-    let release!: () => void, reads = 0, writes = 0
+    let release!: () => void, releaseFirstWrite!: () => void, releaseSecondWrite!: () => void, reads = 0, writes = 0
     const gate = new Promise<void>(resolve => { release = resolve })
+    const firstWrite = new Promise<void>(resolve => { releaseFirstWrite = resolve })
+    const secondWrite = new Promise<void>(resolve => { releaseSecondWrite = resolve })
     await page.route('**/api/**', async route => {
       const url = new URL(route.request().url())
       if (url.pathname === '/api/settings/public') return route.fulfill({ json: [] })
       if (url.pathname === '/api/users/profile') return route.fulfill({ json: profile })
       if (url.pathname === '/api/salon/list') return route.fulfill({ json: [salon] })
-      if (url.pathname.endsWith('/send-notification')) { writes++; return route.fulfill({ json: {} }) }
+      if (url.pathname.endsWith('/send-notification')) {
+        writes++
+        await (url.pathname.includes('/h-1/') ? firstWrite : secondWrite)
+        return route.fulfill({ json: {} })
+      }
       if (url.pathname === '/api/salon/salon-1') {
         reads++
         if (reads === 1) { await gate; return status === 200 ? route.fulfill({ json: { ...salon, holidays: [holiday('old', 'Stale holiday')] } }) : route.fulfill({ status: 500, json: {} }) }
@@ -29,8 +35,11 @@ for (const status of [200, 500]) {
       await page.goto('/admin/salon', { waitUntil: 'networkidle' })
       await page.getByRole('tab', { name: 'Holidays' }).click()
       await page.getByRole('button', { name: /Send notification for holiday: First holiday/ }).click()
-      await expect.poll(() => reads).toBe(1)
       await page.getByRole('button', { name: /Send notification for holiday: Second holiday/ }).click()
+      await expect.poll(() => writes).toBe(2)
+      releaseFirstWrite()
+      await expect.poll(() => reads).toBe(1)
+      releaseSecondWrite()
       await expect.poll(() => reads).toBe(2)
       await expect(page.getByRole('row').filter({ hasText: 'Latest holiday' })).toBeVisible()
       const response = page.waitForResponse(r => new URL(r.url()).pathname === '/api/salon/salon-1')
@@ -40,7 +49,7 @@ for (const status of [200, 500]) {
       await expect(page.getByRole('row').filter({ hasText: 'Stale holiday' })).toHaveCount(0)
       await expect(page.getByText('Could not load holidays.')).toHaveCount(0)
       expect(writes).toBe(2)
-    } finally { release() }
+    } finally { release(); releaseFirstWrite(); releaseSecondWrite() }
   })
 }
 
