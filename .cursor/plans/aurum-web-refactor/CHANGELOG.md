@@ -5,6 +5,17 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Prazne stranice galerije i retry fokus (rad u toku)
+
+- Stvarni backend prvo paginira dnevne zapise, a zatim mapiranje odbacuje zapise bez dva različita odobrena foto-kandidata. Zato ugovor može legitimno vratiti `items: []`, `hasMore: true` i napredni `nextOffset`; nije dokaz da je cijela galerija prazna. Nova backend unit fiksura s istom slikom u obje uloge potvrđuje prazan prvi page i kasniji ispravan par uz `skip` 0/1. Mockirana Prisma baza ne dokazuje stvarni DB query.
+- Frontend je ranije pri `items.length === 0` sakrio sentinel i dugme te pogrešno pokazao prazan rezultat, bez obzira na `hasMore`; nova fiksura prije ispravke **12/12 fail** u BS/EN × 320/1280. Sada nastavlja automatski ili ručno, krajnju praznu poruku prikazuje tek kada više nema stranica, a retry nakon prazne stranice koristi tačan offset. Brojač ostaje fokusna meta i kad posljednja stranica ne sadrži nijedan par; već učitani parovi i guard protiv paralelnih zahtjeva ostaju. Nove fiksure pokrivaju uspješan kasniji par, neuspjeli pa uspješni retry na offsetu 18, stvarno iscrpljivanje i dva uzastopna prazna pagea uz sintetički observer; **16/16**. Observer, API i podaci su simulirani, ne stvarna baza ni svi rasporedi interakcija.
+- Retry usluge je prije popravke izgubio fokus kada je loading grana uklonila naslov i dugme: novi test **4 service fail / 4 pairs pass**. Naslov je sada stabilan kroz loading, retry prije zahtjeva fokusira naslov, a zakašnjeli rezultat ne preuzima fokus koji je korisnik premjestio. Nakon ispravke **8/8** u BS/EN × viewporti. Ukupno galerijski retry, paginacija, ranije utrke i slider **51/51**.
+- Posljednji potpuni S8 Chromium mock run **307/307**, frontend Node **1005/1005**, build i E2E typecheck, pet Python provjera i diff check PASS, lint **0 grešaka / 6 upozorenja**; initial **293,7/300 KiB**, Analytics **116,4/140 KiB**. Backend suite **12/12** uključujući novu fiksuru prolazi lokalno uz eksplicitni test-only stub Prisma enum vrijednosti i mockiranu bazu: `npm ci` nije preuzeo Prisma engine jer je `binaries.prisma.sh` nedostupan u sandboxu, te lokalni Prisma generate/backend build nisu dokazani. CI mora odraditi standardni generate/build i test bez tog stuba. Nije stvarni AT, OS ili produkcijska transakcija.
+
+[CI 45392038969](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45392038969) za prethodni `f2bd682` završen je **5/5**, rendered **3019 passed / 0 failed / 0 skipped**; ne obuhvata ovaj nastavak, za koji je potreban novi CI. S8 ostaje otvoren zbog CI-ja, potpunog DoD pregleda i nesklada plana oko gallery akcija/tab navigacije; STOP prije S9, bez merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Pointer fokus i ručna paginacija galerije (rad u toku)
 
 - U Services dijalozima `document.activeElement` nije pouzdan okidač kada klik ne fokusira dugme. Eksplicitni `event.currentTarget` prolazi kroz katalog i tabelu do editor/deletion dijaloga i opcionalnog `trigger` u zajedničkoj potvrdi; drugi pozivači zadržavaju prethodni fallback. BS/EN × 320/1280 fiksura je prije promjene **4/4 pala na prvom okidaču**, poslije **4/4** prolazi svih devet okidača i cancel bez mock writeova. `dispatchEvent` simulira nefokusirajući klik, ne dokazuje ponašanje stvarnog miša u svim OS/browser kombinacijama.

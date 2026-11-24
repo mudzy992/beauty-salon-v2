@@ -120,6 +120,29 @@ describe('DailyLogPublicService', () => {
     expect(actual.items).toHaveLength(0);
   });
 
+  it('advances past an entry that cannot form a distinct pair without hiding later pages', async () => {
+    const incomplete = makePairEntry('same-photo');
+    incomplete.images = [{
+      id: 'same-photo-image',
+      isBefore: true,
+      isAfter: true,
+      consent: { id: 'same-consent', clientId: 'client-1' },
+    }];
+    mockPrisma.dailyLogEntry.count.mockResolvedValue(2);
+    mockPrisma.dailyLogEntry.findMany
+      .mockResolvedValueOnce([incomplete])
+      .mockResolvedValueOnce([makePairEntry('valid')]);
+
+    await expect(service.findBeforeAfterPairs({ limit: 1, offset: 0, serviceId: 's1' }))
+      .resolves.toEqual({ items: [], hasMore: true, nextOffset: 1 });
+    const next = await service.findBeforeAfterPairs({ limit: 1, offset: 1, serviceId: 's1' });
+    expect(next.items.map((item) => item.id)).toEqual(['valid']);
+    expect(next.hasMore).toBe(false);
+    expect(next.nextOffset).toBe(2);
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({ skip: 0, take: 1 }));
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({ skip: 1, take: 1 }));
+  });
+
   it('skips entries unless each side has a matching active-consent projection', async () => {
     mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
     mockPrisma.dailyLogEntry.findMany.mockResolvedValue([
