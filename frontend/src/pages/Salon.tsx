@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Plus } from 'lucide-react'
 
@@ -25,10 +26,19 @@ export default function Salon() {
   const {
     salon, loading, loadError, loadSalon, saving, confirmRequest, setConfirmRequest, noSalonExists,
     formData, setFormData, workingHours, holidays, sortedHolidays, holidaysSummary,
+    holidayReadError, holidayReloading, reloadHolidays,
     holidayOpen, setHolidayOpen, editHoliday, holForm, setHolForm, updateWH,
     openHolidayForm, handleCreateSalon, handleSaveSettings, handleSaveWorkingHours,
     handleSaveHoliday, handleDeleteHoliday, handleSendNotification,
   } = useSalonManagement()
+  const holidayTabRef = useRef<HTMLButtonElement>(null)
+  const holidayRetryRef = useRef<HTMLButtonElement>(null)
+  const retryHolidayRead = async () => {
+    const trigger = holidayRetryRef.current
+    const hadFocus = document.activeElement === trigger
+    const succeeded = await reloadHolidays()
+    if (succeeded && hadFocus && (document.activeElement === trigger || document.activeElement === document.body)) holidayTabRef.current?.focus()
+  }
 
   if (loading) {
     return (
@@ -88,7 +98,7 @@ export default function Salon() {
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
               <TabsTrigger value="general">{t('salon.tabs.general')}</TabsTrigger>
               <TabsTrigger value="hours">{t('salon.tabs.workingHours')}</TabsTrigger>
-              <TabsTrigger value="holidays">{t('salon.tabs.holidays')}</TabsTrigger>
+              <TabsTrigger ref={holidayTabRef} value="holidays">{t('salon.tabs.holidays')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="mt-4">
@@ -117,8 +127,18 @@ export default function Salon() {
                 </Button>
               </div>
 
+              {holidayReadError ? (
+                <div role="alert" data-admin-state="error" className="mb-4 rounded-lg border border-line bg-surface-muted p-4 text-content">
+                  <p>{t('salon.errors.loadHolidaysFailed')}</p>
+                  {holidays.length > 0 ? <p className="mt-1 text-sm">{t('salon.errors.holidaysMayBeStale')}</p> : null}
+                  <Button ref={holidayRetryRef} type="button" variant="outline" className="mt-3" disabled={holidayReloading} onClick={() => void retryHolidayRead()}>
+                    {t('common.retry')}
+                  </Button>
+                  {holidayReloading ? <p role="status" className="mt-2 text-sm">{t('common.loading')}</p> : null}
+                </div>
+              ) : null}
               {holidays.length === 0 ? (
-                <p className="text-sm text-content-strong">{t('salon.noHolidays')}</p>
+                holidayReadError ? null : <p className="text-sm text-content-strong">{t('salon.noHolidays')}</p>
               ) : (
                 <SalonHolidayTable sortedHolidays={sortedHolidays} openHolidayForm={openHolidayForm}
                   handleSendNotification={handleSendNotification} handleDeleteHoliday={handleDeleteHoliday} />

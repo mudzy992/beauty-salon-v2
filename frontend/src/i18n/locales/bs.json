@@ -1341,7 +1341,8 @@
       "saveHolidayFailed": "Nije moguće sačuvati praznik.",
       "deleteHolidayFailed": "Nije moguće obrisati praznik.",
       "sendNotificationFailed": "Nije moguće poslati obavijest.",
-      "loadHolidaysFailed": "Nije moguće učitati praznike."
+      "loadHolidaysFailed": "Nije moguće učitati praznike.",
+      "holidaysMayBeStale": "Prikazani praznici možda nisu ažurni."
     }
   },
   "services": {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { getErrorMessage, getErrorCode } from '../../api/error'
@@ -6,9 +6,10 @@ import { resolveAdminApiErrorKey } from '../admin/admin-api-error.mjs'
 import { useSocketEvent } from '../../context/SocketContext'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import { useAuthStore } from '../../stores/auth.store'
-import { getSalonDateOnly } from '../../../../shared/business-date.mjs'
 import type { AdminConfirmRequest } from '../shell/admin/ui/admin-confirm-dialog'
-import type { SalonSettings, WorkingHours, Holiday } from './salon-types'
+import type { SalonSettings, WorkingHours } from './salon-types'
+import { useSalonHolidays } from './use-salon-holidays'
+import { isHolidayList } from './salon-holiday-validation'
 
 export function useSalonManagement() {
   const { t } = useTranslation()
@@ -24,6 +25,9 @@ export function useSalonManagement() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const sequence = useRef(0)
+  const holidaySequence = useRef(0)
+  const salonIdRef = useRef<string | null>(null)
+  const activeRef = useRef(false)
   const sessionVersion = useAuthStore(state => state.sessionVersion)
   const [saving, setSaving] = useState(false)
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
@@ -43,23 +47,21 @@ export function useSalonManagement() {
   })
 
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
-  const [holidays, setHolidays] = useState<Holiday[]>([])
-  const sortedHolidays = useMemo(
-    () => holidays.slice().sort((a, b) => a.date.localeCompare(b.date)),
-    [holidays],
-  )
-
-
-  const [holidayOpen, setHolidayOpen] = useState(false)
-  const [editHoliday, setEditHoliday] = useState<Holiday | null>(null)
-  const [holForm, setHolForm] = useState({ date: '', name: '', message: '', sendPush: false })
+  const {
+    holidays, setHolidays, sortedHolidays, holidaysSummary, holidayReadError, holidayReloading,
+    reloadHolidays, resetHolidayReadState, holidayOpen, setHolidayOpen,
+    editHoliday, holForm, setHolForm, openHolidayForm, handleSaveHoliday,
+    handleDeleteHoliday, handleSendNotification,
+  } = useSalonHolidays({ salon, sessionVersion, sequence, holidaySequence, salonIdRef, activeRef, setSaving, setConfirmRequest, showApiError })
 
   const loadSalon = useCallback(async () => {
     const request = ++sequence.current
+    const holidayRequest = ++holidaySequence.current
     const current = () => request === sequence.current && useAuthStore.getState().sessionVersion === sessionVersion
     setLoading(true)
     setLoadError(false)
     setNoSalonExists(false)
+    resetHolidayReadState()
     try {
       let list: SalonSettings[] | null = null
       let listResponse: { data: SalonSettings[] } | null = null
@@ -89,12 +91,14 @@ export function useSalonManagement() {
       const s = list[0] ?? null
       if (s && (
         typeof s.id !== 'string' || !s.id || typeof s.name !== 'string' ||
-        !Array.isArray(s.workingHours) || !Array.isArray(s.holidays) ||
+        !Array.isArray(s.workingHours) || !isHolidayList(s.holidays) ||
         s.workingHours.some(w => !w || !Number.isInteger(w.dayOfWeek) || w.dayOfWeek < 0 || w.dayOfWeek > 6 || typeof w.openTime !== 'string' || typeof w.closeTime !== 'string' || typeof w.isWorkingDay !== 'boolean') ||
-        new Set(s.workingHours.map(w => w.dayOfWeek)).size !== s.workingHours.length ||
-        s.holidays.some(h => !h || typeof h.id !== 'string' || typeof h.name !== 'string' || typeof h.date !== 'string')
+        new Set(s.workingHours.map(w => w.dayOfWeek)).size !== s.workingHours.length
       )) throw new Error('Invalid salon data')
 
+      const changedSalon = salonIdRef.current !== (s?.id ?? null)
+      salonIdRef.current = s?.id ?? null
+      const acceptedHolidayRequest = changedSalon ? ++holidaySequence.current : holidayRequest
       if (!s) {
         setNoSalonExists(true)
         setSalon(null)
@@ -135,7 +139,7 @@ export function useSalonManagement() {
         } catch {}
       }
 
-      if (current()) setHolidays(s.holidays ?? [])
+      if (current() && acceptedHolidayRequest === holidaySequence.current) setHolidays(s.holidays ?? [])
     } catch (err) {
       if (!current()) return
       setLoadError(true)
@@ -143,11 +147,12 @@ export function useSalonManagement() {
     } finally {
       if (current()) setLoading(false)
     }
-  }, [showApiError, sessionVersion])
+  }, [showApiError, sessionVersion, setHolidays, resetHolidayReadState])
 
   useEffect(() => {
+    activeRef.current = true
     loadSalon()
-    return () => { sequence.current += 1 }
+    return () => { activeRef.current = false; sequence.current += 1; holidaySequence.current += 1 }
   }, [loadSalon])
 
   useSocketEvent(
@@ -159,27 +164,6 @@ export function useSalonManagement() {
 
   const updateWH = (dayOfWeek: number, field: keyof WorkingHours, value: string | boolean) => {
     setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === dayOfWeek ? { ...w, [field]: value } : w)))
-  }
-
-  const reloadHolidays = async () => {
-    if (!salon) return
-    try {
-      const { data } = await api.get<SalonSettings>(`/api/salon/${salon.id}`)
-      setHolidays(data.holidays ?? [])
-    } catch (err) {
-      showApiError(err, 'salon.errors.loadHolidaysFailed')
-    }
-  }
-
-  const openHolidayForm = (h?: Holiday) => {
-    if (h) {
-      setEditHoliday(h)
-      setHolForm({ date: h.date.slice(0, 10), name: h.name, message: h.message ?? '', sendPush: h.sendPush })
-    } else {
-      setEditHoliday(null)
-      setHolForm({ date: '', name: '', message: '', sendPush: false })
-    }
-    setHolidayOpen(true)
   }
 
   const handleCreateSalon = async () => {
@@ -226,65 +210,10 @@ export function useSalonManagement() {
     }
   }
 
-  const handleSaveHoliday = async () => {
-    if (!salon) return
-    if (!holForm.date || !holForm.name) {
-      warning(t('salon.validation.holidayRequired'))
-      return
-    }
-    setSaving(true)
-    try {
-      if (editHoliday) await api.patch(`/api/salon/holidays/${editHoliday.id}`, holForm)
-      else await api.post(`/api/salon/${salon.id}/holidays`, holForm)
-      success(t('salon.toast.holidaySaved'))
-      reloadHolidays()
-      setHolidayOpen(false)
-    } catch (err) {
-      showApiError(err, 'salon.errors.saveHolidayFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteHoliday = (id: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('salon.confirmDeleteHoliday'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/salon/holidays/${id}`)
-          success(t('salon.toast.holidayDeleted'))
-          reloadHolidays()
-        } catch (err) {
-          showApiError(err, 'salon.errors.deleteHolidayFailed')
-        }
-      },
-    })
-  }
-
-  const handleSendNotification = async (holidayId: string) => {
-    try {
-      await api.post(`/api/salon/holidays/${holidayId}/send-notification`)
-      success(t('salon.toast.notificationSent'))
-      reloadHolidays()
-    } catch (err) {
-      showApiError(err, 'salon.errors.sendNotificationFailed')
-    }
-  }
-
-  const holidaysSummary = useMemo(() => {
-    const today = getSalonDateOnly()
-    const future = holidays
-      .slice()
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .filter((holiday) => holiday.date.slice(0, 10) >= today)
-    return future.slice(0, 3)
-  }, [holidays])
-
   return {
     salon, loading, loadError, loadSalon, saving, confirmRequest, setConfirmRequest, noSalonExists,
     formData, setFormData, workingHours, holidays, sortedHolidays, holidaysSummary,
+    holidayReadError, holidayReloading, reloadHolidays,
     holidayOpen, setHolidayOpen, editHoliday, holForm, setHolForm, updateWH,
     openHolidayForm, handleCreateSalon, handleSaveSettings, handleSaveWorkingHours,
     handleSaveHoliday, handleDeleteHoliday, handleSendNotification,

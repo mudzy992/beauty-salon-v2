@@ -1341,7 +1341,8 @@
       "saveHolidayFailed": "Could not save the holiday.",
       "deleteHolidayFailed": "Could not delete the holiday.",
       "sendNotificationFailed": "Could not send the notification.",
-      "loadHolidaysFailed": "Could not load holidays."
+      "loadHolidaysFailed": "Could not load holidays.",
+      "holidaysMayBeStale": "Displayed holidays may be out of date."
     }
   },
   "services": {
