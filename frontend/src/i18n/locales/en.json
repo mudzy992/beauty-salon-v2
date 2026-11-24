@@ -1137,6 +1137,7 @@
       "deactivate": "Deactivate user {{username}}"
     },
     "confirmDeactivate": "Deactivate user “{{username}}”?",
+    "confirmAssignRole": "Add the {{role}} role to user “{{username}}”?",
     "confirmRemoveRole": "Remove the {{role}} role?",
     "gender": {
       "label": "Gender",

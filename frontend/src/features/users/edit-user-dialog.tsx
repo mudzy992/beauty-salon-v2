@@ -1,4 +1,4 @@
-import type { Dispatch, RefObject, SetStateAction } from 'react'
+import { useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { UserRound } from 'lucide-react'
 import { Alert, AlertDescription } from '../../components/ui/alert'
@@ -11,6 +11,7 @@ import { Select } from '../../components/ui/select'
 import { Switch } from '../../components/ui/switch'
 import type { ClientDebtRow, UserRow } from './user-types'
 import { UserDebtsPanel } from './user-debts-panel'
+import { ConfirmDialog } from '../shell/admin/ui/confirm-dialog'
 
 type Form = { username: string; email: string; firstName: string; lastName: string; phone: string; gender: '' | 'MALE' | 'FEMALE'; isActive: boolean }
 type Props = {
@@ -24,8 +25,13 @@ type Props = {
 }
 export function EditUserDialog({ editOpen, setEditOpen, saving, editTriggerRef, editUser, formData, setFormData, setEditIsUsernameManuallyEdited, initialUsername, initialEmail, editUsernameStatus, getUserRoles, clientDebtsQuery, debtToWriteOff, setDebtToWriteOff, onSave }: Props) {
   const { t } = useTranslation()
+  const [confirmDeactivation, setConfirmDeactivation] = useState(false)
+  const saveRef = useRef<HTMLButtonElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
   return (
+    <>
     <Dialog open={editOpen} onOpenChange={(open) => {
+      if (!open && confirmDeactivation) { setConfirmDeactivation(false); return }
       if (!open && debtToWriteOff) { setDebtToWriteOff(null); return }
       if (open || !saving) setEditOpen(open)
     }}>
@@ -36,7 +42,7 @@ export function EditUserDialog({ editOpen, setEditOpen, saving, editTriggerRef, 
         }
       }}>
         <DialogHeader>
-          <DialogTitle>{t('users.editUserTitle', { username: editUser?.username ?? '' })}</DialogTitle>
+          <DialogTitle ref={titleRef} tabIndex={-1}>{t('users.editUserTitle', { username: editUser?.username ?? '' })}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -148,11 +154,20 @@ export function EditUserDialog({ editOpen, setEditOpen, saving, editTriggerRef, 
           <Button type="button" variant="ghost" disabled={saving} onClick={() => setEditOpen(false)}>
             {t('common.cancel')}
           </Button>
-          <Button type="button" onClick={onSave} disabled={saving}>
+          <Button ref={saveRef} type="button" onClick={() => { if (editUser?.isActive && !formData.isActive) setConfirmDeactivation(true); else onSave() }} disabled={saving}>
             {saving ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <ConfirmDialog open={confirmDeactivation} onOpenChange={setConfirmDeactivation}
+      title={t('common.confirmTitle')} description={t('users.confirmDeactivate', { username: editUser?.username ?? '' })}
+      confirmLabel={t('common.confirm')} isDestructive
+      onCloseAutoFocus={(event) => {
+        const target = saveRef.current?.isConnected && !saveRef.current.disabled ? saveRef.current : titleRef.current
+        if (target?.isConnected) { event.preventDefault(); target.focus() }
+      }}
+      onConfirm={() => { setConfirmDeactivation(false); onSave() }} />
+    </>
   )
 }

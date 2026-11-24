@@ -5,6 +5,30 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Prethodni CI pad paginacijske fiksure
+
+[CI 45399201915](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45399201915) za `9360e86` je **4/5**, rendered **3042 passed / 1 failed / 0 skipped**; pao je `s8-users-pagination.spec.ts` 1280. Backend, frontend, mobile i repo poslovi prošli su, uključujući standardni Prisma generate i backend test nove galerijske fiksure. Puni log i report/trace nisu dostupni zbog EOF na GitHub Actions storage hostovima, pa tačna asertacija i uzrok CI pada nisu potvrđeni. Axe je iznio 15 incomplete `color-contrast` uzoraka, nisu violations niti dokaz pristupačnosti.
+
+Identificiran je moguć testni race: UI ažurira stranicu prije nego što Playwright zabilježi mrežni zahtjev, a stara fiksura je odmah sinhrono očekivala `queries` da sadrži page 10. Lokalno bez intervencije 1280 **50/50 pass**, pa to ne reproducira stvarni CI pad. Kada se u fiksuri opažanje route odgodi 500 ms, oba viewporta prije ispravke **2/2 fail** na toj asertaciji. `expect.poll` sada čeka *isti* objekt `{page:10,pageSize:20,q:''}`; zadržane su sve postojeće provjere aria-current, granica, search reseta i taba. Odgođena fiksura poslije **20/20** (10 ponavljanja po viewportu). Odgoda je sintetička, a ovo je popravljena ranjivost testa i moguća hipoteza, ne utvrđeni CI uzrok.
+
+Ponovljeni završni mock S8 **331/331**, E2E typecheck, pet Python i diff check PASS; ostali build/Node/lint rezultati su u zapisu ispod. Potreban je novi CI za potvrde korisnika i testnu ispravku, bez tvrdnje 5/5 dok ne završi.
+
+---
+
+## 2026-11-18 · S8 · Potvrde dodjele uloge i deaktivacije u editoru (rad u toku)
+
+S8 zahtijeva potvrdu promjene uloge i deaktivacije. Pregled je pokazao dva nepokrivena puta: izbor dodavanja uloge iz menija odmah je slao POST, a spremanje editora sa ugašenim `isActive` odmah je slalo PATCH. Nova fiksura BS/EN × 320/1280 prije izmjene **8/8 fail** na nepostojećim potvrdama. Ovo su bila dva UI puta, ne tvrdnja da je backend izvršio pogrešnu mutaciju.
+
+- Dodjela uloge sada traži eksplicitnu potvrdu s korisničkim imenom i lokalizovanom ulogom; odustajanje vraća fokus na add-role dugme i ne šalje upis. Potvrda zadržava isti POST, payload, postojeće uslove uloga i specijalnu poruku za STYLIST; vizuelna varijanta potvrde nije destruktivna. Tokom zahtjeva add-role za istog korisnika je disabled/busy, uz sinhroni guard od ponavljanja i fokusni fallback na naslov; nakon mock greške dostupan je novi pokušaj. Guard ne serijalizira druge tipove mutacija, ne otkazuje već poslani zahtjev i nije backend zaštita od konkurencije.
+- Editor traži potvrdu samo za prelazak aktivnog u neaktivno stanje; obični edit i aktivacija ostaju direktno spremanje. Escape/odustajanje zatvaraju samo ugniježđenu potvrdu i ostavljaju formu bez upisa. Potvrda zadržava isti PATCH i polja, dok se pri pending stanju fokus vraća na stabilni naslov editora ako Save postane disabled. Nakon mock greške editor i vrijednosti ostaju, a novi pokušaj ponovo traži potvrdu. Negativna kontrola pending fokusa prije fallbacka **4/4 fail**; stariji guard za nested Escape ponovljen **20/20** prije dodavanja naslovnog fallbacka. Validacija forme i dalje živi u postojećem save hooku; potvrda se može prikazati prije poruke o nevalidnoj formi.
+- Novi testovi **24/24** pokrivaju potvrdu/cancel i identitet cilja, oba jezika i viewporta, direktno spremanje/aktivaciju, odgođenu grešku i retry. Osam scoped axe skenova potvrda za `button-name`, `label-content-name-mismatch`, `aria-valid-attr`, `aria-required-attr` nema violations; to nije potpun axe/AT audit. Prvi pokušaj skena pogrešno je naveo nepostojeći axe naziv pravila i 8 testova je palo prije skeniranja; ispravljeno je na `aria-required-attr`, zatim **24/24**. Raniji test akcija izmijenjen je samo da potvrdi novi korak prije POST-a; postojeće asertacije svih metoda, putanja, payload-a, ostalih potvrda i dubinske veze ostaju.
+
+Završni samostalni mock S8 Chromium **331/331**, frontend Node **1005/1005**, build, E2E typecheck, pet Python provjera i diff check PASS; lint **0 grešaka / 6 ranijih upozorenja**. Initial **293,7/300 KiB**, Analytics **116,4/140 KiB**. Testovi mockiraju API i ne dokazuju stvarne promjene uloga, uređaje/OS ni AT. `edit-user-dialog.tsx` je sada 173 linije; cilj od približno 100–150 nije tvrdi limit, ali preostalo je razmotriti njegovo izdvajanje.
+
+[CI 45399201915](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45399201915) prethodnog `9360e86` završio je **4/5** zbog jednog pagination testa; detalji i lokalna analiza iznad. Backend je prošao s normalnim Prisma generate/testom, ali CI ne pokriva ovaj paket; pushati i pratiti novi run. S8 ostaje otvoren i ne ide se u S9 prije STOP-a i odobrenja; bez merge/deploya.
+
+---
+
 ## 2026-11-18 · S8 · Prazne stranice galerije i retry fokus (rad u toku)
 
 - Stvarni backend prvo paginira dnevne zapise, a zatim mapiranje odbacuje zapise bez dva različita odobrena foto-kandidata. Zato ugovor može legitimno vratiti `items: []`, `hasMore: true` i napredni `nextOffset`; nije dokaz da je cijela galerija prazna. Nova backend unit fiksura s istom slikom u obje uloge potvrđuje prazan prvi page i kasniji ispravan par uz `skip` 0/1. Mockirana Prisma baza ne dokazuje stvarni DB query.

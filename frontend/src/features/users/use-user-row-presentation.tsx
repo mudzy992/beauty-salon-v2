@@ -14,19 +14,20 @@ type Props = {
   getUserRoles: (user: UserRow) => string[]
   getRoleLabel: (role: string) => string
   resetLinkSendingId: string | null
+  assigningUsers: ReadonlySet<string>
   editTriggerRef: MutableRefObject<HTMLButtonElement | null>
   removalTriggerRef: MutableRefObject<HTMLButtonElement | null>
   openEdit: (user: UserRow) => void
   handleRemoveRole: (userId: string, roleName: string) => Promise<void>
-  handleAssignRole: (userId: string, roleName: string) => Promise<void>
+  handleAssignRole: (userId: string, username: string, roleName: string, trigger: HTMLButtonElement | null) => void
   handleIssueInitialPasswordResetLink: (user: UserRow) => void
   handleDeactivate: (id: string, username: string) => void
 }
 
-export function useUserRowPresentation({ getUserRoles, getRoleLabel, resetLinkSendingId, editTriggerRef, removalTriggerRef, openEdit, handleRemoveRole, handleAssignRole, handleIssueInitialPasswordResetLink, handleDeactivate }: Props) {
+export function useUserRowPresentation({ getUserRoles, getRoleLabel, resetLinkSendingId, assigningUsers, editTriggerRef, removalTriggerRef, openEdit, handleRemoveRole, handleAssignRole, handleIssueInitialPasswordResetLink, handleDeactivate }: Props) {
   const { t } = useTranslation()
   const renderRoles = (u: UserRow) => (
-    <UserRoleActions u={u} getUserRoles={getUserRoles} getRoleLabel={getRoleLabel} removalTriggerRef={removalTriggerRef}
+    <UserRoleActions u={u} getUserRoles={getUserRoles} getRoleLabel={getRoleLabel} removalTriggerRef={removalTriggerRef} assigningUsers={assigningUsers}
       handleRemoveRole={handleRemoveRole} handleAssignRole={handleAssignRole} />
   )
 

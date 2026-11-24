@@ -1,4 +1,4 @@
-import type { MutableRefObject } from 'react'
+import { useRef, type MutableRefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Plus, X } from 'lucide-react'
@@ -22,12 +22,15 @@ type Props = {
   getUserRoles: (user: UserRow) => string[]
   getRoleLabel: (role: string) => string
   removalTriggerRef: MutableRefObject<HTMLButtonElement | null>
+  assigningUsers: ReadonlySet<string>
   handleRemoveRole: (userId: string, roleName: string) => Promise<void>
-  handleAssignRole: (userId: string, roleName: string) => Promise<void>
+  handleAssignRole: (userId: string, username: string, roleName: string, trigger: HTMLButtonElement | null) => void
 }
 
-export function UserRoleActions({ u, getUserRoles, getRoleLabel, removalTriggerRef, handleRemoveRole, handleAssignRole }: Props) {
+export function UserRoleActions({ u, getUserRoles, getRoleLabel, removalTriggerRef, assigningUsers, handleRemoveRole, handleAssignRole }: Props) {
   const { t } = useTranslation()
+  const addRoleTrigger = useRef<HTMLButtonElement>(null)
+  const openingConfirmation = useRef(false)
   const navigate = useNavigate()
   const getAvailableRolesToAssign = (u: UserRow) => {
     const current = getUserRoles(u)
@@ -80,13 +83,13 @@ export function UserRoleActions({ u, getUserRoles, getRoleLabel, removalTriggerR
       {addable.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size="icon" variant="outline" className="h-8 w-8" aria-label={t('users.aria.addRole', { username: u.username })}>
+            <Button ref={addRoleTrigger} type="button" size="icon" variant="outline" disabled={assigningUsers.has(u.id)} aria-busy={assigningUsers.has(u.id)} className="h-8 w-8" aria-label={t('users.aria.addRole', { username: u.username })}>
               <Plus className="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" onCloseAutoFocus={(event) => { if (openingConfirmation.current) event.preventDefault(); openingConfirmation.current = false }}>
             {addable.map((r) => (
-              <DropdownMenuItem key={r} onClick={() => void handleAssignRole(u.id, r)}>
+              <DropdownMenuItem key={r} onSelect={() => { openingConfirmation.current = true; handleAssignRole(u.id, u.username, r, addRoleTrigger.current) }}>
                 {getRoleLabel(r)}
               </DropdownMenuItem>
             ))}

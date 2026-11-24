@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 
@@ -25,6 +25,7 @@ import { AdminConfirmDialog } from '../features/shell/admin/ui/admin-confirm-dia
 
 export default function Users() {
   const { t } = useTranslation()
+  const headingRef = useRef<HTMLHeadingElement>(null)
   const { error } = useAppToast()
   const showApiError = (err: unknown, fallbackKey: string) => {
     const message = getErrorMessage(err, '')
@@ -60,11 +61,11 @@ export default function Users() {
     openRemoveStylist, handleConfirmRemoveStylist,
   } = useStylistRemoval({ admins, stylists, clients, loadData, showApiError })
 
-  const { resetLinkSendingId, confirmRequest, setConfirmRequest, handleIssueInitialPasswordResetLink,
+  const { resetLinkSendingId, assigningUsers, confirmRequest, setConfirmRequest, handleIssueInitialPasswordResetLink,
     handleDeactivate, handleAssignRole, handleRemoveRole } = useUserActions({ loadData, showApiError, getRoleLabel, openRemoveStylist })
 
   const { userColumns, renderUserCard } = useUserRowPresentation({
-    getUserRoles, getRoleLabel, resetLinkSendingId, editTriggerRef, removalTriggerRef,
+    getUserRoles, getRoleLabel, resetLinkSendingId, assigningUsers, editTriggerRef, removalTriggerRef,
     openEdit, handleRemoveRole, handleAssignRole, handleIssueInitialPasswordResetLink, handleDeactivate,
   })
 
@@ -72,7 +73,7 @@ export default function Users() {
     <div data-admin-users>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-content">{t('nav.users')}</h1>
+          <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-content">{t('nav.users')}</h1>
           <p className="mt-1 text-sm text-content-strong ">{t('users.subtitle')}</p>
         </div>
 
@@ -113,7 +114,7 @@ export default function Users() {
       <UserCredentialsDialog credentialsOpen={credentialsOpen} setCredentialsOpen={setCredentialsOpen} createdCredentials={createdCredentials}
         setCreatedCredentials={setCreatedCredentials} transitioningToCredentials={transitioningToCredentials} createTriggerRef={createTriggerRef} />
 
-      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      <AdminConfirmDialog fallbackFocusRef={headingRef} request={confirmRequest} onClose={() => setConfirmRequest(null)} />
 
       <ConfirmDialog
         open={Boolean(debtToWriteOff)}

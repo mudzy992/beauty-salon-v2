@@ -11,6 +11,8 @@ for (const width of [320, 1280]) {
       if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
       if (path === '/api/users/clients/admin') {
         const query = { page: Number(url.searchParams.get('page')), pageSize: Number(url.searchParams.get('pageSize')), q: url.searchParams.get('q') ?? '' }
+        // Reproduce a delayed test route observing the page request after the UI updates.
+        if (query.page === 10 && !query.q) await new Promise(resolve => setTimeout(resolve, 500))
         queries.push(query)
         return route.fulfill({ json: { items: [], total: query.q ? 1 : 201, page: query.page, pageSize: query.pageSize } })
       }
@@ -24,7 +26,7 @@ for (const width of [320, 1280]) {
     await root.getByRole('button', { name: '11', exact: true }).click()
     await expect(root.getByRole('button', { name: '11', exact: true })).toHaveAttribute('aria-current', 'page')
     await expect(root.getByRole('button', { name: 'Next' })).toBeDisabled()
-    expect(queries).toContainEqual({ page: 10, pageSize: 20, q: '' })
+    await expect.poll(() => queries).toContainEqual({ page: 10, pageSize: 20, q: '' })
     await root.getByRole('button', { name: 'Previous' }).click()
     await expect(root.getByRole('button', { name: '10', exact: true })).toHaveAttribute('aria-current', 'page')
     await root.getByRole('textbox', { name: 'Search clients' }).fill('  Sam  ')

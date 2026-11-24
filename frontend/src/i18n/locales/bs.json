@@ -1137,6 +1137,7 @@
       "deactivate": "Deaktiviraj korisnika {{username}}"
     },
     "confirmDeactivate": "Deaktivirati korisnika „{{username}}“?",
+    "confirmAssignRole": "Dodati ulogu {{role}} korisniku „{{username}}“?",
     "confirmRemoveRole": "Ukloniti ulogu {{role}}?",
     "gender": {
       "label": "Spol",

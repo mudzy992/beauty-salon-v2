@@ -7,6 +7,7 @@ export type AdminConfirmRequest = {
   description: string
   confirmLabel?: string
   trigger?: HTMLElement | null
+  isDestructive?: boolean
   action: () => Promise<void> | void
 }
 
@@ -44,7 +45,7 @@ export function AdminConfirmDialog({
       title={request?.title ?? ''}
       description={request?.description}
       confirmLabel={request?.confirmLabel}
-      isDestructive
+      isDestructive={request?.isDestructive ?? true}
       onConfirm={() => {
         const action = request?.action
         onClose()

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
@@ -16,6 +16,8 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
   const { success, warning } = useAppToast()
   const [resetLinkSendingId, setResetLinkSendingId] = useState<string | null>(null)
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
+  const assigningUsersRef = useRef(new Set<string>())
+  const [assigningUsers, setAssigningUsers] = useState<Set<string>>(() => new Set())
 
   const handleIssueInitialPasswordResetLink = (user: UserRow) => {
     if (!user.mustChangePassword) return
@@ -59,18 +61,34 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
     })
   }
 
-  const handleAssignRole = async (userId: string, roleName: string) => {
-    try {
-      await api.post(`/api/users/${userId}/roles`, { role: roleName })
-      if (roleName === 'STYLIST') {
-        success(t('users.toast.stylistPendingTitle'), t('users.toast.stylistPendingDescription'))
-      } else {
-        success(t('users.toast.roleAssigned', { role: getRoleLabel(roleName) }))
-      }
-      loadData()
-    } catch (err) {
-      showApiError(err, 'users.errors.assignRoleFailed')
-    }
+  const handleAssignRole = (userId: string, username: string, roleName: string, trigger: HTMLButtonElement | null) => {
+    if (assigningUsersRef.current.has(userId)) return
+    setConfirmRequest({
+      title: t('common.confirmTitle'),
+      description: t('users.confirmAssignRole', { username, role: getRoleLabel(roleName) }),
+      confirmLabel: t('common.confirm'),
+      isDestructive: false,
+      trigger,
+      action: async () => {
+        if (assigningUsersRef.current.has(userId)) return
+        assigningUsersRef.current.add(userId)
+        setAssigningUsers(new Set(assigningUsersRef.current))
+        try {
+          await api.post(`/api/users/${userId}/roles`, { role: roleName })
+          if (roleName === 'STYLIST') {
+            success(t('users.toast.stylistPendingTitle'), t('users.toast.stylistPendingDescription'))
+          } else {
+            success(t('users.toast.roleAssigned', { role: getRoleLabel(roleName) }))
+          }
+          loadData()
+        } catch (err) {
+          showApiError(err, 'users.errors.assignRoleFailed')
+        } finally {
+          assigningUsersRef.current.delete(userId)
+          setAssigningUsers(new Set(assigningUsersRef.current))
+        }
+      },
+    })
   }
 
   const handleRemoveRole = async (userId: string, roleName: string) => {
@@ -94,5 +112,5 @@ export function useUserActions({ loadData, showApiError, getRoleLabel, openRemov
     })
   }
 
-  return { resetLinkSendingId, confirmRequest, setConfirmRequest, handleIssueInitialPasswordResetLink, handleDeactivate, handleAssignRole, handleRemoveRole }
+  return { resetLinkSendingId, assigningUsers, confirmRequest, setConfirmRequest, handleIssueInitialPasswordResetLink, handleDeactivate, handleAssignRole, handleRemoveRole }
 }
