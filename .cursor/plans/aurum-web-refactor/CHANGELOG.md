@@ -1464,3 +1464,9 @@ Dva HTTP testa koriste **stvarne** sintetičke JPEG fajlove, `sharp`, PostgreSQL
 Otkriven i ispravljen netačan status „objavljeno“ za dodatne i neodobrene fotografije istog zapisa: inbox i javni feed sada koriste isti izbor para i stabilno sortiranje. MIME filter je usklađen. Lokalno **37/37** consent/public unit, **5/5** ciljanih stvarnih PostgreSQL HTTP provjera i **84/84** cijelog backend E2E paketa, build prolazi. Migracijska tabela i dalje je lokalno simulirana; puni migracijski deploy/izolovani CI, provjere identiteta sesije te OS/AT ostaju otvoreni. Nije rađen merge/deploy.
 
 Nakon tih izmjena pokrenut je i kompletan backend Jest paket: **115/115 suite, 838/838 testova**. PostgreSQL E2E rezultat iznad ostaje uz navedeno ograničenje migracijske tabele.
+
+## S8 · završni pregled i izdvajanje brisanja kategorija
+
+`Services.tsx` 171 → 139 linija; identični handleri potvrda za brisanje kategorije i podkategorije premješteni su u `use-service-category-deletion.ts` (54), uključujući trigger, poruku, API, toast i koordinisani refresh. Source ugovor prati novu putanju. Nakon izmjene: ciljano **63/63**, puna mock S8 Chromium regresija **411/411**, Node **1005/1005**, build, E2E typecheck, pet Python provjera i diff check PASS; lint 0 grešaka/6 ranijih upozorenja. Testovi mock API-ja nisu dokaz produkcijskih mutacija, stvarnog AT ili OS pickera.
+
+Prethodni CI [45448858670](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45448858670) za `c34c12f` je **5/5**, rendered **3131/0/0**, 15 nepotpunih axe contrast uzoraka; ne pokriva `d6cde2c` i ovu ekstrakciju. Novi CI za nastavak tek treba potvrditi. [Pregled S8](24_s8_zavrsni_pregled.md) dokumentuje stanje, dokaze i dvije odluke prije STOP-a: read-only work gallery naspram CRUD teksta u planu i postojeća sidebar navigacija naspram planiranog ARIA tablista. S8 nije proglašen završenim; S9, merge i deploy nisu pokrenuti.

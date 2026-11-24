@@ -8,8 +8,8 @@ import { ErrorState } from '../features/shell/admin/ui/data-state'
 import { ServiceEditorDialog } from '../features/services/service-editor-dialog'
 import { useServiceEditor } from '../features/services/use-service-editor'
 import { useServiceDeletion } from '../features/services/use-service-deletion'
+import { useServiceCategoryDeletion } from '../features/services/use-service-category-deletion'
 
-import api from '../api/client'
 import { getErrorMessage, getErrorCode } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -19,7 +19,7 @@ import { Button } from '../components/ui/button'
 
 export default function Services() {
   const { t } = useTranslation()
-  const { success, error } = useAppToast()
+  const { error } = useAppToast()
   const showApiError = useCallback(
     (err: unknown, fallbackKey: string) => {
       error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), fallbackKey, getErrorCode(err))))
@@ -57,41 +57,9 @@ export default function Services() {
     handleUploadHeroImage, handleSave,
   } = useServiceEditor({ loadData: requestMutationRefresh, showApiError, isCatalogStale })
 
-  const handleDeleteCategory = (id: string, trigger: HTMLButtonElement) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      trigger,
-      description: t('services.confirmDeleteCategory'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/services/categories/${id}`)
-          success(t('services.toast.categoryDeleted'))
-          requestMutationRefresh()
-        } catch (err) {
-          showApiError(err, 'services.errors.deleteCategoryFailed')
-        }
-      },
-    })
-  }
-
-  const handleDeleteSubcategory = (id: string, trigger: HTMLButtonElement) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      trigger,
-      description: t('services.confirmDeleteSubcategory'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/services/subcategories/${id}`)
-          success(t('services.toast.subcategoryDeleted'))
-          requestMutationRefresh()
-        } catch (err) {
-          showApiError(err, 'services.errors.deleteSubcategoryFailed')
-        }
-      },
-    })
-  }
+  const { handleDeleteCategory, handleDeleteSubcategory } = useServiceCategoryDeletion({
+    setConfirmRequest, requestMutationRefresh, showApiError,
+  })
 
   const {
     deletionOpen, deletionService, deletionImpact, deletionAction, deletionTargetId, deletionConfirmationName,
