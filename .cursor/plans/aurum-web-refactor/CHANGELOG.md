@@ -5,6 +5,12 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Ugniježđeni analitički paneli u rendered testovima
+
+[CI 45469817621](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45469817621) za `4c0fc1c` pao je u rendered a11y poslu: testni `getByRole('tabpanel')` postao je višeznačan jer su stvarni analitički tablist i detalji klijenta sada ugniježđeni. Dva selektora u `a11y-admin.spec.ts` ograničena su na aktivni unutrašnji panel; tekstualne, tastaturne, fokusne i axe asertacije ostaju nepromijenjene. Lokalno s pravom prijavom i izolovanim PostgreSQL/Redisom prošlo je **48 M2 slučajeva + 2 auth setup**, te **4 tastaturna slučaja + 2 auth setup**. Podaci M2 testova su mockirani; lokalni Chromium nije isti CI build. Migracijski SQL primijenjen je ručno, ne preko Prisma migrate deploy. Novi CI treba potvrditi na novom commit-u; S8 nije završen (verzionisanje vidljivosti, privatni upload i redoslijed ostaju). Nema merge/deploya, S9 tek nakon STOP-a i odobrenja.
+
+---
+
 ## 2026-11-18 · S8 · Osvježavanje kataloga između različitih dijaloga
 
 - Pri odgođenom mock uspjehu spremanja usluge dok je otvoreno brisanje druge, ili odgođenom uspjehu brisanja dok je otvoren drugi editor, raniji kod je odmah pokretao refresh. Kada je odgovor kataloga zadržan, svih **8/8** BS/EN × 320/1280 × save/delete negativnih kontrola izgubilo je otvoreni dijalog; raniji test s instant katalogom pokazivao je rani dodatni read, ali ne pouzdano gubitak dijaloga.

@@ -1891,7 +1891,7 @@ for (const mode of ['light', 'dark'] as const) {
       await expect(page.getByRole('table', { name: /tabela rucnih unosa|manual entries/i })).toContainText('Test unos')
       await page.keyboard.press('ArrowRight')
       await expect(page.getByRole('tab', { name: /dugovanja|debts/i })).toHaveAttribute('aria-selected', 'true')
-      await expect(page.getByRole('tabpanel')).toContainText('15')
+      await expect(page.locator('[data-analytics-hub] [role="tabpanel"][data-state="active"] [role="tabpanel"][data-state="active"]')).toContainText('15')
       await page.keyboard.press('ArrowRight')
       await expect(page.getByRole('tab', { name: /recenzije|reviews/i })).toHaveAttribute('aria-selected', 'true')
       const review = page.getByRole('button', { name: /otvori detalje recenzije|review details/i })
@@ -2428,7 +2428,7 @@ for (const mode of ['light', 'dark'] as const) {
           if (state === 'manual') await page.getByRole('tab', { name: /manuelni prihodi|manual entries/i }).click()
           if (state === 'debts') await page.getByRole('tab', { name: /dugovanja|debts/i }).click()
           if (isReviews) await page.getByRole('tab', { name: /recenzije|reviews/i }).click()
-          const panel = page.getByRole('tabpanel')
+          const panel = page.locator('[data-analytics-hub] [role="tabpanel"][data-state="active"] [role="tabpanel"][data-state="active"]')
           const expected = state === 'manual' ? 'Dopuna porudžbine' : state === 'debts' ? '25' : isReviews ? 'Odličan tretman' : 'Žensko šišanje'
           await expect(panel).toContainText(expected)
           if (state === 'reservation-dialog') {
