@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
 import {
@@ -7,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useClientAnalyticsData } from '../features/client-analytics/use-client-analytics-data'
 import { useClientAnalyticsDetail } from '../features/client-analytics/use-client-analytics-detail'
+import { useClientAnalyticsPresentation } from '../features/client-analytics/use-client-analytics-presentation'
 import { statusBadgeVariant } from '../features/client-analytics/reservation-status'
 import { ClientPeriodFilter } from '../features/client-analytics/client-period-filter'
 import { ClientAnalyticsDetailDialog } from '../features/client-analytics/client-analytics-detail-dialog'
@@ -17,28 +17,9 @@ import { ClientReviews } from '../features/client-analytics/client-reviews'
 import { ClientDebts } from '../features/client-analytics/client-debts'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { getIntlLocale } from '../i18n/locale-utils.mjs'
-import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
 
 export default function ClientAnalytics() {
-  const { t, i18n } = useTranslation()
-  const formatDateOnly = (value: string | null | undefined) =>
-    value
-      ? formatDateOnlyLocale(value.slice(0, 10), getIntlLocale(i18n.language), {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })
-      : '—'
-  const formatInstantDate = (value: string | null | undefined) => {
-    if (!value) return '—'
-    const date = new Date(value)
-    return Number.isFinite(date.getTime())
-      ? new Intl.DateTimeFormat(getIntlLocale(i18n.language), { dateStyle: 'medium' }).format(date)
-      : '—'
-  }
-  const getReservationStatusLabel = (status: string) =>
-    t(`reservations.statuses.${status}`, { defaultValue: status })
+  const { t, formatDateOnly, formatInstantDate, getReservationStatusLabel, getStylistName, getUserName } = useClientAnalyticsPresentation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedUserId = searchParams.get('userId')
@@ -78,14 +59,6 @@ export default function ClientAnalytics() {
   const goBack = () => {
     navigate('/admin/users')
   }
-
-  const getStylistName = (s?: { user?: { firstName: string | null; lastName: string | null; username: string } }) => {
-    if (!s?.user) return '-'
-    return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username
-  }
-
-  const getUserName = (u: { firstName: string | null; lastName: string | null; username: string }) =>
-    [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username
 
   if (!selectedUserId) {
     return <Navigate to="/admin/users" replace />

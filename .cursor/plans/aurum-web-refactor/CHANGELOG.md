@@ -5,6 +5,14 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-18 · S8 · Prezentacija klijentske analitike (rad u toku)
+
+`ClientAnalytics.tsx` izmjeren na **161 liniju** i smanjen na **134**, premještanjem postojećeg lokalizovanog formatiranja datuma, statusa, imena i fallbacka u `use-client-analytics-presentation.ts` (**32** linije). Pozivi, route/deep-link i izračuni nisu mijenjani. Source-contract i18n test sada prati vezu stranica → hook i iste provjere datuma/statusa, umjesto da traži izdvojeni kod po staroj putanji.
+
+Prije pozitivnog builda testirana je prethodna verzija (`dist` iz `ab2e229`) sa promjenom EN → BS, fallback korisničkog/stylist imena, nepoznatog statusa i neispravnog datuma, datum-only vrijednosti te dvije vremenske zone i širine; **4/4** prolaze prije i poslije. Lokalni Chromium s ograničenim ICU za BS prikazuje `M01` umjesto mjeseca iz Node ICU; prvi test zato nije valjano pretpostavio isti literal kao Node i prilagođen je očekivanju browserovog `Intl` u UTC, bez promjene proizvoda. Nakon refaktora klijentski skup **21/21**, kompletni mock S8 **247/247**, Node **1003/1003**, build/E2E typecheck, lint 0 grešaka/6 ranijih upozorenja, pet Python provjera i diff check prolaze; bundle **293,4/300 KiB**, Analytics **116,4/140 KiB**. Mock i Chromium 153 nisu CI Chromium 158 ili nezavisni AT/WCAG pregled. CI [45362275720](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45362275720) za `8dc9e02` još radi pri zapisivanju; novi push bi ga otkazao. S8 je i dalje otvoren.
+
+---
+
 ## 2026-11-18 · S8 · Paginacija frizera i fokus (rad u toku)
 
 Kod promjene stranice lista sakrije paginaciju tokom čitanja, pa se fokusirani okidač ukloni. Reprodukcija odgođenog odgovora prije popravke daje **4/4** padova fokusa (BS/EN × 320/1280); test koji pomjeri fokus drugdje tokom čitanja prolazio je i ranije. Odvojeni retry nakon greške je prije popravke također izgubio fokus **2/2**. Paginacija je izdvojena iz `Stylists.tsx` (**159 → 146 linija**, novi modul **36**); prije promjene stranice fokus se sinhrono prebaci na postojeći fokusabilni naslov, koji se ne uklanja tokom učitavanja. Isto vrijedi za retry liste nakon greške; nema naknadnog preuzimanja fokusa ako korisnik ode drugdje. Zadržani su onemogućeni krajevi paginacije, parametri page/pageSize, broj stranica, error/retry i izbor tražene stranice.
