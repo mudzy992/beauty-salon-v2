@@ -6,8 +6,17 @@ const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
 const files = {
-  operationsPage: readFileSync(new URL('../../pages/SettingsOperations.tsx', import.meta.url), 'utf8'),
-  appearancePage: readFileSync(new URL('../../pages/SettingsAppearance.tsx', import.meta.url), 'utf8'),
+  // S9: mape ključeva za kopiju su u `settings-copy-keys.ts` (vidi komentar ispod).
+  operationsPage: [
+    readFileSync(new URL('../../pages/SettingsOperations.tsx', import.meta.url), 'utf8'),
+    readFileSync(new URL('./settings-copy-keys.ts', import.meta.url), 'utf8'),
+    readFileSync(new URL('./settings-copy-keys-site.ts', import.meta.url), 'utf8'),
+  ].join('\n'),
+  appearancePage: [
+    readFileSync(new URL('../../pages/SettingsAppearance.tsx', import.meta.url), 'utf8'),
+    readFileSync(new URL('./settings-copy-keys.ts', import.meta.url), 'utf8'),
+    readFileSync(new URL('./settings-copy-keys-site.ts', import.meta.url), 'utf8'),
+  ].join('\n'),
   operationsGroups: readFileSync(new URL('./groups-operations.ts', import.meta.url), 'utf8'),
   appearanceGroups: readFileSync(new URL('./groups-appearance.ts', import.meta.url), 'utf8'),
   booleanEditor: readFileSync(new URL('./setting-editor-boolean.tsx', import.meta.url), 'utf8'),
@@ -16,6 +25,9 @@ const files = {
 }
 const combinedPages = `${files.operationsPage}\n${files.appearancePage}`
 const pageCopyKeys = [...combinedPages.matchAll(/'adminSettings\.[^']+'/g)].map(([key]) => key.slice(1, -1))
+// S9: generičko mapiranje grupe/polja na lokalizovanu kopiju preseljeno je u
+// `features/settings/use-settings-groups.ts` — garancija je ista, fajl je drugi.
+const groupsHook = readFileSync(new URL('./use-settings-groups.ts', import.meta.url), 'utf8')
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>
     typeof child === 'object' && child !== null
@@ -67,8 +79,8 @@ test('operations and appearance panels have BS/EN copy for every group and field
 })
 
 test('translated display labels do not change persisted setting descriptions or API payloads', () => {
-  assert.match(files.operationsPage, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
-  assert.match(files.appearancePage, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
+  assert.match(groupsHook, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
+  assert.match(groupsHook, /\.\.\.def,\s*\.\.\.\(fieldKey \? { label: t\(fieldKey\) } : {}\)/)
   assert.match(files.booleanEditor, /const displayLabel = def\.label \?\? def\.desc/)
   assert.match(files.booleanEditor, /<Label htmlFor=\{switchId\}[^>]*>[\s\S]*?\{displayLabel\}/)
   assert.match(files.booleanEditor, /onSave\(def\.key, checked \? 'true' : 'false', def\.desc\)/)

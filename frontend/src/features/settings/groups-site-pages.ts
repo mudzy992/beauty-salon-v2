@@ -1,0 +1,118 @@
+import { AtSign, Calendar, Lock, Sparkles, Star } from 'lucide-react'
+import type { SettingGroup } from './types'
+
+/**
+ * Grupe postavki — javni sadržaj (S9).
+ *
+ * Izdvojeno iz `groups-site.ts` bez promjene: iste grupe, isti `prefix`,
+ * isti `defaults` (ključ, opis, tip, opcioni placeholder) i isti `icon` /
+ * `color`. Naslovi i opisi su **fallback** — `useSettingsGroups` ih zamjeni
+ * lokalizovanim verzijama (`adminSettings.site.groups.*`).
+ */
+export const SITE_PAGE_GROUPS: SettingGroup[] = [
+  {
+    label: 'Režim održavanja',
+    prefix: 'maintenance_',
+    description: 'Javni web i mobilna početna prikazuju poruku. Admin i prijava rade.',
+    icon: Lock,
+    color: 'orange',
+    defaults: [
+      { key: 'system_maintenance_mode', desc: 'Režim održavanja', type: 'boolean' },
+      { key: 'public_maintenance_message', desc: 'Poruka za posjetioce', type: 'textarea' },
+    ],
+  },
+  {
+    label: 'Sekcije na početnoj',
+    prefix: 'public_home_',
+    description: 'Hero (web CTA je zaseban od mobilnog), o nama, highlights i donji CTA blok.',
+    icon: Star,
+    color: 'purple',
+    defaults: [
+      { key: 'public_hero_title', desc: 'Hero naslov (web)', type: 'text' },
+      { key: 'public_hero_subtitle', desc: 'Hero podnaslov', type: 'textarea' },
+      { key: 'public_hero_image', desc: 'Hero slika', type: 'image' },
+      { key: 'public_hero_cta_text_web', desc: 'Tekst CTA dugmeta na webu', type: 'text', placeholder: 'Rezervišite termin' },
+      { key: 'public_hero_cta_text', desc: 'Tekst CTA dugmeta na mobilnoj početnoj', type: 'text' },
+      { key: 'public_cta_title', desc: 'Naslov donjeg CTA bloka', type: 'text' },
+      { key: 'public_cta_subtitle', desc: 'Podnaslov donjeg CTA bloka', type: 'textarea' },
+      { key: 'public_about_title', desc: 'O nama — naslov', type: 'text' },
+      { key: 'public_about_text', desc: 'O nama — tekst', type: 'textarea' },
+      { key: 'public_about_image', desc: 'O nama — slika', type: 'image' },
+      { key: 'public_highlight_1_title', desc: 'Blok 1 naslov', type: 'text' },
+      { key: 'public_highlight_1_text', desc: 'Blok 1 tekst', type: 'textarea' },
+      { key: 'public_highlight_2_title', desc: 'Blok 2 naslov', type: 'text' },
+      { key: 'public_highlight_2_text', desc: 'Blok 2 tekst', type: 'textarea' },
+      { key: 'public_highlight_3_title', desc: 'Blok 3 naslov', type: 'text' },
+      { key: 'public_highlight_3_text', desc: 'Blok 3 tekst', type: 'textarea' },
+    ],
+  },
+  {
+    label: 'Kontakt i društvene mreže',
+    prefix: 'public_contact_',
+    description: 'Radno vrijeme se uzima iz postavki salona, ne ovdje.',
+    icon: AtSign,
+    color: 'green',
+    defaults: [
+      { key: 'public_contact_bg', desc: 'Pozadina stranice kontakt', type: 'image' },
+      { key: 'public_contact_title', desc: 'Naslov', type: 'text' },
+      { key: 'public_contact_subtitle', desc: 'Podnaslov', type: 'text' },
+      { key: 'public_contact_address', desc: 'Adresa', type: 'text' },
+      { key: 'public_contact_phone', desc: 'Telefon', type: 'text' },
+      { key: 'public_contact_email', desc: 'Email', type: 'email' },
+      { key: 'public_contact_map_embed', desc: 'Google Maps embed URL', type: 'url' },
+      { key: 'public_contact_lat', desc: 'Latitude', type: 'number', min: -90, max: 90 },
+      { key: 'public_contact_lng', desc: 'Longitude', type: 'number', min: -180, max: 180 },
+      { key: 'public_social_facebook', desc: 'Facebook', type: 'url' },
+      { key: 'public_social_instagram', desc: 'Instagram', type: 'url' },
+      { key: 'public_social_tiktok', desc: 'TikTok', type: 'url' },
+      { key: 'public_site_base_url', desc: 'Osnovni URL sajta (share + SEO canonical)', type: 'url' },
+      { key: 'public_footer_text', desc: 'Tekst u footeru', type: 'textarea' },
+    ],
+  },
+  {
+    label: 'Rezervacija',
+    prefix: 'public_reserve_',
+    description: 'Naslov, podnaslov i glavna slika stranice rezervacije.',
+    icon: Calendar,
+    color: 'blue',
+    defaults: [
+      { key: 'public_reserve_title', desc: 'Rezervacija — naslov', type: 'text' },
+      { key: 'public_reserve_subtitle', desc: 'Rezervacija — podnaslov', type: 'text' },
+      { key: 'public_reserve_bg', desc: 'Rezervacija — pozadina', type: 'image' },
+    ],
+  },
+  {
+    label: 'Javna stranica usluga',
+    prefix: 'services_page_',
+    description: 'Cijene, hero sadržaj, katalog usluga i promotivni blokovi.',
+    icon: Sparkles,
+    color: 'purple',
+    defaults: [
+      { key: 'public_service_prices_enabled', desc: 'Usluge — prikaži cijene na javnim stranicama', type: 'boolean' },
+      { key: 'public_services_bg', desc: 'Usluge — glavna slika', type: 'image' },
+      { key: 'public_services_title', desc: 'Usluge — naslov', type: 'text' },
+      { key: 'public_services_subtitle', desc: 'Usluge — podnaslov', type: 'textarea' },
+      { key: 'public_services_hero_note', desc: 'Usluge — uvodni tekst', type: 'textarea' },
+      { key: 'public_services_hero_explore_cta', desc: 'Usluge — dugme do kataloga', type: 'text' },
+      { key: 'public_services_hero_book_cta', desc: 'Usluge — dugme za rezervaciju', type: 'text' },
+      { key: 'public_services_hero_footnote', desc: 'Usluge — kratka napomena', type: 'text' },
+      { key: 'public_services_image_badge', desc: 'Usluge — oznaka preko slike', type: 'text' },
+      { key: 'public_services_image_caption', desc: 'Usluge — naslov preko slike', type: 'text' },
+      { key: 'public_services_image_subcaption', desc: 'Usluge — opis preko slike', type: 'textarea' },
+      { key: 'public_services_catalog_size_label', desc: 'Usluge — oznaka broja usluga', type: 'text' },
+      { key: 'public_services_step_1_title', desc: 'Usluge — korak 1, naslov', type: 'text' },
+      { key: 'public_services_step_1_description', desc: 'Usluge — korak 1, opis', type: 'textarea' },
+      { key: 'public_services_step_2_title', desc: 'Usluge — korak 2, naslov', type: 'text' },
+      { key: 'public_services_step_2_description', desc: 'Usluge — korak 2, opis', type: 'textarea' },
+      { key: 'public_services_step_3_title', desc: 'Usluge — korak 3, naslov', type: 'text' },
+      { key: 'public_services_step_3_description', desc: 'Usluge — korak 3, opis', type: 'textarea' },
+      { key: 'public_services_catalog_eyebrow', desc: 'Usluge — oznaka kataloga', type: 'text' },
+      { key: 'public_services_catalog_heading', desc: 'Usluge — naslov kataloga', type: 'text' },
+      { key: 'public_services_catalog_description', desc: 'Usluge — opis kataloga', type: 'textarea' },
+      { key: 'public_services_cta_eyebrow', desc: 'Usluge — oznaka donjeg CTA bloka', type: 'text' },
+      { key: 'public_services_cta_heading', desc: 'Usluge — naslov donjeg CTA bloka', type: 'text' },
+      { key: 'public_services_cta_description', desc: 'Usluge — opis donjeg CTA bloka', type: 'textarea' },
+      { key: 'public_services_cta_button', desc: 'Usluge — tekst donjeg CTA dugmeta', type: 'text' },
+    ],
+  },
+]

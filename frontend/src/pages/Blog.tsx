@@ -1,216 +1,90 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Plus } from 'lucide-react'
 
-import api from '../api/client'
-import { getErrorMessage, getErrorCode } from '../api/error'
-import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
-import { useAppToast } from '../lib/toast/useAppToast'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { BlogCommentsDialog } from '../features/blog/blog-comments-dialog'
-import { emptyBlogPostForm, formFromPost, toBlogPostPayload } from '../features/blog/blog-post-form'
 import { BlogPostFormDialog } from '../features/blog/blog-post-form-dialog'
 import { BlogPostsTable } from '../features/blog/blog-posts-table'
+import { useAppToast } from '../lib/toast/useAppToast'
+import { useAdminBlog } from '../features/blog/use-admin-blog'
+import { useBlogComments } from '../features/blog/use-blog-comments'
 import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
-import type { BlogComment, BlogPost, BlogPostFormValues } from '../features/blog/types'
 
+/**
+ * Admin blog (S9).
+ *
+ * Stranica je **orkestrator**: objave su u `features/blog/use-admin-blog.ts`,
+ * moderacija komentara u `features/blog/use-blog-comments.ts`, a editor i tabela
+ * su već bili izdvojeni. Endpointi, validacija i potvrde su **nepromijenjeni**.
+ */
 export default function Blog() {
   const { t } = useTranslation()
-  const { success, error, warning } = useAppToast()
-  const [posts, setPosts] = useState<BlogPost[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [form, setForm] = useState<BlogPostFormValues>(emptyBlogPostForm)
-  const [commentsOpen, setCommentsOpen] = useState(false)
-  const [commentsPostId, setCommentsPostId] = useState<string | null>(null)
-  const [commentsPostTitle, setCommentsPostTitle] = useState('')
-  const [comments, setComments] = useState<BlogComment[]>([])
-  const [commentsLoading, setCommentsLoading] = useState(false)
-  const [commentsLoadError, setCommentsLoadError] = useState(false)
+  const { success, error } = useAppToast()
   const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
 
-  const reportApiError = (err: unknown, fallbackKey: string) => {
-    const message = getErrorMessage(err, '')
-    error(t(resolveAdminApiErrorKey(message, fallbackKey, getErrorCode(err))))
-  }
-
-  const loadData = useCallback(() => {
-    setLoading(true)
-    setLoadError(false)
-    api
-      .get<BlogPost[]>('/api/blog/admin')
-      .then((r) => setPosts(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {
-        setPosts([])
-        setLoadError(true)
-      })
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-  const patchForm = (patch: Partial<BlogPostFormValues>) =>
-    setForm((prev) => ({ ...prev, ...patch }))
-
-  const openForm = async (id?: string) => {
-    if (id) {
-      setEditId(id)
-      try {
-        const { data } = await api.get<BlogPost>(`/api/blog/${id}`)
-        setForm(formFromPost(data))
-        setOpen(true)
-      } catch (err) {
-        reportApiError(err, 'blog.admin.editFailed')
-      }
-      return
-    }
-    setEditId(null)
-    setForm(emptyBlogPostForm())
-    setOpen(true)
-  }
-
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.content.trim()) {
-      warning(t('blog.admin.requiredFields'))
-      return
-    }
-    setSaving(true)
-    try {
-      const payload = toBlogPostPayload(form)
-      if (editId) await api.patch(`/api/blog/${editId}`, payload)
-      else await api.post('/api/blog', payload)
-      success(t('blog.admin.saved'))
-      loadData()
-      setOpen(false)
-    } catch (err) {
-      reportApiError(err, 'blog.admin.saveFailed')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDelete = (id: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('blog.admin.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/blog/${id}`)
-          success(t('blog.admin.deleted'))
-          loadData()
-        } catch (err) {
-          reportApiError(err, 'blog.admin.deleteFailed')
-        }
-      },
-    })
-  }
-
-  const openComments = async (postId: string, postTitle: string) => {
-    setCommentsPostId(postId)
-    setCommentsPostTitle(postTitle)
-    setCommentsLoading(true)
-    setCommentsLoadError(false)
-    setCommentsOpen(true)
-    try {
-      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments/admin`)
-      setComments(Array.isArray(data) ? data : [])
-    } catch {
-      setComments([])
-      setCommentsLoadError(true)
-    } finally {
-      setCommentsLoading(false)
-    }
-  }
-
-  const handleApproveComment = async (commentId: string) => {
-    try {
-      await api.patch(`/api/blog/comments/${commentId}/approve`)
-      success(t('blog.admin.commentApprovedToast'))
-      if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
-    } catch (err) {
-      reportApiError(err, 'blog.admin.approveFailed')
-    }
-  }
-
-  const handleDeleteComment = (commentId: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('blog.admin.deleteCommentConfirm'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/blog/comments/${commentId}`)
-          success(t('blog.admin.commentDeleted'))
-          if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
-        } catch (err) {
-          reportApiError(err, 'blog.admin.deleteCommentFailed')
-        }
-      },
-    })
-  }
+  const blog = useAdminBlog({ setConfirmRequest })
+  const comments = useBlogComments({
+    setConfirmRequest,
+    reportApiError: blog.reportApiError,
+  })
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-content">{t('nav.blog')}</h1>
-        <Button type="button" onClick={() => void openForm()}>
+        <Button type="button" onClick={() => void blog.openForm()}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('blog.newPost')}
         </Button>
       </div>
       <Card className="overflow-hidden">
-        {loading ? (
+        {blog.loading ? (
           <div className="flex justify-center p-10 text-content-strong">
-            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+            <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           </div>
-        ) : loadError ? (
+        ) : blog.loadError ? (
           <div role="alert" className="p-8 text-center text-content-strong">
             <p>{t('blog.admin.loadFailed')}</p>
-            <Button type="button" variant="outline" className="mt-3" onClick={loadData}>
+            <Button type="button" variant="outline" className="mt-3" onClick={blog.loadData}>
               {t('common.retry')}
             </Button>
           </div>
         ) : (
-          <BlogPostsTable posts={posts} emptyLabel={t('common.noData')} onComments={openComments} onEdit={openForm} onDelete={handleDelete} />
+          <BlogPostsTable posts={blog.posts} emptyLabel={t('common.noData')} onComments={comments.openComments} onEdit={blog.openForm} onDelete={blog.handleDelete} />
         )}
       </Card>
       <BlogPostFormDialog
-        open={open}
-        editId={editId}
-        form={form}
-        saving={saving}
-        onOpenChange={setOpen}
-        onChange={patchForm}
-        onSave={() => void handleSave()}
+        open={blog.open}
+        editId={blog.editId}
+        form={blog.form}
+        saving={blog.saving}
+        onOpenChange={blog.setOpen}
+        onChange={blog.patchForm}
+        onSave={() => void blog.handleSave()}
         onError={error}
         onUploaded={success}
       />
       <BlogCommentsDialog
-        open={commentsOpen}
-        title={commentsPostTitle}
-        comments={comments}
-        loading={commentsLoading}
-        loadError={commentsLoadError}
+        open={comments.commentsOpen}
+        title={comments.commentsPostTitle}
+        comments={comments.comments}
+        loading={comments.commentsLoading}
+        loadError={comments.commentsLoadError}
         onOpenChange={(next) => {
           // A parent dismiss event must never strand an open confirmation.
           if (!next && confirmRequest) setConfirmRequest(null)
-          else setCommentsOpen(next)
+          else comments.setCommentsOpen(next)
         }}
         onRetry={() => {
-          if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
+          if (comments.commentsPostId) void comments.openComments(comments.commentsPostId, comments.commentsPostTitle)
         }}
-        onApprove={(id) => void handleApproveComment(id)}
-        onDelete={(id) => void handleDeleteComment(id)}
+        onApprove={(id) => void comments.handleApproveComment(id)}
+        onDelete={(id) => void comments.handleDeleteComment(id)}
         confirmation={<AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
       />
-      {!commentsOpen && <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
+      {!comments.commentsOpen && <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
     </div>
   )
 }

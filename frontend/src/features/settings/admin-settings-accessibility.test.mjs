@@ -7,7 +7,12 @@ const locales = ['bs', 'en'].map((language) =>
 )
 const page = readFileSync(new URL('./settings-module-page.tsx', import.meta.url), 'utf8')
 const hook = readFileSync(new URL('./use-admin-settings.ts', import.meta.url), 'utf8')
-const form = readFileSync(new URL('./setting-editor-form.tsx', import.meta.url), 'utf8')
+// S9: polja su izdvojena u `setting-editor-field.tsx`; test čita OBA modula
+// zajedno, pa svaka tvrdnja i dalje pokriva isti kod.
+const form = [
+  readFileSync(new URL('./setting-editor-form.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./setting-editor-field.tsx', import.meta.url), 'utf8'),
+].join('\n')
 const booleanEditor = readFileSync(new URL('./setting-editor-boolean.tsx', import.meta.url), 'utf8')
 const displayEditor = readFileSync(new URL('./setting-editor-display.tsx', import.meta.url), 'utf8')
 const settingEditor = readFileSync(new URL('./setting-editor.tsx', import.meta.url), 'utf8')

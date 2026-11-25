@@ -2,10 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const source = readFileSync(
-  new URL("../../pages/Notifications.tsx", import.meta.url),
-  "utf8",
-);
+// S9 (2026-11-25): admin obavijesti su razdvojene u `features/notifications/*`
+// (tipovi, hook, labele, lista, preferencije) + `pages/Notifications.tsx`
+// (orkestrator). Test čita sve te fajlove ZAJEDNO, pa svaka tvrdnja i dalje
+// pokriva isti kod — promijenjena je samo putanja izvora, ne i garancija.
+const NOTIFICATION_FILES = [
+  './notification-types.ts',
+  './notification-labels.ts',
+  './use-notifications.ts',
+  './notifications-list.tsx',
+  './notification-preferences.tsx',
+  '../../pages/Notifications.tsx',
+]
+const source = NOTIFICATION_FILES.map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n')
 const unsubscribeSource = readFileSync(
   new URL("../../pages/public/CampaignUnsubscribe.tsx", import.meta.url),
   "utf8",

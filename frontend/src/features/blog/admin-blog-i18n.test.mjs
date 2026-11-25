@@ -12,6 +12,10 @@ const hasLocaleKey = (resource, key) =>
 test('admin blog UI references keys present in both locales', () => {
   const sources = [
     '../../pages/Blog.tsx',
+    // S9: objave su u `use-admin-blog.ts`, moderacija komentara u
+    // `use-blog-comments.ts` — ključevi se i dalje čitaju iz istog skupa.
+    './use-admin-blog.ts',
+    './use-blog-comments.ts',
     './blog-posts-table.tsx',
     './blog-post-form-dialog.tsx',
     './blog-post-seo-fields.tsx',

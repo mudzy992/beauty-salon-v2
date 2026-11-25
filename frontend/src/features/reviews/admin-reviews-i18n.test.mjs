@@ -5,7 +5,17 @@ import test from 'node:test'
 const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
-const source = readFileSync(new URL('../../pages/Reviews.tsx', import.meta.url), 'utf8')
+// S9: admin recenzije su razdvojene u `features/reviews/*` + `pages/Reviews.tsx`.
+// Test čita sve te fajlove zajedno, pa svaka tvrdnja i dalje pokriva isto.
+const REVIEW_FILES = [
+  './review-types.ts',
+  './review-stars.tsx',
+  './use-admin-reviews.ts',
+  './reviews-table.tsx',
+  './reviews-detail-dialog.tsx',
+  '../../pages/Reviews.tsx',
+]
+const source = REVIEW_FILES.map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n')
 const translationKeys = [...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>

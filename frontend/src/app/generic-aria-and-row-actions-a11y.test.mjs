@@ -133,7 +133,9 @@ test('1.1.1: StarRating izlaže ocjenu preko role="img" (zvjezdice su aria-hidde
 })
 
 test('2.1.1: Reviews — detalji recenzije imaju pravo dugme, ne samo klik na red', () => {
-  const src = readFileSync(new URL('../pages/Reviews.tsx', import.meta.url), 'utf8')
+  // S9: tabela recenzija preseljena je u `features/reviews/reviews-table.tsx`;
+  // tvrdnja je ista (dugme sa `aria-label` i `openDetail(r)`), samo drugi fajl.
+  const src = readFileSync(new URL('../features/reviews/reviews-table.tsx', import.meta.url), 'utf8')
   assert.match(
     src,
     /<Button[^>]*aria-label=\{t\('reviews\.details'\)\}[^>]*onClick=\{\(\) => openDetail\(r\)\}/s,
@@ -183,7 +185,7 @@ test('konzistentnost: sve admin tabele s klikabilnim redom imaju dugme po redu',
     ['../pages/Reservations.tsx', /reservations\.adminList\.details/, 'raw'],
     ['../pages/Stylists.tsx', /stylists\.aria\.edit/, 'datatable'],
     ['../features/client-analytics/client-reservations-table.tsx', /clientAnalyticsPage\.reservationDetailsAction/, 'client'],
-    ['../pages/Reviews.tsx', /reviews\.details/, 'raw'],
+    ['../features/reviews/reviews-table.tsx', /reviews\.details/, 'raw'],
   ]
   for (const [rel, key, kind] of cases) {
     const src = readFileSync(new URL(rel, import.meta.url), 'utf8')

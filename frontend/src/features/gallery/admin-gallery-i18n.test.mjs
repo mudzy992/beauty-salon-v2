@@ -6,7 +6,24 @@ import i18next from 'i18next'
 const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
-const source = readFileSync(new URL('../../pages/Gallery.tsx', import.meta.url), 'utf8')
+// S9: admin galerija je razdvojena u `features/gallery/*` (hookovi + prezentacija)
+// i `pages/Gallery.tsx` (orkestrator). Test čita **sve** te fajlove zajedno, pa
+// svaka tvrdnja i dalje pokriva isto — samo je izvor sada više fajlova.
+const GALLERY_FILES = [
+  './gallery-types.ts',
+  './use-gallery-categories.ts',
+  './use-gallery-image-edit.ts',
+  './use-gallery-image-upload.ts',
+  './gallery-category-list.tsx',
+  './gallery-category-dialog.tsx',
+  './gallery-image-grid.tsx',
+  './gallery-add-image-dialog.tsx',
+  './gallery-manual-upload-section.tsx',
+  './gallery-consented-image-section.tsx',
+  './gallery-image-dialog.tsx',
+  '../../pages/Gallery.tsx',
+]
+const source = GALLERY_FILES.map((f) => readFileSync(new URL(f, import.meta.url), 'utf8')).join('\n')
 const translationKeys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const leafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>

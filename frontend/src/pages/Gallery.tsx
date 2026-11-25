@@ -1,299 +1,46 @@
-import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 
-import api from '../api/client'
-import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
-import { getIntlLocale } from '../i18n/locale-utils.mjs'
-import { MediaImage } from '../components/media-image'
-import { getUploadUrl } from '../utils/uploadUrl'
-import { useAppToast } from '../lib/toast/useAppToast'
-
-import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Textarea } from '../components/ui/textarea'
+import { GalleryAddImageDialog } from '../features/gallery/gallery-add-image-dialog'
+import { GalleryCategoryDialog } from '../features/gallery/gallery-category-dialog'
+import { GalleryCategoryList } from '../features/gallery/gallery-category-list'
+import { GalleryImageDialog } from '../features/gallery/gallery-image-dialog'
+import { GalleryImageGrid } from '../features/gallery/gallery-image-grid'
+import { useGalleryCategories } from '../features/gallery/use-gallery-categories'
+import { useGalleryImageEdit } from '../features/gallery/use-gallery-image-edit'
+import { useGalleryImageUpload } from '../features/gallery/use-gallery-image-upload'
+import { AdminConfirmDialog } from '../features/shell/admin/ui/admin-confirm-dialog'
 
-interface GalleryImage {
-  id: string
-  title: string | null
-  description: string | null
-  sortOrder: number
-  uploadId?: string
-  upload?: { pathOriginal: string; pathThumb: string | null; pathMedium: string | null }
-}
-
-interface GalleryCategory {
-  id: string
-  name: string
-  description: string | null
-  sortOrder: number
-  autoPublishConsentedPairs: boolean
-  _count?: { images: number }
-  images?: GalleryImage[]
-}
-
-interface EligibleGalleryImage {
-  imageId: string
-  uploadId: string
-  consentId: string
-  isBefore: boolean
-  isAfter: boolean
-  serviceName: string
-  serviceDate: string
-  previewUrl: string
-}
-
+/**
+ * Admin galerija radova (S9).
+ *
+ * Stranica je sada **orkestrator**: stanje i akcije su u
+ * `features/gallery/use-gallery-categories.ts`, a prezentacija je razdvojena na
+ * četiri komponente (lista kategorija, mreža slika i dva dijaloga). Markup,
+ * poruke, redoslijed poziva i klice za testove su **nepromijenjeni** — pomjereni
+ * su u module, pa iste tvrdnje postojećih testova i dalje vrijede.
+ */
 export default function Gallery() {
-  const { t, i18n } = useTranslation()
-  const { success, error, warning } = useAppToast()
-
-  const [categories, setCategories] = useState<GalleryCategory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-
-  const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
-  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
-  const [catImages, setCatImages] = useState<GalleryImage[]>([])
-  const [imagesLoading, setImagesLoading] = useState(false)
-
-  const [catOpen, setCatOpen] = useState(false)
-  const [editCatId, setEditCatId] = useState<string | null>(null)
-  const [catForm, setCatForm] = useState({
-    name: '',
-    description: '',
-    sortOrder: 0,
-    autoPublishConsentedPairs: false,
+  const { t } = useTranslation()
+  const gallery = useGalleryCategories()
+  const imageEdit = useGalleryImageEdit({
+    selectedCatId: gallery.selectedCatId,
+    loadImages: gallery.loadImages,
+    loadCategories: gallery.loadCategories,
+    setConfirmRequest: gallery.setConfirmRequest,
+  })
+  const upload = useGalleryImageUpload({
+    selectedCatId: gallery.selectedCatId,
+    loadImages: gallery.loadImages,
+    loadCategories: gallery.loadCategories,
   })
 
-  const [addImageOpen, setAddImageOpen] = useState(false)
-  const [eligibleImages, setEligibleImages] = useState<EligibleGalleryImage[]>([])
-  const [eligibleLoading, setEligibleLoading] = useState(false)
-  const [eligibleSelectedId, setEligibleSelectedId] = useState<string | null>(null)
-  const [manualFile, setManualFile] = useState<File | null>(null)
-  const [manualTitle, setManualTitle] = useState('')
-  const [nonClientConfirmed, setNonClientConfirmed] = useState(false)
-  const [addingImage, setAddingImage] = useState(false)
-
-  const [imgOpen, setImgOpen] = useState(false)
-  const [editImgId, setEditImgId] = useState<string | null>(null)
-  const [imgForm, setImgForm] = useState({ title: '', description: '', sortOrder: 0 })
-
-  const loadCategories = useCallback(() => {
-    setLoading(true)
-    api
-      .get<GalleryCategory[]>('/api/gallery/categories')
-      .then((r) => setCategories(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setCategories([]))
-      .finally(() => setLoading(false))
-  }, [])
-
-  useEffect(() => {
-    loadCategories()
-  }, [loadCategories])
-
-  const loadImages = useCallback(async (catId: string) => {
-    setSelectedCatId(catId)
-    setImagesLoading(true)
-    try {
-      const { data } = await api.get<GalleryCategory>(`/api/gallery/categories/${catId}`)
-      setCatImages(data.images ?? [])
-    } catch {
-      setCatImages([])
-    } finally {
-      setImagesLoading(false)
-    }
-  }, [])
-
-  const openCatForm = (c?: GalleryCategory) => {
-    if (c) {
-      setEditCatId(c.id)
-      setCatForm({
-        name: c.name,
-        description: c.description ?? '',
-        sortOrder: c.sortOrder,
-        autoPublishConsentedPairs: c.autoPublishConsentedPairs,
-      })
-    } else {
-      setEditCatId(null)
-      setCatForm({
-        name: '',
-        description: '',
-        sortOrder: 0,
-        autoPublishConsentedPairs: false,
-      })
-    }
-    setCatOpen(true)
-  }
-
-  const handleSaveCat = async () => {
-    if (!catForm.name.trim()) {
-      warning(t('gallery.admin.categoryNameRequired'))
-      return
-    }
-    const activeAutoCategory = categories.find(
-      (category) => category.autoPublishConsentedPairs && category.id !== editCatId,
-    )
-    if (catForm.autoPublishConsentedPairs && activeAutoCategory) {
-      warning(
-        t('gallery.admin.duplicateAutoCategory', { name: activeAutoCategory.name }),
-      )
-      return
-    }
-    setSaving(true)
-    try {
-      if (editCatId) await api.patch(`/api/gallery/categories/${editCatId}`, catForm)
-      else await api.post('/api/gallery/categories', catForm)
-      success(t('gallery.admin.saved'))
-      loadCategories()
-      setCatOpen(false)
-    } catch (err: any) {
-      const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.genericError'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteCat = (id: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('gallery.admin.deleteCategoryConfirm'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/gallery/categories/${id}`)
-          success(t('gallery.admin.categoryDeleted'))
-          if (selectedCatId === id) {
-            setSelectedCatId(null)
-            setCatImages([])
-          }
-          loadCategories()
-        } catch {
-          error(t('gallery.admin.genericError'))
-        }
-      },
-    })
-  }
-
-  const openImgEdit = (img: GalleryImage) => {
-    setEditImgId(img.id)
-    setImgForm({ title: img.title ?? '', description: img.description ?? '', sortOrder: img.sortOrder })
-    setImgOpen(true)
-  }
-
-  const handleSaveImg = async () => {
-    if (!editImgId) return
-    setSaving(true)
-    try {
-      await api.patch(`/api/gallery/images/${editImgId}`, imgForm)
-      success(t('gallery.admin.saved'))
-      if (selectedCatId) await loadImages(selectedCatId)
-      setImgOpen(false)
-    } catch {
-      error(t('gallery.admin.genericError'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteImg = (id: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('gallery.admin.deleteImageConfirm'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/gallery/images/${id}`)
-          success(t('gallery.admin.imageDeleted'))
-          if (selectedCatId) await loadImages(selectedCatId)
-          loadCategories()
-        } catch {
-          error(t('gallery.admin.genericError'))
-        }
-      },
-    })
-  }
-
-  const openAddImage = async () => {
-    if (!selectedCatId) {
-      warning(t('gallery.admin.selectCategoryFirst'))
-      return
-    }
-    setAddImageOpen(true)
-    setEligibleLoading(true)
-    setEligibleSelectedId(null)
-    setManualFile(null)
-    setManualTitle('')
-    setNonClientConfirmed(false)
-    try {
-      const { data } = await api.get<EligibleGalleryImage[]>(
-        '/api/gallery/eligible-consented-images',
-      )
-      setEligibleImages(Array.isArray(data) ? data : [])
-    } catch (err: any) {
-      setEligibleImages([])
-      const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.eligibleImagesLoadFailed'))
-    } finally {
-      setEligibleLoading(false)
-    }
-  }
-
-  const handleAddConsentedImage = async () => {
-    const selected = eligibleImages.find((image) => image.imageId === eligibleSelectedId)
-    if (!selected || !selectedCatId) return
-    setAddingImage(true)
-    try {
-      await api.post('/api/gallery/images', {
-        categoryId: selectedCatId,
-        uploadId: selected.uploadId,
-      })
-      success(t('gallery.admin.consentedImageAdded'))
-      await loadImages(selectedCatId)
-      loadCategories()
-      setAddImageOpen(false)
-    } catch (err: any) {
-      const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.consentedImageAddFailed'))
-    } finally {
-      setAddingImage(false)
-    }
-  }
-
-  const handleUploadNonClientImage = async () => {
-    if (!manualFile || !selectedCatId || !nonClientConfirmed) return
-    setAddingImage(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', manualFile)
-      formData.append('nonClientAssetConfirmed', 'true')
-      if (manualTitle.trim()) formData.append('title', manualTitle.trim())
-      await api.post(
-        `/api/gallery/categories/${selectedCatId}/images/upload`,
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      )
-      success(t('gallery.admin.nonClientImageAdded'))
-      await loadImages(selectedCatId)
-      loadCategories()
-      setAddImageOpen(false)
-    } catch (err: any) {
-      const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.nonClientImageUploadFailed'))
-    } finally {
-      setAddingImage(false)
-    }
-  }
-
-  if (loading) {
+  if (gallery.loading) {
     return (
       <div className="flex justify-center p-10 text-content-muted">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+        <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
       </div>
     )
   }
@@ -302,326 +49,84 @@ export default function Gallery() {
     <div data-admin-gallery>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-content">{t('nav.gallery')}</h1>
-        <Button type="button" onClick={() => openCatForm()}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button type="button" onClick={() => gallery.openCatForm()}>
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t('gallery.admin.newCategory')}
         </Button>
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="w-full lg:w-[300px] lg:min-w-[280px]">
-          {categories.length === 0 ? (
-            <p className="text-sm text-content-muted">{t('common.noData')}</p>
-          ) : (
-            <div className="space-y-2">
-              {categories.map((c) => (
-                <Card
-                  key={c.id}
-                  className={[
-                    'p-4 transition-shadow hover:shadow-md',
-                    selectedCatId === c.id ? 'border-brand-gold-ring bg-brand-champagne/10' : '',
-                  ].join(' ')}
-                >
-                  <div data-gallery-category-row className="flex items-center justify-between gap-3">
-                    {/* 2.1.1: izbor kategorije MORA biti pravo <button>. `Card` renderuje običan
-                        <div> (`components/ui/card.tsx:7`), pa `onClick` na njemu tastaturnom
-                        korisniku nije bio dostupan — a ovo je JEDINI put do `loadImages`, koji
-                        postavlja `selectedCatId`. Bez toga se galerija ne može ni otvoriti
-                        tastaturom. Fokus pokriva globalno pravilo `globals.css:208`.
-                        <span> umjesto <p>: <p> nije dozvoljen sadržaj unutar <button>. */}
-                    <button
-                      type="button"
-                      onClick={() => void loadImages(c.id)}
-                      aria-pressed={selectedCatId === c.id}
-                      className="min-w-0 flex-1 cursor-pointer rounded text-left"
-                    >
-                      <span data-gallery-category-name className="block truncate font-semibold text-content">
-                        {c.name}
-                      </span>
-                      <span className="mt-1 block text-xs text-content-muted">
-                        {c.autoPublishConsentedPairs
-                          ? t('gallery.admin.autoCategorySummary', { count: c._count?.images ?? 0 })
-                          : t('gallery.admin.imageCount', { count: c._count?.images ?? 0 })}{' '}
-                        | {t('gallery.admin.sortOrderValue', { value: c.sortOrder })}
-                      </span>
-                    </button>
-                    <div className="flex shrink-0 gap-1">
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('gallery.admin.edit')} onClick={() => openCatForm(c)}>
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('gallery.admin.delete')} onClick={() => void handleDeleteCat(c.id)}>
-                        <Trash2 className="h-4 w-4 text-rose-600" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+          <GalleryCategoryList
+            categories={gallery.categories}
+            selectedCatId={gallery.selectedCatId}
+            loadImages={gallery.loadImages}
+            onEdit={gallery.openCatForm}
+            onDelete={gallery.handleDeleteCat}
+          />
         </div>
 
         <div className="flex-1">
-          {!selectedCatId ? (
+          {!gallery.selectedCatId ? (
             <Card className="p-6">
               <p className="text-sm text-content-muted">{t('gallery.admin.selectCategoryPrompt')}</p>
             </Card>
           ) : (
-            <Card className="p-6">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className="text-[10px]">
-                    {t('gallery.admin.selectedImageCount', { count: catImages.length })}
-                  </Badge>
-                  {categories.find((category) => category.id === selectedCatId)?.autoPublishConsentedPairs ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      {t('gallery.admin.autoPairsBadge')}
-                    </Badge>
-                  ) : null}
-                  {imagesLoading ? <span className="text-xs text-content-muted">{t('gallery.admin.loadingImages')}</span> : null}
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-content-muted sm:max-w-md">
-                    {t('gallery.admin.addImageGuidance')}
-                  </p>
-                  <Button type="button" size="sm" onClick={() => void openAddImage()}>
-                    <Plus className="mr-2 h-4 w-4" /> {t('gallery.admin.addPhoto')}
-                  </Button>
-                </div>
-              </div>
-
-              {imagesLoading ? (
-                <div className="flex justify-center py-10 text-content-muted">
-                  <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
-                </div>
-              ) : catImages.length === 0 ? (
-                <p className="text-sm text-content-muted">{t('common.noData')}</p>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {catImages.map((img) => {
-                    const src =
-                      img.upload?.pathMedium || img.upload?.pathThumb || img.upload?.pathOriginal
-                        ? getUploadUrl(img.upload?.pathMedium || img.upload?.pathThumb || img.upload?.pathOriginal)
-                        : undefined
-                    return (
-                      <div key={img.id} className="group overflow-hidden rounded-lg border border-line ">
-                        <div data-gallery-image-media className="relative aspect-[4/3] bg-surface-muted ">
-                          <MediaImage src={src} alt={img.title ?? t('gallery.admin.galleryImageAlt')} className="h-full w-full object-cover" />
-                          <div data-gallery-image-meta className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
-                            <div className="min-w-0">
-                              <p className="truncate text-xs font-semibold text-white">{img.title ?? t('gallery.admin.untitled')}</p>
-                              <p className="truncate text-[10px] text-white/80">{t('gallery.admin.sortOrderValue', { value: img.sortOrder })}</p>
-                            </div>
-                            <div className="flex shrink-0 gap-1">
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" aria-label={t('gallery.admin.edit')} onClick={() => openImgEdit(img)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" aria-label={t('gallery.admin.delete')} onClick={() => void handleDeleteImg(img.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </Card>
+            <GalleryImageGrid
+              categories={gallery.categories}
+              selectedCatId={gallery.selectedCatId}
+              images={gallery.catImages}
+              loading={gallery.imagesLoading}
+              onEdit={imageEdit.openImgEdit}
+              onDelete={imageEdit.handleDeleteImg}
+              onAddImage={() => void upload.openAddImage()}
+            />
           )}
         </div>
       </div>
 
-      <Dialog open={catOpen} onOpenChange={setCatOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editCatId ? t('gallery.admin.editCategoryTitle') : t('gallery.admin.newCategory')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="gallery-category-name">{t('gallery.admin.name')}</Label>
-              <Input id="gallery-category-name" className="mt-1" value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="gallery-category-description">{t('gallery.admin.description')}</Label>
-              <Textarea id="gallery-category-description" className="mt-1" value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="gallery-category-sort-order">{t('gallery.admin.sortOrder')}</Label>
-              <Input id="gallery-category-sort-order" className="mt-1" type="number" min={0} value={catForm.sortOrder} onChange={(e) => setCatForm({ ...catForm, sortOrder: Number(e.target.value) || 0 })} />
-            </div>
-            <label className="flex items-start gap-3 rounded-lg border border-line p-3 text-sm text-content-strong">
-              <input
-                type="checkbox"
-                checked={catForm.autoPublishConsentedPairs}
-                onChange={(event) =>
-                  setCatForm({ ...catForm, autoPublishConsentedPairs: event.target.checked })
-                }
-                className="mt-1 h-4 w-4 accent-amber-700"
-              />
-              <span>
-                <span className="font-semibold">{t('gallery.admin.autoPublishPairs')}</span>
-                <span className="mt-1 block text-xs leading-5 text-content-muted">
-                  {t('gallery.admin.autoPublishPairsHint')}
-                </span>
-              </span>
-            </label>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setCatOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleSaveCat()} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <GalleryCategoryDialog
+        open={gallery.catOpen}
+        onOpenChange={gallery.setCatOpen}
+        editing={gallery.editCatId !== null}
+        form={gallery.catForm}
+        setForm={gallery.setCatForm}
+        saving={gallery.saving}
+        onSave={() => void gallery.handleSaveCat()}
+      />
 
-      <Dialog open={addImageOpen} onOpenChange={setAddImageOpen}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('gallery.admin.addImageTitle')}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-5 md:grid-cols-2">
-            <section className="space-y-4 rounded-xl border border-line p-4">
-              <div>
-                <h3 className="font-semibold text-content">{t('gallery.admin.nonClientSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-content-strong">
-                  {t('gallery.admin.nonClientSectionGuidance')}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gallery-manual-file">{t('gallery.admin.photo')}</Label>
-                <input
-                  id="gallery-manual-file"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={(event) => setManualFile(event.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-content-strong file:mr-3 file:rounded-md file:border-0 file:bg-surface-muted file:px-3 file:py-2 file:text-sm file:font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gallery-manual-title">{t('gallery.admin.optionalTitle')}</Label>
-                <Input
-                  id="gallery-manual-title"
-                  value={manualTitle}
-                  onChange={(event) => setManualTitle(event.target.value)}
-                  maxLength={200}
-                />
-              </div>
-              <label className="flex items-start gap-2 text-xs leading-5 text-content-strong">
-                <input
-                  type="checkbox"
-                  checked={nonClientConfirmed}
-                  onChange={(event) => setNonClientConfirmed(event.target.checked)}
-                  className="mt-1 h-4 w-4 accent-amber-700"
-                />
-                <span>{t('gallery.admin.nonClientConfirmation')}</span>
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                disabled={!manualFile || !nonClientConfirmed || addingImage}
-                onClick={() => void handleUploadNonClientImage()}
-              >
-                {addingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                {t('gallery.admin.uploadNonClientPhoto')}
-              </Button>
-            </section>
+      <GalleryAddImageDialog
+        open={upload.addImageOpen}
+        onOpenChange={upload.setAddImageOpen}
+        eligibleImages={upload.eligibleImages}
+        eligibleLoading={upload.eligibleLoading}
+        eligibleSelectedId={upload.eligibleSelectedId}
+        setEligibleSelectedId={upload.setEligibleSelectedId}
+        manualFile={upload.manualFile}
+        setManualFile={upload.setManualFile}
+        manualTitle={upload.manualTitle}
+        setManualTitle={upload.setManualTitle}
+        nonClientConfirmed={upload.nonClientConfirmed}
+        setNonClientConfirmed={upload.setNonClientConfirmed}
+        addingImage={upload.addingImage}
+        onAddConsented={() => void upload.handleAddConsentedImage()}
+        onUploadNonClient={() => void upload.handleUploadNonClientImage()}
+      />
 
-            <section className="space-y-4 rounded-xl border border-line p-4">
-              <div>
-                <h3 className="font-semibold text-content">{t('gallery.admin.consentedSectionTitle')}</h3>
-                <p className="mt-1 text-xs leading-5 text-content-strong">
-                  {t('gallery.admin.consentedSectionGuidance')}
-                </p>
-              </div>
-              {eligibleLoading ? (
-                <div className="flex items-center gap-2 text-sm text-content-muted">
-                  <Loader2 className="h-4 w-4 animate-spin" /> {t('gallery.admin.loadingEligibleImages')}
-                </div>
-              ) : eligibleImages.length === 0 ? (
-                <p className="text-sm text-content-muted">{t('gallery.admin.noEligibleImages')}</p>
-              ) : (
-                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                  {eligibleImages.map((image) => (
-                    <label
-                      key={image.imageId}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-line p-2 hover:bg-surface-muted"
-                    >
-                      <input
-                        type="radio"
-                        name="eligible-gallery-image"
-                        checked={eligibleSelectedId === image.imageId}
-                        onChange={() => setEligibleSelectedId(image.imageId)}
-                        className="h-4 w-4 accent-amber-700"
-                      />
-                      <MediaImage
-                        src={getUploadUrl(image.previewUrl)}
-                        alt=""
-                        className="h-14 w-14 rounded-md object-cover"
-                      />
-                      <span className="min-w-0 text-xs text-content-strong">
-                        <span className="block font-semibold">{image.isBefore ? t('gallery.admin.before') : t('gallery.admin.after')} · {image.serviceName}</span>
-                        <span className="block text-content-muted">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), getIntlLocale(i18n.language), { dateStyle: 'medium' })}</span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!eligibleSelectedId || eligibleLoading || addingImage}
-                onClick={() => void handleAddConsentedImage()}
-              >
-                {addingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {t('gallery.admin.addConsentedPhoto')}
-              </Button>
-            </section>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => setAddImageOpen(false)}>
-              {t('gallery.admin.close')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <GalleryImageDialog
+        open={imageEdit.imgOpen}
+        onOpenChange={imageEdit.setImgOpen}
+        form={imageEdit.imgForm}
+        setForm={imageEdit.setImgForm}
+        saving={imageEdit.saving}
+        canSave={imageEdit.editImgId !== null}
+        onSave={() => void imageEdit.handleSaveImg()}
+      />
 
-      <Dialog open={imgOpen} onOpenChange={setImgOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t('gallery.admin.editImageTitle')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="gallery-image-title">{t('gallery.admin.title')}</Label>
-              <Input id="gallery-image-title" className="mt-1" value={imgForm.title} onChange={(e) => setImgForm({ ...imgForm, title: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="gallery-image-description">{t('gallery.admin.description')}</Label>
-              <Textarea id="gallery-image-description" className="mt-1" value={imgForm.description} onChange={(e) => setImgForm({ ...imgForm, description: e.target.value })} />
-            </div>
-            <div>
-              <Label htmlFor="gallery-image-sort-order">{t('gallery.admin.sortOrder')}</Label>
-              <Input id="gallery-image-sort-order" className="mt-1" type="number" min={0} value={imgForm.sortOrder} onChange={(e) => setImgForm({ ...imgForm, sortOrder: Number(e.target.value) || 0 })} />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setImgOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleSaveImg()} disabled={saving || !editImgId}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {t('common.save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+      <AdminConfirmDialog
+        request={gallery.confirmRequest}
+        onClose={() => gallery.setConfirmRequest(null)}
+      />
     </div>
   )
 }
-

@@ -47,7 +47,7 @@ export function BlogCommentsDialog({
         </DialogHeader>
         {loading ? (
           <div className="flex justify-center p-10 text-content-strong">
-            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+            <Loader2 className="h-8 w-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           </div>
         ) : loadError ? (
           <div role="alert" className="text-sm text-content-strong">
@@ -67,7 +67,7 @@ export function BlogCommentsDialog({
                   'rounded-md border p-3',
                   c.isApproved
                     ? 'border-line bg-surface'
-                    : 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20',
+                    : 'border-warn bg-warn',
                 ].join(' ')}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -100,7 +100,7 @@ export function BlogCommentsDialog({
                         aria-label={t('blog.admin.approve')}
                         onClick={() => onApprove(c.id)}
                       >
-                        <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                        <Check className="h-4 w-4 text-ok-foreground" aria-hidden="true" />
                       </Button>
                     ) : null}
                     <Button
@@ -111,7 +111,7 @@ export function BlogCommentsDialog({
                       aria-label={t('common.delete')}
                       onClick={() => onDelete(c.id)}
                     >
-                      <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+                      <Trash2 className="h-4 w-4 text-danger" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>

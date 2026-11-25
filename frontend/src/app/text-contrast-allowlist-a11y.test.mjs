@@ -76,10 +76,11 @@ const ALLOWLIST = {
   'features/shell/admin/ui/data-state.tsx::rose-500': 'ikona (AlertCircle) aria-hidden, 3.67:1 ≥ 3:1',
   'features/client-analytics/star-rating.tsx::amber-400': 'ikona zvijezde (fill) aria-hidden, ima tekstualnu alternativu',
   'features/client-analytics/star-rating.tsx::slate-200': 'neoznačena zvijezda, dekorativna',
-  'pages/Notifications.tsx::emerald-600': 'ikona u icon-only dugmetu s aria-label, 3.77:1 ≥ 3:1',
-  'pages/Reviews.tsx::emerald-600': 'ikona (Check) aria-hidden, 3.77:1 ≥ 3:1',
-  'pages/Reviews.tsx::slate-300': 'neoznačena zvijezda, dekorativna',
-  'pages/Reviews.tsx::yellow-400': 'ikona zvijezde (fill) aria-hidden',
+  // 2026-11-25 (S9): četiri unosa za `pages/Notifications.tsx` i `pages/Reviews.tsx`
+  // obrisana — te klase više ne postoje (`emerald-600` → `ok-foreground`,
+  // `slate-300` → `content-strong`, `yellow-400` → `brand-gold-text`). Sve četiri
+  // vrijednosti sada su semantički tokeni sa izmjerenim kontrastom u sve tri
+  // žive teme, pa nalaz ne zahtijeva obrazloženje.
   'features/salon/salon-holiday-table.tsx::teal-600': 'ikona (Send), 3.74:1 ≥ 3:1',
   'features/services/service-category-item.tsx::emerald-600': 'ikona (Plus), 3.77:1 ≥ 3:1',
   'pages/Stylists.tsx::teal-600': 'ikona (Eye), 3.74:1 ≥ 3:1',
@@ -155,9 +156,13 @@ test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u
   // tokenizovan: scanned=126, skippedDark=60 — prije Faze A bilo je ≥400/≥100).
   // Manual income validation now uses the semantic content token rather than
   // one text-rose-600 occurrence (scanned 125 → 124); all findings still run.
-  assert.ok(scanned >= 124, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
-  // 2026-11-18 (komponente standardizovane): skippedDark = 48
-  assert.ok(skippedDark >= 45, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
+  // 2026-11-25 (S9, admin sadržaj + postavke): tvrde palete u S9 opsegu zamijenjene
+  // semantičkim tokenima (ok-foreground / danger / brand-rose-text / info-foreground),
+  // pa je set smanjio: scanned 124 → 109, skippedDark 47 → 43, nalazi 17 → 13.
+  // Ratchet i dalje pada (nikad ne raste) i sada hvata novo uklanjanje klasa.
+  assert.ok(scanned >= 109, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  // 2026-11-18 (komponente standardizovane): skippedDark = 48 → S9: 43
+  assert.ok(skippedDark >= 43, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 
   const missing = [...found.keys()].filter((k) => !ALLOWLIST[k])
   assert.deepEqual(missing, [], `neobrazloženi niskokontrastni nalazi:\n${missing.join('\n')}`)
@@ -173,7 +178,9 @@ test('svaki unos allowliste ima razlog i pokriva stvarni nalaz', () => {
   }
   // 29 → 17 (2026-11-18, Faza C (17/)–(18/)): javni/auth/portal tokenizacija
   // uklonila je stale javne unose (Login/Register/PublicHome/PublicReserve).
-  assert.ok(Object.keys(ALLOWLIST).length >= 17, 'allowlista je sumnjivo mala')
+  // 17 → 13 (2026-11-25, S9): četiri unosa za Notifications/Reviews obrisana
+  // jer su njihove klase prešle na semantičke tokene.
+  assert.ok(Object.keys(ALLOWLIST).length >= 13, 'allowlista je sumnjivo mala')
 })
 
 /**
@@ -239,8 +246,10 @@ test('1.4.3/1.4.11: tekst i pozadina na istom elementu imaju >= 4.5:1', () => {
     })
   }
   // 49 parova izmjereno 2026-11-09; 33 poslije C (17/); 25 poslije C (18/) (2026-11-18);
+  // 24 poslije S9 (2026-11-25 — plavi „nepročitano“ baner i rose paneli prešli na
+  // semantičke tokene, pa je parova sa sirom paletom jedan manje);
   // donja granica sprječava tiho prolazenje na praznom skupu.
-  assert.ok(checked >= 24, `sweep je obuhvatio samo ${checked} bg+text parova`)
+  assert.ok(checked >= 23, `sweep je obuhvatio samo ${checked} bg+text parova`)
   assert.deepEqual(bad, [], `tekst/pozadina ispod 4.5:1 na istom elementu:\n${bad.join('\n')}`)
 })
 

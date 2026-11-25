@@ -3,11 +3,34 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
-const reviews = read('../../pages/Reviews.tsx')
-const gallery = read('../../pages/Gallery.tsx')
+// S9 (2026-11-25): admin sadržaj je razdvojen u `features/*`. Test čita module
+// zajedno sa stranicama-orkestratorima, pa **svaka tvrdnja i dalje pokriva isti
+// markup** — promijenjena je samo putanja izvora, ne i garancija.
+const reviews = [
+  read('../reviews/review-stars.tsx'),
+  read('../reviews/reviews-table.tsx'),
+  read('../reviews/reviews-detail-dialog.tsx'),
+  read('../../pages/Reviews.tsx'),
+].join('\n')
+const gallery = [
+  read('../gallery/gallery-category-list.tsx'),
+  read('../gallery/gallery-category-dialog.tsx'),
+  read('../gallery/gallery-image-grid.tsx'),
+  read('../gallery/gallery-add-image-dialog.tsx'),
+  read('../gallery/gallery-manual-upload-section.tsx'),
+  read('../gallery/gallery-consented-image-section.tsx'),
+  read('../gallery/gallery-image-dialog.tsx'),
+  read('../../pages/Gallery.tsx'),
+].join('\n')
 const blog = read('../../pages/Blog.tsx')
 const postsTable = read('../blog/blog-posts-table.tsx')
-const postForm = read('../blog/blog-post-form-dialog.tsx')
+// S9: upload slike u blog formi je izdvojen u `blog-post-image-upload.tsx`
+// (iz njega su i `<input type="file">` i `MediaImage`), pa se čita zajedno
+// sa formom — tvrdnje i dalje pokrivaju isti markup.
+const postForm = [
+  read('../blog/blog-post-form-dialog.tsx'),
+  read('../blog/blog-post-image-upload.tsx'),
+].join('\n')
 const seoFields = read('../blog/blog-post-seo-fields.tsx')
 const commentsDialog = read('../blog/blog-comments-dialog.tsx')
 const css = read('../../index.css')
@@ -53,8 +76,12 @@ test('svaki <Label> je programski povezan s kontrolom (1.3.1)', () => {
     }
   }
   // Reviews/Blog/posts-table/comments-dialog nemaju <Label> (koriste Badge,
-  // dugmad s tekstom i role="img"). Ukupno 15, svih 15 asocirano.
+  // dugmad s tekstom i role="img").
   // 2026-11-09: +1 za `blog.admin.language` (selektor jezika članka, WCAG 3.1.2).
+  // 2026-11-25 (S9): dijalog za dodavanje fotografije je podijeljen —
+  //   `gallery-manual-upload-section.tsx` (`gallery-manual-file`,
+  //   `gallery-manual-title`) nosi ista dva Label-a koja su prije bila u
+  //   `gallery-add-image-dialog.tsx`, pa ukupan broj ostaje isti.
   assert.equal(total, 15, `očekivano 15 <Label>, nađeno ${total}`)
 })
 

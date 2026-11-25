@@ -69,7 +69,7 @@ export const AppReleaseCreateForm = ({
             onChange={(e) => onFileChange(e.target.files?.[0] ?? null)}
           />
           <Button type="button" variant="secondary" disabled={!file || saving} onClick={onUpload}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Upload className="mr-2 h-4 w-4" />}
             {t('appReleases.upload')}
           </Button>
           {uploadMeta ? (

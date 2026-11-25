@@ -1,10 +1,8 @@
-import { Link } from 'react-router-dom'
 import { MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../components/ui/button'
-import { Label } from '../../components/ui/label'
-import { Textarea } from '../../components/ui/textarea'
+import { PublicBlogCommentForm } from './public-blog-comment-form'
 
 type Comment = {
   id: string
@@ -55,46 +53,14 @@ export function PublicBlogComments({
         <MessageCircle className="h-5 w-5 text-content-muted" aria-hidden />
         {t('public.blogComments.title')} {total > 0 && `(${total})`}
       </h2>
-      {user ? (
-        <fieldset className="mb-8 space-y-4 border-0 p-0">
-          <legend className="sr-only">{t('public.blogComments.legend')}</legend>
-          <Label htmlFor="public-blog-comment">
-            {t('public.blogComments.placeholder')}
-          </Label>
-          <Textarea
-            id="public-blog-comment"
-            value={newComment}
-            onChange={(e) => onChange(e.target.value)}
-            rows={4}
-            maxLength={2000}
-            aria-describedby="public-blog-comment-hint"
-            className="resize-y"
-          />
-          <p id="public-blog-comment-hint" className="mt-1 text-xs text-content-strong">
-            {t('public.blogComments.hint')}
-          </p>
-          <Button
-            onClick={onSubmit}
-            disabled={submitting || !newComment.trim()}
-            aria-busy={submitting}
-          >
-            {submitting ? t('public.blogComments.submitting') : t('public.blogComments.submit')}
-          </Button>
-          {submitting ? (
-            <span role="status" aria-live="polite" className="sr-only">
-              {t('public.blogComments.submitting')}
-            </span>
-          ) : null}
-        </fieldset>
-      ) : (
-        <div className="py-4 text-content-strong">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/login" state={{ from: `/blog/${slug}` }}>
-              {t('public.blogComments.login')}
-            </Link>
-          </Button>
-        </div>
-      )}
+      <PublicBlogCommentForm
+        slug={slug}
+        user={Boolean(user)}
+        newComment={newComment}
+        submitting={submitting}
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />
       {loading ? (
         <div role="status" aria-live="polite" data-aurum-skeleton className="py-8 text-center text-content-strong">{t('common.loading')}</div>
       ) : loadError && comments.length === 0 ? (

@@ -297,6 +297,8 @@ test('3.3.2: razlog otkazivanja ima aria-labelledby + aria-describedby', () => {
 })
 
 test('4.1.2: filter recenzija ima programsku labelu', () => {
+  // S9: filter je i dalje u `pages/Reviews.tsx` (orkestrator) — samo je tabela
+  // preseljena u `features/reviews/reviews-table.tsx`.
   const src = readFileSync(new URL('../pages/Reviews.tsx', import.meta.url), 'utf8')
   // 2026-11-17 (Faza C (7/) follow-up): raw `<select>` -> djeljena `<Select>` komponenta.
   // Garancija zadržana: `Select` prosljeđuje `aria-label` na native `<select>`.

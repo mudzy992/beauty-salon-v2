@@ -35,15 +35,15 @@ export function SettingEditorBoolean({
           {displayLabel}
         </Label>
         {def.helpText ? <p className="mt-1 text-xs leading-5 text-content-strong">{def.helpText}</p> : null}
-        <p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${isOn ? 'text-emerald-700' : 'text-content-strong'}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${isOn ? 'bg-emerald-500' : 'bg-neutral'}`} aria-hidden="true" />
+        <p className={`mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium ${isOn ? 'text-ok-foreground' : 'text-content-strong'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${isOn ? 'bg-ok-foreground' : 'bg-neutral'}`} aria-hidden="true" />
           {isOn ? t('adminSettings.editor.enabled') : t('adminSettings.editor.disabled')}
         </p>
       </div>
       <div className="flex shrink-0 items-center justify-end gap-2">
         {saving ? (
           <span role="status" className="inline-flex items-center gap-1.5 text-xs text-content-strong">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
             {t('common.saving')}
           </span>
         ) : null}

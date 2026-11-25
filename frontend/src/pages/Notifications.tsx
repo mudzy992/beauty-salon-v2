@@ -1,250 +1,25 @@
-import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { formatLocalizedDateTime } from '../i18n/locale-utils.mjs'
-import { Bell, Check, Loader2 } from 'lucide-react'
-import api from '../api/client'
-import { useSocketEvent } from '../context/SocketContext'
-import { useAppToast } from '../lib/toast/useAppToast'
-import { Badge } from '../components/ui/badge'
+import { Bell } from 'lucide-react'
+
 import { Button } from '../components/ui/button'
-import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
-import { Card } from '../components/ui/card'
-import { Switch } from '../components/ui/switch'
+import { NotificationPreferences } from '../features/notifications/notification-preferences'
+import { NotificationsList } from '../features/notifications/notifications-list'
+import { useNotifications } from '../features/notifications/use-notifications'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 
-interface Notification {
-  id: string
-  title: string
-  body: string
-  type: string
-  channel: string
-  isRead: boolean
-  sentAt: string
-  readAt: string | null
-}
-
-interface NotifPreference {
-  id: string
-  type: string
-  pushEnabled: boolean
-  emailEnabled: boolean
-}
-
-interface CampaignEmailConsent {
-  optedIn: boolean
-  consentedAt: string | null
-  withdrawnAt: string | null
-}
-
-const channelBadgeVariant = (channel: string): 'secondary' | 'brand' | 'outline' => {
-  if (channel === 'PUSH') return 'secondary'
-  if (channel === 'EMAIL') return 'brand'
-  return 'outline'
-}
-
+/**
+ * Admin obavijesti (S9).
+ *
+ * Stranica je **orkestrator**: stanje i akcije su u
+ * `features/notifications/use-notifications.ts`, lista u `notifications-list.tsx`,
+ * a preferencije (uključujući nezavisni blok saglasnosti za kampanje) u
+ * `notification-preferences.tsx`. Endpointi, poruke i markup su
+ * **nepromijenjeni**.
+ */
 export default function Notifications() {
-  const { t, i18n } = useTranslation()
-  const { error, success } = useAppToast()
-
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false)
-
-  const [preferences, setPreferences] = useState<NotifPreference[]>([])
-  const [prefLoading, setPrefLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [campaignConsent, setCampaignConsent] = useState<CampaignEmailConsent | null>(null)
-  const [campaignConsentLoading, setCampaignConsentLoading] = useState(true)
-  const [campaignConsentLoadFailed, setCampaignConsentLoadFailed] = useState(false)
-  const [savingCampaignConsent, setSavingCampaignConsent] = useState(false)
-
-  const loadNotifications = useCallback(() => {
-    setLoading(true)
-    const params: Record<string, string> = {}
-    if (showUnreadOnly) params.unreadOnly = 'true'
-    api
-      .get<Notification[]>('/api/notifications', { params })
-      .then((r) => setNotifications(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setNotifications([]))
-      .finally(() => setLoading(false))
-  }, [showUnreadOnly])
-
-  const loadPreferences = useCallback(() => {
-    setPrefLoading(true)
-    api
-      .get<NotifPreference[]>('/api/notifications/preferences')
-      .then((r) => setPreferences(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setPreferences([]))
-      .finally(() => setPrefLoading(false))
-  }, [])
-
-  const loadCampaignConsent = useCallback(() => {
-    setCampaignConsentLoading(true)
-    api
-      .get<CampaignEmailConsent>('/api/notifications/campaigns/consent')
-      .then((r) => {
-        setCampaignConsent(r.data)
-        setCampaignConsentLoadFailed(false)
-      })
-      .catch(() => {
-        setCampaignConsentLoadFailed(true)
-      })
-      .finally(() => setCampaignConsentLoading(false))
-  }, [])
-
-  useEffect(() => {
-    loadNotifications()
-  }, [loadNotifications])
-  useEffect(() => {
-    loadPreferences()
-  }, [loadPreferences])
-  useEffect(() => {
-    loadCampaignConsent()
-  }, [loadCampaignConsent])
-
-  useSocketEvent('notification:new', useCallback(() => loadNotifications(), [loadNotifications]))
-
-  const markAsRead = async (id: string) => {
-    try {
-      await api.patch(`/api/notifications/${id}/read`)
-      loadNotifications()
-    } catch {
-      error(t('notifications.markReadFailed'))
-    }
-  }
-
-  const savePreference = async (type: string, pushEnabled: boolean, emailEnabled: boolean) => {
-    setSaving(true)
-    try {
-      await api.post('/api/notifications/preferences', { type, pushEnabled, emailEnabled })
-      success(t('notifications.preferencesSaved'))
-      loadPreferences()
-    } catch {
-      error(t('notifications.preferencesSaveFailed'))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const saveCampaignConsent = async (optedIn: boolean) => {
-    setSavingCampaignConsent(true)
-    try {
-      const { data } = await api.put<CampaignEmailConsent>(
-        '/api/notifications/campaigns/consent',
-        { optedIn },
-      )
-      setCampaignConsent(data)
-      setCampaignConsentLoadFailed(false)
-      success(t('notifications.campaignConsent.saved'))
-    } catch {
-      error(t('notifications.campaignConsent.saveFailed'))
-    } finally {
-      setSavingCampaignConsent(false)
-    }
-  }
-
-  const NOTIFICATION_TYPES = [
-    'RESERVATION_NEW',
-    'RESERVATION_CONFIRMED',
-    'RESERVATION_CANCELLED',
-    'RESERVATION_REMINDER',
-    'HOLIDAY',
-    'REVIEW_NEW',
-    'GENERAL',
-  ]
-
-  const getNotificationTypeLabel = (type: string) => {
-    switch (type) {
-      case 'RESERVATION_NEW':
-      case 'reservation_new':
-        return t('notifications.types.reservationNew')
-      case 'RESERVATION_CONFIRMED':
-      case 'reservation_confirmed':
-        return t('notifications.types.reservationConfirmed')
-      case 'RESERVATION_CANCELLED':
-      case 'reservation_cancelled':
-        return t('notifications.types.reservationCancelled')
-      case 'RESERVATION_REMINDER':
-      case 'reservation_reminder':
-        return t('notifications.types.reservationReminder')
-      case 'RESERVATION_RESCHEDULE':
-      case 'reservation_reschedule':
-        return t('notifications.types.reservationReschedule')
-      case 'CLIENT_DEBT':
-      case 'client_debt':
-        return t('notifications.types.clientDebt')
-      case 'PAYMENT_RECEIPT':
-      case 'payment_receipt':
-        return t('notifications.types.paymentReceipt')
-      case 'HOLIDAY':
-      case 'holiday':
-        return t('notifications.types.holiday')
-      case 'REVIEW_NEW':
-      case 'review_new':
-        return t('notifications.types.reviewNew')
-      case 'GENERAL':
-      case 'general':
-        return t('notifications.types.general')
-      default:
-        return type.replace(/_/g, ' ')
-    }
-  }
-
-  const getChannelLabel = (channel: string) => {
-    if (channel === 'PUSH') return t('notifications.channelPush')
-    if (channel === 'EMAIL') return t('notifications.channelEmail')
-    if (channel === 'BOTH') return t('notifications.channelBoth')
-    return channel
-  }
-
-  const getExistingPref = (type: string) => preferences.find((p) => p.type === type)
-
-  const preferenceColumns: DataTableColumn<(typeof NOTIFICATION_TYPES)[number]>[] = [
-    {
-      key: 'type',
-      headerKey: 'notifications.notificationType',
-      className: 'p-3 font-medium text-content',
-      render: (type) => getNotificationTypeLabel(type),
-    },
-    {
-      key: 'push',
-      headerKey: 'notifications.push',
-      className: 'p-3',
-      render: (type) => {
-        const pref = getExistingPref(type)
-        return (
-          <Switch
-            checked={pref?.pushEnabled ?? true}
-            onCheckedChange={(checked) =>
-              void savePreference(type, checked, pref?.emailEnabled ?? true)
-            }
-            disabled={saving}
-            aria-label={t('notifications.pushPreferenceLabel', { type: getNotificationTypeLabel(type) })}
-          />
-        )
-      },
-    },
-    {
-      key: 'email',
-      headerKey: 'notifications.email',
-      className: 'p-3',
-      render: (type) => {
-        const pref = getExistingPref(type)
-        return (
-          <Switch
-            checked={pref?.emailEnabled ?? true}
-            onCheckedChange={(checked) =>
-              void savePreference(type, pref?.pushEnabled ?? true, checked)
-            }
-            disabled={saving}
-            aria-label={t('notifications.emailPreferenceLabel', { type: getNotificationTypeLabel(type) })}
-          />
-        )
-      },
-    },
-  ]
-
+  const { t } = useTranslation()
+  const notifications = useNotifications()
 
   return (
     <div>
@@ -264,123 +39,28 @@ export default function Notifications() {
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
-          <div className="mb-4 flex max-w-xs items-center justify-between gap-3">
-            <span className="text-sm text-content-strong" id="unread-only-label">
-              {t('notifications.unreadOnly')}
-            </span>
-            <Switch
-              checked={showUnreadOnly}
-              onCheckedChange={setShowUnreadOnly}
-              aria-labelledby="unread-only-label"
-            />
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center py-8 text-content-strong">
-              <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
-            </div>
-          ) : notifications.length === 0 ? (
-            <p className="text-sm text-content-strong">{t('common.noData')}</p>
-          ) : (
-            <div className="space-y-2">
-              {notifications.map((n) => (
-                <Card
-                  key={n.id}
-                  className={
-                    n.isRead
-                      ? 'p-4'
-                      : 'border-l-4 border-l-blue-500 bg-blue-50/80 p-4 dark:border-l-blue-400 dark:bg-blue-950/20'
-                  }
-                >
-                  <div className="flex justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-content">{n.title}</p>
-                        <Badge variant={channelBadgeVariant(n.channel)} className="text-[10px]">
-                          {getChannelLabel(n.channel)}
-                        </Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          {getNotificationTypeLabel(n.type)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-content-strong">{n.body}</p>
-                      <p className="mt-1 text-xs text-content-strong">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
-                    </div>
-                    {!n.isRead ? (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="shrink-0 text-emerald-600 hover:text-emerald-700"
-                        aria-label={t('notifications.markAsReadNamed', { title: n.title })}
-                        onClick={() => void markAsRead(n.id)}
-                      >
-                        <Check className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+          <NotificationsList
+            notifications={notifications.notifications}
+            loading={notifications.loading}
+            showUnreadOnly={notifications.showUnreadOnly}
+            onShowUnreadOnlyChange={notifications.setShowUnreadOnly}
+            onMarkAsRead={(id) => void notifications.markAsRead(id)}
+          />
         </TabsContent>
 
         <TabsContent value="prefs" className="mt-4">
-          <p className="mb-4 text-sm text-content-strong ">
-            {t('notifications.preferencesDescription')}
-          </p>
-          <Card className="mb-4 p-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-2xl space-y-1">
-                <h2 className="font-semibold text-content">
-                  {t('notifications.campaignConsent.title')}
-                </h2>
-                <p className="text-sm text-content-strong ">
-                  {t('notifications.campaignConsent.description')}
-                </p>
-                {campaignConsent ? (
-                  <p className="text-sm font-medium text-content-strong">
-                    {campaignConsent.optedIn
-                      ? t('notifications.campaignConsent.enabled')
-                      : t('notifications.campaignConsent.disabled')}
-                  </p>
-                ) : null}
-              </div>
-              {campaignConsentLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-content-strong" aria-label={t('common.loading')} />
-              ) : campaignConsentLoadFailed ? (
-                <Button type="button" variant="outline" onClick={loadCampaignConsent}>
-                  {t('notifications.campaignConsent.retryLoad')}
-                </Button>
-              ) : (
-                <Switch
-                  checked={campaignConsent?.optedIn ?? false}
-                  onCheckedChange={(checked) => void saveCampaignConsent(checked)}
-                  disabled={savingCampaignConsent || !campaignConsent}
-                  aria-label={t('notifications.campaignConsent.optIn')}
-                />
-              )}
-            </div>
-            {campaignConsentLoadFailed ? (
-              <p role="alert" className="mt-2 text-sm text-rose-600 dark:text-rose-400">
-                {t('notifications.campaignConsent.loadFailed')}
-              </p>
-            ) : null}
-          </Card>
-          {prefLoading ? (
-            <div className="flex justify-center py-8 text-content-strong">
-              <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
-            </div>
-          ) : (
-            <Card className="overflow-hidden">
-              <DataTable
-                caption={t('notifications.preferencesTableCaption')}
-                columns={preferenceColumns}
-                rows={NOTIFICATION_TYPES}
-                rowKey={(type) => type}
-              />
-            </Card>
-          )}
+          <NotificationPreferences
+            preferences={notifications.preferences}
+            prefLoading={notifications.prefLoading}
+            saving={notifications.saving}
+            campaignConsent={notifications.campaignConsent}
+            campaignConsentLoading={notifications.campaignConsentLoading}
+            campaignConsentLoadFailed={notifications.campaignConsentLoadFailed}
+            savingCampaignConsent={notifications.savingCampaignConsent}
+            onSavePreference={(type, push, email) => void notifications.savePreference(type, push, email)}
+            onSaveCampaignConsent={(optedIn) => void notifications.saveCampaignConsent(optedIn)}
+            onRetryLoadConsent={notifications.loadCampaignConsent}
+          />
         </TabsContent>
       </Tabs>
     </div>

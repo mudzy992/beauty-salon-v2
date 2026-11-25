@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const pageSource = readFileSync(new URL('../../pages/public/PublicBlogPost.tsx', import.meta.url), 'utf8')
-const commentsSource = readFileSync(new URL('./public-blog-comments.tsx', import.meta.url), 'utf8')
+const commentsSource = [
+  readFileSync(new URL('./public-blog-comments.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./public-blog-comment-form.tsx', import.meta.url), 'utf8'),
+].join('\n')
 
 test('comment submission trims content, prevents duplicate requests, and targets the current post', () => {
   assert.match(pageSource, /const content = newComment\.trim\(\)/)

@@ -3,10 +3,37 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
-const email = read('../../pages/EmailSettings.tsx')
-const notifications = read('../../pages/Notifications.tsx')
+// S9 (2026-11-25): admin email postavke su razdvojene u `features/email-settings/*`
+// (tri taba: smtp / templates / campaigns) + `pages/EmailSettings.tsx` (orkestrator).
+// Test čita sve te fajlove ZAJEDNO, pa asercije (28 `<Label>`, 7 `<Switch>`, par
+// `htmlFor`/`id`) i dalje pokrivaju isti skup kontrola — promijenjena je samo
+// putanja izvora, ne i garancija.
+const EMAIL_FILES = [
+  '../email-settings/email-smtp-panel.tsx',
+  '../email-settings/email-smtp-connection.tsx',
+  '../email-settings/email-smtp-sender.tsx',
+  '../email-settings/email-smtp-limits.tsx',
+  '../email-settings/email-smtp-clear-password.tsx',
+  '../email-settings/email-templates-panel.tsx',
+  '../email-settings/email-campaigns-panel.tsx',
+  '../email-settings/email-campaign-editor.tsx',
+  '../email-settings/email-campaign-audience.tsx',
+  '../email-settings/email-campaign-progress.tsx',
+  '../../pages/EmailSettings.tsx',
+]
+const email = EMAIL_FILES.map((f) => read(f)).join('\n')
+// S9: admin obavijesti su u `features/notifications/*` + `pages/Notifications.tsx`.
+const notifications = [
+  read('../notifications/notifications-list.tsx'),
+  read('../notifications/notification-preferences.tsx'),
+  read('../../pages/Notifications.tsx'),
+].join('\n')
 const modulePage = read('./settings-module-page.tsx')
-const visualEditor = read('../email-settings/email-visual-editor.tsx')
+// S9: drag&drop i tastaturna alternativa su u `email-visual-editor-blocks.tsx`
+const visualEditor = [
+  read('../email-settings/email-visual-editor.tsx'),
+  read('../email-settings/email-visual-editor-blocks.tsx'),
+].join('\n')
 const releaseForm = read('../app-releases/app-release-create-form.tsx')
 const css = read('../../index.css')
 

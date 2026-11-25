@@ -227,7 +227,9 @@ test('pozitivna kontrola: klasifikator razlikuje mapirano od sirovog na poznatom
   for (const f of [
     'features/reservations/components/ReservationScheduler.tsx',
     'features/stylist-portal/pages/stylist-direct-booking-page.tsx',
-    'pages/AppReleases.tsx',
+    // S9 (2026-11-25): `resolveAdminApiError` pozivi su preseljeni iz
+    // `pages/AppReleases.tsx` u `features/app-releases/use-app-releases.ts`.
+    'features/app-releases/use-app-releases.ts',
     'pages/Reservations.tsx',
     'pages/ReservationsCalendar.tsx',
   ]) {

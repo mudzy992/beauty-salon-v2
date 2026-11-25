@@ -1,130 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Select } from '../components/ui/select'
 import { useTranslation } from 'react-i18next'
-import { formatLocalizedDateTime, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
-import { Check, Eye, Loader2, Star, Trash2 } from 'lucide-react'
 
-import api from '../api/client'
-import { useAppToast } from '../lib/toast/useAppToast'
+import { Select } from '../components/ui/select'
+import { ReviewsDetailDialog } from '../features/reviews/reviews-detail-dialog'
+import { ReviewsTable } from '../features/reviews/reviews-table'
+import { useAdminReviews } from '../features/reviews/use-admin-reviews'
+import { AdminConfirmDialog } from '../features/shell/admin/ui/admin-confirm-dialog'
 
-import { AdminConfirmDialog, type AdminConfirmRequest } from '../features/shell/admin/ui/admin-confirm-dialog'
-import { useTableScrollRegion } from '../features/shell/admin/ui/use-table-scroll-region'
-import { Badge } from '../components/ui/badge'
-import { Button } from '../components/ui/button'
-import { Card } from '../components/ui/card'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
-
-interface Review {
-  id: string
-  serviceRating: number
-  stylistRating: number | null
-  comment: string | null
-  isApproved: boolean | null
-  createdAt: string
-  service?: { name: string }
-  stylist?: { user?: { firstName: string | null; lastName: string | null } }
-  user?: { firstName: string | null; lastName: string | null }
-}
-
-function Stars({ count }: { count: number }) {
-  const { t, i18n } = useTranslation()
-  return (
-    <div
-      role="img"
-      aria-label={t('reviews.aria.ratingValue', {
-        value: formatLocalizedNumber(count, i18n.language),
-        max: formatLocalizedNumber(5, i18n.language),
-      })}
-      className="flex items-center gap-0.5"
-    >
-      {Array.from({ length: 5 }, (_, i) => (
-        <Star
-          key={i}
-          className={i < count ? 'h-4 w-4 fill-yellow-400 text-yellow-400' : 'h-4 w-4 text-slate-300 dark:text-content-strong'}
-          aria-hidden="true"
-        />
-      ))}
-    </div>
-  )
-}
-
+/**
+ * Admin recenzije (S9).
+ *
+ * Stranica je **orkestrator**: stanje i akcije su u
+ * `features/reviews/use-admin-reviews.ts`, tabela u `reviews-table.tsx`, a dijalog
+ * detalja u `reviews-detail-dialog.tsx`. Markup, filter, putanje API-ja i poruke
+ * su **nepromijenjeni** — pomjereni su u module.
+ */
 export default function Reviews() {
-  const { t, i18n } = useTranslation()
-  const { success, error } = useAppToast()
-  const scrollRegion = useTableScrollRegion()
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
-  const [confirmRequest, setConfirmRequest] = useState<AdminConfirmRequest | null>(null)
-
-  const [open, setOpen] = useState(false)
-  const [detail, setDetail] = useState<Review | null>(null)
-
-  const loadData = useCallback(() => {
-    setLoading(true)
-    const params: Record<string, string> = {}
-    if (filter === 'approved') params.approved = 'true'
-    else if (filter === 'pending') params.approved = 'false'
-    api
-      .get<Review[]>('/api/reviews/admin', { params })
-      .then((r) => setReviews(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setReviews([]))
-      .finally(() => setLoading(false))
-  }, [filter])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
-  const handleApprove = async (id: string) => {
-    try {
-      await api.patch(`/api/reviews/${id}/approve`)
-      success(t('reviews.approvedSuccess'))
-      loadData()
-    } catch {
-      error(t('reviews.actionFailed'))
-    }
-  }
-
-  const handleDelete = (id: string) => {
-    setConfirmRequest({
-      title: t('common.confirmDestructiveTitle'),
-      description: t('reviews.deleteConfirm'),
-      confirmLabel: t('common.delete'),
-      action: async () => {
-        try {
-          await api.delete(`/api/reviews/${id}`)
-          success(t('reviews.deletedSuccess'))
-          loadData()
-          if (detail?.id === id) setOpen(false)
-        } catch {
-          error(t('reviews.actionFailed'))
-        }
-      },
-    })
-  }
-
-  const openDetail = (r: Review) => {
-    setDetail(r)
-    setOpen(true)
-  }
-
-  const getApprovalBadge = (isApproved: boolean | null) => {
-    if (isApproved === true) return <Badge variant="success">{t('reviews.approved')}</Badge>
-    if (isApproved === false) return <Badge variant="danger">{t('reviews.rejected')}</Badge>
-    return <Badge variant="warning">{t('reviews.pending')}</Badge>
-  }
-
-  const getUserName = (user?: { firstName: string | null; lastName: string | null }) => {
-    if (!user) return '-'
-    const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
-    return full || '-'
-  }
-
-  const detailDate = useMemo(() => {
-    if (!detail?.createdAt) return null
-    return formatLocalizedDateTime(detail.createdAt, i18n.language)
-  }, [detail?.createdAt, i18n.language])
+  const { t } = useTranslation()
+  const reviews = useAdminReviews()
 
   return (
     <div>
@@ -136,8 +28,8 @@ export default function Reviews() {
         <Select
           aria-label={t('reviews.filterLabel')}
           className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-content shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:focus-visible:ring-offset-surface"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as typeof filter)}
+          value={reviews.filter}
+          onChange={(e) => reviews.setFilter(e.target.value as typeof reviews.filter)}
         >
           <option value="all">{t('reviews.allReviews')}</option>
           <option value="pending">{t('reviews.pending')}</option>
@@ -145,186 +37,29 @@ export default function Reviews() {
         </Select>
       </div>
 
-      <Card className="aurum-scroll-table-card overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center p-10 text-content-strong">
-            <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
-          </div>
-        ) : (
-          <div ref={scrollRegion} data-m2-scroll-region role="region" aria-label={t('reviews.tableCaption')} className="app-table-wrap">
-            <table className="app-table data-table w-full border-collapse">
-                                <caption className="sr-only">{t('reviews.tableCaption')}</caption>
-                  <thead>
-                <tr className="border-b border-line text-left text-xs uppercase text-content-strong ">
-                  <th scope="col" className="p-3 font-medium">{t('reviews.client')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('reviews.service')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('reviews.stylist')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('reviews.serviceRating')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('reviews.stylistRating')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('reviews.comment')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('common.status')}</th>
-                  <th scope="col" className="p-3 font-medium">{t('common.date')}</th>
-                  <th scope="col" className="p-3 text-right font-medium">{t('common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reviews.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="p-6 text-content-strong">
-                      {t('common.noData')}
-                    </td>
-                  </tr>
-                ) : (
-                  reviews.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="cursor-pointer border-b border-line hover:bg-surface-muted"
-                      onClick={() => openDetail(r)}
-                    >
-                      <td data-label={t('reviews.client')} className="p-3 font-medium text-content">{getUserName(r.user)}</td>
-                      <td data-label={t('reviews.service')} className="p-3">{r.service?.name ?? '-'}</td>
-                      <td data-label={t('reviews.stylist')} className="p-3">{getUserName(r.stylist?.user)}</td>
-                      <td data-label={t('reviews.serviceRating')} className="p-3">
-                        <Stars count={r.serviceRating} />
-                      </td>
-                      <td data-label={t('reviews.stylistRating')} className="p-3">{r.stylistRating ? <Stars count={r.stylistRating} /> : '-'}</td>
-                      <td data-review-comment data-label={t('reviews.comment')} className="max-w-[220px] truncate p-3">{r.comment ?? '-'}</td>
-                      <td data-label={t('common.status')} className="p-3">{getApprovalBadge(r.isApproved)}</td>
-                      <td data-label={t('common.date')} className="p-3">{Number.isFinite(new Date(r.createdAt).getTime())
-                        ? new Intl.DateTimeFormat(getIntlLocale(i18n.language), { dateStyle: 'medium' }).format(new Date(r.createdAt))
-                        : '—'}</td>
-                      <td data-label={t('common.actions')} className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end gap-1">
-                          {/* 2.1.1 (Level A): cijeli redak ima onClick koji otvara dijalog
-                              detalja, ali <tr> nije fokusabilan i nema tastaturni handler —
-                              mis je bio JEDINI put. Ovo dugme je pristupacni put; obrazac je
-                              vec postojeci (Reservations.tsx, ClientAnalytics.tsx). */}
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            aria-label={t('reviews.details')}
-                            onClick={() => openDetail(r)}
-                          >
-                            <Eye className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                          {r.isApproved !== true ? (
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              aria-label={t('reviews.approve')}
-                              onClick={() => void handleApprove(r.id)}
-                            >
-                              <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                            </Button>
-                          ) : null}
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            aria-label={t('reviews.delete')}
-                            onClick={() => void handleDelete(r.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+      <ReviewsTable
+        reviews={reviews.reviews}
+        loading={reviews.loading}
+        openDetail={reviews.openDetail}
+        onApprove={(id) => void reviews.handleApprove(id)}
+        onDelete={(id) => void reviews.handleDelete(id)}
+      />
 
-      <Dialog open={open} onOpenChange={(next) => {
-        // Close the nested confirmation first if the parent receives dismissal.
-        if (!next && confirmRequest) setConfirmRequest(null)
-        else setOpen(next)
-      }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t('reviews.detailsTitle')}</DialogTitle>
-          </DialogHeader>
-
-          {detail ? (
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-content">{t('common.status')}</p>
-                {getApprovalBadge(detail.isApproved)}
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div>
-                  <p className="text-xs text-content-strong">{t('reviews.client')}</p>
-                  <p className="font-medium text-content">{getUserName(detail.user)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('reviews.service')}</p>
-                  <p className="font-medium text-content">{detail.service?.name ?? '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('reviews.stylist')}</p>
-                  <p className="font-medium text-content">{getUserName(detail.stylist?.user)}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <p className="text-xs text-content-strong">{t('reviews.serviceRating')}</p>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <Stars count={detail.serviceRating} />
-                    <span className="font-semibold text-content">{formatLocalizedNumber(detail.serviceRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-content-strong">{t('reviews.stylistRating')}</p>
-                  {detail.stylistRating ? (
-                    <div className="mt-1 flex items-center justify-between gap-3">
-                      <Stars count={detail.stylistRating} />
-                      <span className="font-semibold text-content">{formatLocalizedNumber(detail.stylistRating, i18n.language)}/{formatLocalizedNumber(5, i18n.language)}</span>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-content-strong">{t('reviews.notRated')}</p>
-                  )}
-                </div>
-              </div>
-
-              {detail.comment ? (
-                <div>
-                  <p className="text-xs text-content-strong">{t('reviews.comment')}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-content">{detail.comment}</p>
-                </div>
-              ) : null}
-
-              <p className="text-xs text-content-strong">{t('common.date')}: {detailDate ?? '-'}</p>
-            </div>
-          ) : null}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            {detail && detail.isApproved !== true ? (
-              <Button type="button" onClick={() => void handleApprove(detail.id)}>
-                {t('reviews.approve')}
-              </Button>
-            ) : null}
-            {detail ? (
-              <Button type="button" variant="outline" onClick={() => void handleDelete(detail.id)}>
-                {t('reviews.delete')}
-              </Button>
-            ) : null}
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              {t('common.close')}
-            </Button>
-          </DialogFooter>
-          <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
-        </DialogContent>
-      </Dialog>
-      {!open && <AdminConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />}
+      <ReviewsDetailDialog
+        open={reviews.open}
+        onOpenChange={reviews.setOpen}
+        detail={reviews.detail}
+        confirmRequest={reviews.confirmRequest}
+        onCloseConfirm={() => reviews.setConfirmRequest(null)}
+        onApprove={(id) => void reviews.handleApprove(id)}
+        onDelete={(id) => void reviews.handleDelete(id)}
+      />
+      {!reviews.open && (
+        <AdminConfirmDialog
+          request={reviews.confirmRequest}
+          onClose={() => reviews.setConfirmRequest(null)}
+        />
+      )}
     </div>
   )
 }

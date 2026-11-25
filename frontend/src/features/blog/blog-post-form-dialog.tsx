@@ -1,18 +1,17 @@
-import { useId, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Select } from '../../components/ui/select'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { getErrorMessage } from '../../api/error'
 import { resolveAdminApiErrorKey } from '../admin/admin-api-error.mjs'
-import { MediaImage } from '../../components/media-image'
 import { Button } from '../../components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
-import { getUploadUrl } from '../../utils/uploadUrl'
+import { BlogPostImageUpload } from './blog-post-image-upload'
 import { BlogPostSeoFields } from './blog-post-seo-fields'
 import { BLOG_POST_LANGUAGES } from './blog-language'
 import type { BlogPostFormValues } from './types'
@@ -97,13 +96,13 @@ export function BlogPostFormDialog({
               placeholder={t('blog.admin.excerptPlaceholder')}
             />
           </div>
-          <ImageUpload
+          <BlogPostImageUpload
             label={t('blog.admin.heroImage')}
             value={form.heroImage}
             uploading={uploading === 'hero'}
             onPick={(file) => void uploadImage(file, 'heroImage')}
           />
-          <ImageUpload
+          <BlogPostImageUpload
             label={t('blog.admin.ogImage')}
             value={form.ogImage}
             uploading={uploading === 'og'}
@@ -152,64 +151,5 @@ export function BlogPostFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function ImageUpload({
-  label,
-  value,
-  uploading,
-  onPick,
-  hint,
-}: {
-  label: string
-  value: string
-  uploading: boolean
-  onPick: (file: File) => void
-  hint?: string
-}) {
-  const { t } = useTranslation()
-  const inputRef = useRef<HTMLInputElement | null>(null)
-  const labelId = useId()
-  const hintId = useId()
-  return (
-    <div role="group" aria-labelledby={labelId} className="space-y-2">
-      <p id={labelId} className="text-sm font-medium leading-none text-content-strong">
-        {label}
-      </p>
-      <MediaImage src={value ? getUploadUrl(value) : ''} alt={label} className="h-[120px] w-full rounded-md object-cover" />
-      <input
-        type="file"
-        accept="image/*"
-        ref={(node) => {
-          inputRef.current = node
-        }}
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) onPick(file)
-          e.target.value = ''
-        }}
-      />
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        aria-describedby={hint ? hintId : undefined}
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-      >
-        {uploading
-          ? t('blog.admin.imageUploading')
-          : value
-            ? t('blog.admin.changeImage')
-            : t('blog.admin.uploadImage')}
-      </Button>
-      {hint ? (
-        <p id={hintId} className="text-xs text-content-strong">
-          {hint}
-        </p>
-      ) : null}
-    </div>
   )
 }

@@ -22,7 +22,11 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const source = readFileSync(new URL('../../pages/Gallery.tsx', import.meta.url), 'utf8')
+// S9: markup kartice kategorije preselio je iz `pages/Gallery.tsx` u
+// `features/gallery/gallery-category-list.tsx`. Tvrdnje su **iste** — promijenjena
+// je samo putanja fajla koja se čita (garancija 2.1.1/4.1.2 ostaje netaknuta).
+const source = readFileSync(new URL('./gallery-category-list.tsx', import.meta.url), 'utf8')
+const hook = readFileSync(new URL('./use-gallery-categories.ts', import.meta.url), 'utf8')
 const card = readFileSync(new URL('../../components/ui/card.tsx', import.meta.url), 'utf8')
 
 /**
@@ -88,7 +92,8 @@ test('4.1.2: nema ugniježđenih interaktivnih kontrola u dugmetu', () => {
 
 test('loadImages je i dalje jedini put do selectedCatId', () => {
   // Ako se pojavi drugi setter, gornja asertija o "jednom dugmetu" može postati zastarjela.
-  const calls = (source.match(/setSelectedCatId\(/g) ?? []).length
+  // S9: setter je u `use-gallery-categories.ts` (hook), dugme ostaje u listi kategorija.
+  const calls = (hook.match(/setSelectedCatId\(/g) ?? []).length
   assert.equal(calls, 2, `očekivano 2 poziva setSelectedCatId (loadImages + reset), nađeno ${calls}`)
-  assert.match(source, /const loadImages = useCallback/, 'loadImages nije nađen')
+  assert.match(hook, /const loadImages = useCallback/, 'loadImages nije nađen')
 })

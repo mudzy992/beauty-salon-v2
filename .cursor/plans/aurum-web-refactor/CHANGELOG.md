@@ -5,6 +5,88 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-25 · S9 · Admin sadržaj + postavke hub: orkestratori, motion i semantičke boje
+
+- **Zašto.** Faza `10_phase-9-admin-content-settings.md` zatvara 24 admin rute, a mjerenje
+  prije rada pokazalo je **devet** datoteka preko 150 linija (`EmailSettings.tsx` **1416**,
+  `Gallery.tsx` 627, `Notifications.tsx` 388, `Reviews.tsx` 330, `email-visual-editor.tsx` 285,
+  `setting-editor-form.tsx` 248, `Blog.tsx` 216, `AppReleases.tsx` 214, `groups-site.ts` 173,
+  `Settings.tsx` 169). Uz to je vlasnik izrijekom tražio provjeru **motiona** i **boja** u
+  S9 opsegu.
+- **Struktura.** Svih 11 admin stranica su sada tanki orkestratori: `Blog.tsx` **90**,
+  `Gallery.tsx` **132**, `Reviews.tsx` **65**, `SettingsHub.tsx` 67, `Settings.tsx` **28**,
+  `SettingsOperations.tsx` **33**, `SettingsAppearance.tsx` **65**, `SettingsSeo.tsx` **20**,
+  `AppReleases.tsx` **56**, `Notifications.tsx` **68**, `EmailSettings.tsx` **101** linija.
+  Logika je u `features/{gallery,reviews,blog,email-settings,notifications,app-releases,settings}/`.
+  `EmailSettings` je razbijeno na 11 modula: konstante → `email-settings-constants.ts`,
+  `email-template-defaults.ts` (podrazumijevani tekstovi template-a), `email-campaign-html.ts`
+  (generator + bijela lista znakova), tri hooka (`use-email-smtp` → `-state`/`-config`/`-actions`,
+  `use-email-templates`, `use-email-campaigns` → `-settings`/`-audience`/`-job`), tri panela
+  (SMTP → `email-smtp-panel`/`-connection`/`-sender`/`-limits`/`-clear-password`, template-i,
+  kampanje → `-campaigns-panel`/`-editor`/`-audience`/`-progress`) i vizuelni editor
+  (`email-visual-editor` → orkestrator / `-blocks` / `-preview` / `-types`).
+  `groups-site.ts` je podijeljen na `groups-site-pages.ts` + `groups-site-modules.ts` (redoslijed
+  grupa isti), `settings-copy-keys.ts` na `settings-copy-keys.ts` + `settings-copy-keys-site.ts`.
+  **Pravilo:** nijedna `pages/*` datoteka ne prelazi 150 linija.
+- **Motion (2.3.3 / 2.5.4).** S9 opseg je imao **nula** `motion-reduce:` zaštita. Svih
+  **31** `animate-*` instanci (30 `animate-spin` + 1 `animate-pulse`) sada ima
+  `motion-reduce:animate-none`; `transition-all` u progressu kampanje sveden je na
+  `transition-[width] motion-reduce:transition-none`. Novi ugovor `test:s9-reduced-motion`
+  (**5/5**) broji instance **iz izvora** i traži isti obrazac zaštite kao S8
+  (`animate-spin motion-reduce:animate-none`); provjera je i globalni `prefers-reduced-motion`
+  blok u `globals.css` i odsutnost `transition-all`.
+- **Boje (1.4.3 / 1.4.11).** Sirove Tailwind palete u S9 opsegu prevedene su u semantičke
+  tokene: `text-emerald-600`/`text-emerald-700` → **`text-ok-foreground`** (7.14 / 6.39 / 9.86),
+  `bg-emerald-500` → **`bg-ok`**, `text-rose-600` → **`text-danger`** (5.22 / 6.54 / 8.88),
+  `text-blue-600` → **`text-brand-rose-text`** / `text-info-foreground`** (8.71 / 17.55 / 15.60),
+  `text-slate-300` (prazna zvjezdica) → **`text-content-strong`** (10.44 / 9.05 / 8.45),
+  `text-amber-600` → **`text-warn-foreground`** (8.35 / 6.39 / 9.75), `bg-amber-*` → **`bg-warn`**,
+  `text-red-600` → **`text-danger`**. Novi ugovor `test:s9-semantic-colors` (**5/5**) traži da
+  u S9 opsegu nema sirovih paleta i dozvoljava **tri** obrazložena izuzetka: email preview
+  okvir (`email-visual-editor-preview.tsx` — mail se renderuje na bijeloj pozadini nezavisno od
+  teme), gallery photo scrim (`gallery-image-grid.tsx` — Aurum override ga ionako zamjenjuje)
+  i native color picker (`setting-editor-field.tsx` — bijela ploča zbog kontrasta kontrole).
+  `check_ui_contrast.py` je **148/148** parova, `test:text-contrast-allowlist` **4/4**.
+- **Utjecaj na postojeće testove (Q10).** Nijedna postojeća asertcija nije uklonjena ni
+  oslabljena; promijenjene su **putanje izvora** i dodane su tamo gdje je broj prešao u novi
+  fajl. Konkretno: `admin-content-a11y` je dobio dva nova gallery modula u listu izvora
+  (broj `<Label>` ostaje 15 — ista dva Label-a su preseljena, ne dodata) i
+  `blog-post-image-upload.tsx` uz `blog-post-form-dialog.tsx` (`<input type="file">` i
+  `MediaImage` su u izdvojenom modulu, pa se oba čitaju zajedno; broj slika ostaje 3);
+  `wcag-source-contracts` (2.5.7 drag) je prebačen sa `email-visual-editor.tsx` na
+  `email-visual-editor-blocks.tsx` — dozvoljeni popis i dalje traži **isti obrazac alternative**
+  (`moveBlock(index, index - 1)` / `moveBlock(index, index + 1)` + `aria-label` dugmadi) i
+  sada **strože** provjerava da dozvoljeni fajl i dalje postoji; `form-control-labels` je
+  zadržao potpunu garanciju (svaka kontrola ima programsko ime) — zato `setting-editor-field.tsx`
+  **nije** razbijen na dva modula, jer `<Label htmlFor>` mora biti u istom fajlu kao kontrola;
+  `admin-settings-controls-a11y`, `admin-settings-accessibility`, `admin-settings-seo-i18n`,
+  `admin-settings-site-*-i18n`, `email-settings-*-i18n`, `email-visual-editor`,
+  `admin-gallery-i18n`, `public-blog-comments-*-test`, `i18n-key-resolution` i
+  `raw-api-error-exposure` su usklađeni sa novim putanjama izvora, bez gubitka tvrdnji.
+  Nova dva ugovora (`test:s9-reduced-motion`, `test:s9-semantic-colors`) su dodata u
+  `.github/workflows/ci.yml` — `check_ci_index.py` traži CI korak za svaku `test:*` skriptu.
+- **Dokazi (lokalno).** `tsc --noEmit` **čist**; ESLint **0 grešaka / 5 upozorenja** (sva
+  postojeća i u fajlovima van S9 opsega — `stylist-portal/*`, `DailyLog.tsx`); `test:*` petlja
+  **209/210** skripti zeleno, jedini pad `test:auth-session-rendered` je **okolina**
+  (Playwright nema instaliran browser; `npx playwright install chromium` pada jer je
+  `cdn.playwright.dev` blokiran); produkcijski build **zelen** (Initial JS/CSS
+  **294,6/300 KiB** gzip, Analytics 116,4/140, Calendar 101,1/125, public home 45,1, admin
+  dashboard 15,3, stylist inbox 19,2); `typecheck:e2e` čist; pet Python provjera **PASS**
+  (`check_ci_index`, `check_doc_links`, `check_i18n` — BS/EN 2897 list ključeva, identični
+  skupovi — `check_repo_hygiene`, `check_ui_contrast`); `git diff --check` **PASS**. Fokusirani
+  ugovori: Settings **46/46**, i18n-key-resolution **7/7**, admin content a11y **10/10**,
+  admin settings controls a11y **11/11**, notifications **12/12**, app-releases i18n **2/2**,
+  raw API errors **6/6**, blog **40/40**, admin blog i18n **1/1**, gallery keyboard **5/5**,
+  gallery i18n **4/4**, reviews i18n **3/3**, email settings **13/13**.
+- **Granice i otvoreno.** (1) **`AdminConfirmDialog` tok u `Reviews`** — revizija poruke,
+  uvjeta, efekta i fokus-povratka prema S6 odobrenju **nije završena**; trenutno stanje je
+  provisiono i mora se provjeriti prije S10. (2) `test:auth-session-rendered` treba
+  instaliran Playwright browser. (3) Stvarni AT/zoom (200%/400%) i ručni vizuelni pregled
+  ostaju vlasnikova potvrda — mock/source testovi nisu AT audit. (4) **Nema merge/deploya** i
+  nema S10 bez zasebnog odobrenja.
+
+---
+
 ## 2026-11-25 · S8 · Jedna stavka po području u bočnoj traci + izbori u analitici
 
 - **Zašto.** Bočna traka je duplirala pod-poglede: „Klijenti“ i „Stilisti“ u analitici imali su isti vidljivi naziv kao stavke za upravljanje korisnicima i frizerima, pa je axe prijavio `identical-links-same-purpose` kao **nepotpuno** (čvor `a[href$="stylists"]`, run 42985731553), a klik na „Klijenti“ vodio na `/admin/users` umjesto u analitiku. Uzrok je uklonjen u korijenu, ne maskiran `aria-label` prepiskom: **bočna traka sada nosi jednu stavku po području**, a pod-pogledi žive u tablistu svog hub-a — isti obrazac koji M2 već primjenjuje na postavke (`/admin/settings` = jedna stavka, sedam tabova).

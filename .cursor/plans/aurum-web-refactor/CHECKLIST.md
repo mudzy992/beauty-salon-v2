@@ -1,5 +1,13 @@
 # CHECKLIST — Aurum web refaktor
 
+> **S9 (lokalno, 2026-11-25):** admin sadržaj i postavke su razbijeni u orkestrator-stranice
+> (11 fajlova, svi ≤ 132 linije) sa modulima u `features/*`; `EmailSettings` 1416 → 101 linija
+> kroz 11 modula. Svih 31 `animate-*` instanci ima `motion-reduce:animate-none`; S9 paleta je
+> semantička (tri obrazložena izuzetka). Lokalno: `tsc` čist, ESLint 0 grešaka/5 upozorenja,
+> `test:*` 209/210 (1 okolinski pad), build zelen (294,6/300 KiB), pet Python provjera PASS,
+> `test:s9-reduced-motion` 5/5, `test:s9-semantic-colors` 5/5. **Otvoreno:** `AdminConfirmDialog`
+> revizija u `Reviews`; CI run i merge/deploy nisu izvršeni.
+
 > **Najnoviji M4–M7 nastavak:** rezervacija ima zasebne oznake koraka i odabranih datuma/termina u emuliranim sistemskim bojama; provjerava se i JS širenje datuma; lokalni fokusirani skup 36/36. CI `60bf38f` 5/5, 2514/0/0, 15 nepotpunih axe uzoraka. **Otvoren nalaz:** u simuliranom 200% tekstu fokus na „Dodaj još“ povremeno ostaje ispod viewporta; uzrok nije potvrđen. M4/M5 i stvarni OS reduced-motion ostaju otvoreni. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).
 
 > **Najnoviji M4–M7 nastavak:** CI `b2fcf97` 5/5, 2496/0/0, uz 15 incomplete uzoraka. Ispravljen reduced-motion automatski scroll i AAA kontrast brojeva koraka rezervacije; lokalno 90/90 i dodatno 36/36. M4/M5 i stvarni OS reduced-motion ostaju otvoreni; [dokazi i neizvedeni protokol](19_m4_m7_protokol_i_izvjestaj.md). CI nove dopune na čekanju.

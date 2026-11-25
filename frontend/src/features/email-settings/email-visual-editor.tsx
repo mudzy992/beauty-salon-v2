@@ -1,22 +1,13 @@
 import { useId, type DragEvent } from 'react'
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Card } from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import { Textarea } from '../../components/ui/textarea'
+import { EmailVisualEditorBlocks } from './email-visual-editor-blocks'
+import { EmailVisualEditorPreview } from './email-visual-editor-preview'
+import type { EmailContentBlock, EmailContentBlockType } from './email-visual-editor-types'
 
-export type EmailContentBlockType = 'title' | 'text' | 'button' | 'spacer' | 'highlight' | 'divider'
-
-export interface EmailContentBlock {
-  id: string
-  type: EmailContentBlockType
-  content: string
-  secondary?: string
-}
+export type { EmailContentBlock, EmailContentBlockType } from './email-visual-editor-types'
 
 interface EmailVisualEditorProps {
   blocks: EmailContentBlock[]
@@ -26,18 +17,6 @@ interface EmailVisualEditorProps {
 
 const createId = (type: EmailContentBlockType) =>
   `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-
-const sampleText = (value: string) =>
-  Object.entries({
-    firstName: 'Amina',
-    lastName: 'Kovačević',
-    username: 'amina',
-    email: 'amina@example.test',
-    appUrl: 'https://nejra.ba',
-    reservationReference: 'R-2046',
-    reservationViewUrl: 'https://nejra.ba/moj-termin/primjer',
-    verificationCode: '123456',
-  }).reduce((result, [key, sample]) => result.split(`{{${key}}}`).join(sample), value)
 
 const newBlock = (
   type: EmailContentBlockType,
@@ -52,6 +31,14 @@ const newBlock = (
   ...(type === 'button' ? { secondary: '{{appUrl}}/rezervacija' } : {}),
 })
 
+/**
+ * Vizualni editor email sadržaja (S9).
+ *
+ * Ornkestrator: dodaje blokove, premješta ih (drag&drop ili dugmad) i
+ * renderuje preview. Lista blokova je u `email-visual-editor-blocks.tsx`, a
+ * preview u `email-visual-editor-preview.tsx` — markup, `htmlFor`/`id`
+ * parovi i prevodni ključevi su isti kao prije razbijanja.
+ */
 export function EmailVisualEditor({
   blocks,
   onChange,
@@ -63,9 +50,6 @@ export function EmailVisualEditor({
 
   const addBlock = (type: EmailContentBlockType) =>
     onChange([...blocks, newBlock(type, t)])
-
-  const updateBlock = (id: string, patch: Partial<EmailContentBlock>) =>
-    onChange(blocks.map((block) => (block.id === id ? { ...block, ...patch } : block)))
 
   const moveBlock = (sourceIndex: number, targetIndex: number) => {
     if (
@@ -127,158 +111,15 @@ export function EmailVisualEditor({
             {t('emailSettings.campaigns.dragHint')}
           </p>
 
-          <div className="space-y-3">
-            {blocks.map((block, index) => (
-              <Card
-                key={block.id}
-                draggable
-                onDragStart={(event) => event.dataTransfer.setData('text/plain', block.id)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => handleDrop(event, block.id)}
-                className="border border-line p-4"
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <Badge variant="secondary" className="text-[10px]">
-                    {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
-                  </Badge>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      aria-label={t('emailSettings.campaigns.moveUp')}
-                      disabled={index === 0}
-                      onClick={() => moveBlock(index, index - 1)}
-                    >
-                      <ArrowUp aria-hidden="true" className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8"
-                      aria-label={t('emailSettings.campaigns.moveDown')}
-                      disabled={index === blocks.length - 1}
-                      onClick={() => moveBlock(index, index + 1)}
-                    >
-                      <ArrowDown aria-hidden="true" className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-rose-600"
-                      aria-label={t('emailSettings.campaigns.deleteBlock')}
-                      onClick={() => onChange(blocks.filter((item) => item.id !== block.id))}
-                    >
-                      <Trash2 aria-hidden="true" className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {block.type === 'title' || block.type === 'button' ? (
-                  <div className="space-y-2">
-                    <Label htmlFor={`${editorId}-block-content-${block.id}`}>
-                      {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
-                    </Label>
-                    <Input
-                      id={`${editorId}-block-content-${block.id}`}
-                      value={block.content}
-                      maxLength={5000}
-                      placeholder={t(`emailSettings.templates.blockPlaceholders.${block.type}`)}
-                      onChange={(event) => updateBlock(block.id, { content: event.target.value })}
-                    />
-                  </div>
-                ) : block.type === 'text' || block.type === 'highlight' ? (
-                  <div className="space-y-2">
-                    <Label htmlFor={`${editorId}-block-content-${block.id}`}>
-                      {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
-                    </Label>
-                    <Textarea
-                      id={`${editorId}-block-content-${block.id}`}
-                      value={block.content}
-                      maxLength={5000}
-                      placeholder={t(`emailSettings.templates.blockPlaceholders.${block.type}`)}
-                      rows={block.type === 'highlight' ? 3 : 5}
-                      onChange={(event) => updateBlock(block.id, { content: event.target.value })}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-sm text-content-strong">
-                    {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
-                  </p>
-                )}
-
-                {block.type === 'button' ? (
-                  <div className="mt-3 space-y-2">
-                    <Label htmlFor={`${editorId}-block-url-${block.id}`}>
-                      {t('emailSettings.campaigns.buttonUrl')}
-                    </Label>
-                    <Input
-                      id={`${editorId}-block-url-${block.id}`}
-                      type="url"
-                      value={block.secondary || ''}
-                      maxLength={2048}
-                      placeholder="https://…"
-                      onChange={(event) => updateBlock(block.id, { secondary: event.target.value })}
-                    />
-                  </div>
-                ) : null}
-              </Card>
-            ))}
-          </div>
+          <EmailVisualEditorBlocks
+            blocks={blocks}
+            editorId={editorId}
+            onChange={onChange}
+            onDropBlock={handleDrop}
+          />
         </div>
 
-        <div className="min-w-0 space-y-3 xl:sticky xl:top-4 xl:self-start">
-          <div>
-            <h4 className="font-semibold text-content">
-              {t('emailSettings.templates.previewHeading')}
-            </h4>
-            <p className="mt-1 text-xs leading-5 text-content-strong">
-              {t('emailSettings.templates.previewSampleNote')}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-[#f9f3f0] p-3 sm:p-5">
-            {/* Aurum: email preview okvir namjerno ostaje bijel — mailovi se renderuju na bijeloj pozadini, nezavisno od teme aplikacije. */}
-            <div data-email-preview className="mx-auto max-w-[480px] overflow-hidden rounded-xl border border-[#f2e7e2] bg-white shadow-xl">
-              <div className="bg-gradient-to-br from-[#2d1f1c] via-[#7b4b3a] to-[#d4b098] px-6 py-6 text-white sm:px-8">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">
-                  Beauty Salon Premium
-                </p>
-              </div>
-              <div className="space-y-4 px-5 py-6 text-[#2d1f1c] sm:px-8 sm:py-8">
-                {blocks.map((block) => {
-                  const content = sampleText(block.content)
-                  if (block.type === 'title') {
-                    return <h2 key={block.id} className="text-2xl font-bold leading-tight">{content}</h2>
-                  }
-                  if (block.type === 'text') {
-                    return <p key={block.id} className="whitespace-pre-line text-sm leading-7 text-[#4b3a35]">{content}</p>
-                  }
-                  if (block.type === 'highlight') {
-                    return <div key={block.id} className="rounded-lg border-l-4 border-[#b7825f] bg-[#fbf5f1] px-4 py-3 text-sm leading-6 text-[#4b3a35]">{content}</div>
-                  }
-                  if (block.type === 'button') {
-                    return <div key={block.id} className="py-2 text-center"><span className="inline-flex rounded-lg bg-[#7b4b3a] px-5 py-3 text-sm font-semibold text-white">{content || t('emailSettings.campaigns.blockTypes.button')}</span></div>
-                  }
-                  if (block.type === 'divider') {
-                    return <hr key={block.id} className="border-0 border-t border-[#eaded8]" />
-                  }
-                  return <div key={block.id} aria-hidden="true" className="h-6" />
-                })}
-                {showVerificationCode ? (
-                  <div data-email-preview-code className="inline-flex rounded-lg bg-surface-muted px-5 py-3 font-mono text-xl font-bold tracking-[0.3em] text-content">
-                    123456
-                  </div>
-                ) : null}
-                <div className="border-t border-[#f2e7e2] pt-4 text-xs text-[#7e675f]">
-                  Beauty Salon Nejra
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EmailVisualEditorPreview blocks={blocks} showVerificationCode={showVerificationCode} />
       </div>
     </section>
   )

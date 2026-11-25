@@ -601,26 +601,56 @@ const SETTINGS_PAGES = [
   '../pages/SettingsSeo.tsx',
 ]
 
+// S9 (2026-11-25): štit (rani izlaz + izostavljanje prazne labele) preseljen je
+// u dijeljeni `features/settings/use-settings-groups.ts`, a sve četiri stranice
+// ga koriste. Garancija je **jača**: štit se više ne može zaboraviti na jednoj
+// stranici — sve četiri idu kroz isti hook, a test to i provjerava.
+const SETTINGS_GROUPS_HOOK = '../features/settings/use-settings-groups.ts'
+
 test('i18n: sve četiri stranice postavki štite mapu kopirnih ključeva', () => {
+  const hook = readFileSync(new URL(SETTINGS_GROUPS_HOOK, import.meta.url), 'utf8')
+  assert.match(
+    hook,
+    /if \(!copyKeys\) return group/,
+    'dijeljeni hook: nema ranog izlaza — nova grupa bez kopirnog ključa baca TypeError ' +
+      '(`t(copyKeys.label)` na undefined) i obara cijelu stranicu',
+  )
+  assert.match(
+    hook,
+    /const fieldKey = fieldCopyKeys\[def\.key\]/,
+    'dijeljeni hook: ključ polja se mora prvo pročitati u varijablu da bi se mogao provjeriti',
+  )
+  assert.match(
+    hook,
+    /\.\.\.\(fieldKey \? \{ label: t\(fieldKey\) \} : \{\}\)/,
+    'dijeljeni hook: labela se mora IZOSTAVITI kad ključa nema — ' +
+      '`t(undefined)` vraća prazan string, a `def.label ?? def.desc` tada pada na prazno',
+  )
+  assert.doesNotMatch(
+    hook,
+    /label: t\([A-Z_]+FIELD_COPY_KEYS\[/,
+    'dijeljeni hook: vratio se direktan `t(MAPA[def.key])` bez štita — ' +
+      'polje bez ključa bi imalo praznu labelu',
+  )
   for (const rel of SETTINGS_PAGES) {
     const name = rel.replace('../pages/', '')
     const src = readFileSync(new URL(rel, import.meta.url), 'utf8')
+    // Svaka stranica MORA ići kroz dijeljeni hook — inače bi njen štit mogao
+    // nestati tiho (ovo je upravo ono što se desilo prije izdvajanja).
     assert.match(
       src,
-      /if \(!copyKeys\) return group/,
-      `${name}: nema ranog izlaza — nova grupa bez kopirnog ključa baca TypeError ` +
-        '(`t(copyKeys.label)` na undefined) i obara cijelu stranicu',
+      /useSettingsGroups\(\{/,
+      `${name}: ne koristi dijeljeni hook — štit mape kopirnih ključeva bi mogao nestati`,
     )
     assert.match(
       src,
-      /const fieldKey = [A-Z_]+FIELD_COPY_KEYS\[def\.key as keyof typeof [A-Z_]+FIELD_COPY_KEYS\]/,
-      `${name}: ključ polja se mora prvo pročitati u varijablu da bi se mogao provjeriti`,
+      /groupCopyKeys: [A-Z_]+GROUP_COPY_KEYS/,
+      `${name}: ne prosljeđuje mapu grupa dijeljenom hooku`,
     )
     assert.match(
       src,
-      /\.\.\.\(fieldKey \? \{ label: t\(fieldKey\) \} : \{\}\)/,
-      `${name}: labeta se mora IZOSTAVITI kad ključa nema — ` +
-        '`t(undefined)` vraća prazan string, a `def.label ?? def.desc` tada pada na prazno',
+      /fieldCopyKeys: [A-Z_]+FIELD_COPY_KEYS/,
+      `${name}: ne prosljeđuje mapu polja dijeljenom hooku`,
     )
     assert.doesNotMatch(
       src,

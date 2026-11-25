@@ -84,15 +84,15 @@ export function SettingsModulePage({
       {loading ? (
         <div role="status" aria-live="polite" className="space-y-3 py-4">
           <div className="flex items-center gap-3 text-sm font-medium text-content-strong">
-            <Loader2 className="h-5 w-5 animate-spin text-brand-rose-text" aria-hidden="true" />
+            <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none text-brand-rose-text" aria-hidden="true" />
             <span className="sr-only">{t('common.loading')}</span>
           </div>
           {[0, 1, 2].map((item) => (
-            <div key={item} aria-hidden="true" className="h-20 animate-pulse rounded-2xl border border-line bg-surface" />
+            <div key={item} aria-hidden="true" className="h-20 animate-pulse motion-reduce:animate-none rounded-2xl border border-line bg-surface" />
           ))}
         </div>
       ) : loadError ? (
-        <div role="alert" className="flex flex-col items-start gap-4 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900 sm:flex-row sm:items-center sm:justify-between">
+        <div role="alert" className="flex flex-col items-start gap-4 rounded-2xl border border-bad-foreground bg-bad p-5 text-sm text-bad-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>{t('adminSettings.editor.loadFailed')}</p>
           <Button type="button" variant="outline" onClick={() => void loadData()}>
             {t('common.retry')}

@@ -59,13 +59,15 @@ export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete
         <div className="flex justify-end gap-1">
           <div className="relative">
             <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('blog.admin.comments')} onClick={() => onComments(post.id, post.title)}>
-              <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
+              <MessageSquareText className="h-4 w-4 text-info-foreground" aria-hidden="true" />
             </Button>
             {Number(post.commentsTotalCount ?? 0) > 0 ? (
               <span
                 className={[
-                  'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] leading-[18px] text-center text-white',
-                  Number(post.commentsPendingCount ?? 0) > 0 ? 'bg-rose-600' : 'bg-emerald-600',
+                  'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] leading-[18px] text-center',
+                  Number(post.commentsPendingCount ?? 0) > 0
+                    ? 'bg-danger text-danger-foreground'
+                    : 'bg-ok text-ok-foreground',
                 ].join(' ')}
               >
                 {post.commentsTotalCount}
@@ -73,10 +75,10 @@ export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete
             ) : null}
           </div>
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.edit')} onClick={() => onEdit(post.id)}>
-            <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            <Pencil className="h-4 w-4 text-brand-rose-text" aria-hidden="true" />
           </Button>
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.delete')} onClick={() => onDelete(post.id)}>
-            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+            <Trash2 className="h-4 w-4 text-danger" aria-hidden="true" />
           </Button>
         </div>
       ),

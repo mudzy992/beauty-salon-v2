@@ -1,19 +1,24 @@
-import { useEffect, useId, useState, type ChangeEvent } from 'react'
-import { Select } from '../../components/ui/select'
+import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, Loader2, Pencil, Upload, X } from 'lucide-react'
-import api from '../../api/client'
+import { Check, Loader2, X } from 'lucide-react'
+
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import { Textarea } from '../../components/ui/textarea'
-import { MediaImage } from '../../components/media-image'
-import { useAppToast } from '../../lib/toast/useAppToast'
-import { getUploadUrl } from '../../utils/uploadUrl'
 import { isSupportedHexColor } from '../../utils/brand-colors.mjs'
+import { SettingEditorField } from './setting-editor-field'
 import type { AppSetting, SettingDef } from './types'
+import { useSettingEditorUpload } from './use-setting-editor-upload'
 
+/**
+ * Urednik jedne postavke (S9).
+ *
+ * Ornkestrator: drži vrijednost, validaciju i akcije spremanja/uploada.
+ * Render polja je u `setting-editor-field.tsx`, upload u
+ * `use-setting-editor-upload.ts`.
+ *
+ * **Validacija boja je zadržana bez izmjene**: `theme_primary` i
+ * `theme_accent` i dalje moraju biti podržana hex boja (`isSupportedHexColor`).
+ */
 export function SettingEditorForm({
   def,
   setting,
@@ -31,13 +36,11 @@ export function SettingEditorForm({
   const inputId = useId()
   const fileInputId = `${inputId}-file`
   const errorId = `${inputId}-error`
-  const displayLabel = def.label ?? def.desc
-  const { success, error } = useAppToast()
   const [value, setValue] = useState(setting?.value ?? defaultValue)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const { uploading, upload } = useSettingEditorUpload()
 
   useEffect(() => {
     setValue(setting?.value ?? defaultValue)
@@ -92,146 +95,35 @@ export function SettingEditorForm({
     }
   }
 
-  const upload = async () => {
-    if (!file) return
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('assetKind', 'brand')
-      const { data } = await api.post<{ pathOriginal: string }>('/api/uploads/public', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      if (!data?.pathOriginal) throw new Error('Upload response did not include an asset path')
-      setValue(data.pathOriginal)
-      setFile(null)
-      setValidationError(null)
-      success(t('adminSettings.editor.uploadSuccess'))
-    } catch {
-      error(t('adminSettings.editor.uploadFailed'))
-    } finally {
-      setUploading(false)
-    }
-  }
-
   const updateValue = (nextValue: string) => {
     setValue(nextValue)
     setValidationError(null)
   }
-  const inputProps = {
-    'aria-invalid': Boolean(validationError),
-    'aria-describedby': validationError ? errorId : undefined,
-    onChange: (event: ChangeEvent<HTMLInputElement>) => updateValue(event.target.value),
+
+  const handleUpload = async () => {
+    if (!file) return
+    const path = await upload(file)
+    if (!path) return
+    setValue(path)
+    setFile(null)
+    setValidationError(null)
   }
 
   return (
     <Card className="rounded-xl border-line bg-surface-sunken p-4 shadow-none sm:p-5">
-      <div className="mb-4 flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-rose-text shadow-sm">
-          {def.type === 'image' ? <Upload className="h-4 w-4" aria-hidden="true" /> : <Pencil className="h-4 w-4" aria-hidden="true" />}
-        </span>
-        <div className="min-w-0">
-          <Label htmlFor={inputId} className="text-sm font-semibold text-content">{displayLabel}</Label>
-          {def.helpText ? <p className="mt-1 text-xs leading-5 text-content-strong">{def.helpText}</p> : null}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {def.type === 'textarea' ? (
-          <Textarea
-            id={inputId}
-            value={value}
-            onChange={(event) => updateValue(event.target.value)}
-            placeholder={def.placeholder}
-            rows={4}
-            aria-invalid={Boolean(validationError)}
-            aria-describedby={validationError ? errorId : undefined}
-            className="min-h-28 rounded-xl bg-surface"
-          />
-        ) : def.type === 'select' ? (
-          <Select
-            id={inputId}
-            className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
-            value={value}
-            onChange={(event) => updateValue(event.target.value)}
-            aria-invalid={Boolean(validationError)}
-            aria-describedby={validationError ? errorId : undefined}
-          >
-            {(def.options ?? []).map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </Select>
-        ) : def.type === 'color' ? (
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Aurum: color swatch namjerno ostaje bijel — kontrast za native color picker, nije površina teme. */}
-            <Input
-              type="color"
-              aria-label={t('adminSettings.editor.colorPicker', { label: displayLabel })}
-              value={value || '#000000'}
-              onChange={(event) => updateValue(event.target.value)}
-              className="h-11 w-14 cursor-pointer rounded-xl bg-white p-1"
-            />
-            <Input id={inputId} value={value} {...inputProps} className="h-11 max-w-48 rounded-xl bg-surface font-mono" />
-          </div>
-        ) : def.type === 'number' ? (
-          <div className="flex items-center gap-3">
-            <Input
-              id={inputId}
-              type="number"
-              value={value}
-              {...inputProps}
-              min={def.min}
-              max={def.max}
-              className="h-11 max-w-48 rounded-xl bg-surface"
-            />
-            {def.suffix ? <span className="text-sm text-content-strong">{def.suffix}</span> : null}
-          </div>
-        ) : def.type === 'image' || def.type === 'url' ? (
-          <div className="space-y-3">
-            <Input
-              id={inputId}
-              type="url"
-              value={value}
-              {...inputProps}
-              placeholder={def.placeholder || 'https://'}
-              className="h-11 rounded-xl bg-surface"
-            />
-            {def.type === 'image' ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-control-border bg-surface p-3">
-                <div className="min-w-0 flex-1">
-                  <Label htmlFor={fileInputId} className="text-xs font-semibold text-content-strong">
-                    {t('adminSettings.editor.chooseImage')}
-                  </Label>
-                  <Input
-                    id={fileInputId}
-                    type="file"
-                    accept="image/*"
-                    className="mt-1 max-w-sm border-0 p-0 text-xs shadow-none"
-                    onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  />
-                  {file ? <p className="mt-1 truncate text-xs text-content-strong">{file.name}</p> : null}
-                </div>
-                <Button type="button" size="sm" variant="outline" onClick={() => void upload()} disabled={!file || uploading}>
-                  {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Upload className="mr-2 h-4 w-4" aria-hidden="true" />}
-                  {uploading ? t('adminSettings.editor.uploading') : t('adminSettings.editor.upload')}
-                </Button>
-                {value ? <MediaImage src={getUploadUrl(value)} alt={displayLabel} className="h-16 max-w-28 rounded-lg border border-line object-cover" /> : null}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <Input
-            id={inputId}
-            type={def.type === 'email' ? 'email' : 'text'}
-            value={value}
-            {...inputProps}
-            placeholder={def.placeholder}
-            className="h-11 rounded-xl bg-surface"
-          />
-        )}
-      </div>
-
-      {validationError ? <p id={errorId} role="alert" className="mt-3 text-sm font-medium text-rose-700">{validationError}</p> : null}
+      <SettingEditorField
+        def={def}
+        inputId={inputId}
+        fileInputId={fileInputId}
+        errorId={errorId}
+        value={value}
+        file={file}
+        uploading={uploading}
+        validationError={validationError}
+        onUpdateValue={updateValue}
+        onSelectFile={setFile}
+        onUpload={() => void handleUpload()}
+      />
 
       <div className="mt-5 flex flex-col-reverse gap-2 border-t border-line pt-4 sm:flex-row sm:justify-end">
         <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={saving || uploading}>
@@ -239,7 +131,7 @@ export function SettingEditorForm({
           {t('common.cancel')}
         </Button>
         <Button type="button" size="sm" onClick={() => void save()} disabled={saving || uploading}>
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Check className="mr-2 h-4 w-4" aria-hidden="true" />}
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Check className="mr-2 h-4 w-4" aria-hidden="true" />}
           {saving ? t('common.saving') : t('common.save')}
         </Button>
       </div>

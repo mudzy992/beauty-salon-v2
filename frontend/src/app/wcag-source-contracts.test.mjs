@@ -417,7 +417,9 @@ test('2.5.7: svaka drag operacija u src/ ima imenovanu alternativu bez povlačen
       keys: /keyEvent\.key === 'Enter'[\s\S]*?keyEvent\.key === ' '/,
       note: 'Enter/Space otvara detalje, a tamo su type="time" polja za početak i kraj',
     },
-    'features/email-settings/email-visual-editor.tsx': {
+    // S9: drag&drop i tastaturna alternativa prešli su u
+    // `email-visual-editor-blocks.tsx`; `email-visual-editor.tsx` je orkestrator.
+    'features/email-settings/email-visual-editor-blocks.tsx': {
       alternative: /moveBlock\(index, index - 1\)[\s\S]*?moveBlock\(index, index \+ 1\)/,
       keys: null,
       note: 'dugmad moveUp/moveDown s aria-label pored svake kartice bloka',
