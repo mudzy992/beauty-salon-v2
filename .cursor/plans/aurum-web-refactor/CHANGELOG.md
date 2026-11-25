@@ -74,6 +74,9 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
   Redis) — **svih pet poslova zeleni**. Tačan broj prošlih testova u rendered a11y koraku nije
   izvučen iz CI loga u ovoj sredini (host za logove i artifikate nije dostupan iz sandboxa), pa
   se **ne navodi broj koji nije provjeren**; autoritativni signal su zaključci runa i koraka.
+  Nakon toga je pushan i commit `071ad50` (dokumentacija + forced-colors tvrdnja) sa CI runom
+  **[45702072097](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45702072097)** — takođe
+  **5/5**, svih pet poslova zeleno.
 - **Dokazi (lokalno).** `tsc --noEmit` **čist**; ESLint **0 grešaka / 5 upozorenja** (sva
   postojeća i u fajlovima van S9 opsega — `stylist-portal/*`, `DailyLog.tsx`); `test:*` petlja
   **209/210** skripti zeleno, jedini pad `test:auth-session-rendered` je **okolina**

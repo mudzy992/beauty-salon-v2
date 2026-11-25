@@ -20,7 +20,8 @@
 > `test:s9-semantic-colors` **6/6** (oba dodata u CI; druga tvrdnja pokriva forced-colors).
 **CI [45694496238](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45694496238)** za `bef75dc`
 je **5/5** — repo higijena, mobilni TypeScript, backend build+testovi, frontend typecheck+build i
-rendered a11y nad izolovanom CI bazom. `AdminConfirmDialog` tok u `Reviews` je
+rendered a11y nad izolovanom CI bazom; i **CI [45702072097](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45702072097)**
+za `071ad50` je **5/5**. `AdminConfirmDialog` tok u `Reviews` je
 > **revidiran prema S6** — poruka, uvjet, efekat i fokus-povratak identični su originalu.
 > **Otvoreno:** stvarni AT/zoom (200%/400%) i ručni pregled ostaju
 > vlasnikova potvrda. **Nema merge/deploya; STOP prije S10.**

@@ -199,6 +199,7 @@ Nijedna `pages/*` datoteka ne prelazi 150 linija. Najveći modul u `features/` j
 | 5 Python provjera (`check_ci_index`, `check_doc_links`, `check_i18n`, `check_repo_hygiene`, `check_ui_contrast`) | **PASS** |
 | `git diff --check` | **PASS** |
 | CI run **45694496238** za `bef75dc` | **5/5** — repo higijena, mobilni TypeScript, backend build+testovi, frontend typecheck+build, rendered a11y nad izolovanom CI bazom |
+| CI run **45702072097** za `071ad50` (dokumentacija + forced-colors tvrdnja) | **5/5** — svih pet poslova zeleno |
 
 Fokusirani ugovori: Settings **46/46**, i18n-key-resolution **7/7**, admin content a11y **10/10**,
 admin settings controls a11y **11/11**, admin notifications **12/12**, app-releases i18n **2/2**,
