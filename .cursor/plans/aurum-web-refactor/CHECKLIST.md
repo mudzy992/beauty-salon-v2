@@ -5,8 +5,10 @@
 > kroz 11 modula. Svih 31 `animate-*` instanci ima `motion-reduce:animate-none`; S9 paleta je
 > semantička (tri obrazložena izuzetka). Lokalno: `tsc` čist, ESLint 0 grešaka/5 upozorenja,
 > `test:*` 209/210 (1 okolinski pad), build zelen (294,6/300 KiB), pet Python provjera PASS,
-> `test:s9-reduced-motion` 5/5, `test:s9-semantic-colors` 5/5. **Otvoreno:** `AdminConfirmDialog`
-> revizija u `Reviews`; CI run i merge/deploy nisu izvršeni.
+> `test:s9-reduced-motion` 5/5, `test:s9-semantic-colors` 6/6 (sa forced-colors tvrdnjom).
+> `AdminConfirmDialog` tok u `Reviews` je revidiran prema S6 (identičan). CI
+> [45694496238](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45694496238) za `bef75dc` je
+> **5/5**; merge/deploy nisu izvršeni.
 
 > **Najnoviji M4–M7 nastavak:** rezervacija ima zasebne oznake koraka i odabranih datuma/termina u emuliranim sistemskim bojama; provjerava se i JS širenje datuma; lokalni fokusirani skup 36/36. CI `60bf38f` 5/5, 2514/0/0, 15 nepotpunih axe uzoraka. **Otvoren nalaz:** u simuliranom 200% tekstu fokus na „Dodaj još“ povremeno ostaje ispod viewporta; uzrok nije potvrđen. M4/M5 i stvarni OS reduced-motion ostaju otvoreni. [Izvještaj](19_m4_m7_protokol_i_izvjestaj.md).
 

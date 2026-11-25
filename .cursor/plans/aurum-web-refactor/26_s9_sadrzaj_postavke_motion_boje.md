@@ -178,8 +178,10 @@ Nijedna `pages/*` datoteka ne prelazi 150 linija. Najveći modul u `features/` j
 ### 6.2 Motion i boje
 
 - `test:s9-reduced-motion` → **5/5** (31 `animate-*` instanci, svi sa `motion-reduce:animate-none`).
-- `test:s9-semantic-colors` → **5/5** (nema sirovih paleta u S9 opsegu; tri obrazložena izuzetka:
-  email preview okvir, gallery photo scrim, native color picker).
+- `test:s9-semantic-colors` → **6/6** (nema sirovih paleta u S9 opsegu; tri obrazložena izuzetka:
+  email preview okvir, gallery photo scrim, native color picker; plus **forced-colors** tvrdnja —
+  globalni `@media (forced-colors: active)` blok u `globals.css` postoji i S9 ne uvodi vlastiti
+  blok niti tvrde granice).
 - `test:text-contrast-allowlist` → **4/4**; `check_ui_contrast.py` → **148/148** parova.
 - Kontrast semantičkih tokena (classic / Aurum light / Aurum dark):
   `ok-fg` 7.14 / 6.39 / 9.86 · `info-fg` 8.71 / 17.55 / 15.60 · `warn-fg` 8.35 / 6.39 / 9.75 ·
@@ -196,16 +198,35 @@ Nijedna `pages/*` datoteka ne prelazi 150 linija. Najveći modul u `features/` j
 | `npm run typecheck:e2e` | **čist** |
 | 5 Python provjera (`check_ci_index`, `check_doc_links`, `check_i18n`, `check_repo_hygiene`, `check_ui_contrast`) | **PASS** |
 | `git diff --check` | **PASS** |
+| CI run **45694496238** za `bef75dc` | **5/5** — repo higijena, mobilni TypeScript, backend build+testovi, frontend typecheck+build, rendered a11y nad izolovanom CI bazom |
 
 Fokusirani ugovori: Settings **46/46**, i18n-key-resolution **7/7**, admin content a11y **10/10**,
 admin settings controls a11y **11/11**, admin notifications **12/12**, app-releases i18n **2/2**,
 raw API errors **6/6**, blog **40/40**, admin blog i18n **1/1**, gallery keyboard **5/5**,
 gallery i18n **4/4**, reviews i18n **3/3**.
 
-### 6.4 Otvoreno
+### 6.4 Revizija `AdminConfirmDialog` toka u `Reviews` (S6 uslov) — ZAVRŠENA
 
-- **`AdminConfirmDialog` tok u `Reviews`** — revizija poruke/uvjeta/efekta/fokus-povratka prema
-  S6 odobrenju **nije završena**; trenutno stanje je provisiono.
+Usporedjeno je izvorno `pages/Reviews.tsx` (commit `c99ba94`, prije S9) sa izdvojenim
+`features/reviews/use-admin-reviews.ts` + `reviews-detail-dialog.tsx` + `pages/Reviews.tsx`:
+
+| Aspekt | Prije S9 | Poslije S9 | Zaključak |
+|---|---|---|---|
+| Naslov | `t('common.confirmDestructiveTitle')` | isto | ✅ isto |
+| Opis | `t('reviews.deleteConfirm')` | isto | ✅ isto |
+| Dugme | `t('common.delete')` | isto | ✅ isto |
+| Uvjet | otvara se klikom na „obriši“ (tabela i dijalog detalja) | `handleDelete(id)` iz oba mjesta | ✅ isto |
+| Efekat | `DELETE /api/reviews/:id` → `reviews.deletedSuccess` → `loadData()` → `if (detail?.id === id) setOpen(false)`; greška → `reviews.actionFailed` | identično u `use-admin-reviews.ts` | ✅ isto |
+| Renderovanje | `<AdminConfirmDialog>` **unutar** `DialogContent` detalja **i** `{!open && <AdminConfirmDialog …>}` van njega | identično (`reviews-detail-dialog.tsx` + `pages/Reviews.tsx`) | ✅ isto |
+| Zatvaranje roditelja | `if (!next && confirmRequest) setConfirmRequest(null)` inače `setOpen(next)` | `if (!next && confirmRequest) onCloseConfirm()` inače `onOpenChange(next)` | ✅ isto |
+| Fokus-povratak | `AdminConfirmDialog` hvata `document.activeElement` pri otvaranju i vraća fokus na zatvaranje (sa `fallbackFocusRef`) | **ista komponenta, nedirana** — fokus-povratak nije prebačen u modul | ✅ isto |
+
+**Zaključak:** izdvojena potvrda je **ponašanju identična** originalu; S6 uslov
+„ista poruka / isti uvjet / isti efekat + fokus-povratak“ je zadržan. Original već nije
+koristio `window.confirm`, pa nije bilo zamjene oblika — samo **premještanja** koda.
+
+### 6.5 Otvoreno
+
 - `test:auth-session-rendered` — treba instaliran Playwright browser (`npx playwright install chromium`).
 - Stvarni AT/zoom (200%/400%) pregled i ručni vizuelni pregled ostaju vlasnikova potvrda.
 - **Nema merge/deploya** i nema S10 bez zasebnog odobrenja.

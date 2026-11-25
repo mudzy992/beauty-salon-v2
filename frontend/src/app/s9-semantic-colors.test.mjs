@@ -151,6 +151,26 @@ test('semantički tokeni koje S9 koristi postoje u Tailwind konfiguraciji', () =
   assert.match(config, /'gold-text'/)
 })
 
+test('forced-colors: S9 ne uvodi tvrde granice, a globalni blok ostaje', () => {
+  // 1.4.1 — u forced-colors stanju granice ne smiju zavisiti od pozadine.
+  // S9 opseg ne uvodi nove tvrde boje granica: `border-line` je semantički token
+  // i automatski nasljeđuje `CanvasText` iz globalnog bloka.
+  const css = readFileSync(new URL('src/styles/globals.css', SRC), 'utf8')
+  assert.match(css, /@media \(forced-colors: active\)/, 'globalni forced-colors blok ne postoji')
+  assert.match(css, /\.admin-shell input[\s\S]*?border: 1px solid CanvasText/, 'admin kontrole moraju imati CanvasText granicu')
+  assert.match(css, /\.admin-shell \[aria-current='page'\][\s\S]*?outline: 2px solid Highlight/, 'trenutna stavka mora imati Highlight obris')
+
+  // S9 ne smije dodati `forced-colors` izuzetke koji bi gasili globalni blok.
+  for (const rel of FILES) {
+    const source = stripComments(readFileSync(new URL(rel, SRC), 'utf8'))
+    assert.doesNotMatch(
+      source,
+      /forced-colors:\s*active/,
+      `${rel}: S9 ne smije uvoditi vlastiti forced-colors blok — globalni je jedini izvor istine`,
+    )
+  }
+})
+
 test('statusni tekstovi u S9 koriste semantičke tokene, ne `emerald-600` / `rose-600`', () => {
   const blogPosts = readFileSync(new URL('src/features/blog/blog-posts-table.tsx', SRC), 'utf8')
   assert.match(blogPosts, /text-ok-foreground/)

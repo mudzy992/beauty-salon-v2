@@ -41,7 +41,7 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
   `text-blue-600` → **`text-brand-rose-text`** / `text-info-foreground`** (8.71 / 17.55 / 15.60),
   `text-slate-300` (prazna zvjezdica) → **`text-content-strong`** (10.44 / 9.05 / 8.45),
   `text-amber-600` → **`text-warn-foreground`** (8.35 / 6.39 / 9.75), `bg-amber-*` → **`bg-warn`**,
-  `text-red-600` → **`text-danger`**. Novi ugovor `test:s9-semantic-colors` (**5/5**) traži da
+  `text-red-600` → **`text-danger`**. Novi ugovor `test:s9-semantic-colors` (**6/6**) traži da
   u S9 opsegu nema sirovih paleta i dozvoljava **tri** obrazložena izuzetka: email preview
   okvir (`email-visual-editor-preview.tsx` — mail se renderuje na bijeloj pozadini nezavisno od
   teme), gallery photo scrim (`gallery-image-grid.tsx` — Aurum override ga ionako zamjenjuje)
@@ -65,6 +65,15 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
   `raw-api-error-exposure` su usklađeni sa novim putanjama izvora, bez gubitka tvrdnji.
   Nova dva ugovora (`test:s9-reduced-motion`, `test:s9-semantic-colors`) su dodata u
   `.github/workflows/ci.yml` — `check_ci_index.py` traži CI korak za svaku `test:*` skriptu.
+  `test:s9-semantic-colors` ima **šest** tvrdnji: pet o paletama + jedna o **forced-colors**
+  (globalni `@media (forced-colors: active)` blok u `globals.css` postoji i S9 ne uvodi
+  vlastiti blok niti tvrde granice).
+- **CI.** Paket je pushan kao `bef75dc` i **[45694496238](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45694496238)**
+  je **5/5**: repo higijena i statički izvještaji, mobilni TypeScript, backend build+testovi,
+  frontend typecheck+build i rendered a11y (axe) nad izolovanom CI bazom (izolovani PostgreSQL +
+  Redis) — **svih pet poslova zeleni**. Tačan broj prošlih testova u rendered a11y koraku nije
+  izvučen iz CI loga u ovoj sredini (host za logove i artifikate nije dostupan iz sandboxa), pa
+  se **ne navodi broj koji nije provjeren**; autoritativni signal su zaključci runa i koraka.
 - **Dokazi (lokalno).** `tsc --noEmit` **čist**; ESLint **0 grešaka / 5 upozorenja** (sva
   postojeća i u fajlovima van S9 opsega — `stylist-portal/*`, `DailyLog.tsx`); `test:*` petlja
   **209/210** skripti zeleno, jedini pad `test:auth-session-rendered` je **okolina**
@@ -78,9 +87,15 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
   admin settings controls a11y **11/11**, notifications **12/12**, app-releases i18n **2/2**,
   raw API errors **6/6**, blog **40/40**, admin blog i18n **1/1**, gallery keyboard **5/5**,
   gallery i18n **4/4**, reviews i18n **3/3**, email settings **13/13**.
-- **Granice i otvoreno.** (1) **`AdminConfirmDialog` tok u `Reviews`** — revizija poruke,
-  uvjeta, efekta i fokus-povratka prema S6 odobrenju **nije završena**; trenutno stanje je
-  provisiono i mora se provjeriti prije S10. (2) `test:auth-session-rendered` treba
+- **Revizija `AdminConfirmDialog` toka u `Reviews` (S6 uslov) — završena.** Usporedjeno je
+  izvorno `pages/Reviews.tsx` (`c99ba94`) sa izdvojenim modulima: naslov
+  (`common.confirmDestructiveTitle`), opis (`reviews.deleteConfirm`), dugme (`common.delete`),
+  uvjet (otvaranje na klik „obriši“), efekat (`DELETE` → toast → `loadData()` → zatvaranje
+  detalja iste recenzije; greška → `reviews.actionFailed`), renderovanje (isti
+  `AdminConfirmDialog` unutar detalja i van njega) i **fokus-povratak** (ista, nedirana
+  `AdminConfirmDialog` komponenta) su **identični**. Original već nije koristio
+  `window.confirm`, pa nije bilo zamjene oblika — samo premještanja koda.
+- **Granice i otvoreno.** (1) `test:auth-session-rendered` treba
   instaliran Playwright browser. (3) Stvarni AT/zoom (200%/400%) i ručni vizuelni pregled
   ostaju vlasnikova potvrda — mock/source testovi nisu AT audit. (4) **Nema merge/deploya** i
   nema S10 bez zasebnog odobrenja.
