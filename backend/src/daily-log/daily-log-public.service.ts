@@ -102,6 +102,23 @@ export class DailyLogPublicService {
     };
   }
 
+  /**
+   * Records that already appear in the consented feed. Used to separate private
+   * pairs that are still waiting for the client's decision.
+   */
+  async consentedEntryIds(
+    db: Prisma.TransactionClient | PrismaService,
+    serviceId: string,
+    ids: string[],
+  ): Promise<string[]> {
+    if (!ids.length) return [];
+    const entries = await db.dailyLogEntry.findMany({
+      where: { ...this.buildEligibleWhere(serviceId), id: { in: ids } },
+      select: this.publicSelect(),
+    });
+    return this.mapPairs(entries).map((pair) => pair.id);
+  }
+
   /** Validate both targets with the same consent rules used by the public mapper. */
   async eligibleReorderIds(db: Prisma.TransactionClient, serviceId: string, ids: string[]): Promise<string[]> {
     const category = await db.galleryCategory.findFirst({ where: { autoPublishConsentedPairs: true }, select: { id: true } });

@@ -131,6 +131,13 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             } else {
               await expect(badge).toBeVisible()
               if (outcome === 'success' && language === 'en' && viewport === 'desktop') {
+                // The scan must run on the settled dialog: while the attachment
+                // upload is in flight the select is still disabled, and a disabled
+                // control is exempt from WCAG 1.4.3 (inactive component). Its
+                // `disabled:opacity-50` dimming halves the contrast, so scanning
+                // that transient state reported a violation for a control the
+                // user cannot read anyway.
+                await expect(select).toBeEnabled()
                 const axe = await new AxeBuilder({ page }).include('[role=dialog]').withTags(AXE_RULE_TAGS).analyze()
                 expect(assertableViolations(axe.violations)).toEqual([])
               }

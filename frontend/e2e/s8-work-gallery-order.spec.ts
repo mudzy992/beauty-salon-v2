@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { mockWorkGalleryUploadReads } from './work-gallery-upload-fixtures'
 
 const profile = { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['OWNER'] }
 const pair = (id: string) => ({ id, revision: '0', before: { pathOriginal: `/uploads/${id}-before.jpg` }, after: { pathOriginal: `/uploads/${id}-after.jpg` } })
@@ -33,6 +34,7 @@ async function setup(page: Page, language: 'bs' | 'en') {
       order = [order[1], order[0]]; revision = nextRevision
       return route.fulfill({ json: { orderRevision: revision } })
     }
+    if (await mockWorkGalleryUploadReads(route)) return
     return route.fulfill({ json: {} })
   })
   return { writes, release, setBlocked: () => { block = true }, writeCount: () => writeCount, remoteReorder: () => { order.reverse(); revision = nextRevision } }

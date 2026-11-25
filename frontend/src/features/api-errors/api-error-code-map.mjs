@@ -12,6 +12,11 @@
 export const API_ERROR_CODE_TO_KEY = {
   WORK_GALLERY_ENTRY_NOT_FOUND: 'admin.serviceWorkGallery.entryNotFound',
   WORK_GALLERY_VISIBILITY_CONFLICT: 'admin.serviceWorkGallery.visibilityConflict',
+  WORK_GALLERY_SERVICE_NOT_FOUND: 'admin.serviceWorkGallery.serviceNotFound',
+  WORK_GALLERY_ENTRY_NOT_ELIGIBLE: 'admin.serviceWorkGallery.entryNotEligible',
+  WORK_GALLERY_PAIR_ALREADY_EXISTS: 'admin.serviceWorkGallery.pairAlreadyExists',
+  WORK_GALLERY_PAIR_PHOTOS_REQUIRED: 'admin.serviceWorkGallery.pairPhotosRequired',
+  WORK_GALLERY_PAIR_PHOTO_TYPE_INVALID: 'admin.serviceWorkGallery.pairPhotoTypeInvalid',
   MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID: 'mediaConsent.errors.descriptionDecisionInvalid',
   MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED: 'mediaConsent.errors.descriptionNotApproved',
   MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE: 'mediaConsent.errors.reviewedDescriptionStale',

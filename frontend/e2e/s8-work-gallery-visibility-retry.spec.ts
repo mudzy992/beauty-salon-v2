@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
+import { mockWorkGalleryUploadReads } from './work-gallery-upload-fixtures'
 
 const profile = { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['OWNER'] }
 for (const lang of ['bs', 'en'] as const) {
   test(`hidden gallery retry preserves keyboard focus ${lang}`, async ({ page }) => {
     await page.addInitScript(language => { localStorage.setItem('token', 'fixture-admin-token'); localStorage.setItem('APP_LOCALE', language) }, lang)
     let count = 0
-    await page.route('**/api/**', route => {
+    await page.route('**/api/**', async route => {
       const path = new URL(route.request().url()).pathname
       if (path === '/api/settings/public') return route.fulfill({ json: [] })
       if (path === '/api/users/profile') return route.fulfill({ json: profile })
@@ -15,6 +16,7 @@ for (const lang of ['bs', 'en'] as const) {
         count++
         return route.fulfill(count === 1 ? { status: 503, json: {} } : { json: { items: [], hasMore: false, nextOffset: 0 } })
       }
+      if (await mockWorkGalleryUploadReads(route)) return
       return route.fulfill({ json: {} })
     })
     await page.goto('/admin/services/svc-1/work-gallery', { waitUntil: 'networkidle' })

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useServiceWorkGallery } from '../features/services/use-service-work-gallery'
 import { WorkGalleryVisibility } from '../features/services/work-gallery-visibility'
 import { WorkGalleryActions } from '../features/services/work-gallery-actions'
+import { WorkGalleryUpload } from '../features/services/work-gallery-upload'
 import { useWorkGalleryOrder } from '../features/services/use-work-gallery-order'
 import { useAuthStore } from '../stores/auth.store'
 import { getUploadUrl } from '../utils/uploadUrl'
@@ -80,6 +81,10 @@ export default function ServiceWorkGallery() {
           </Button>
         </div>
       ) : null}
+
+      {/* The upload panel stays mounted while the gallery reloads, so a finished
+          upload is not thrown away by the pairs loading state. */}
+      <WorkGalleryUpload key={`${sessionVersion}:${id}`} serviceId={id} enabled={canManage && Boolean(service)} onUploaded={reloadPairs} />
 
       {loadingPairs && items.length === 0 ? (
         <div role="status" className="flex justify-center py-14 text-content-strong">

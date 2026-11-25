@@ -3,6 +3,9 @@ import { DailyLogController } from './daily-log.controller';
 import { WorkGalleryVisibilityController } from './work-gallery-visibility.controller';
 import { WorkGalleryVisibilityService } from './work-gallery-visibility.service';
 import { WorkGalleryOrderService } from './work-gallery-order.service';
+import { WorkGalleryUploadController } from './work-gallery-upload.controller';
+import { WorkGalleryUploadService } from './work-gallery-upload.service';
+import { UploadsModule } from '../uploads/uploads.module';
 import { DailyLogService } from './daily-log.service';
 import { DailyLogPublicService } from './daily-log-public.service';
 import { DailyLogReversalService } from './daily-log-reversal.service';
@@ -21,12 +24,14 @@ import { ReservationsModule } from '../reservations/reservations.module';
 @Module({
   imports: [
     FinanceModule,
+    UploadsModule,
     LoyaltyModule,
     NotificationsModule,
     forwardRef(() => ReservationsModule),
   ],
-  controllers: [DailyLogController, WorkGalleryVisibilityController],
+  controllers: [DailyLogController, WorkGalleryVisibilityController, WorkGalleryUploadController],
   providers: [
+    WorkGalleryUploadService,
     WorkGalleryVisibilityService,
     WorkGalleryOrderService,
     DailyLogService,

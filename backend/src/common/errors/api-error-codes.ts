@@ -12,6 +12,11 @@
 export const API_ERROR_CODES = {
   WORK_GALLERY_ENTRY_NOT_FOUND: 'Zapis nije pronađen.',
   WORK_GALLERY_VISIBILITY_CONFLICT: 'Vidljivost galerije je promijenjena. Osvježite podatke.',
+  WORK_GALLERY_SERVICE_NOT_FOUND: 'Usluga nije pronađena.',
+  WORK_GALLERY_ENTRY_NOT_ELIGIBLE: 'Zapis više nije prikladan za novi par fotografija. Osvježite podatke.',
+  WORK_GALLERY_PAIR_ALREADY_EXISTS: 'Zapis već ima before/after par fotografija.',
+  WORK_GALLERY_PAIR_PHOTOS_REQUIRED: 'Potrebne su obje fotografije, prije i poslije.',
+  WORK_GALLERY_PAIR_PHOTO_TYPE_INVALID: 'Dozvoljene su samo JPEG, PNG, WebP i GIF fotografije.',
   MEDIA_CONSENT_DESCRIPTION_DECISION_INVALID: 'Odluka o objavi opisa mora biti logička vrijednost.',
   MEDIA_CONSENT_DESCRIPTION_NOT_APPROVED: 'Aktivna saglasnost ne obuhvata pregledani opis. Osvježite podatke.',
   MEDIA_CONSENT_REVIEWED_DESCRIPTION_STALE: 'Opis se promijenio ili nije dostupan. Osvježite podatke i ponovo pregledajte opis.',

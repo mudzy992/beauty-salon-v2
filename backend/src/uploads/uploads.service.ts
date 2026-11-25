@@ -177,6 +177,12 @@ export class UploadsService {
     }
   }
 
+  /** Work-gallery originals are raster photos in private storage, never public assets. */
+  async saveWorkGalleryPhoto(file: Express.Multer.File, uploadedById: string) {
+    await this.validateImage(file);
+    return this.saveFile(file, 'work-gallery', uploadedById);
+  }
+
   /** Avatar uploads are image-only and remain in the owner's private storage. */
   async saveAvatar(file: Express.Multer.File, uploadedById: string) {
     await this.validateImage(file);

@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { mockWorkGalleryUploadReads } from './work-gallery-upload-fixtures'
 
 const profile = { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['OWNER'] }
 const pair = { id: 'entry-1', revision: '0', before: { pathOriginal: '/uploads/before.jpg' }, after: { pathOriginal: '/uploads/after.jpg' } }
@@ -28,6 +29,7 @@ async function setup(page: Page, language: 'bs' | 'en') {
       revision = hidden ? '11111111-1111-4111-8111-111111111111' : '22222222-2222-4222-8222-222222222222'
       return route.fulfill({ json: { hidden, revision } })
     }
+    if (await mockWorkGalleryUploadReads(route)) return
     return route.fulfill({ json: {} })
   })
   await page.route('**/uploads/**', route => route.fulfill({ status: 404 }))
