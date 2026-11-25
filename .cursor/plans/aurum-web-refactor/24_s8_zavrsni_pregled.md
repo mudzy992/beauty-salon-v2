@@ -1,6 +1,21 @@
 # S8 — pregled preostalih kriterija i odluka
 
-Stanje nakon vlasnikovih odluka i lokalne implementacije tablista; ovo je pregled dokaza, **ne potvrda završetka S8**. Opseg su analitika (tri pogleda i hub), korisnici, salon, usluge, frizeri i galerija radova uz uslugu. S9 i produkcijski deploy nisu pokrenuti.
+Stanje nakon vlasnikovih odluka, refaktora bočne trake (jedna stavka po području) i lokalne implementacije tablista; ovo je pregled dokaza, **ne potvrda završetka S8**. Opseg su analitika (tri pogleda i hub), korisnici, salon, usluge, frizeri i galerija radova uz uslugu. S9 i produkcijski deploy nisu pokrenuti.
+
+## Najnoviji dokazi (lokalni nastavak refaktora navigacije)
+
+| Oblast | Dokaz | Ograničenje |
+|---|---|---|
+| Navigacija po područjima | `analytics-link-purpose.test.mjs`, `analytics-hub-redirect.test.mjs`, `settings-hub-redirect.test.mjs`, `s6-presentation.test.mjs`, `s8-admin-sidebar-navigation.spec.ts` (BS/EN Chromium) | Izvor (`src/`) se čita statički; niz provjera ne izvršava DOM. |
+| Izbori u analitici | `backend/test/analytics-picker.e2e-spec.ts` **5/5** (pravi HTTP + PostgreSQL), `s8-admin-sidebar-navigation.spec.ts` | Backend nema `q` za stiliste, pa se taj picker ne pretražuje; nema mjerenja velikog dataseta. |
+| Autentificirani admin/stylist a11y | `a11y-admin.spec.ts` + `a11y-stylist.spec.ts` uz pravi backend/PostgreSQL/Redis: **830/830** u ponovljenom pokretanju (prvo 828/2 — oba pada zastarjela očekivanja) | Mockirani podaci u M2 scenarijima; nisu stvarni AT audit ni CI build. |
+| Mock browser regresija | **cijeli `chromium` projekat 2355/2355** (S8 + M1–M6 + `wcag-rendered`); ciljani analitički S8 specovi 22/22 | Sintetički viewport/pointer; nije OS picker niti mobilni uređaj. |
+| Frontend statički | **207/207** `test:*` skripti, `tsc --noEmit` čist, ESLint 0 grešaka / 6 upozorenja, build zelen (initial 294,8/300 KiB, Analytics 116,4/140 KiB), pet Python provjera PASS | Nema CI runa za ovaj paket — rad je lokalni. `test:auth-session-rendered` traži ispravan `PLAYWRIGHT_BROWSERS_PATH`; bez njega pada okolina, ne kod. |
+| Backend | Novi `analytics-picker.e2e-spec.ts` **5/5**; **cijeli backend E2E 7/7 suita, 106/106** | Nova baza `beauty_salon_ci` u CI-ju zadovoljava zaštitu „baciva lokalna test baza“. |
+
+**Odgovor na dva pala scenarija iz autentificiranog runa.** Oba su bila zastarjela očekivanja, ne kvarovi: (1) test „users eye …“ je tražio dugme „nazad na korisnike“ i odlazak na `/admin/users`, a novi ugovor vraća na listu klijenata **u istom analitičkom tabu**; (2) test „analytics subviews …“ je očekivao da se pod-pogled bira u bočnoj traci, a sada ga bira **tablist**. Uz ispravku očekivanja oba prolaze; ista garancija (tastaturna izmjena pod-pogleda, `aria-selected`, očuvanje query parametara, tabela/tipka grafikona) je zadržana i proširena.
+
+**Utjecaj na ugovor URL-a.** Zadani analitički tab više ne piše `?tab=` (`next.delete('tab')`), isto kao u `finance-page.tsx` i `settings-tab-nav.tsx`. Time bočna stavka i tablist daju istu adresu za isti pogled. `?tab=overview` i dalje radi kao deep link.
 
 ## Implementirani obuhvat i granice dokaza
 
@@ -19,7 +34,9 @@ Cijela lokalna mock S8 regresija nakon naknadne ekstrakcije **411/411**, ciljano
 
 ## Izmjerena veličina stranica
 
-Početno mjerenje iz CHANGELOG-a: AnalyticsHub 46, Analytics 477, ClientAnalytics 821, StylistAnalytics 248, Users 1718, Services 1519, Salon 674, Stylists 520, ServiceWorkGallery 226 linija. Trenutno: **57 / 68 / 134 / 119 / 138 / 139 / 128 / 146 / 147** istim redom. `Services.tsx` je nakon izdvajanja potvrda kategorija 171 → 139; logika je u `use-service-category-deletion.ts` (54). Izdvojeni moduli nisu svi unutar ~100–150 linija (npr. `use-service-editor.ts` 209 i `edit-user-dialog.tsx` 173); cilj je približan, ali dužina tih modula i njihovo eventualno dalje izdvajanje nisu skriveni.
+Početno mjerenje iz CHANGELOG-a: AnalyticsHub 46, Analytics 477, ClientAnalytics 821, StylistAnalytics 248, Users 1718, Services 1519, Salon 674, Stylists 520, ServiceWorkGallery 226 linija. Nakon nastavka refaktora navigacije: **62 / 68 / 145 / 118 / 138 / 139 / 128 / 146 / 152** istim redom (AnalyticsHub / Analytics / ClientAnalytics / StylistAnalytics / Users / Services / Salon / Stylists / ServiceWorkGallery), plus `Dashboard.tsx` 97. Sve su unutar ~100–150 linija.
+
+Najveći izdvojeni moduli u ovom paketu: `admin-user-menu.tsx` 143, `admin-layout.tsx` 142, `admin-nav-menu.tsx` 140, `client-analytics-detail-panels.tsx` 139, `admin-mobile-nav.tsx` 128, `stylist-picker.tsx` 109, `client-picker.tsx` 106, `client-analytics-stat-cards.tsx` 98, `client-analytics-summary.tsx` 91. Preostali dugi moduli (`use-service-editor.ts`, `edit-user-dialog.tsx`) su iz S8-ranijeg nastavka i nisu dirani u ovom paketu; njihova dužina i eventualno dalje izdvajanje nisu skriveni.
 
 ## Odluke vlasnika i novo stanje
 
@@ -28,7 +45,8 @@ Početno mjerenje iz CHANGELOG-a: AnalyticsHub 46, Analytics 477, ClientAnalytic
 
 ## Do kraja S8
 
-- Implementirati i testirati odobreni tok galerije; ne objavljivati slike bez aktivne saglasnosti i ne koristiti destruktivno brisanje za sakrivanje.
-- Završiti postojeći CI, pushati lokalne commitove, te potvrditi **5/5 na tačno završnom HEAD-u**; ne miješati rezultate različitih commitova.
-- Pregledati otvorene stavke i dokaze nakon tih odluka; zadržati stvarni AT/400% i druge ručne dokaze koji su u planu dodijeljeni S11, bez pretvaranja mock/axe rezultata u WCAG certifikaciju.
-- Tek nakon zadovoljenih S8 kriterija stati i pitati za odobrenje S9. Nema merge/deploya.
+- ✅ Implementirati i testirati odobreni tok galerije; ne objavljivati slike bez aktivne saglasnosti i ne koristiti destruktivno brisanje za sakrivanje. — Upload, redoslijed i revizijska zaštita vidljivosti su implementirani i pokriveni pravim PostgreSQL/JWT testovima.
+- ✅ Refaktor navigacije na jednu stavku po području + analitički pickeri. — Implementirano, pokriveno statičkim ugovorima, mock browser testovima, pravim backend E2E testom i autentificiranim axe pokretanjem.
+- ⬜ **Pushati lokalne commitove i potvrditi CI 5/5 na tačno završnom HEAD-u.** Za ovaj paket još nema CI runa (rad je lokalni i nepushed na ovoj grani); ne miješati rezultate različitih commitova.
+- ⬜ Pregledati otvorene stavke i dokaze nakon tih odluka; zadržati stvarni AT/400% i druge ručne dokaze koji su u planu dodijeljeni S11, bez pretvaranja mock/axe rezultata u WCAG certifikaciju.
+- ⬜ Tek nakon zadovoljenih S8 kriterija stati i pitati za odobrenje S9. Nema merge/deploya.

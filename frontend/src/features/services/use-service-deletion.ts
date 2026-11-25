@@ -5,75 +5,53 @@ import { useAppToast } from '../../lib/toast/useAppToast'
 import { useAuthStore } from '../../stores/auth.store'
 import type { Category } from './service-catalog-types'
 import type { Service } from './service-types'
-import type { ServiceDeletionImpact, ServiceMutationAction } from './service-deletion-types'
+import type { ServiceMutationAction } from './service-deletion-types'
+import {
+  buildServiceDeletionRequest,
+  hasMergeConflicts,
+  hasProcessingOutboxEvents,
+  mergeTargetsFor,
+} from './service-deletion-plan'
+import { useServiceDeletionPreview } from './use-service-deletion-preview'
 
 type Dependencies = { categories: Category[]; loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void; isCatalogStale: () => boolean }
 export function useServiceDeletion({ categories, loadData, showApiError, isCatalogStale }: Dependencies) {
   const { t } = useTranslation()
   const { success } = useAppToast()
   const [deletionOpen, setDeletionOpen] = useState(false)
-  const [deletionLoading, setDeletionLoading] = useState(false)
   const [deletionSaving, setDeletionSaving] = useState(false)
-  const [deletionLoadError, setDeletionLoadError] = useState(false)
   const [deletionService, setDeletionService] = useState<Service | null>(null)
-  const [deletionImpact, setDeletionImpact] =
-    useState<ServiceDeletionImpact | null>(null)
   const [deletionAction, setDeletionAction] = useState<ServiceMutationAction>(
     'DELETE_LINKED_RECORDS',
   )
   const [deletionTargetId, setDeletionTargetId] = useState('')
   const [deletionConfirmationName, setDeletionConfirmationName] = useState('')
-  const deletionPreviewGeneration = useRef(0)
   const deletionDialogGeneration = useRef(0)
   const deletionOpenRef = useRef(false)
   const deletionMutationInFlight = useRef(false)
   const deletionMounted = useRef(false)
 
+  const {
+    impact: deletionImpact,
+    loading: deletionLoading,
+    loadError: deletionLoadError,
+    load: loadDeletionImpact,
+    invalidate: invalidateDeletionPreview,
+  } = useServiceDeletionPreview({ showApiError })
+
   useEffect(() => {
     deletionMounted.current = true
     return () => {
       deletionMounted.current = false
-      deletionPreviewGeneration.current += 1
       deletionDialogGeneration.current += 1
     }
   }, [])
-
-  const invalidateDeletionPreview = () => {
-    deletionPreviewGeneration.current += 1
-    setDeletionImpact(null)
-    setDeletionLoadError(false)
-    setDeletionLoading(false)
-  }
 
   const closeServiceDeletion = () => {
     deletionOpenRef.current = false
     deletionDialogGeneration.current += 1
     invalidateDeletionPreview()
     setDeletionOpen(false)
-  }
-
-  const loadDeletionImpact = async (
-    serviceId: string,
-    targetServiceId?: string,
-  ) => {
-    const generation = ++deletionPreviewGeneration.current
-    setDeletionLoading(true)
-    setDeletionLoadError(false)
-    try {
-      const { data } = await api.get<ServiceDeletionImpact>(
-        `/api/services/admin/services/${serviceId}/deletion-impact`,
-        { params: targetServiceId ? { targetServiceId } : undefined },
-      )
-      if (generation !== deletionPreviewGeneration.current) return
-      setDeletionImpact(data)
-    } catch (err) {
-      if (generation !== deletionPreviewGeneration.current) return
-      setDeletionImpact(null)
-      setDeletionLoadError(true)
-      showApiError(err, 'services.errors.deleteServiceFailed')
-    } finally {
-      if (generation === deletionPreviewGeneration.current) setDeletionLoading(false)
-    }
   }
 
   const openServiceDeletion = (service: Service) => {
@@ -83,8 +61,7 @@ export function useServiceDeletion({ categories, loadData, showApiError, isCatal
     setDeletionAction('DELETE_LINKED_RECORDS')
     setDeletionTargetId('')
     setDeletionConfirmationName('')
-    setDeletionImpact(null)
-    setDeletionLoadError(false)
+    invalidateDeletionPreview()
     setDeletionOpen(true)
     void loadDeletionImpact(service.id)
   }
@@ -98,16 +75,14 @@ export function useServiceDeletion({ categories, loadData, showApiError, isCatal
     const sameDialog = () => stillMountedInSession() && deletionOpenRef.current && deletionDialogGeneration.current === dialogGeneration
     setDeletionSaving(true)
     try {
-      await api.delete(`/api/services/${deletionService.id}`, {
-        data: {
-          action: deletionAction,
-          confirmationName: deletionConfirmationName,
-          impactToken: deletionImpact.impactToken,
-          ...(deletionAction === 'MERGE'
-            ? { targetServiceId: deletionTargetId }
-            : {}),
-        },
+      const request = buildServiceDeletionRequest({
+        serviceId: deletionService.id,
+        action: deletionAction,
+        confirmationName: deletionConfirmationName,
+        impactToken: deletionImpact.impactToken,
+        targetServiceId: deletionTargetId,
       })
+      await api.delete(request.url, { data: request.data })
       if (!stillMountedInSession()) return
       success(t(deletionAction === 'MERGE' ? 'services.toast.serviceMerged' : 'services.toast.serviceDeleted'))
       if (sameDialog()) {
@@ -142,20 +117,14 @@ export function useServiceDeletion({ categories, loadData, showApiError, isCatal
     }
   }
 
-  const availableMergeTargets = categories
-    .flatMap((category) => category.subcategories ?? [])
-    .flatMap((subcategory) => subcategory.services ?? [])
-    .filter((service) => service.id !== deletionService?.id)
-  const hasMergeConflicts = Object.values(
-    deletionImpact?.mergeConflicts ?? {},
-  ).some((count) => count > 0)
-  const hasProcessingOutboxEvents =
-    (deletionImpact?.mergeConflicts.processingOutboxEvents ?? 0) > 0
+  const availableMergeTargets = mergeTargetsFor(categories, deletionService?.id)
 
   return {
     deletionOpen, deletionService, deletionImpact, deletionAction, deletionTargetId, deletionConfirmationName,
-    deletionSaving, deletionLoading, deletionLoadError, availableMergeTargets, hasMergeConflicts,
-    hasProcessingOutboxEvents, closeServiceDeletion, selectDeletionAction, openServiceDeletion,
+    deletionSaving, deletionLoading, deletionLoadError, availableMergeTargets,
+    hasMergeConflicts: hasMergeConflicts(deletionImpact),
+    hasProcessingOutboxEvents: hasProcessingOutboxEvents(deletionImpact),
+    closeServiceDeletion, selectDeletionAction, openServiceDeletion,
     setDeletionTargetId, invalidateDeletionPreview, loadDeletionImpact, setDeletionConfirmationName, handleServiceMutation,
   }
 }

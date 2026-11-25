@@ -16,6 +16,8 @@
 
 **Otvoreno:** ostali admin paneli/dijalozi i booking/stylist/token stanja, stvarni zoom i ručni text-spacing, tastatura/fokus, čitač ekrana, forced-colors, vizuelni pregled i reduced-motion. Korisnik je ranije prijavio 200%/400% prolaz prioritetnih ruta bez specifikacije browsera/teme; to ne zatvara cijeli M2. S8 razbijanje velikih fajlova nije odobreno; nema merge/deploy. Stariji statusi ispod su historijski i ne nadjačavaju ovaj blok.
 
+> **S8 — navigacija i analitički pickeri (lokalno, 2026-11-25):** bočna traka nosi **jednu stavku po području**; pod-pogledi analitike žive u tablistu `/admin/analytics`, a „Klijenti“ i „Stilisti“ imaju vlastite pickere umjesto skoka na `/admin/users` / `/admin/stylists`. Zadani analitički tab više ne piše `?tab=` (isto pravilo kao finansije i postavke), pa stavka u traci i tablist daju istu adresu za isti pogled (2.4.9). Dokazi: **cijeli `chromium` browser projekat 2355/2355**, ciljani S8 analitički specovi **22/22**, `test:*` skripti **207/207**, `tsc --noEmit` čist, ESLint 0 grešaka / 6 upozorenja, build zelen (initial 294,8/300 KiB, Analytics 116,4/140 KiB), pet Python provjera PASS, backend picker E2E **5/5** i cijeli backend E2E **7/7 suita / 106/106**, te **autentificirani** admin/stylist a11y suite uz pravi backend/PostgreSQL/Redis (prvi run 828/2 — oba pada zastarjela očekivanja; **ponovljeni run 830/830** potpuno zelen). **Nema CI runa za ovaj paket** (lokalni nepushed rad); stvarni AT/400% i ručni pregled ostaju otvoreni. Nema merge/deploya i nema S9 bez odobrenja.
+
 
 ## Aktuelna matrica dokaza — CI `44567932983`
 
@@ -127,9 +129,9 @@ Svaki red: `a11y-admin.spec.ts` provjerava Aurum light i dark axe, a dodatno mje
 | 40 | `/admin/app-releases` | `TabRedirect → /admin/settings?tab=releases` | S9 | `test:settings-hub-redirect` | ➖ |
 | 41 | `/admin/notifications` | `TabRedirect → /admin/settings?tab=notifications` | S9 | `test:settings-hub-redirect`, `test:admin-notifications-i18n` | ➖ |
 | 42 | `/admin/email-settings` | `TabRedirect → /admin/settings?tab=email` | S9 | `test:settings-hub-redirect`, `test:eslint-a11y-severity` | ➖ |
-| 43 | `/admin/analytics` | `pages/AnalyticsHub.tsx` (3 taba) | S8 | `test:analytics-hub-redirect`, `test:text-contrast-allowlist` | ⬜ |
-| 44 | `/admin/client-analytics` | `TabRedirect → /admin/analytics?tab=clients` | S8 | `test:analytics-hub-redirect` | ➖ |
-| 45 | `/admin/stylist-analytics` | `TabRedirect → /admin/analytics?tab=stylists` | S8 | `test:analytics-hub-redirect`, `test:stylist-analytics-tables-a11y` | ➖ |
+| 43 | `/admin/analytics` | `pages/AnalyticsHub.tsx` (3 taba, pickeri za klijente/stiliste) | S8 | `test:analytics-hub-redirect`, `test:analytics-link-purpose`, `test:text-contrast-allowlist`, `s8-admin-sidebar-navigation.spec.ts` | 🟡 **S8 lokalno**: browser 2355/2355 (cijeli `chromium` projekat), ciljani analitički S8 22/22, `tsc` čist, Node 207/207; nema CI runa i nema stvarnog AT audita |
+| 44 | `/admin/client-analytics` | `TabRedirect → /admin/analytics?tab=clients` | S8 | `test:analytics-hub-redirect`, `backend/test/analytics-picker.e2e-spec.ts` | ➖ |
+| 45 | `/admin/stylist-analytics` | `TabRedirect → /admin/analytics?tab=stylists` | S8 | `test:analytics-hub-redirect`, `test:stylist-analytics-tables-a11y`, `backend/test/analytics-picker.e2e-spec.ts` | ➖ |
 | 46 | `/admin/loyalty` | `pages/Loyalty.tsx` | S7 | `test:admin-loyalty-i18n`, `test:loyalty-a11y` | ⬜ |
 
 ---

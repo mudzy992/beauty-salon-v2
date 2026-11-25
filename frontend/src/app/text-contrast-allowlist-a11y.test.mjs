@@ -249,7 +249,7 @@ test('1.4.3 ispravljeno: statusni tekstovi više ne koriste emerald-600 / amber-
   const cases = [
     ['features/stylist-portal/pages/stylist-direct-booking-page.tsx', /text-warn-foreground/, /text-sm text-amber-600/],
     ['features/stylist-workbook/pages/workbook-new-entry-page.tsx', /text-ok-foreground/, /text-xs text-emerald-600/],
-    ['features/users/edit-user-dialog.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
+    ['features/users/edit-user-username-field.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
     ['features/users/create-user-dialog.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
   ]
   for (const [f, must, mustNot] of cases) {

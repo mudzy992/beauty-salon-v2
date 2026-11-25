@@ -8,9 +8,10 @@ assert.match(analyticsPage, /import \{ AnalyticsFinanceChart \} from '..\/featur
 assert.match(analyticsPage, /<AnalyticsFinanceChart data=\{data\} chartData=\{chartData\} chartSummary=\{chartSummary\} \/>/)
 const client = readFileSync(new URL('../../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
 const summary = readFileSync(new URL('../client-analytics/client-analytics-summary.tsx', import.meta.url), 'utf8')
+const statCards = readFileSync(new URL('../client-analytics/client-analytics-stat-cards.tsx', import.meta.url), 'utf8')
 const reservations = readFileSync(new URL('../client-analytics/client-reservations-table.tsx', import.meta.url), 'utf8')
 const manual = readFileSync(new URL('../client-analytics/client-manual-entries-table.tsx', import.meta.url), 'utf8')
-const clientTables = [summary, reservations, manual].join('\n')
+const clientTables = [summary, statCards, reservations, manual].join('\n')
 const css = readFileSync(new URL('../../styles/globals.css', import.meta.url), 'utf8')
 
 // ---------------------------------------------------------------------------
@@ -112,14 +113,14 @@ test('card-mode CSS i dalje cilja data-table', () => {
 
 test('popravljeni kontrastni prekršaji se ne vracaju (1.4.3 / 1.4.11)', () => {
   assert.equal(
-    ([client, summary, reservations, manual].join('\n').match(/text-slate-400/g) || []).length,
+    ([client, summary, statCards, reservations, manual].join('\n').match(/text-slate-400/g) || []).length,
     0,
     'text-slate-400 je 2.56:1 — mora ostati uklonjen',
   )
   assert.equal(
-    ([client, summary, reservations, manual].join('\n').match(/bg-emerald-500/g) || []).length,
+    ([client, summary, statCards, reservations, manual].join('\n').match(/bg-emerald-500/g) || []).length,
     0,
     'bg-emerald-500 je 2.32:1 na track-u — mora ostati uklonjen',
   )
-  assert.match(summary, /bg-ok-foreground/, 'progress bar mora koristiti ok-foreground (6.51:1)')
+  assert.match(statCards, /bg-ok-foreground/, 'progress bar mora koristiti ok-foreground (6.51:1)')
 })

@@ -11,10 +11,11 @@ const presentation = readFileSync(new URL('./use-client-analytics-presentation.t
 assert.match(source, /import \{ useClientAnalyticsPresentation \} from '..\/features\/client-analytics\/use-client-analytics-presentation'/)
 assert.match(source, /const \{ t, formatDateOnly, formatInstantDate, getReservationStatusLabel, getStylistName, getUserName \} = useClientAnalyticsPresentation\(\)/)
 const dialog = readFileSync(new URL('./client-analytics-detail-dialog.tsx', import.meta.url), 'utf8')
+const dialogPanels = readFileSync(new URL('./client-analytics-detail-panels.tsx', import.meta.url), 'utf8')
 const rating = readFileSync(new URL('./star-rating.tsx', import.meta.url), 'utf8')
-const views = ['client-analytics-summary.tsx', 'client-reservations-table.tsx', 'client-manual-entries-table.tsx', 'client-reviews.tsx', 'client-debts.tsx', 'client-period-filter.tsx'].map((file) => readFileSync(new URL('./' + file, import.meta.url), 'utf8'))
-const [summary, reservations, , reviews] = views
-const all = [source, presentation, dialog, rating, ...views].join('\n')
+const views = ['client-analytics-summary.tsx', 'client-analytics-stat-cards.tsx', 'client-reservations-table.tsx', 'client-manual-entries-table.tsx', 'client-reviews.tsx', 'client-debts.tsx', 'client-period-filter.tsx'].map((file) => readFileSync(new URL('./' + file, import.meta.url), 'utf8'))
+const [summary, statCards, reservations, , reviews] = views
+const all = [source, presentation, dialog, dialogPanels, rating, ...views].join('\n')
 assert.match(source, /useClientAnalyticsData\(\{ selectedUserId, appliedFrom, appliedTo \}\)/)
 assert.match(source, /<ClientAnalyticsDetailDialog\b[\s\S]*?detailTriggerRef=\{detailTriggerRef\}/)
 for (const component of ['ClientAnalyticsSummary', 'ClientReservationsTable', 'ClientManualEntriesTable', 'ClientReviews', 'ClientDebts', 'ClientPeriodFilter']) {
@@ -44,7 +45,7 @@ test('client analytics page translation references exist in both locales with ma
 test('client analytics dates and amounts follow the active locale', () => {
   assert.match(presentation, /formatDateOnlyLocale\(value\.slice\(0, 10\), getIntlLocale\(i18n\.language\)/)
   assert.match(presentation, /new Intl\.DateTimeFormat\(getIntlLocale\(i18n\.language\), \{ dateStyle: 'medium' \}\)/)
-  assert.match(summary, /formatLocalizedAmount\(analytics\.stats\.totalSpent, i18n\.language\)/)
+  assert.match(statCards, /formatLocalizedAmount\(stats\.totalSpent, language\)/)
   assert.match(reservations, /formatLocalizedNumber\(Number\(r\.service\?\.price \?\? 0\), i18n\.language/)
   assert.doesNotMatch(all, /toLocaleDateString\(['"]bs-BA['"]\)|\.toFixed\(2\)/)
   assert.doesNotMatch(all, /'Odobreno'|'Na čekanju'|'Penaliziran'|'Registrovan'|'Detalji Rezervacije'/)
@@ -55,7 +56,8 @@ test('client analytics request and route contracts remain unchanged', () => {
   assert.match(dataHook, /api\.get<ClientDebtRow\[]>\('\/api\/client-debts', \{ params: \{ clientId: selectedUserId \} \}\)/)
   assert.match(source, /next\.set\('fromDate', dateFrom\)/)
   assert.match(source, /next\.set\('toDate', dateTo\)/)
-  assert.match(source, /navigate\('\/admin\/users'\)/)
+  // S8: „nazad" ostaje u analitičkom tabu (lista klijenata), ne na /admin/users.
+  assert.match(source, /navigate\('\/admin\/analytics\?tab=clients'\)/)
   assert.match(summary, /\{getUserName\(analytics\.user\)\}/)
   assert.match(reservations, /\{r\.service\?\.name \?\? '-'\}/)
   assert.match(reviews, /\{r\.comment\}/)

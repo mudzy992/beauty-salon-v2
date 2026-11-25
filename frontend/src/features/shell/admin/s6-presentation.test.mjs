@@ -6,30 +6,33 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const nav = read('./admin-nav.ts')
 const calendar = read('../../../pages/ReservationsCalendar.tsx')
 
-test('six navigation groups group analytics subviews and consolidate settings tabs', () => {
+test('navigation groups list every admin area once, with a truthful destination', () => {
   const groups = [...nav.matchAll(/labelKey: 'nav\.section(\w+)',\s*items: \[([\s\S]*?)\],/g)]
-  assert.deepEqual(groups.map((g) => g[1]), ['Overview', 'Analytics', 'Operational', 'Salon', 'Content', 'System'])
-  // Zadani tab (tabDefault) ne piše ?tab= u URL-u — isto pravilo kao finance-page.
-  const hrefs = [...nav.matchAll(/\{ path: '([^']+)', labelKey: '[^']+'(?:, tab: '([^']+)')?(, tabDefault: true)?/g)]
-    .map(([, path, tab, tabDefault]) => (tab && !tabDefault) ? `${path}?tab=${tab}` : path)
+  assert.deepEqual(groups.map((g) => g[1]), ['Overview', 'Analytics', 'Operational', 'Salon', 'People', 'Content', 'System'])
+  // Jedna stavka po području: pod-pogledi (analitika, postavke) žive kao tabovi
+  // u svom hub-u, pa nema dupliranja navigacije ni linkova sa istim ciljem.
+  const hrefs = [...nav.matchAll(/\{ path: '([^']+)', labelKey: '([^']+)' \}/g)].map(([, path]) => path)
   assert.deepEqual(hrefs, [
     '/admin',
     '/admin/analytics',
-    '/admin/analytics?tab=clients',
-    '/admin/analytics?tab=stylists',
     '/admin/reservations',
     '/admin/daily-log',
     '/admin/finance',
     '/admin/loyalty',
     '/admin/salon',
     '/admin/services',
-    '/admin/stylists',
     '/admin/users',
+    '/admin/stylists',
     '/admin/blog',
     '/admin/gallery',
     '/admin/reviews',
     '/admin/settings',
   ])
+  // Nema stavke koja nosi `?tab=` — pod-pogledi se ne dupliraju u traci.
+  assert.doesNotMatch(nav, /tab: '/)
+  // Analitika i postavke su po jedna stavka; oba hub-a imaju tablistu.
+  assert.equal((nav.match(/path: '\/admin\/analytics'/g) ?? []).length, 1)
+  assert.equal((nav.match(/path: '\/admin\/settings'/g) ?? []).length, 1)
 })
 
 test('fullscreen calendar has a skip target and theme switcher in the header', () => {

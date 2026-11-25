@@ -1,6 +1,6 @@
 # S8 — Admin: Analitika, Korisnici, Salon, Usluge, Frizeri (+ Work Gallery)
 
-> Status nastavka: sakrivanje/vraćanje, ručni redoslijed po usluzi i privatni upload before/after para su implementirani. S8 ostaje otvoren; stvarne granice i testovi su u `25_s8_work_gallery_implementacija.md` i `CHANGELOG.md`.
+> Status nastavka: sakrivanje/vraćanje, ručni redoslijed po usluzi i privatni upload before/after para su implementirani. Bočna traka je prešla na **jednu stavku po području** (analitika, korisnici, salon, usluge, frizeri, sadržaj, postavke), a pod-pogledi žive u tablistu svog hub-a; klijentska i frizerska analitika imaju vlastite izbore (picking) umjesto skoka na `/admin/users` / `/admin/stylists`. S8 ostaje otvoren; stvarne granice i testovi su u `25_s8_work_gallery_implementacija.md`, `24_s8_zavrsni_pregled.md` i `CHANGELOG.md`.
 
 **Status:** 🟡 čeka odobrenje S7 · **Uključuje obavezno razbijanje velikih fajlova po `code-hygiene-and-matrices.mdc`.**
 

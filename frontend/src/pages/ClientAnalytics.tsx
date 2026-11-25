@@ -1,9 +1,10 @@
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '../features/shell/admin/ui/page-header'
 import {
   ArrowLeft,
   Loader2,
 } from 'lucide-react'
+import { ClientPicker } from '../features/client-analytics/client-picker'
 import { useClientAnalyticsData } from '../features/client-analytics/use-client-analytics-data'
 import { useClientAnalyticsDetail } from '../features/client-analytics/use-client-analytics-detail'
 import { useClientAnalyticsPresentation } from '../features/client-analytics/use-client-analytics-presentation'
@@ -56,19 +57,29 @@ export default function ClientAnalytics() {
     })
   }
 
+  // 2.4.9 / M1 — analitika klijenta je tab u `/admin/analytics`; „nazad“ vraća
+  // na listu klijenata u istom tabu, ne na `/admin/users` (krajnja mrtva granica).
   const goBack = () => {
-    navigate('/admin/users')
+    navigate('/admin/analytics?tab=clients')
   }
 
   if (!selectedUserId) {
-    return <Navigate to="/admin/users" replace />
+    return (
+      <div>
+        <PageHeader
+          title={t('clientAnalyticsPage.title')}
+          description={t('clientAnalyticsPage.picker.description')}
+        />
+        <ClientPicker />
+      </div>
+    )
   }
 
   return (
     <div>
       <Button type="button" variant="ghost" className="mb-4" onClick={goBack}>
         <ArrowLeft className="mr-2 h-4 w-4" />
-        {t('clientAnalyticsPage.backToUsers')}
+        {t('clientAnalyticsPage.backToList')}
       </Button>
 
       {/* 2.4.6: stranica mora imati <h1> u SVIM stanjima (loading/error/loaded),

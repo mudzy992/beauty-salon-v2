@@ -438,7 +438,14 @@
     "reservationsCaption": "Client reservations: date, time, service, stylist, price, status, and details.",
     "manualEntriesCaption": "Manual entries: date, service, stylist, price, tip, source, and note.",
     "title": "Client analytics",
-    "backToUsers": "Back to users",
+    "picker": {
+      "description": "Select a client to see their spending, reservations, and reviews.",
+      "search": "Search clients…",
+      "empty": "No clients to show.",
+      "loadFailed": "Unable to load the client list.",
+      "total": "Total clients: {{count}}"
+    },
+    "backToList": "Back to list",
     "loadError": "Could not load client analytics.",
     "fromDate": "From date",
     "toDate": "To date",
@@ -765,8 +772,14 @@
   "stylistAnalytics": {
     "sourceNote": "Completed daily logs take precedence over linked reservations; debt payments are not new services. Reservations without a completed log use the current catalog price. Standalone manual income is included in service counts.",
     "invalidRange": "Enter both dates in order, or leave both empty.",
-    "backToStylists": "Back to stylists",
-    "selectStylist": "Select a stylist (for example, from the Stylists list) to view analytics.",
+    "backToList": "Back to list",
+    "picker": {
+      "description": "Select a stylist to see their results.",
+      "empty": "No stylists to show.",
+      "loadFailed": "Unable to load the stylist list.",
+      "total": "Total stylists: {{count}}",
+      "inactive": "Inactive"
+    },
     "loadFailed": "Unable to load stylist analytics.",
     "fromDate": "From date",
     "toDate": "To date",

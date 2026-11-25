@@ -9,7 +9,6 @@ const tabNav = read('./settings-tab-nav.tsx')
 const redirect = read('../shell/admin/tab-redirect.tsx')
 const nav = read('../shell/admin/admin-nav.ts')
 const navMenu = read('../shell/admin/admin-nav-menu.tsx')
-const layout = read('../shell/admin/admin-layout.tsx')
 const bs = JSON.parse(read('../../i18n/locales/bs.json'))
 const en = JSON.parse(read('../../i18n/locales/en.json'))
 
@@ -87,14 +86,13 @@ test('Settings je grupisan u jednu sidebar stavku, tabovi žive u hub-u', () => 
   assert.doesNotMatch(nav, /tab: 'email'/)
   // Aktivno stanje grupisane stavke se oslanja na pathname (hub internally
   // razlikuje tabove), pa je stavka aktivna na bilo kojem /admin/settings?tab=.
-  assert.match(nav, /if \(item\.tab\) \{/)
   assert.match(nav, /return pathname === item\.path \|\| pathname\.startsWith\(`\$\{item\.path\}\/`\)/)
-  // Plumbing searchTab-a ostaje (hub interni tab-nav ga koristi).
-  assert.match(navMenu, /new URLSearchParams\(search \?\? ''\)\.get\('tab'\)/)
-  assert.match(navMenu, /isAdminNavItemActive\(pathname, item, searchTab\)/)
-  assert.match(navMenu, /key=\{adminNavItemHref\(item\)\}/)
-  assert.match(navMenu, /to=\{adminNavItemHref\(item\)\}/)
-  assert.match(layout, /search=\{location\.search\}/)
+  // Nijedna stavka u traci ne nosi `?tab=` (S8: isto vrijedi za analitiku),
+  // pa meni ne treba plumbing za `searchTab`.
+  assert.doesNotMatch(nav, /tab: '/)
+  assert.match(navMenu, /isAdminNavItemActive\(pathname, item\)/)
+  assert.match(navMenu, /key=\{item\.path\}/)
+  assert.match(navMenu, /to=\{item\.path\}/)
 })
 
 test('zadani tab nema ?tab= u URL-u (kao finance-page)', () => {

@@ -298,4 +298,60 @@ describe('work-gallery private upload (HTTP and real PostgreSQL)', () => {
     const pending = (await request(app.getHttpServer()).get(pendingEndpoint()).set('Authorization', owner()).expect(200)).body;
     expect(pending.items.map((item: { id: string }) => item.id)).not.toContain(entryId);
   });
+
+  it('removes the pair from the public feed when the client revokes one consent', async () => {
+    const images = await db.dailyLogImage.findMany({ where: { dailyLogEntryId: entryId }, orderBy: { isBefore: 'desc' } });
+    const clientAuthorization = `Bearer ${clientToken}`;
+    const revoked = await request(app.getHttpServer())
+      .delete(`/api/media/consents/${images[0].id}`)
+      .set('Authorization', clientAuthorization)
+      .expect(200);
+    expect(revoked.body).toMatchObject({ revoked: true });
+    expect(await db.dailyLogImageConsent.count({ where: { dailyLogImageId: images[0].id, revokedAt: null } })).toBe(0);
+
+    // Par sa jednom povučenom saglasnošću NIJE u javnom feedu.
+    const feed = (await request(app.getHttpServer()).get(`/test-work-gallery-upload-feed?serviceId=${serviceId}`).expect(200)).body.items;
+    expect(feed.map((item: { id: string }) => item.id)).not.toContain(entryId);
+    // Vlasnik ga ponovo vidi kao pending (čeka odluku klijenta), ne kao objavljen par.
+    const pending = (await request(app.getHttpServer()).get(pendingEndpoint()).set('Authorization', owner()).expect(200)).body;
+    expect(pending.items.map((item: { id: string }) => item.id)).toContain(entryId);
+    // Ponovno izdavanje saglasnosti vraća par u feed.
+    await request(app.getHttpServer()).post(`/api/media/consents/${images[0].id}/grant`)
+      .set('Authorization', clientAuthorization)
+      .send({ policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION })
+      .expect(201);
+    const restored = (await request(app.getHttpServer()).get(`/test-work-gallery-upload-feed?serviceId=${serviceId}`).expect(200)).body.items;
+    expect(restored.map((item: { id: string }) => item.id)).toContain(entryId);
+  });
+
+  it('drops the pair from the feed when the record status or client changes', async () => {
+    const images = await db.dailyLogImage.findMany({ where: { dailyLogEntryId: pendingEntryId } });
+    const clientAuthorization = `Bearer ${clientToken}`;
+    for (const image of images) {
+      await request(app.getHttpServer()).post(`/api/media/consents/${image.id}/grant`)
+        .set('Authorization', clientAuthorization)
+        .send({ policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION })
+        .expect(201);
+      createdConsents.push((await db.dailyLogImageConsent.findUniqueOrThrow({ where: { dailyLogImageId: image.id } })).id);
+    }
+    const feedIds = async () =>
+      (await request(app.getHttpServer()).get(`/test-work-gallery-upload-feed?serviceId=${serviceId}`).expect(200)).body.items.map(
+        (item: { id: string }) => item.id,
+      );
+    expect(await feedIds()).toContain(pendingEntryId);
+
+    // 1. Status zapisa više nije COMPLETED → par izlazi iz feeda.
+    await db.dailyLogEntry.update({ where: { id: pendingEntryId }, data: { status: 'PENDING' } });
+    expect(await feedIds()).not.toContain(pendingEntryId);
+    await db.dailyLogEntry.update({ where: { id: pendingEntryId }, data: { status: 'COMPLETED' } });
+    expect(await feedIds()).toContain(pendingEntryId);
+
+    // 2. Klijent zapisa se promijenio → saglasnost starog klijenta ne pokriva par.
+    const otherClient = await db.user.create({ data: { username: `upload-other-${randomUUID()}`, firstName: 'Test', lastName: 'Drugi' } });
+    await db.dailyLogEntry.update({ where: { id: pendingEntryId }, data: { clientId: otherClient.id } });
+    expect(await feedIds()).not.toContain(pendingEntryId);
+    await db.dailyLogEntry.update({ where: { id: pendingEntryId }, data: { clientId: userId } });
+    expect(await feedIds()).toContain(pendingEntryId);
+    await db.user.delete({ where: { id: otherClient.id } });
+  });
 });

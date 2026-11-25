@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useStylistAnalyticsData } from '../features/stylist-analytics/use-stylist-analytics-data'
 import { StylistAnalyticsTables } from '../features/stylist-analytics/stylist-analytics-tables'
+import { StylistPicker } from '../features/stylist-analytics/stylist-picker'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -37,17 +38,15 @@ export default function StylistAnalytics() {
     useStylistAnalyticsData({ stylistId, appliedFrom, appliedTo })
   const invalidRange = Boolean(dateFrom) !== Boolean(dateTo) || (!!dateFrom && !!dateTo && dateFrom > dateTo)
 
+  // 2.4.6 — svako stanje stranice ima <h1>; bez `?stylistId=` tab bira stilista.
   if (!stylistId) {
     return (
-      <div>
-        <Button asChild variant="ghost" className="mb-4">
-          <RouterLink to="/admin/stylists">
-            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t('stylistAnalytics.backToStylists')}
-          </RouterLink>
-        </Button>
-        <h1 className="text-xl font-semibold">{t('adminAnalytics.tabs.stylists')}</h1>
-        <p className="text-sm text-content-strong">{t('stylistAnalytics.selectStylist')}</p>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-content">{t('adminAnalytics.tabs.stylists')}</h1>
+          <p className="mt-1 text-sm text-content-strong">{t('stylistAnalytics.picker.description')}</p>
+        </div>
+        <StylistPicker />
       </div>
     )
   }
@@ -55,9 +54,9 @@ export default function StylistAnalytics() {
   return (
     <div className="space-y-6">
       <Button asChild variant="ghost">
-        <RouterLink to="/admin/stylists">
+        <RouterLink to="/admin/analytics?tab=stylists">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('stylistAnalytics.backToStylists')}
+          {t('stylistAnalytics.backToList')}
         </RouterLink>
       </Button>
 

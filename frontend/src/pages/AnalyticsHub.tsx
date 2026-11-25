@@ -40,7 +40,12 @@ export default function AnalyticsHub() {
     <Tabs data-analytics-hub value={tab} onValueChange={value => {
       if (!isAnalyticsTab(value) || value === tab) return
       const next = new URLSearchParams(searchParams)
-      next.set('tab', value)
+      // Zadani tab nema `?tab=` u URL-u — isto pravilo kao `finance-page.tsx`
+      // i `settings-tab-nav.tsx`. Time bočna stavka („Analitika“ → `/admin/analytics`)
+      // i tablist daju istu adresu za isti pogled, pa nema duplog sadržaja
+      // pod dvije URL adrese (2.4.9).
+      if (value === 'overview') next.delete('tab')
+      else next.set('tab', value)
       setSearchParams(next)
     }} className="min-w-0 max-w-full space-y-6">
       <AnalyticsTabNav />

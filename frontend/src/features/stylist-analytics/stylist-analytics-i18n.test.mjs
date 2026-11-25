@@ -23,7 +23,7 @@ const getLeafPaths = (value, prefix) =>
   )
 
 test('stylist analytics UI uses keys present in both locales', () => {
-  assert.ok(keys.has('stylistAnalytics.backToStylists'))
+  assert.ok(keys.has('stylistAnalytics.backToList'))
   assert.ok(keys.has('stylistAnalytics.period'))
   assert.ok(keys.has('stylistAnalytics.topServices'))
 

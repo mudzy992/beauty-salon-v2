@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LayoutDashboard, ChartNoAxesCombined, CalendarDays, BookOpen, Wallet, Star, Store, Scissors, UserRound, UsersRound, FileText, Images, MessageSquareHeart, Settings, Smartphone, Bell, Mail, BarChart3, User, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, ChartNoAxesCombined, CalendarDays, BookOpen, Wallet, Star, Store, Scissors, UserRound, UsersRound, FileText, Images, MessageSquareHeart, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import { Badge } from '../../../components/ui/badge'
 import {
   adminNavGroups,
-  adminNavItemHref,
   isAdminNavItemActive,
   type AdminNavItem,
 } from './admin-nav'
@@ -27,18 +26,10 @@ const navigationIcons: Record<string, LucideIcon> = {
   'nav.gallery': Images,
   'nav.reviews': MessageSquareHeart,
   'nav.settings': Settings,
-  'nav.appReleases': Smartphone,
-  'nav.notifications': Bell,
-  'nav.emailSettings': Mail,
-  'adminAnalytics.tabs.overview': BarChart3,
-  'adminAnalytics.tabs.clients': User,
-  'adminAnalytics.tabs.stylists': TrendingUp,
 }
 
 type Props = {
   pathname: string
-  /** `location.search` — potreban jer M2 tabovi dijele isti `pathname`. */
-  search?: string
   pendingBlogComments: number
   onNavigate?: () => void
   compact?: boolean
@@ -48,7 +39,7 @@ type Props = {
  * `min-h-target` (44px) zadovoljava 2.5.5 AAA.
  * `bg-nav-active` + `text-brand-rose-text`:
  *   classic light 9.40:1 (#632238 na #F5E6CC) · classic dark 8.48:1 (#E5B3C5 na #3A1B27)
- *   Aurum light 7.73:1 (#554308 na #EFE6D4 — vlasnik redarkovao `--brand-primary-text` 2026-11-18 zbog AAA;
+ *   Aurum light 7.73:1 (#554308 na #EFE6D4 — vlasnik redakovao `--brand-primary-text` 2026-11-18 zbog AAA;
  *     ranije #7A5A12 = 5.14:1) · Aurum dark 7.57:1 (#D4AF6A na #2A2217);
  * prijašnji `text-brand-gold-text` na `bg-brand-champagne/20` bio je 4.35:1 (ispod 4.5:1).
  */
@@ -63,13 +54,11 @@ const linkClass = (compact: boolean, active: boolean) => {
 
 export const AdminNav = ({
   pathname,
-  search,
   pendingBlogComments,
   onNavigate,
   compact = false,
 }: Props) => {
   const { t } = useTranslation()
-  const searchTab = new URLSearchParams(search ?? '').get('tab')
 
   return (
     <nav
@@ -95,8 +84,8 @@ export const AdminNav = ({
               const showPending = isBlog && pendingBlogComments > 0
               return (
                 <AdminNavLink
-                  key={adminNavItemHref(item)}
-                  active={isAdminNavItemActive(pathname, item, searchTab)}
+                  key={item.path}
+                  active={isAdminNavItemActive(pathname, item)}
                   compact={compact}
                   item={item}
                   onNavigate={onNavigate}
@@ -126,18 +115,12 @@ const AdminNavLink = ({
 }) => {
   const { t } = useTranslation()
   const Icon = navigationIcons[item.labelKey]
-  // 2.4.9 / 2.5.3 — pod-pogledi analitike dijele naziv s stavkama za upravljanje
-  // (npr. „Stilisti"), pa kontekst ide u pristupačno ime, a vidljivi tekst ostaje kratak.
-  const ariaLabel = item.ariaLabelKey
-    ? `${t(item.labelKey)} — ${t(item.ariaLabelKey)}`
-    : undefined
 
   return (
     <Link
-      to={adminNavItemHref(item)}
+      to={item.path}
       onClick={onNavigate}
       className={linkClass(compact, active)}
-      aria-label={ariaLabel}
       // WCAG 4.1.2 — trenutna stranica je označena programski, ne samo stilom.
       aria-current={active ? 'page' : undefined}
     >

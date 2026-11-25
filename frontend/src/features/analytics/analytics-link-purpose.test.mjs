@@ -11,10 +11,14 @@ import test from 'node:test'
 // bočnoj traci „Stilisti" ide na `/admin/stylists`. Identično ime, različita svrha.
 // Isto za „Klijenti" u oba jezika.
 //
-// M1/Q7: pod-pogledi su od S6 grupisani u bočnu traku (grupa „Analitika") umjesto kao
-// zaseban tab-menu na vrhu stranice. Kontekst se nosi kroz `ariaLabelKey` na stavci —
-// vidljivi tekst ostaje kratak (npr. „Stilisti"), a pristupačno ime postaje
-// „Stilisti — analitika". Mjera sama računa imena iz i18n datoteka i izvora.
+// S8 (2026-11-18): uzrok je uklonjen u korijenu — bočna traka više NE DUPIRA
+// pod-poglede analitike. Analitika je jedna stavka (`/admin/analytics`), a tri
+// pogleda (Pregled / Klijenti / Stilisti) žive u tablistu hub-a, isto kao
+// sedam tabova postavki (`/admin/settings`). Zato:
+//   1. svaka stavka trake ima jedinstveno pristupačno ime, i
+//   2. nijedne dvije stavke nemaju isti cilj.
+// Hardkodirani kontekst u `aria-label` više nije potreban — vidljivi tekst
+// stavke je i njen pristupačni naziv.
 // ---------------------------------------------------------------------------
 
 const LOCALES = ['bs', 'en']
@@ -29,20 +33,15 @@ const resolve = (locale, dotted) =>
   dotted.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), locales[locale])
 
 /**
- * Svaki link bočne trake čita se iz izvora (labelKey + opcioni ariaLabelKey), ne iz
- * nekog popisa. Naslovi grupa (`nav.sectionSalon`) nemaju `path:`, pa nisu linkovi i
- * ne ulaze u provjeru. Obrazac hvata i stavke s `tab`/`tabDefault` i one s `ariaLabelKey`.
+ * Svaki link bočne trake čita se iz izvora (labelKey), ne iz nekog popisa.
+ * Naslovi grupa (`nav.sectionSalon`) nemaju `path:`, pa nisu linkovi i ne ulaze
+ * u provjeru.
  */
-const itemRe =
-  /\{\s*path:\s*'[^']+',\s*labelKey:\s*'([^']+)'(?:\s*,\s*tab:\s*'[^']+')?(?:\s*,\s*tabDefault:\s*true)?(?:\s*,\s*ariaLabelKey:\s*'([^']+)')?\s*\}/g
-const sidebarItems = [...nav.matchAll(itemRe)].map((m) => ({ labelKey: m[1], ariaLabelKey: m[2] }))
+const itemRe = /\{\s*path:\s*'([^']+)',\s*labelKey:\s*'([^']+)'\s*\}/g
+const sidebarItems = [...nav.matchAll(itemRe)].map((m) => ({ path: m[1], labelKey: m[2] }))
 
-/** Pristupačno ime: aria-label ako postoji, inače vidljivi tekst. */
-const accessibleName = (locale, item) => {
-  const visible = resolve(locale, item.labelKey)
-  if (!item.ariaLabelKey) return visible
-  return `${visible} — ${resolve(locale, item.ariaLabelKey)}`
-}
+/** Pristupačno ime: vidljivi tekst stavke. */
+const accessibleName = (locale, item) => resolve(locale, item.labelKey)
 
 test('nijedan link bočne trake nema ime identično drugom linku (2.4.9)', () => {
   assert.ok(sidebarItems.length >= 13, `očekivan pun popis linkova bočne trake, dobijeno ${sidebarItems.length}`)
@@ -61,34 +60,35 @@ test('nijedan link bočne trake nema ime identično drugom linku (2.4.9)', () =>
   }
 })
 
-test('analitički pod-pogledi imaju kontekst u pristupačnom imenu (2.4.9)', () => {
-  for (const locale of LOCALES) {
-    for (const tab of ['overview', 'clients', 'stylists']) {
-      const item = sidebarItems.find((i) => i.labelKey === `adminAnalytics.tabs.${tab}`)
-      assert.ok(item, `${locale}: nedostaje stavka analitike za ${tab}`)
-      assert.equal(item.ariaLabelKey, 'adminAnalytics.tabContext', `${locale}/${tab}: stavka mora nositi kontekst`)
-      const name = accessibleName(locale, item)
-      const visible = resolve(locale, `adminAnalytics.tabs.${tab}`)
-      // vidljivi tekst je doslovno prefiks imena (2.5.3 Label in Name)
-      assert.ok(name.startsWith(visible), `${locale}/${tab}: „${name}" ne počinje s „${visible}"`)
-      assert.ok(name.length > visible.length, `${locale}/${tab}: ime mora nositi i kontekst`)
-      // kontekst stvarno mijenja ime u odnosu na goli tekst
-      assert.notEqual(name, visible, `${locale}/${tab}: kontekst se ne primjenjuje`)
-    }
-  }
+test('nijedne dvije stavke ne vode na isti cilj', () => {
+  const paths = sidebarItems.map((item) => item.path)
+  assert.equal(new Set(paths).size, paths.length, `duplikat cilja u bočnoj traci: ${paths.join(', ')}`)
+  // Pod-pogledi se ne dupliraju kao `?tab=` stavke (analitika i postavke su
+  // jedan link po hub-u).
+  assert.doesNotMatch(nav, /tab: '/)
 })
 
-test('popravka se ne može tiho ukloniti iz izvora (2.4.9)', () => {
-  // sidebar nosi kontekst
-  assert.match(nav, /ariaLabelKey: 'adminAnalytics\.tabContext'/, 'stavke analitike moraju nositi ariaLabelKey')
-  // meni gradi aria-label iz ariaLabelKey
-  assert.match(menu, /aria-label=\{ariaLabel\}/, 'link mora imati aria-label')
-  assert.match(menu, /item\.ariaLabelKey/, 'meni mora čitati ariaLabelKey')
-  assert.match(menu, /t\(item\.ariaLabelKey\)/, 'kontekst mora dolaziti iz i18n ključa, ne biti hardkodovan')
-  for (const locale of LOCALES) {
+test('bočna traka ne duplira pod-poglede analitike (S8)', () => {
+  // Tri analitička pod-pogleda postoje samo kao tabovi u hub-u.
+  for (const tab of ['overview', 'clients', 'stylists']) {
     assert.ok(
-      typeof resolve(locale, 'adminAnalytics.tabContext') === 'string',
-      `${locale}: adminAnalytics.tabContext mora postojati`,
+      !sidebarItems.some((item) => item.labelKey === `adminAnalytics.tabs.${tab}`),
+      `pod-pogled ${tab} ne smije biti stavka bočne trake`,
     )
+  }
+  // Zato mehanizam ručnog konteksta u `aria-label` više ne postoji.
+  assert.doesNotMatch(nav, /ariaLabelKey/)
+  assert.doesNotMatch(menu, /ariaLabelKey/)
+  assert.doesNotMatch(menu, /aria-label=\{ariaLabel\}/)
+  assert.match(menu, /\{t\(item\.labelKey\)\}/)
+})
+
+test('svaka stavka ima prevod u oba jezika', () => {
+  for (const locale of LOCALES) {
+    for (const item of sidebarItems) {
+      const name = resolve(locale, item.labelKey)
+      assert.equal(typeof name, 'string', `${locale}: nedostaje prevod za ${item.labelKey}`)
+      assert.ok(name.length > 0, `${locale}: prazan naziv stavke ${item.labelKey}`)
+    }
   }
 })

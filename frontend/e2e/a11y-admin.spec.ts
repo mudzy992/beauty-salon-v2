@@ -1428,8 +1428,8 @@ test('users eye opens the selected client analytics and preserves the tab throug
   await expect(page).toHaveURL(/tab=clients.*userId=fixture-client/)
   await expect(page).not.toHaveURL(/fromDate=/)
   await expect.poll(() => calls).toBe(3)
-  await page.getByRole('button', { name: /nazad na korisnike|back to users/i }).click()
-  await expect(page).toHaveURL(/\/admin\/users$/)
+  await page.getByRole('button', { name: /nazad na listu|back to list/i }).click()
+  await expect(page).toHaveURL(/\/admin\/analytics\?tab=clients$/)
 })
 
 test('client analytics shows recoverable failures without hiding debt errors or looping', async ({ page }) => {
@@ -1801,27 +1801,32 @@ test('legacy analytics links preserve identifiers, dates and replace conflicting
   }
 })
 
-test('analytics subviews are keyboard-navigable from the sidebar and chart table toggles', async ({ page }) => {
+test('analytics subviews are keyboard-navigable from the analytics tablist and chart table toggles', async ({ page }) => {
   await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
   await page.goto('/admin/analytics', { waitUntil: 'networkidle' })
-  // Pod-pogledi analitike su grupisani u bočnoj traci (grupa „Analitika"), a ne kao
-  // zaseban tab-menu na vrhu stranice. Lokator po href-u je nezavisan od jezika.
+  // Bočna traka nosi JEDNU stavku za analitiku (`/admin/analytics`); pod-pogledi
+  // se biraju tablistom u hub-u, isto kao sedam tabova postavki. Lokator po
+  // href-u je nezavisan od jezika.
   const analyticsNav = page
     .locator('[data-admin-sidebar] [data-admin-navigation]')
-    .locator('a[href="/admin/analytics"], a[href="/admin/analytics?tab=clients"], a[href="/admin/analytics?tab=stylists"]')
-  await expect(analyticsNav).toHaveCount(3)
-  await expect(analyticsNav.nth(0)).toHaveAttribute('aria-current', 'page')
-  await analyticsNav.nth(0).focus()
-  await page.keyboard.press('Tab')
-  await expect(analyticsNav.nth(1)).toBeFocused()
-  await page.keyboard.press('Tab')
-  await expect(analyticsNav.nth(2)).toBeFocused()
-  await page.keyboard.press('Enter')
+    .locator('a[href="/admin/analytics"]')
+  await expect(analyticsNav).toHaveCount(1)
+  await expect(analyticsNav).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('[data-admin-sidebar] [data-admin-navigation] a[href*="tab="]')).toHaveCount(0)
+
+  const tabs = page.getByRole('tab')
+  await expect(tabs).toHaveCount(3)
+  await tabs.nth(0).focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true')
+  await expect(page).toHaveURL(/tab=clients/)
+  await page.keyboard.press('ArrowRight')
+  await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true')
   await expect(page).toHaveURL(/tab=stylists/)
-  await expect(analyticsNav.nth(2)).toHaveAttribute('aria-current', 'page')
-  await analyticsNav.nth(0).focus()
-  await page.keyboard.press('Enter')
+  await page.keyboard.press('Home')
+  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true')
   await expect(page).toHaveURL(/\/admin\/analytics$/)
+
   const summary = page.getByText(/prikaži podatke grafa u tabeli|show data table/i)
   await summary.focus()
   await page.keyboard.press('Enter')
@@ -1934,8 +1939,12 @@ test('analytics renders English navigation, empty data and recoverable errors', 
   fail = false
   await page.getByRole('alert').getByRole('button', { name: /retry|try again/i }).click()
   await expect(page.getByRole('alert')).toBeHidden()
-  await page.locator('[data-admin-sidebar] [data-admin-navigation] a[href="/admin/analytics?tab=stylists"]').click()
-  await expect(page.getByText(/select a stylist/i)).toBeVisible()
+  await page.getByRole('tab', { name: 'Stylists' }).click()
+  await expect(page).toHaveURL(/tab=stylists/)
+  // Tab „Stilisti" ima vlastiti izbor stilista — nije mrtva granica ka
+  // `/admin/stylists` i ne preusmjerava na upravljanje stilistima.
+  await expect(page.locator('[data-stylist-picker]')).toBeVisible()
+  await expect(page).not.toHaveURL(/\/admin\/stylists/)
 })
 
 test('settings sidebar is grouped while existing settings tab deep links remain reachable', async ({ page }) => {

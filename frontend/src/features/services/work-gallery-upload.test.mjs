@@ -78,6 +78,9 @@ test('pages are validated before they are shown', () => {
 test('the upload screen uses translated keys that exist in both locales', () => {
   const sources = [
     readSource('./work-gallery-upload.tsx'),
+    readSource('./work-gallery-record-picker.tsx'),
+    readSource('./work-gallery-photo-fields.tsx'),
+    readSource('./work-gallery-pending-pairs.tsx'),
     readSource('./use-work-gallery-upload.ts'),
   ]
   const keys = new Set()
@@ -128,11 +131,13 @@ test('the upload flow never renders a raw backend message', () => {
 })
 
 test('the upload form labels both photo inputs and limits the accepted types', () => {
-  const component = readSource('./work-gallery-upload.tsx')
-  assert.ok(component.includes('htmlFor="work-gallery-pair-before"'))
-  assert.ok(component.includes('htmlFor="work-gallery-pair-after"'))
-  assert.ok(component.includes('id="work-gallery-pair-before"'))
-  assert.ok(component.includes('id="work-gallery-pair-after"'))
+  // Polja za fotografije su izdvojena u vlastiti modul; forma ih samo slaže.
+  const component = readSource('./work-gallery-photo-fields.tsx')
+  const form = readSource('./work-gallery-upload.tsx')
+  assert.ok(component.includes('htmlFor={inputId}'))
+  assert.ok(component.includes('work-gallery-pair-${side}'))
+  assert.ok(form.includes('side="before"'))
+  assert.ok(form.includes('side="after"'))
   assert.ok(component.includes('accept={WORK_GALLERY_PHOTO_MIMES.join(\',\')}'))
-  assert.ok(component.includes('aria-invalid={upload.beforeRejection ? true : undefined}'))
+  assert.ok(component.includes('aria-invalid={rejection ? true : undefined}'))
 })

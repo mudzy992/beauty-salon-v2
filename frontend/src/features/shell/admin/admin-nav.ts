@@ -1,34 +1,24 @@
 export type AdminNavItem = {
   path: string
   labelKey: string
-  /**
-   * Opcioni kontekst za pristupačno ime linka (2.4.9 / 2.5.3). Vidljivi tekst
-   * ostaje `labelKey`, a `aria-label` postaje `${labelKey} — ${ariaLabelKey}`
-   * (npr. „Stilisti — analitika" da se razlikuje od stavke „Stilisti" za
-   * upravljanje u grupi Salon).
-   */
-  ariaLabelKey?: string
-  /** Match active for nested paths (e.g. /admin/finance?tab=) */
-  matchPrefix?: string
-  /**
-   * M2: stavka cilja tab hub-a (`/admin/settings?tab=…`). Više stavki dijeli
-   * isti `path`, pa se aktivno stanje ne može riješiti samo po pathname-u.
-   */
-  tab?: string
-  /** Zadani tab svoje rute — aktivna i kad `?tab=` nedostaje. */
-  tabDefault?: boolean
 }
-
-/** Href stavke, uklj. `?tab=` ako ga ima. Zadani tab (tabDefault) ne piše `?tab=` u URL
- *  — isto pravilo kao `finance-page.tsx`, pa pregled analitike ostaje na `/admin/analytics`. */
-export const adminNavItemHref = (item: AdminNavItem): string =>
-  item.tab && !item.tabDefault ? `${item.path}?tab=${item.tab}` : item.path
 
 export type AdminNavGroup = {
   labelKey: string
   items: AdminNavItem[]
 }
 
+/**
+ * Bočna traka je globalna mapa admin područja: **jedna stavka po području**,
+ * a svaka stavka otvara tačno ono što piše u nazivu.
+ *
+ * Pod-pogledi jednog područja žive kao tabovi u njegovom hub-u — isti obrazac
+ * kao `/admin/settings` (M2). Zato analitika ima jednu stavku („Analitika“),
+ * a tri pogleda (Pregled / Klijenti / Stilisti) ostaju u tablistu na
+ * `/admin/analytics` (S8). Time nema dupliranja navigacije niti linkova sa
+ * istim nazivom i istim ciljem (WCAG 2.4.9), a stavka „Klijenti“ više ne
+ * vodi na `/admin/users`.
+ */
 export const adminNavGroups: AdminNavGroup[] = [
   {
     labelKey: 'nav.sectionOverview',
@@ -37,13 +27,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     ],
   },
   {
-    // M1/Q7 — pod-pogledi analitike (`?tab=`) su grupisani ovdje umjesto kao
-    // zaseban tab-menu na vrhu stranice, čime se uklanja dupliranje navigacije.
     labelKey: 'nav.sectionAnalytics',
     items: [
-      { path: '/admin/analytics', labelKey: 'adminAnalytics.tabs.overview', tab: 'overview', tabDefault: true, ariaLabelKey: 'adminAnalytics.tabContext' },
-      { path: '/admin/analytics', labelKey: 'adminAnalytics.tabs.clients', tab: 'clients', ariaLabelKey: 'adminAnalytics.tabContext' },
-      { path: '/admin/analytics', labelKey: 'adminAnalytics.tabs.stylists', tab: 'stylists', ariaLabelKey: 'adminAnalytics.tabContext' },
+      { path: '/admin/analytics', labelKey: 'nav.analytics' },
     ],
   },
   {
@@ -60,8 +46,13 @@ export const adminNavGroups: AdminNavGroup[] = [
     items: [
       { path: '/admin/salon', labelKey: 'nav.salon' },
       { path: '/admin/services', labelKey: 'nav.services' },
-      { path: '/admin/stylists', labelKey: 'nav.stylists' },
+    ],
+  },
+  {
+    labelKey: 'nav.sectionPeople',
+    items: [
       { path: '/admin/users', labelKey: 'nav.users' },
+      { path: '/admin/stylists', labelKey: 'nav.stylists' },
     ],
   },
   {
@@ -83,16 +74,14 @@ export const adminNavGroups: AdminNavGroup[] = [
 export const flatAdminNavItems = (): AdminNavItem[] =>
   adminNavGroups.flatMap((g) => g.items)
 
+/**
+ * Aktivna stavka je ona čiji put odgovara trenutnoj ruti. `/admin` je tačan
+ * match (ne prefiks), ostale putanje pokrivaju i pod-strane (`/admin/services/x`).
+ */
 export const isAdminNavItemActive = (
   pathname: string,
   item: AdminNavItem,
-  searchTab?: string | null,
 ): boolean => {
-  if (item.tab) {
-    if (pathname !== item.path) return false
-    if (item.tabDefault) return !searchTab || searchTab === item.tab
-    return searchTab === item.tab
-  }
   if (item.path === '/admin') return pathname === '/admin'
   return pathname === item.path || pathname.startsWith(`${item.path}/`)
 }

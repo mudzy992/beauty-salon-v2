@@ -438,7 +438,14 @@
     "reservationsCaption": "Tabela rezervacija klijenta: datum, vrijeme, usluga, frizer, cijena, status i detalji.",
     "manualEntriesCaption": "Tabela rucnih unosa: datum, usluga, frizer, cijena, napojnica, izvor i biljeska.",
     "title": "Analitika klijenta",
-    "backToUsers": "Nazad na korisnike",
+    "picker": {
+      "description": "Odaberite klijenta da biste vidjeli njegovu potrošnju, rezervacije i recenzije.",
+      "search": "Pretraži klijente…",
+      "empty": "Nema klijenata za prikaz.",
+      "loadFailed": "Nije moguće učitati listu klijenata.",
+      "total": "Klijenti ukupno: {{count}}"
+    },
+    "backToList": "Nazad na listu",
     "loadError": "Greška pri učitavanju analitike",
     "fromDate": "Od datuma",
     "toDate": "Do datuma",
@@ -765,8 +772,14 @@
   "stylistAnalytics": {
     "sourceNote": "Završeni dnevnik ima prednost nad povezanom rezervacijom; naplate duga ne broje se kao nova usluga. Rezervacije bez završenog dnevnika koriste trenutnu katalošku cijenu. Samostalni ručni prihodi uključeni su u broj usluga.",
     "invalidRange": "Unesite oba datuma u ispravnom redoslijedu ili ostavite oba prazna.",
-    "backToStylists": "Nazad na stiliste",
-    "selectStylist": "Odaberite stilistu (npr. s liste Stilisti) da vidite analitiku.",
+    "backToList": "Nazad na listu",
+    "picker": {
+      "description": "Odaberite stilista da biste vidjeli njegove rezultate.",
+      "empty": "Nema stilista za prikaz.",
+      "loadFailed": "Nije moguće učitati listu stilista.",
+      "total": "Stilisti ukupno: {{count}}",
+      "inactive": "Neaktivan"
+    },
     "loadFailed": "Nije moguće učitati analitiku stiliste.",
     "fromDate": "Od datuma",
     "toDate": "Do datuma",

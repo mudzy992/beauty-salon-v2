@@ -330,7 +330,7 @@ test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', ()
   // `aria-hidden` nad inicijalima BI sakrio tekst od čitača ekrana, ali ne i od oka, pa bi
   // prekršaj ostao a postao nevidljiv alatima. Zato se traži da ime SADRŽI vidljivi tekst.
   const sites = [
-    ['../features/shell/admin/admin-chrome.tsx', 'shell.adminMenu', 'initials'],
+    ['../features/shell/admin/admin-user-menu.tsx', 'shell.adminMenu', 'initials'],
     ['../features/shell/public/public-layout.tsx', 'shell.userMenu', 'avatarInitials'],
     ['../layouts/StylistLayout.tsx', 'shell.userMenu', 'avatarInitials'],
   ]
@@ -348,7 +348,7 @@ test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', ()
   }
 
   // Mobilno i desktop dugme u admin omotaču dijele istu labetu — oba moraju biti pokrivena.
-  const chrome = readFileSync(new URL('../features/shell/admin/admin-chrome.tsx', import.meta.url), 'utf8')
+  const chrome = readFileSync(new URL('../features/shell/admin/admin-user-menu.tsx', import.meta.url), 'utf8')
   assert.equal(
     chrome.split("labelWithVisibleText(t('shell.adminMenu'), initials)").length - 1,
     2,

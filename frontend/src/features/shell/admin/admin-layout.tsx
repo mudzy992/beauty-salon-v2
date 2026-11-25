@@ -1,12 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, HelpCircle, LogOut } from 'lucide-react'
+import { HelpCircle } from 'lucide-react'
 
-import { Button } from '../../../components/ui/button'
-import { Drawer, DrawerContent } from '../../../components/ui/drawer'
-import { DialogTitle } from '../../../components/ui/dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
 import api from '../../../api/client'
@@ -15,7 +11,9 @@ import { userInitials } from '../../../utils/user-initials.mjs'
 import { useFocusOnNavigate } from '../../../hooks/use-focus-on-navigate'
 import { flatAdminNavItems, isAdminNavItemActive } from './admin-nav'
 import { AdminNav } from './admin-nav-menu'
-import { AdminBrand, AdminUserMenu } from './admin-chrome'
+import { AdminBrand } from './admin-chrome'
+import { AdminUserMenu } from './admin-user-menu'
+import { AdminMobileNav } from './admin-mobile-nav'
 import { SkipLink } from './ui/skip-link'
 
 export const AdminLayout = () => {
@@ -48,18 +46,16 @@ export const AdminLayout = () => {
 
   const currentLabel = useMemo(() => {
     const searchTab = new URLSearchParams(location.search).get('tab')
-    const match = flatAdminNavItems().find(
-      (x) =>
-        x.tab
-          ? isAdminNavItemActive(location.pathname, x, searchTab)
-          : location.pathname === x.path ||
-            (x.path !== '/admin' && location.pathname.startsWith(`${x.path}/`)),
+    // Analitika je jedna stavka u traci; zaglavlje imenuje otvoreni pogled.
+    if (location.pathname === '/admin/analytics') {
+      if (searchTab === 'clients') return t('nav.clientAnalytics')
+      if (searchTab === 'stylists') return t('nav.stylistAnalytics')
+      return t('nav.analytics')
+    }
+    const match = flatAdminNavItems().find((item) =>
+      isAdminNavItemActive(location.pathname, item),
     )
-    if (match) return t(match.labelKey)
-    // M1: client/stylist analitika su tabovi unutar /admin/analytics
-    if (location.pathname === '/admin/analytics' && searchTab === 'clients') return t('nav.clientAnalytics')
-    if (location.pathname === '/admin/analytics' && searchTab === 'stylists') return t('nav.stylistAnalytics')
-    return location.pathname
+    return match ? t(match.labelKey) : location.pathname
   }, [location.pathname, location.search, t])
 
   const adminInitials = userInitials(user?.username, 'AA')
@@ -89,72 +85,21 @@ export const AdminLayout = () => {
       <header data-admin-header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
-            <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <DrawerContent id="admin-mobile-navigation" className="p-5" onCloseAutoFocus={(event) => {
-                event.preventDefault()
-                if (!navigationClosing.current) mobileNavTrigger.current?.focus()
-                navigationClosing.current = false
-              }}>
-                <DialogTitle className="sr-only">{t('shell.adminMenu')}</DialogTitle>
-                <div className="flex h-full flex-col overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    <AdminBrand {...brand} />
-                  </div>
-                  <div className="mt-4 flex min-w-0 items-center gap-3">
-                    <Avatar className="h-11 w-11 shrink-0 ring-1 ring-line">
-                      {adminAvatarSrc ? (
-                        <AvatarImage
-                          src={adminAvatarSrc}
-                          alt={
-                            user?.username
-                              ? t('shell.profileForUser', { username: user.username })
-                              : t('shell.profile')
-                          }
-                        />
-                      ) : null}
-                      <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-content">
-                        {user?.username ?? t('shell.adminName')}
-                      </div>
-                      {user?.email ? (
-                        <div className="truncate text-xs text-content-strong">{user.email}</div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="mt-4 min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mr-2 pr-2">
-                    <AdminNav
-                      pathname={location.pathname}
-                      search={location.search}
-                      pendingBlogComments={pendingBlogComments}
-                      onNavigate={closeForNavigation}
-                      compact
-                    />
-                  </div>
-                  <div className="mt-auto grid gap-1 border-t border-line pt-3">
-                    <Button asChild className="w-full" variant="outline" size="sm">
-                      <Link to="/" onClick={closeForNavigation}>
-                        <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
-                        {t('shell.viewSite')}
-                      </Link>
-                    </Button>
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        closeForNavigation()
-                        logout()
-                      }}
-                    >
-                      <LogOut className="mr-2 h-4 w-4" />
-                      {t('auth.logout')}
-                    </Button>
-                  </div>
-                </div>
-              </DrawerContent>
-            </Drawer>
+            <AdminMobileNav
+              brand={brand}
+              username={user?.username}
+              email={user?.email}
+              avatarSrc={adminAvatarSrc}
+              initials={adminInitials}
+              sidebarOpen={sidebarOpen}
+              onOpenChange={setSidebarOpen}
+              onNavigate={closeForNavigation}
+              onLogout={logout}
+              pathname={location.pathname}
+              pendingBlogComments={pendingBlogComments}
+              mobileNavTrigger={mobileNavTrigger}
+              navigationClosing={navigationClosing}
+            />
             <Link to="/admin" className="flex min-w-0 items-center gap-2">
               <AdminBrand {...brand} />
             </Link>
@@ -184,7 +129,7 @@ export const AdminLayout = () => {
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_1fr]">
         <aside data-admin-sidebar className="hidden lg:block">
           <div className="rounded-lg border border-line bg-surface p-2">
-            <AdminNav pathname={location.pathname} search={location.search} pendingBlogComments={pendingBlogComments} />
+            <AdminNav pathname={location.pathname} pendingBlogComments={pendingBlogComments} />
           </div>
         </aside>
         {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark; tabIndex=-1 ga čini fokusabilnim. */}

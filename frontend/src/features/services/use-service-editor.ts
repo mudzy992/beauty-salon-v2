@@ -7,6 +7,15 @@ import type { Service } from './service-types'
 import type { ModalMode } from './service-form-types'
 import { useServiceImageUpload } from './use-service-image-upload'
 import { useAuthStore } from '../../stores/auth.store'
+import {
+  categoryFormFrom,
+  emptyCategoryForm,
+  emptyServiceForm,
+  serviceFormFrom,
+  subcategoryFormFrom,
+} from './service-editor-forms'
+import { buildServiceEditorRequest } from './service-editor-request'
+import { serviceEditorTitle } from './service-editor-title'
 
 type Dependencies = { loadData: () => void; showApiError: (err: unknown, fallbackKey: string) => void; isCatalogStale: () => boolean }
 export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dependencies) {
@@ -24,30 +33,9 @@ export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dep
   const [editId, setEditId] = useState<string | null>(null)
   const [parentId, setParentId] = useState<string | null>(null)
 
-  const [catForm, setCatForm] = useState({
-    name: '',
-    description: '',
-    sortOrder: 0,
-    isActive: true,
-  })
-  const [subForm, setSubForm] = useState({
-    name: '',
-    description: '',
-    sortOrder: 0,
-    isActive: true,
-  })
-  const [svcForm, setSvcForm] = useState({
-    name: '',
-    shortDescription: '',
-    durationMinutes: 30,
-    price: 0,
-    gender: 'FEMALE' as 'MALE' | 'FEMALE',
-    sortOrder: 0,
-    isActive: true,
-    heroImage: '',
-    loyaltyEnabled: false,
-    loyaltyMaxDiscountPercent: 0,
-  })
+  const [catForm, setCatForm] = useState(emptyCategoryForm)
+  const [subForm, setSubForm] = useState(emptyCategoryForm)
+  const [svcForm, setSvcForm] = useState(emptyServiceForm)
   const { uploadingImg, svcFileRef, handleUploadHeroImage, resetUploads, isUploading } = useServiceImageUpload({ setSvcForm, showApiError })
   useEffect(() => {
     mounted.current = true
@@ -75,13 +63,7 @@ export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dep
   }
   const beginEditor = () => { editorGeneration.current += 1; resetUploads(); editorOpen.current = true }
 
-  const getDialogTitle = () => {
-    if (modalMode === 'category')
-      return t(editId ? 'services.editCategory' : 'services.newCategory')
-    if (modalMode === 'subcategory')
-      return t(editId ? 'services.editSubcategory' : 'services.newSubcategory')
-    return t(editId ? 'services.editService' : 'services.newService')
-  }
+  const getDialogTitle = () => serviceEditorTitle(modalMode, editId, t)
 
   const openCategoryForm = (cat?: Category) => {
     beginEditor()
@@ -89,15 +71,10 @@ export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dep
     setParentId(null)
     if (cat) {
       setEditId(cat.id)
-      setCatForm({
-        name: cat.name,
-        description: cat.description ?? '',
-        sortOrder: cat.sortOrder,
-        isActive: cat.isActive,
-      })
+      setCatForm(categoryFormFrom(cat))
     } else {
       setEditId(null)
-      setCatForm({ name: '', description: '', sortOrder: 0, isActive: true })
+      setCatForm(emptyCategoryForm())
     }
     setOpen(true)
   }
@@ -108,15 +85,10 @@ export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dep
     setParentId(categoryId)
     if (sub) {
       setEditId(sub.id)
-      setSubForm({
-        name: sub.name,
-        description: sub.description ?? '',
-        sortOrder: sub.sortOrder,
-        isActive: sub.isActive,
-      })
+      setSubForm(subcategoryFormFrom(sub))
     } else {
       setEditId(null)
-      setSubForm({ name: '', description: '', sortOrder: 0, isActive: true })
+      setSubForm(emptyCategoryForm())
     }
     setOpen(true)
   }
@@ -127,32 +99,10 @@ export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dep
     setParentId(subcategoryId)
     if (svc) {
       setEditId(svc.id)
-      setSvcForm({
-        name: svc.name,
-        shortDescription: svc.shortDescription ?? '',
-        durationMinutes: svc.durationMinutes,
-        price: Number(svc.price),
-        gender: svc.gender ?? 'FEMALE',
-        sortOrder: svc.sortOrder,
-        isActive: svc.isActive,
-        heroImage: svc.heroImage ?? '',
-        loyaltyEnabled: svc.loyaltyEnabled ?? false,
-        loyaltyMaxDiscountPercent: svc.loyaltyMaxDiscountPercent ?? 0,
-      })
+      setSvcForm(serviceFormFrom(svc))
     } else {
       setEditId(null)
-      setSvcForm({
-        name: '',
-        shortDescription: '',
-        durationMinutes: 30,
-        price: 0,
-        gender: 'FEMALE',
-        sortOrder: 0,
-        isActive: true,
-        heroImage: '',
-        loyaltyEnabled: false,
-        loyaltyMaxDiscountPercent: 0,
-      })
+      setSvcForm(emptyServiceForm())
     }
     setOpen(true)
   }
@@ -167,26 +117,16 @@ export function useServiceEditor({ loadData, showApiError, isCatalogStale }: Dep
     saveInFlight.current = true
     setSaving(true)
     try {
-      if (modalMode === 'category') {
-        if (editId)
-          await api.patch(`/api/services/categories/${editId}`, catForm)
-        else await api.post('/api/services/categories', catForm)
-      } else if (modalMode === 'subcategory') {
-        if (editId)
-          await api.patch(`/api/services/subcategories/${editId}`, subForm)
-        else
-          await api.post('/api/services/subcategories', {
-            ...subForm,
-            categoryId: parentId,
-          })
-      } else {
-        if (editId) await api.patch(`/api/services/${editId}`, svcForm)
-        else
-          await api.post('/api/services', {
-            ...svcForm,
-            subcategoryId: parentId,
-          })
-      }
+      const request = buildServiceEditorRequest({
+        mode: modalMode,
+        editId,
+        parentId,
+        categoryForm: catForm,
+        subcategoryForm: subForm,
+        serviceForm: svcForm,
+      })
+      if (request.method === 'patch') await api.patch(request.url, request.body)
+      else await api.post(request.url, request.body)
       if (!currentSession()) return
       success(t('services.toast.saved'))
       if (sameEditor()) setOpen(false)

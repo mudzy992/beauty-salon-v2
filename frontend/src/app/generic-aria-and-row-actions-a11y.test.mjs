@@ -111,6 +111,7 @@ test('1.1.1/4.1.2: nema aria-label/aria-labelledby na <div>/<span>/<p> bez role 
 test('1.1.1: StarRating izlaže ocjenu preko role="img" (zvjezdice su aria-hidden)', () => {
   const page = readFileSync(new URL('../pages/ClientAnalytics.tsx', import.meta.url), 'utf8')
   const dialog = readFileSync(new URL('../features/client-analytics/client-analytics-detail-dialog.tsx', import.meta.url), 'utf8')
+  const panels = readFileSync(new URL('../features/client-analytics/client-analytics-detail-panels.tsx', import.meta.url), 'utf8')
   const reviews = readFileSync(new URL('../features/client-analytics/client-reviews.tsx', import.meta.url), 'utf8')
   const src = readFileSync(new URL('../features/client-analytics/star-rating.tsx', import.meta.url), 'utf8')
   assert.match(page, /import \{ ClientReviews \} from '..\/features\/client-analytics\/client-reviews'/)
@@ -118,8 +119,8 @@ test('1.1.1: StarRating izlaže ocjenu preko role="img" (zvjezdice su aria-hidde
   assert.match(reviews, /import \{ StarRating \} from '.\/star-rating'/)
   assert.match(reviews, /<StarRating rating=\{r\.serviceRating\}/)
   assert.match(page, /<ClientAnalyticsDetailDialog\b/)
-  assert.match(dialog, /import \{ StarRating \} from '.\/star-rating'/)
-  assert.match(dialog, /<StarRating rating=\{detailReview\.serviceRating\}/)
+  assert.match(panels, /import \{ StarRating \} from '.\/star-rating'/)
+  assert.match(panels, /<StarRating rating=\{review\.serviceRating\}/)
   assert.match(
     src,
     /<div role="img"[^>]*aria-label=\{t\('clientAnalyticsPage\.rating'/,

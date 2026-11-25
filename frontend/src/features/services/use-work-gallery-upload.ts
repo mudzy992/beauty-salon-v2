@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import api from '../../api/client'
 import { getErrorCode, getErrorMessage } from '../../api/error'
 import { useAuthStore } from '../../stores/auth.store'
 import { resolveAdminApiErrorKey } from '../admin/admin-api-error.mjs'
-import { checkPhoto, type PhotoRejection } from './work-gallery-upload-types.mjs'
+import { checkPhoto } from './work-gallery-upload-types.mjs'
+import { useWorkGalleryPhotos } from './use-work-gallery-photos'
+import { uploadWorkGalleryPair } from './work-gallery-upload-request'
 
 export type SubmitOutcome =
   | 'success'
@@ -40,37 +41,34 @@ export function useWorkGalleryUpload({ serviceId, enabled, selectedId, reloadRec
   const submitSequence = useRef(0)
   const submitInFlight = useRef(false)
 
-  const [beforeFile, setBeforeFile] = useState<File | null>(null)
-  const [afterFile, setAfterFile] = useState<File | null>(null)
-  const [beforeRejection, setBeforeRejection] = useState<PhotoRejection>(null)
-  const [afterRejection, setAfterRejection] = useState<PhotoRejection>(null)
+  const {
+    beforeFile,
+    afterFile,
+    beforeRejection,
+    afterRejection,
+    setBeforeRejection,
+    setAfterRejection,
+    selectPhoto: selectPhotoFile,
+    clear: clearPhotos,
+  } = useWorkGalleryPhotos()
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
   const selectPhoto = useCallback((side: 'before' | 'after', file: File | null) => {
-    if (side === 'before') {
-      setBeforeFile(file)
-      setBeforeRejection(file ? checkPhoto(file) : null)
-    } else {
-      setAfterFile(file)
-      setAfterRejection(file ? checkPhoto(file) : null)
-    }
+    selectPhotoFile(side, file)
     setSubmitError('')
     setSuccessMessage('')
-  }, [])
+  }, [selectPhotoFile])
 
   const reset = useCallback(() => {
     submitSequence.current += 1
     submitInFlight.current = false
-    setBeforeFile(null)
-    setAfterFile(null)
-    setBeforeRejection(null)
-    setAfterRejection(null)
+    clearPhotos()
     setSubmitting(false)
     setSubmitError('')
     setSuccessMessage('')
-  }, [])
+  }, [clearPhotos])
 
   useEffect(() => {
     if (enabled && serviceId) return
@@ -109,16 +107,9 @@ export function useWorkGalleryUpload({ serviceId, enabled, selectedId, reloadRec
       useAuthStore.getState().sessionVersion === sessionVersion &&
       submitSequence.current === request
     try {
-      const form = new FormData()
-      form.append('entryId', selectedId)
-      form.append('before', beforeFile)
-      form.append('after', afterFile)
-      await api.post(`/api/services/admin/work-gallery/${encodeURIComponent(serviceId)}/private-pair`, form)
+      await uploadWorkGalleryPair(serviceId, selectedId, beforeFile, afterFile)
       if (!isCurrent()) return 'ignored'
-      setBeforeFile(null)
-      setAfterFile(null)
-      setBeforeRejection(null)
-      setAfterRejection(null)
+      clearPhotos()
       setSuccessMessage(t('admin.serviceWorkGallery.pairUploaded'))
       onUploaded()
       reloadRecords()
@@ -135,7 +126,7 @@ export function useWorkGalleryUpload({ serviceId, enabled, selectedId, reloadRec
       if (isCurrent()) setSubmitting(false)
       submitInFlight.current = false
     }
-  }, [serviceId, enabled, selectedId, reloadRecords, beforeFile, afterFile, onUploaded, t, owner, sessionVersion])
+  }, [serviceId, enabled, selectedId, reloadRecords, beforeFile, afterFile, onUploaded, t, owner, sessionVersion, clearPhotos, setBeforeRejection, setAfterRejection])
 
   return {
     beforeFile,

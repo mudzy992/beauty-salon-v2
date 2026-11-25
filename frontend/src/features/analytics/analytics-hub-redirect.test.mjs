@@ -46,27 +46,34 @@ const walk = (dir) =>
 const SRC = walk(root)
 const rel = (p) => p.slice(root.length + 1).replace(/\\/g, '/')
 
-test('analytics je grupisan u sidebar pod „Analitika"; 3 pod-pogleda kao ?tab=', () => {
+test('analytics je jedna stavka u sidebaru; tri pod-pogleda žive u tablistu hub-a', () => {
   // mehanizam taba ostaje (hub ga koristi za izbor panela)
   assert.match(tabNav, /export const ANALYTICS_TABS = \['overview', 'clients', 'stylists'\] as const/)
   assert.match(tabNav, /export type AnalyticsTab = \(typeof ANALYTICS_TABS\)\[number\]/)
   assert.match(tabNav, /export const isAnalyticsTab = \(value: string \| null\): value is AnalyticsTab =>/)
 
-  // Sidebar deep linkovi ostaju; vlasnik je u S8 odobrio i lokalni tablist.
+  // Vlasnik je u S8 odobrio tablist; M2 je isti obrazac već primijenio na
+  // postavke (`/admin/settings` = jedna stavka, sedam tabova). Analitika se
+  // sada drži istog ugovora: jedna stavka, pod-pogledi u tablistu.
   assert.match(tabNav, /export function AnalyticsTabNav/)
   assert.match(tabNav, /<TabsList aria-label=\{t\('adminAnalytics\.tabsLabel'\)\}/)
   assert.match(hub, /<TabsContent key=\{value\} value=\{value\} forceMount hidden=\{value !== tab\}>/)
 
-  // nova grupa u sidebaru
+  // grupa „Analitika" u sidebaru nosi JEDNU stavku
   assert.match(adminNav, /labelKey: 'nav\.sectionAnalytics'/)
-  // tri stavke dijele /admin/analytics s različitim tab=
-  for (const tab of ['overview', 'clients', 'stylists']) {
-    assert.match(adminNav, new RegExp(`path: '/admin/analytics', labelKey: 'adminAnalytics\\.tabs\\.${tab}', tab: '${tab}'`))
-  }
-  // pregled je zadani tab (aktivan i bez ?tab=)
-  assert.match(adminNav, /tab: 'overview', tabDefault: true/)
-  // kontekst u pristupačnom imenu razlikuje pod-poglede od stavki za upravljanje (2.4.9 / 2.5.3)
-  assert.match(adminNav, /ariaLabelKey: 'adminAnalytics\.tabContext'/)
+  assert.equal((adminNav.match(/path: '\/admin\/analytics'/g) ?? []).length, 1)
+  assert.match(adminNav, /\{ path: '\/admin\/analytics', labelKey: 'nav\.analytics' \}/)
+  // nijedna stavka ne nosi `?tab=` — pod-pogledi se ne dupliraju u traci
+  assert.doesNotMatch(adminNav, /tab: '/)
+
+  // Zadani tab („Pregled") nema `?tab=` u URL-u — isto pravilo kao
+  // `finance-page.tsx` i `settings-tab-nav.tsx`. Time bočna stavka
+  // (`/admin/analytics`) i tablist daju ISTU adresu za isti pogled, pa isti
+  // sadržaj ne živi pod dvije URL adrese (2.4.9).
+  assert.match(hub, /if \(value === 'overview'\) next\.delete\('tab'\)/)
+  assert.match(hub, /else next\.set\('tab', value\)/)
+  // `?tab=overview` i dalje radi kao deep link (isti panel), ali se ne piše
+  assert.match(hub, /const tab: AnalyticsTab = isAnalyticsTab\(requested\) \? requested : 'overview'/)
 })
 
 test('AnalyticsHub: lazy + Suspense za sva tri panela (code-splitting očuvan)', () => {
