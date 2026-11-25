@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
+import { getErrorCode, getErrorMessage } from '../../api/error'
 import { useAuthStore } from '../../stores/auth.store'
+import { resolveAdminApiErrorKey } from '../admin/admin-api-error.mjs'
 import type { BeforeAfterPair } from './work-gallery-page'
 import { isWorkGalleryRevision } from './work-gallery-revision'
 
@@ -36,8 +38,14 @@ export function useWorkGalleryOrder(serviceId: string, sessionVersion: number, h
       if (document.activeElement === trigger) headingRef.current?.focus()
       setMessage(t('admin.serviceWorkGallery.orderUpdated'))
       onChanged()
-    } catch {
-      if (current()) setError(t('admin.serviceWorkGallery.orderFailed'))
+    } catch (err) {
+      if (current()) {
+        setError(t(resolveAdminApiErrorKey(
+          getErrorMessage(err, ''),
+          'admin.serviceWorkGallery.orderFailed',
+          getErrorCode(err),
+        )))
+      }
     } finally {
       if (busyRef.current === request) {
         busyRef.current = null

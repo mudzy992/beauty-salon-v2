@@ -29,6 +29,8 @@ OWNER/SYSTEM_ADMIN može tastaturom zamijeniti susjedne učitane parove. Za poma
 
 Prvi pomak ili dodavanje nerangiranog zapisa može normalizovati sve završene zapise usluge, uključujući skrivene; inače se mijenjaju samo dva ranga. To može izazvati opterećenje/zaključavanja za veliku galeriju i nije profilisano pod produkcijskim opterećenjem. Revizija reda verzionira samo pomake preko ovog API-ja, ne sve izmjene/umetanja/brisanja ili saglasnosti; provjere nisu dokaz serializacije svih konkurentnih grant/revoke operacija. Feed i dalje primjenjuje nezavisne provjere saglasnosti, a UI osvježava poslije writea. Direktni URL prethodno odobrenog derivata i dalje nije uklonjen sakrivanjem. Izolirana baza je migraciju reda dobila ručnim SQL-om, ne preko Prisma migrate deploy; rollout mora koordinisati migraciju i verzije aplikacije.
 
+Greške redoslijeda nose kodove (`WORK_GALLERY_ORDER_CHANGED`, `…_COMPARISON_CHANGED`, `…_NOT_ELIGIBLE`, `…_NOT_ADJACENT`, `…_DISTINCT_ENTRIES_REQUIRED`, `WORK_GALLERY_SERVICE_NOT_FOUND`), pa frontend prevodi tačan razlog umjesto generičke poruke. Ovo je ispravka regresije koju je uhvatio CI: commit redoslijeda nikad nije bio u CI-u i donio je osam hardkodiranih serverskih poruka bez koda, čime je prešao limit straže `api-error-codes.node-test.ts` (439 → 445). Poruke su iste, ali sada idu kroz registar i prevode se po kodu.
+
 ## Privatni upload para — implementirano, s granicama
 
 Tri nova endpointa pod istim `RolesGuard` okvirom (`OWNER`/`SYSTEM_ADMIN`, globalni JWT guard): `GET .../:serviceId/eligible-entries`, `GET .../:serviceId/pending-consent` i `POST .../:serviceId/private-pair` (multipart: polje `entryId`, fajlovi `before` i `after`). Odgovori su `private, no-store`.

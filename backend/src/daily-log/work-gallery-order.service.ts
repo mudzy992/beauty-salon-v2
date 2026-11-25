@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyLogPublicService } from './daily-log-public.service';
+import { apiError } from '../common/errors/api-error-codes';
 
 @Injectable()
 export class WorkGalleryOrderService {
@@ -12,7 +13,7 @@ export class WorkGalleryOrderService {
   async listVisible(serviceId: string, offset: number, limit: number) {
     return this.prisma.$transaction(async tx => {
       const service = await tx.service.findUnique({ where: { id: serviceId }, select: { id: true } });
-      if (!service) throw new NotFoundException('Service not found');
+      if (!service) throw new NotFoundException(apiError('WORK_GALLERY_SERVICE_NOT_FOUND'));
       const state = await tx.workGalleryOrderState.findUnique({ where: { serviceId }, select: { revision: true } });
       const page = await this.feed.findBeforeAfterPairs({ serviceId, offset, limit }, true, tx);
       return { ...page, orderRevision: state?.revision ?? '0' };
@@ -21,15 +22,15 @@ export class WorkGalleryOrderService {
 
   /** Swap two visible comparisons. Only the service-filtered feed uses these ranks. */
   async swap(serviceId: string, first: { id: string; revision: string }, second: { id: string; revision: string }, expectedOrderRevision: string) {
-    if (first.id === second.id) throw new BadRequestException('Distinct entries are required');
+    if (first.id === second.id) throw new BadRequestException(apiError('WORK_GALLERY_ORDER_DISTINCT_ENTRIES_REQUIRED'));
     return this.prisma.$transaction(async tx => {
       const service = await tx.service.findUnique({ where: { id: serviceId }, select: { id: true } });
-      if (!service) throw new NotFoundException('Service not found');
+      if (!service) throw new NotFoundException(apiError('WORK_GALLERY_SERVICE_NOT_FOUND'));
       // Competing swaps serialize on this row. A losing request rolls back entirely.
       await tx.$executeRaw(Prisma.sql`INSERT INTO "work_gallery_order_state" ("service_id", "revision") VALUES (${serviceId}, '0') ON CONFLICT ("service_id") DO NOTHING`);
       const revision = randomUUID();
       const claimed = await tx.workGalleryOrderState.updateMany({ where: { serviceId, revision: expectedOrderRevision }, data: { revision } });
-      if (!claimed.count) throw new ConflictException('Gallery order changed; refresh');
+      if (!claimed.count) throw new ConflictException(apiError('WORK_GALLERY_ORDER_CHANGED'));
 
       const ids = [first.id, second.id].sort();
       // Match lock order across swaps and block concurrent hide/restore until validation finishes.
@@ -39,9 +40,9 @@ export class WorkGalleryOrderService {
         select: { id: true, workGalleryRevision: true },
       });
       if (entries.length !== 2 || entries.find(entry => entry.id === first.id)?.workGalleryRevision !== first.revision || entries.find(entry => entry.id === second.id)?.workGalleryRevision !== second.revision) {
-        throw new ConflictException('Comparison changed; refresh');
+        throw new ConflictException(apiError('WORK_GALLERY_ORDER_COMPARISON_CHANGED'));
       }
-      if ((await this.feed.eligibleReorderIds(tx, serviceId, ids)).length !== 2) throw new ConflictException('Comparison is no longer eligible; refresh');
+      if ((await this.feed.eligibleReorderIds(tx, serviceId, ids)).length !== 2) throw new ConflictException(apiError('WORK_GALLERY_ORDER_NOT_ELIGIBLE'));
 
       let ordered = await tx.dailyLogEntry.findMany({ where: { id: { in: ids } }, select: { id: true, workGallerySortOrder: true } });
       let a = ordered.find(entry => entry.id === first.id)?.workGallerySortOrder;
@@ -65,9 +66,9 @@ export class WorkGalleryOrderService {
         a = ordered.find(entry => entry.id === first.id)?.workGallerySortOrder;
         b = ordered.find(entry => entry.id === second.id)?.workGallerySortOrder;
       }
-      if (a == null || b == null) throw new ConflictException('Comparison changed; refresh');
+      if (a == null || b == null) throw new ConflictException(apiError('WORK_GALLERY_ORDER_COMPARISON_CHANGED'));
       if (await this.feed.hasEligibleReorderBetween(tx, serviceId, Math.min(a, b), Math.max(a, b))) {
-        throw new ConflictException('Comparisons are no longer adjacent; refresh');
+        throw new ConflictException(apiError('WORK_GALLERY_ORDER_NOT_ADJACENT'));
       }
       await tx.dailyLogEntry.update({ where: { id: first.id }, data: { workGallerySortOrder: b } });
       await tx.dailyLogEntry.update({ where: { id: second.id }, data: { workGallerySortOrder: a } });
