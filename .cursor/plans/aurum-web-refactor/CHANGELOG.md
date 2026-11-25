@@ -77,6 +77,8 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
   Nakon toga je pushan i commit `071ad50` (dokumentacija + forced-colors tvrdnja) sa CI runom
   **[45702072097](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45702072097)** — takođe
   **5/5**, svih pet poslova zeleno.
+- Zapisni commit `7f61060` ima CI run
+  **[45709806591](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45709806591)** — **5/5**.
 - **Dokazi (lokalno).** `tsc --noEmit` **čist**; ESLint **0 grešaka / 5 upozorenja** (sva
   postojeća i u fajlovima van S9 opsega — `stylist-portal/*`, `DailyLog.tsx`); `test:*` petlja
   **209/210** skripti zeleno, jedini pad `test:auth-session-rendered` je **okolina**
