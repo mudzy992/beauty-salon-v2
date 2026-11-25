@@ -1,6 +1,6 @@
 # S8 — work-gallery: odobreni ugovor i implementacijski kontrolni spisak
 
-Rad u toku: implementirani su sakrivanje, vraćanje, revizijska ABA zaštita vidljivosti, ručni redoslijed i privatni upload para; završne ručne provjere i CI za novi paket ostaju. Vlasnik je odabrao dodati upload, uklanjanje i redoslijed u S8:
+Rad u toku: implementirani su sakrivanje, vraćanje, revizijska ABA zaštita vidljivosti, ručni redoslijed i privatni upload para; CI za paket je zelen, a ostaju završne ručne provjere. Vlasnik je odabrao dodati upload, uklanjanje i redoslijed u S8:
 
 - Novi before/after par veže se za postojeći **završeni zapis usluge**. Novi originali su privatni; javni prikaz zahtijeva zasebnu aktivnu saglasnost stvarnog klijenta za svaku fotografiju.
 - Uklanjanje iz galerije znači sakriti par u javnim i admin prikazima galerije, bez brisanja originala ili saglasnosti. Ovo nije opoziv saglasnosti; trenutni direktni URL izvedene slike je provjerava i sam po sebi ostaje dostupan dok saglasnost vrijedi. Ako se pod „sakriti“ očekuje i ukidanje direktnog URL-a, mora se dodatno promijeniti ugovor javnog fajla i provjeriti uticaj na druga mjesta.
@@ -48,7 +48,7 @@ Greške: pet novih kodova u backend registru (`WORK_GALLERY_SERVICE_NOT_FOUND`, 
 
 Granice: nema OS pickera ni pravog mobilnog uređaja; client-side provjera tipa je samo pomoć, server je odluka; UI prikazuje prvu stranicu (20) prikladnih zapisa i čeka saglasnosti, iako API paginira; nije izmjerena konkurencija velikog broja zapisa; mock browser testovi nisu AT audit.
 
-Dokazi: backend unit 14/14, realni PostgreSQL/JWT HTTP 8/8 (cijeli backend e2e 99/99, backend unit 860/860), frontend Node 8/8 (skup iz `test:*` skripti 998/998), browser 8/8 za novi spec i **puni mock S8 445/445**, build/typecheck (uključujući `typecheck:e2e`) i pet Python provjera prolaze.
+Dokazi: backend unit 14/14, realni PostgreSQL/JWT HTTP 8/8 (cijeli backend e2e 99/99, backend unit 860/860), frontend Node 8/8 (skup iz `test:*` skripti 998/998), browser 8/8 za novi spec i **puni mock S8 445/445**, build/typecheck (uključujući `typecheck:e2e`) i pet Python provjera prolaze. CI [45566994361](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45566994361) za `0119905` je **5/5**, rendered a11y **3181 passed / 0 failed / 0 skipped** uz 15 nepotpunih axe `color-contrast` uzoraka (ista 15 kao ranije).
 
 Utjecaj na postojeće testove: tri starija OWNER spec (`s8-work-gallery-order`, `s8-work-gallery-visibility`, `s8-work-gallery-visibility-retry`) su imala catch-all mock koji je za nove read endpointe vraćao `{}`, pa je panel prikazivao alert za učitavanje i njegov `role="alert"` je kolidirao s `getByRole('alert')` u tim specovima. Dodan je dijeljeni fixture `frontend/e2e/work-gallery-upload-fixtures.ts`; nijedna postojeća asertcija nije uklonjena ni promijenjena. Puni mock S8 prije te izmjene: 437 passed / 8 failed; poslije: 445/445.
 
