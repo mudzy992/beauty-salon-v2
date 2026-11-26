@@ -11,8 +11,6 @@ import { useAppToast } from '../lib/toast/useAppToast'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
 import { AuthCardHeader } from '../features/auth/auth-card-header'
-import { LanguageSwitcher } from '../components/i18n/language-switcher'
-import { ThemeSwitcher } from '../features/shell/theme/theme-switcher'
 import {
   getClientMandatoryOnboardingPath,
   getPostAuthRedirectPath,
@@ -127,15 +125,9 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-            <Button asChild variant="ghost">
-              <Link to="/">{t('auth.backHome')}</Link>
-            </Button>
-            <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <ThemeSwitcher />
-            </div>
-          </div>
+          <Button asChild variant="ghost" className="mb-8">
+            <Link to="/">{t('auth.backHome')}</Link>
+          </Button>
 
           <div className="bg-surface/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8" data-aurum-auth-card data-aurum-surface>
             <AuthCardHeader />

@@ -494,6 +494,7 @@ test('2.5.7: svaka drag operacija u src/ ima imenovanu alternativu bez povlačen
 test('S11 rendered axe covers classic and both Aurum modes through the theme UI', () => {
   const helper = readFileSync(new URL('../../e2e/aurum-a11y.ts', import.meta.url), 'utf8')
   const login = readFileSync(new URL('../pages/Login.tsx', import.meta.url), 'utf8')
+  const authHeader = readFileSync(new URL('../features/auth/auth-card-header.tsx', import.meta.url), 'utf8')
   const specs = [
     ['../../e2e/a11y-aurum.spec.ts', ['/','/rezervacija']],
     ['../../e2e/a11y-aurum-admin.spec.ts', ['/admin','/admin/settings']],
@@ -510,10 +511,11 @@ test('S11 rendered axe covers classic and both Aurum modes through the theme UI'
   assert.match(helper, /getAttribute\('lang'\)/, 'each locale scan must confirm the rendered html lang')
   assert.match(helper, /aria-pressed/)
   assert.match(helper, /getByRole\('status'\)/, 'theme changes must expose the existing live announcement')
-  assert.match(login, /import \{ LanguageSwitcher \}/, 'guest redirect login must expose the public language switcher')
-  assert.match(login, /import \{ ThemeSwitcher \}/, 'guest redirect login must expose the theme switcher')
-  assert.match(login, /<LanguageSwitcher \/>/)
-  assert.match(login, /<ThemeSwitcher \/>/)
+  assert.match(login, /<AuthCardHeader \/>/, 'guest redirect login renders the shared controls header')
+  assert.match(authHeader, /import \{ LanguageSwitcher \}/)
+  assert.match(authHeader, /import \{ ThemeSwitcher \}/)
+  assert.match(authHeader, /<LanguageSwitcher \/>/)
+  assert.match(authHeader, /<ThemeSwitcher \/>/)
   assert.match(helper, /critical.*serious|serious.*critical/s, 'rendered axe keeps critical/serious assertions')
   assert.match(helper, /recordAxeCoverage/)
   assert.match(helper, /assertS11Reflow/)
