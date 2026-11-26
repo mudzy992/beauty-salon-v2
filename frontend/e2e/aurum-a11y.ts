@@ -77,7 +77,7 @@ export async function assertS11Reflow(page: Page, route: string): Promise<void> 
   expect(narrow.document, `${route}: horizontal page overflow at 320px (${narrow.document}px)`).toBeLessThanOrEqual(322)
   expect(
     narrowOffenders,
-    `${route}: content overflows its visible container at 320px\n${JSON.stringify(narrowOffenders, null, 2)}`,
+    `${route}: content overflows its visible container at 320px; offenders=${JSON.stringify(narrowOffenders)}`,
   ).toEqual([])
 
   // Simulated text resize is an explicit DOM metric, not browser zoom. Real 200%/400% zoom
