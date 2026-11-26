@@ -61,9 +61,9 @@ export const StylistInboxPage = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-content">{t('stylistPortal.inbox.title')}</h1>
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-semibold text-content [overflow-wrap:anywhere]">{t('stylistPortal.inbox.title')}</h1>
           <p className="text-sm text-content-strong">
             {t('stylistPortal.inbox.description')}
           </p>

@@ -70,7 +70,7 @@ export function StylistNav() {
   return (
     <nav
       aria-label={t('shell.mainNavigation')}
-      className="-mx-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap sm:mx-0 sm:overflow-visible sm:whitespace-normal"
+      className="-mx-1 min-w-0 max-w-full flex items-center gap-1 overflow-x-auto whitespace-nowrap sm:mx-0 sm:overflow-visible sm:whitespace-normal"
     >
       {STYLIST_NAV_ITEMS.map((item) => (
         <StylistNavLink key={item.path} item={item} pathname={location.pathname} />

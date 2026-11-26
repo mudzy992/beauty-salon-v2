@@ -1,18 +1,19 @@
 # CHECKLIST — Aurum web refaktor
 
-> **S11 — u toku:** S10 commit `e6b4271` / CI [45781994850](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45781994850) **5/5 success**. 15 rendered Chromium testova × BS/EN (30 axe scans) obuhvata javnu naslovnicu + guest booking, admin dashboard + settings hub i stylist inbox u Classic/Aurum Light/Aurum Dark; 320 CSS px, simulirani 200% tekst i text-spacing su uključeni. Lokalni `typecheck:e2e`, discovery (15 testova) i source-contract suite **18/18** prolaze. CI `45806770602` i `45815246372` imali su 3195 passed / 5 failed; flex-wrap popravka nije ih uklonila. Diagnostic retry `45823565680` zaustavljen je nakon što rendered korak nije završio ni za ~32 minute. Zamjenski run [45828686415](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45828686415) je u toku: preostala četiri posla su prošla, rendered axe još traje. Još nema S11 rendered PASS tvrdnje. Tačne korisničke, isključivo ručne provjere i upute su u [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md); čekati da se CI zatvori prije njihovog početka. Legacy admin template audit: 14/14 starih TS/TSX modula imaju potrošača; nijedan nedokazano mrtav modul nije brisan. Nema merge/deploya.
+> **S11 — završni popravak u toku:** 15 rendered Chromium testova × BS/EN (30 axe scans) pokrivaju javnu naslovnicu/guest booking, admin dashboard/settings i stylist inbox u Classic/Aurum Light/Aurum Dark. Lokalni `typecheck:e2e`, source contracts, fokusirani Node testovi i build prolaze. CI [45828686415](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45828686415) završio je 4/5: **3195 passed / 5 failed** na 320px reflow testu, ne na axe pravilima: `/admin` i `/admin/settings` Classic/BS, te `/stylist/inbox` BS kroz sve tri teme. User report: tema/jezik, guest redirect, admin/stylist pristup, keyboard/focus, forced-colors i reduced-motion rade; stvarni zoom gubi sidebar; čitač ekrana nije testabilan. Responsive patch (menu trigger umjesto avatar, wrap/shrink shell nav i inbox) + 320px drawer/focus e2e je lokalno zelen, novi rendered CI još čeka. Legacy admin template audit: 14/14 modula imaju potrošača. Nema merge/deploya.
 
-## S11 ručna provjera — isključivo korisnik
+## S11 vlasnikova evidencija i jedino što još treba uraditi
 
-| Provjera | Status | Upute |
+| Provjera | Status | Preostalo |
 |---|---|---|
-| Stvarni browser zoom 200/400%, text-spacing | 🟡 Čeka korisnika | Pet ciljnih ruta, BS/EN, tri teme; protokol i text-spacing snippet u [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md) |
-| Tastatura/fokus; stylist inbox → start → completion | 🟡 Čeka korisnika | Samo staging + testna rezervacija; očekivani fokus i statusi u protokolu |
-| Čitač ekrana (NVDA/VoiceOver) | 🟡 Čeka korisnika | Imena/uloge/stanja, statusne najave i fokus prema protokolu |
-| OS forced-colors/high contrast | 🟡 Čeka korisnika | Stvarni Windows OS mod; emulacija nije dokaz |
-| OS reduced-motion | 🟡 Čeka korisnika | Stvarni OS setting; funkcije moraju ostati dostupne bez nepotrebne animacije |
+| Tema/jezik, guest redirect, pristup admin/stylist rutama | ✅ prijavljeno od vlasnika | Ne ponavljati |
+| Tastatura/fokus | ✅ prijavljeno od vlasnika | Ne ponavljati |
+| OS forced-colors / reduced-motion | ✅ prijavljeno od vlasnika | Ne ponavljati |
+| Screen reader | ➖ vlasnik nema mogućnost | Ostaje izričito neprovjereno; ne tvrditi potpunu usklađenost |
+| Zoom 200/400% + text-spacing | 🟡 sidebar izgubljen | Nakon moje CI potvrde, ponovo provjeriti admin/settings/stylist inbox po [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md) |
+| Hero CTA prevod „Rezerviši termin“ | ℹ️ zasebna produktna ideja | BS/EN uređivi tekst u adminu nije S11 scope niti je implementiran |
 
-> S11 zatvara se tek nakon CI 5/5/rendered PASS, ažurne evidencije i prijave ovih ručnih rezultata ili jasnog N/A razloga. Ne tvrdi se provjera koja nije obavljena.
+> S11 zatvara se tek nakon zelenog rendered CI-a, završene evidencije i zoom/text-spacing ponovne provjere. Ostalo što je vlasnik prijavio kao PASS ne traži ponavljanje; čitač ekrana ostaje N/A/unverified.
 
 > **S9 (lokalno, 2026-11-25):** admin sadržaj i postavke su razbijeni u orkestrator-stranice
 > (11 fajlova, svi ≤ 132 linije) sa modulima u `features/*`; `EmailSettings` 1416 → 101 linija

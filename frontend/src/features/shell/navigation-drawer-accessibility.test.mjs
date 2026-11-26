@@ -19,6 +19,8 @@ test('public mobile navigation drawer has a localized accessible dialog name wit
 
 test('mobile navigation triggers expose their expanded state and control target', () => {
   assert.match(adminChrome, /aria-expanded=\{mobileNavOpen\}[\s\S]*?aria-controls="admin-mobile-navigation"/)
+  assert.match(adminChrome, /<Menu aria-hidden="true"/, 'the compact navigation trigger must be visually recognizable')
+  assert.match(adminChrome, /title=\{t\('shell\.adminMenu'\)\}/)
   assert.match(admin, /mobileNavOpen=\{sidebarOpen\}/)
   assert.match(publicLayout, /aria-expanded=\{mobileOpen\}[\s\S]*?aria-controls="public-mobile-navigation"/)
 })

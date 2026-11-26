@@ -40,7 +40,7 @@ export default function StylistLayout() {
             <StylistNav />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2">
             {/* WCAG 3.2.6 — pomoć je na istom mjestu kao u admin panelu. */}
             <Link
               to="/kontakt"
@@ -58,7 +58,7 @@ export default function StylistLayout() {
       </header>
 
       {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark. */}
-      <main id="main" tabIndex={-1} data-route-main className="mx-auto max-w-[1600px] px-4 py-4">
+      <main id="main" tabIndex={-1} data-route-main className="mx-auto min-w-0 max-w-[1600px] px-4 py-4">
         <Outlet />
       </main>
     </div>

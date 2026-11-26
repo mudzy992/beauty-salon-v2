@@ -69,8 +69,8 @@ export const InboxReservationCard = ({
 
   return (
     <Card data-stylist-inbox-card className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold text-content truncate">
             {r.service?.name ?? t('stylistWorkbook.serviceFallback')}
           </p>

@@ -75,7 +75,10 @@ export async function assertS11Reflow(page: Page, route: string): Promise<void> 
   const narrowOffenders = await page.evaluate(overflowingElements, 2)
   expect(narrow.viewport, `${route}: 320px probe viewport`).toBe(320)
   expect(narrow.document, `${route}: horizontal page overflow at 320px (${narrow.document}px)`).toBeLessThanOrEqual(322)
-  expect(narrowOffenders, `${route}: content overflows its visible container at 320px`).toEqual([])
+  expect(
+    narrowOffenders,
+    `${route}: content overflows its visible container at 320px\n${JSON.stringify(narrowOffenders, null, 2)}`,
+  ).toEqual([])
 
   // Simulated text resize is an explicit DOM metric, not browser zoom. Real 200%/400% zoom
   // remains a manual checklist item because Playwright viewport/font simulation is not equivalent.

@@ -321,7 +321,7 @@ test('2.5.3: vidljivi inicijali su uvijek 2 alfanumerička znaka (userInitials h
   }
 })
 
-test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', () => {
+test('2.5.3: avatar dugmad nose vidljive inicijale, a mobilna navigacija ima prepoznatljiv menu trigger', () => {
   // Axe je na 22 admin/stylist rute javio `label-content-name-mismatch` kao nepotpuno
   // (run `42893779087`): `aria-label="Admin meni"` uz vidljive inicijale iz
   // `AvatarFallback`. Ovo nije bila samo axe-ova nesigurnost nego stvarni prekršaj —
@@ -330,30 +330,25 @@ test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', ()
   // `aria-hidden` nad inicijalima BI sakrio tekst od čitača ekrana, ali ne i od oka, pa bi
   // prekršaj ostao a postao nevidljiv alatima. Zato se traži da ime SADRŽI vidljivi tekst.
   const sites = [
-    ['../features/shell/admin/admin-user-menu.tsx', 'shell.adminMenu', 'initials'],
     ['../features/shell/public/public-layout.tsx', 'shell.userMenu', 'avatarInitials'],
     ['../layouts/stylist-user-menu.tsx', 'shell.userMenu', 'avatarInitials'],
   ]
   for (const [file, key, visible] of sites) {
     const src = readFileSync(new URL(file, import.meta.url), 'utf8')
     const expected = `labelWithVisibleText(t('${key}'), ${visible})`
-    assert.ok(
-      src.includes(expected),
-      `${file}: očekivano ${expected}`,
-    )
-    assert.ok(
-      !src.includes(`aria-label={t('${key}')}`),
-      `${file}: gola labeta bez vidljivog teksta (2.5.3)`,
-    )
+    assert.ok(src.includes(expected), `${file}: očekivano ${expected}`)
+    assert.ok(!src.includes(`aria-label={t('${key}')}`), `${file}: gola labela bez vidljivog teksta (2.5.3)`)
   }
 
-  // Mobilno i desktop dugme u admin omotaču dijele istu labetu — oba moraju biti pokrivena.
   const chrome = readFileSync(new URL('../features/shell/admin/admin-user-menu.tsx', import.meta.url), 'utf8')
   assert.equal(
     chrome.split("labelWithVisibleText(t('shell.adminMenu'), initials)").length - 1,
-    2,
-    'oba dugmeta admin menija, ne samo jedno',
+    1,
+    'desktop avatar menu ime sadrži vidljive inicijale',
   )
+  assert.match(chrome, /aria-label=\{t\('shell\.adminMenu'\)\}[\s\S]*?aria-controls="admin-mobile-navigation"/)
+  assert.match(chrome, /<Menu aria-hidden="true"/, 'mobile nav trigger is visually identifiable as a menu')
+  assert.match(chrome, /min-h-target min-w-target/, 'mobile nav trigger remains a usable touch target')
 })
 
 test('2.4.6: naslov kartice u finance tabovima je h2, ne h3 koji preskače nivo', () => {
@@ -496,7 +491,11 @@ test('S11 rendered axe covers classic and both Aurum modes through the theme UI'
   const login = readFileSync(new URL('../pages/Login.tsx', import.meta.url), 'utf8')
   const authHeader = readFileSync(new URL('../features/auth/auth-card-header.tsx', import.meta.url), 'utf8')
   const adminLayout = readFileSync(new URL('../features/shell/admin/admin-layout.tsx', import.meta.url), 'utf8')
+  const adminMobileMenu = readFileSync(new URL('../features/shell/admin/admin-user-menu.tsx', import.meta.url), 'utf8')
   const stylistLayout = readFileSync(new URL('../layouts/StylistLayout.tsx', import.meta.url), 'utf8')
+  const stylistNav = readFileSync(new URL('../layouts/stylist-nav.tsx', import.meta.url), 'utf8')
+  const stylistInbox = readFileSync(new URL('../features/stylist-portal/pages/stylist-inbox-page.tsx', import.meta.url), 'utf8')
+  const stylistInboxCard = readFileSync(new URL('../features/stylist-portal/components/inbox-reservation-card.tsx', import.meta.url), 'utf8')
   const specs = [
     ['../../e2e/a11y-aurum.spec.ts', ['/','/rezervacija']],
     ['../../e2e/a11y-aurum-admin.spec.ts', ['/admin','/admin/settings']],
@@ -519,7 +518,13 @@ test('S11 rendered axe covers classic and both Aurum modes through the theme UI'
   assert.match(authHeader, /<LanguageSwitcher \/>/)
   assert.match(authHeader, /<ThemeSwitcher \/>/)
   assert.match(adminLayout, /flex-wrap/, 'admin shell must allow compact/large-text header reflow')
-  assert.match(stylistLayout, /flex-wrap/, 'stylist shell must allow compact/large-text header reflow')
+  assert.match(adminMobileMenu, /<Menu aria-hidden="true"/, 'compact admin nav replacement must have a visible menu glyph')
+  assert.match(adminMobileMenu, /aria-expanded=\{mobileNavOpen\}[\s\S]*?aria-controls="admin-mobile-navigation"/)
+  assert.match(adminMobileMenu, /max-w-full flex-wrap/, 'admin controls must wrap instead of overflowing at narrow widths')
+  assert.match(stylistLayout, /flex min-w-0 max-w-full flex-wrap/, 'stylist header controls must wrap at narrow widths')
+  assert.match(stylistNav, /min-w-0 max-w-full[^\"]*overflow-x-auto/, 'stylist nav must shrink into its intentional horizontal scroll region')
+  assert.match(stylistInbox, /flex min-w-0 flex-wrap items-start justify-between/, 'inbox heading/actions must reflow at 320px')
+  assert.match(stylistInboxCard, /flex min-w-0 flex-wrap items-start justify-between/, 'inbox card title/status row must reflow at 320px')
   assert.match(helper, /critical.*serious|serious.*critical/s, 'rendered axe keeps critical/serious assertions')
   assert.match(helper, /recordAxeCoverage/)
   assert.match(helper, /assertS11Reflow/)

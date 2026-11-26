@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, LogOut } from 'lucide-react'
+import { ExternalLink, LogOut, Menu } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import {
@@ -44,32 +44,21 @@ export const AdminUserMenu = ({
 }: UserMenuProps) => {
   const { t } = useTranslation()
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2">
       <LanguageSwitcher />
       {/* NEJRA §12 — admin header; pomoć (/kontakt) ostaje prije korisničkog menija. */}
       <ThemeSwitcher />
       <button
         type="button"
-        aria-label={labelWithVisibleText(t('shell.adminMenu'), initials)}
+        aria-label={t('shell.adminMenu')}
+        title={t('shell.adminMenu')}
         aria-expanded={mobileNavOpen}
         ref={mobileNavTriggerRef}
         aria-controls="admin-mobile-navigation"
-        className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
+        className="inline-flex min-h-target min-w-target shrink-0 items-center justify-center rounded-md text-content-strong hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
         onClick={onOpenMobileNav}
       >
-        <Avatar className="h-9 w-9 ring-1 ring-line">
-          {avatarSrc ? (
-            <AvatarImage
-              src={avatarSrc}
-              alt={
-                username
-                  ? t('shell.profileForUser', { username })
-                  : t('shell.profile')
-              }
-            />
-          ) : null}
-          <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
-        </Avatar>
+        <Menu aria-hidden="true" className="h-5 w-5" />
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
