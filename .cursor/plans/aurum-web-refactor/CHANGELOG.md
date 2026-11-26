@@ -5,6 +5,15 @@ Format svakog unosa: `datum · segment · šta · zašto · fajlovi · testovi �
 
 ---
 
+## 2026-11-26 · S10 · Nastavak razbijanja workbook new-entry i direct booking hookova
+
+- **Opseg i motivacija.** Nastavak S10 je odobren 2026-11-25 („nastavi S10“). Završeno je razdvajanje dva veća toka koji su ostali nakon tankih stranica; samo prezentacijski sloj je promijenjen. Stylist/workbook API, podaci, iznosi, routing i FSM nisu dirani.
+- **Workbook new-entry.** `useWorkbookNewEntryForm.ts` je kompozicija od **148 linija**. Katalog (`useWorkbookNewEntryCatalog.ts`, **146**) i lojalnost (`useWorkbookNewEntryLoyalty.ts`, **78**) su izdvojeni iz forme; validacija, payload, dug i submit (`useWorkbookNewEntrySubmission.ts`, **143**) su zasebni. Stranica je **233** linije. Debounce/stale-response zaštita, klik-izvan/Escape, gender filter, izbor i reset, validacija, cijene/popust, napojnica, `debtHandling`, toastovi i payload su očuvani.
+- **Direct booking.** Stranica je **98** linija, a hookovi `useStylistDirectBooking.ts` (**110**), `useStylistDirectBookingCatalog.ts` (**112**) i `useStylistDirectBookingSubmission.ts` (**76**) su fokusirani na kompoziciju, čitanja/katalog i slanje. `servicesRequestIdRef`/`clientSearchRequestIdRef`, filter po spolu i čišćenje izbora, automatski kraj, isti POST payload, `submitGeneration`, session-version zaštita i dvostruki submit guard su sačuvani.
+- **Testni ugovori (Q10).** Nove izvorne putanje dodane su u new-entry i direct-booking i18n/recovery kontrakte; testne tvrdnje nisu uklonjene ni oslabljene. `raw-api-error-exposure.test.mjs` pozitivan mapper kontrakt prati novi submission fajl, gdje se `resolveAdminApiError` preselio. Nakon prvog full-suite nalaza zastarjele putanje, ugovor je prebačen na stvarni novi izvor i ponovljen.
+- **Lokalni dokazi.** Fokusirani new-entry **28/28**; direct-booking + inbox **10/10**; S10 reduced-motion **5/5**, semantic-colors **6/6**, stylist dark-contrast source contract **3/3**; frontend Node suite **1036/1036**; `tsc --noEmit` + `typecheck:e2e` PASS; production build i gzip budžeti PASS (initial JS/CSS **294.6/300 KiB**, Analytics **116.4/140**, calendar **101.8/125**, inbox **19.4**, dashboard **15.3**). ESLint **0 grešaka / 5 upozorenja** (postojeća upozorenja u `use-reservation-detail-status.ts`, `stylist-debts-page.tsx`, `stylist-reservation-detail-page.tsx`, `DailyLog.tsx`). Pet Python provjera je nakon usklađivanja prošlo: repo hygiene (2199 putanja), CI index (393/396; 3 interaktivna izuzeta), doc links (765 linkova/262 Markdown fajla), BS/EN i18n (2897/2897) i source kontrast (148/148).
+- **Status i granice.** CI za ovaj lokalni nastavak još nema run ID (nije pushan); stoga nema tvrdnje 5/5. Rendered tastaturni prolaz inbox → start → završetak, konačno S10 CI, konačna matrica i STOP za S11 ostaju otvoreni. Nema merge/deploya.
+
 ## 2026-11-25 · S9 · Admin sadržaj + postavke hub: orkestratori, motion i semantičke boje
 
 - **Zašto.** Faza `10_phase-9-admin-content-settings.md` zatvara 24 admin rute, a mjerenje

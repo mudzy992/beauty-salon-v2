@@ -42,6 +42,9 @@ const wizard = read('features/finance/catalog/category-wizard-dialog.tsx')
 const workbookNew = [
   read('features/stylist-workbook/pages/workbook-new-entry-page.tsx'),
   read('features/stylist-workbook/hooks/useWorkbookNewEntryForm.ts'),
+  read('features/stylist-workbook/hooks/useWorkbookNewEntryCatalog.ts'),
+  read('features/stylist-workbook/hooks/useWorkbookNewEntryLoyalty.ts'),
+  read('features/stylist-workbook/hooks/useWorkbookNewEntrySubmission.ts'),
   read('features/stylist-workbook/components/new-entry-client-card.tsx'),
   read('features/stylist-workbook/components/new-entry-service-card.tsx'),
   read('features/stylist-workbook/components/new-entry-payment-card.tsx'),

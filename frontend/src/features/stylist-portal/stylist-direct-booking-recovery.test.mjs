@@ -17,6 +17,8 @@ const read = (rel) => readFileSync(resolve(HERE, rel), 'utf8')
 const source = [
   read('pages/stylist-direct-booking-page.tsx'),
   read('hooks/useStylistDirectBooking.ts'),
+  read('hooks/useStylistDirectBookingCatalog.ts'),
+  read('hooks/useStylistDirectBookingSubmission.ts'),
   read('components/direct-booking-client-field.tsx'),
   read('components/direct-booking-services-fieldset.tsx'),
   read('components/direct-booking-schedule-fields.tsx'),

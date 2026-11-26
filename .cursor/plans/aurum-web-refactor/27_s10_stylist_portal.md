@@ -139,6 +139,10 @@ pokvariti nijedan tamni par u stylist modulu.
 
 ---
 
-## 6. Dokazi
+## 6. Dokazi — lokalni napredak (2026-11-26)
 
-_(popunjava se tokom rada)_
+- **New entry:** `useWorkbookNewEntryForm.ts` je kompozicija od **148** linija; katalog/pretrage su u `useWorkbookNewEntryCatalog.ts` (**146**), lojalnost/resetu popusta u `useWorkbookNewEntryLoyalty.ts` (**78**), a validaciji/payloadu/djelimičnom plaćanju u `useWorkbookNewEntrySubmission.ts` (**143**). Stranica je 233 linije. Sačuvani su debounce i stale-response guard klijenata, gender filter i izbor-reseti, isti validacijski redoslijed, payload, debt-handling, iznosi i prevedeni toastovi.
+- **Direct booking:** stranica **98** linija; `useStylistDirectBooking.ts` **110**, katalog **112**, submission **76**. Klijentski/service request-id guardovi, gender-filter/reset, automatski kraj termina, `submitGeneration` + `sessionVersion`, in-flight guard i isti endpoint/payload ostaju. API nije diran.
+- **Ugovori:** accessibility/i18n/recovery source lists sada čitaju izdvojene module. `raw-api-error-exposure` pozitivna kontrola prati `resolveAdminApiError` u `useStylistDirectBookingSubmission.ts`; poziv je preseljen, ne uklonjen. Fokusirani new-entry ugovori **28/28**, direct-booking + inbox ugovori **10/10**; S10 reduced-motion **5/5**, semantic-colors **6/6**, stylist dark-contrast source contract **3/3**.
+- **Lokalna provjera:** puni frontend Node suite **1036/1036**; `npx tsc --noEmit -p tsconfig.json` i `npm run typecheck:e2e` čisti; `npm run build` PASS u budžetu (initial JS/CSS **294.6/300 KiB gzip**, Analytics **116.4/140**, calendar **101.8/125**, stylist inbox **19.4**, dashboard **15.3**). ESLint **0 grešaka / 5 upozorenja** (postojeća exhaustive-deps upozorenja u reservation-detail-status, debts, reservation-detail page i DailyLog). `git diff --check` PASS; pet Python provjera PASS: repo hygiene (2199 putanja), CI index (393/396; 3 interaktivna izuzeta), doc links (765 linkova/262 Markdown fajla), BS/EN i18n (2897/2897), contrast (148/148 source parova).
+- **Još otvoreno:** trenutni S10 rad nije pushan i nema CI run ID; zato DoD 5/5 nije potvrđen. Rendered tastaturni prolaz inbox → start → završetak, S10 kontrast/motion gateovi u CI, konačna ruta/matrica i STOP za S11 ostaju otvoreni. Nema merge/deploya.

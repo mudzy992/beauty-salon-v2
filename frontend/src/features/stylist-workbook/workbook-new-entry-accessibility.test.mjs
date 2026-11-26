@@ -21,6 +21,9 @@ const serviceCard = read('./components/new-entry-service-card.tsx')
 const paymentCard = read('./components/new-entry-payment-card.tsx')
 const loyaltyCard = read('./components/new-entry-loyalty-card.tsx')
 const form = read('./hooks/useWorkbookNewEntryForm.ts')
+// 2026-11-18 (S10): hook je podijeljen na katalog (usluge/klijenti/pretrage),
+// lojalnost i glavni tok — provjere idu na fajl gdje se nalaze.
+const catalog = read('./hooks/useWorkbookNewEntryCatalog.ts')
 
 test('new-entry form labels are connected to the client and service search inputs', () => {
   assert.match(page, /import \{ useId \} from 'react'/)
@@ -50,7 +53,10 @@ test('client and service suggestions are keyboard-operable buttons', () => {
 
 test('selected client is retained independently from changing search results', () => {
   assert.match(form, /const \[selectedClient, setSelectedClient\] = useState<ClientOption \| null>\(null\)/)
-  assert.match(form, /if \(selectedClient\) return/)
+  // Učitavanje liste klijenata staje dok je klijent odabran — stvarni objekat
+  // je dependency, pa i promjena selekcije između istoimenih klijenata se čuva.
+  assert.match(catalog, /if \(selectedClient\) return/)
+  assert.match(catalog, /\[clientSearch, selectedClient\]/)
   assert.match(form, /setSelectedClient\(c\)/)
   assert.match(form, /setSelectedClient\(null\)[\s\S]*?setServiceIds\(\[\]\)/)
   assert.doesNotMatch(form, /clients\.find\(\(c\) => c\.id === clientId\)/)

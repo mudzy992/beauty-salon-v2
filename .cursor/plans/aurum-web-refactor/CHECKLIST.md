@@ -1,5 +1,7 @@
 # CHECKLIST — Aurum web refaktor
 
+> **S10 — lokalni nastavak, 2026-11-26 (aktivno):** odobren nastavkom „nastavi S10“ 2026-11-25. New-entry stranica 233 linije; katalog/forma/lojalnost/slanje hookovi 146/148/78/143. Direct-booking stranica 98; katalog/forma/slanje hookovi 112/110/76. Klijentski/service stale-response guardovi, gender filter, cijene, dug/napojnica/payload i session/double-submit zaštite ostaju. Test source lists su proširene prema novim modulima bez gubitka tvrdnji. Lokalno puni Node **1036/1036**, fokusirani new-entry **28/28**, direct booking + inbox **10/10**, `tsc` i `typecheck:e2e` PASS, build **294.6/300 KiB gzip** (budget PASS), ESLint 0 errors / 5 warnings; S10 motion 5/5, semantic colors 6/6, stylist dark-contrast source 3/3; pet Python provjera prošlo nakon docs sync-a. CI za ovaj nastavak još nije pokrenut. Rendered keyboard path i konačni S10 5/5 i dalje su kapije; nema merge/deploya niti S11 rada.
+
 > **S9 (lokalno, 2026-11-25):** admin sadržaj i postavke su razbijeni u orkestrator-stranice
 > (11 fajlova, svi ≤ 132 linije) sa modulima u `features/*`; `EmailSettings` 1416 → 101 linija
 > kroz 11 modula. Svih 31 `animate-*` instanci ima `motion-reduce:animate-none`; S9 paleta je

@@ -1,5 +1,7 @@
 # MATRIX — Pokrivenost ruta Aurum refaktorom
 
+> **S10 status (lokalno, 2026-11-26; CI nije pokrenut):** nastavak je odobren 2026-11-25. Workbook new-entry i direct booking su dodatno razdvojeni u fokusirane hookove, a source contracts ostaju pokriveni. Puni Node suite 1036/1036, strict TypeScript, `typecheck:e2e` i build prošli; vidi `.cursor/plans/aurum-web-refactor/27_s10_stylist_portal.md`. U tabeli S10 oznaka 🟡 znači da je ruta refaktorisana i lokalni kontrakti prolaze, ali **5/5 CI/rendered kapija još nije potvrđena**. Redirecti ostaju ➖; nema tvrdnje da je S10 zatvoren.
+
 > **Aktuelni M2 status:** završen na osnovu korisnikove prijave pregleda u Brave i Edge na Windowsu (200%/400%, text-spacing, sve rute/uloge/jezici/teme, verzija `718fbe0`) i automatizovanih 320px fiksura. [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) 5/5, rendered 1505/0/0. Prijava nije nezavisni audit; viewport i pojedinačna stanja nisu specificirani. Ostaju zasebne provjere tastature, čitača ekrana, stvarnog forced-colors i reduced-motion te nepotpuni axe nalazi. Detalji: `.cursor/plans/aurum-web-refactor/15_rucni-pregled.md`. Stariji statusi ispod su historijski.
 
 > **Najnoviji M2 dokaz:** `2c98530` / CI `44920510427` **5/5, rendered 1343 prošlo / 0 palo / 0 preskočeno**. 48 fiksurnih token-proposal stanja (BS/EN, oba Aurum režima, 320 CSS px/200% root/text-spacing), uključujući nepotpun odgovor, retry i gost/prijavljeni prikaz; 320px + spacing i automatizovani Tab/Enter uz forced-colors emulaciju. Ispravljen razlomljeni tekst oznaka. Vizuelno su pregledani ciljani statični snimci i šest uzoraka legende analitike; ostali nepotpuni kontrastni uzorci i širi stvarni ručni/AT pregled ostaju otvoreni. Fiksure ne dokazuju stvarne transakcije. Detalji: `.cursor/plans/aurum-web-refactor/16_ciljani-vizuelni-pregled.md`.
@@ -143,16 +145,16 @@ Svaki red: `a11y-admin.spec.ts` provjerava Aurum light i dark axe, a dodatno mje
 | # | Ruta | Ekran / izvor | Segment | Ključni testovi | Status |
 |---|---|---|---|---|---|
 | 47 | `/stylist` | `<Navigate to="/stylist/inbox" replace />` | S10 | — | ➖ |
-| 48 | `/stylist/inbox` | `features/stylist-portal/pages/stylist-inbox-page` | S10 | `test:stylist-status-messages-a11y`, `test:stylist-form-controls-a11y` | ⬜ |
-| 49 | `/stylist/workbook` | `features/stylist-workbook/pages/workbook-list-page` | S10 | `test:stylist-workbook-list-i18n`, `test:workbook-loading-status-a11y` | ⬜ |
-| 50 | `/stylist/workbook/new` | `features/stylist-workbook/pages/workbook-new-entry-page` | S10 | `test:workbook-form-groups-a11y`, `test:redundant-entry-a11y` | ⬜ |
-| 51 | `/stylist/workbook/reschedule-preview/:reservationId` | `features/stylist-workbook/pages/workbook-reschedule-preview-page` | S10 | `test:stylist-workbook-reschedule-i18n`, `test:stylist-workbook-reschedule-accessibility` | ⬜ |
-| 52 | `/stylist/workbook/:entryId` | `features/stylist-workbook/pages/workbook-detail-page` | S10 | `test:stylist-workbook-detail-i18n`, `test:stylist-workbook-read-accessibility` | ⬜ |
-| 53 | `/stylist/schedule` | `features/stylist-portal/pages/stylist-schedule-page` | S10 | `test:stylist-dark-contrast-a11y` | ⬜ |
-| 54 | `/stylist/schedule/new` | `features/stylist-portal/pages/stylist-direct-booking-page` | S10 | `test:stylist-form-controls-a11y` | ⬜ |
-| 55 | `/stylist/schedule/:reservationId` | `features/stylist-portal/pages/stylist-reservation-detail-page` | S10 | `test:stylist-status-messages-a11y` | ⬜ |
-| 56 | `/stylist/debts` | `features/stylist-portal/pages/stylist-debts-page` | S10 | `test:amount-format-consistency` | ⬜ |
-| 57 | `/stylist/stats` | `features/stylist-portal/pages/stylist-stats-page` | S10 | `test:stylist-analytics-tables-a11y` | ⬜ |
+| 48 | `/stylist/inbox` | `features/stylist-portal/pages/stylist-inbox-page` | S10 | `test:stylist-status-messages-a11y`, `test:stylist-form-controls-a11y` | 🟡 local · CI pending |
+| 49 | `/stylist/workbook` | `features/stylist-workbook/pages/workbook-list-page` | S10 | `test:stylist-workbook-list-i18n`, `test:workbook-loading-status-a11y` | 🟡 local · CI pending |
+| 50 | `/stylist/workbook/new` | `features/stylist-workbook/pages/workbook-new-entry-page` | S10 | `test:workbook-form-groups-a11y`, `test:redundant-entry-a11y` | 🟡 local · CI pending |
+| 51 | `/stylist/workbook/reschedule-preview/:reservationId` | `features/stylist-workbook/pages/workbook-reschedule-preview-page` | S10 | `test:stylist-workbook-reschedule-i18n`, `test:stylist-workbook-reschedule-accessibility` | 🟡 local · CI pending |
+| 52 | `/stylist/workbook/:entryId` | `features/stylist-workbook/pages/workbook-detail-page` | S10 | `test:stylist-workbook-detail-i18n`, `test:stylist-workbook-read-accessibility` | 🟡 local · CI pending |
+| 53 | `/stylist/schedule` | `features/stylist-portal/pages/stylist-schedule-page` | S10 | `test:stylist-dark-contrast-a11y` | 🟡 local · CI pending |
+| 54 | `/stylist/schedule/new` | `features/stylist-portal/pages/stylist-direct-booking-page` | S10 | `test:stylist-form-controls-a11y` | 🟡 local · CI pending |
+| 55 | `/stylist/schedule/:reservationId` | `features/stylist-portal/pages/stylist-reservation-detail-page` | S10 | `test:stylist-status-messages-a11y` | 🟡 local · CI pending |
+| 56 | `/stylist/debts` | `features/stylist-portal/pages/stylist-debts-page` | S10 | `test:amount-format-consistency` | 🟡 local · CI pending |
+| 57 | `/stylist/stats` | `features/stylist-portal/pages/stylist-stats-page` | S10 | `test:stylist-analytics-tables-a11y` | 🟡 local · CI pending |
 | 58 | `/stylist/profile` | `<Navigate to="/profil" replace />` (ekran je red #13) | S10 | `test:profile-*` | ➖ |
 
 ---
@@ -163,7 +165,7 @@ Svaki red: `a11y-admin.spec.ts` provjerava Aurum light i dark axe, a dodatno mje
 |---|---|---|---|
 | Javni shell | `features/shell/public/public-layout.tsx`, `public-ui.ts` | S1 (tema), S2 (stil) | ✅ **S2** (`43110763869` / `d1fb55d`); `aria-current` + oblik, 44 px mete, `SkipLink`/drawer netaknuti |
 | Admin shell | `features/shell/admin/*`, `layouts/DashboardLayout.tsx` | S1 (tema), S6 (stil) | ⬜ |
-| Stylist shell | `layouts/StylistLayout.tsx` | S1 (tema), S10 (stil) | ⬜ |
+| Stylist shell | `layouts/StylistLayout.tsx` | S1 (tema), S10 (stil) | 🟡 local · CI pending |
 | Provideri | `app/providers.tsx` | S1 | ✅ `ThemeProvider` iznad `SettingsProvider`; `MotionConfig` netaknut; `test:theme-brand-precedence` |
 | Tokeni / Tailwind | `styles/globals.css`, `styles/index.css`, `tailwind.config.js` | S1 | ✅ 2 Aurum bloka + `fontFamily.serif`; `test:theme-ssot-sync`; `:root`/`.dark` netaknuti |
 | Dijeljeni UI | `components/ui/*`, `components/brand/*`, `BeforeAfterSlider.tsx`, `media-image.tsx` | S1/S2 (aurum-scoped varijante) | ✅ **S2: 0 diff** (grep dokaz); Aurum varijanta ostvarena u `globals.css` bez diranja dijeljenih komponenti |

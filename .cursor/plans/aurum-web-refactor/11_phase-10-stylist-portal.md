@@ -1,6 +1,6 @@
 # S10 — Stylist portal (10 ekrana + 2 redirecta)
 
-**Status:** 🟡 čeka odobrenje S9 · **Zatvara posljednju grupu ekrana iz Q3.**
+**Status:** 🟡 S10 je odobren 2026-11-25 („nastavi S10“) i u toku · **Zatvara posljednju grupu ekrana iz Q3.**
 
 ---
 
@@ -68,10 +68,10 @@ Lokalno: 5 Python + puna `test:*` petlja + `npm run build` (`stylist inbox` 17,9
 
 ## 8. DoD + dokazi
 
-- ✅ 10 ekrana + shell u 3 stanja; `stylist-portal.api.ts` **0 diff** (potvrda u STOP-sažetku).
-- ✅ `stylist-dark-contrast-a11y` zelen u Aurum tamnoj; svi navedeni testovi zeleni; paritet.
-- ✅ 58/58 deklaracija ruta pokriveno refaktorom (tabela u `aurum-route-coverage/MATRIX.md` sve ✅).
-- ✅ Build u budžetu; CI 5/5; evidencija ažurirana.
+- 🟡 Implementacija 10 ekrana + shell je u toku/završena lokalno; `stylist-portal.api.ts` je 0 diff. CI/rendered potvrda još nije urađena.
+- 🟡 `stylist-dark-contrast-a11y` source ugovor lokalno **3/3**; Aurum tamna rendered potvrda u CI je pending.
+- 🟡 58/58 deklaracija/ruta ostaju u routeru; S10 route refactor je lokalno provjeren, ali konačno označavanje matrice čeka CI i STOP sažetak.
+- 🟡 Lokalni build/testovi i evidencija su ažurirani; CI **5/5 pending**.
 - 🟡 Rendered tastaturni prolaz kroz inbox → start → završetak → S11.
 - **STOP** → „Odobravaš li S11 (završni prolaz: rendered a11y za 3 stanja, reflow, docs, dead code)?"
 

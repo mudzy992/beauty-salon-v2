@@ -11,6 +11,7 @@ const locales = ['bs', 'en'].map((language) =>
 const SOURCES = [
   './pages/workbook-new-entry-page.tsx',
   './hooks/useWorkbookNewEntryForm.ts',
+  './hooks/useWorkbookNewEntrySubmission.ts',
   './components/new-entry-client-card.tsx',
   './components/new-entry-service-card.tsx',
   './components/new-entry-payment-card.tsx',
