@@ -1,6 +1,6 @@
 # S10 — Stylist portal (10 ekrana + 2 redirecta)
 
-**Status:** 🟡 S10 je odobren 2026-11-25 („nastavi S10“) i u toku · **Zatvara posljednju grupu ekrana iz Q3.**
+**Status:** ✅ S10 implementacija i CI gate završeni · CI run `45781994850` je 5/5 za `e6b4271`; S11 je odobren i aktivan. Ručni stylist keyboard flow ostaje otvoren u S11 checklisti · **Zatvara posljednju grupu ekrana iz Q3.**
 
 ---
 
@@ -68,12 +68,12 @@ Lokalno: 5 Python + puna `test:*` petlja + `npm run build` (`stylist inbox` 17,9
 
 ## 8. DoD + dokazi
 
-- 🟡 Implementacija 10 ekrana + shell je u toku/završena lokalno; `stylist-portal.api.ts` je 0 diff. CI/rendered potvrda još nije urađena.
-- 🟡 `stylist-dark-contrast-a11y` source ugovor lokalno **3/3**; Aurum tamna rendered potvrda u CI je pending.
-- 🟡 58/58 deklaracija/ruta ostaju u routeru; S10 route refactor je lokalno provjeren, ali konačno označavanje matrice čeka CI i STOP sažetak.
-- 🟡 Lokalni build/testovi/evidencija prolaze za trenutno radno stablo; commit `4996d1d` je već **5/5** na CI runu `45775652262`, ali novi schedule/debts/completion batch još treba vlastiti CI **5/5**.
-- 🟡 Rendered tastaturni prolaz kroz inbox → start → završetak → S11.
-- **STOP** → „Odobravaš li S11 (završni prolaz: rendered a11y za 3 stanja, reflow, docs, dead code)?"
+- ✅ Refactor 10 ekrana + shell je na grani; `stylist-portal.api.ts` 0 diff. CI `45781994850` nad commitom `e6b4271` je **5/5**.
+- 🟡 `stylist-dark-contrast-a11y` source gate **3/3**; S11 proširuje rendered axe na Classic/Aurum light/Aurum dark.
+- 🟡 58/58 deklaracija/ruta su zadržane u routeru; route matrix finalization je S11 zadatak.
+- ✅ Lokalni S10 suite/build/gates i evidence su za commit; CI [45781994850](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45781994850) je **5/5** uključujući rendered a11y job.
+- 🟡 Ručni rendered keyboard tok inbox → start → završetak prenesen je u S11 checklistu; automated route axe nije dokaz poslovnog keyboard toka.
+- **STOP zatvoren korisničkim odobrenjem:** „Možeš krenuti sa S11“ nakon potvrde zelenog S10 CI gate-a.
 
 ---
 

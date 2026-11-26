@@ -1,6 +1,18 @@
 # CHECKLIST — Aurum web refaktor
 
-> **S10 — lokalni nastavak, 2026-11-26 (aktivno):** odobren nastavkom „nastavi S10“ 2026-11-25. New-entry stranica 233 linije; katalog/forma/lojalnost/slanje hookovi 146/148/78/143. Direct-booking stranica 98; katalog/forma/slanje hookovi 112/110/76. Schedule stranica 117 + sekcije/kartica; debts stranica 146 + repayment hook/dialog; completion dialog 143 + state hook. Stale-response guardovi, gender filter, cijene, dug/napojnica/payload, status-priority i session/double-submit zaštite ostaju. Source contracts su usklađeni bez gubitka tvrdnji. Lokalno puni Node **1041/1041**, new-entry **28/28**, direct booking + inbox **10/10**, schedule **5/5**, completion/detail **9/9**, debts **4/4**, strict `tsc` + `typecheck:e2e` PASS, build **294.7/300 KiB gzip**, ESLint 0 errors / 5 warnings; S10 motion 5/5, semantic colors 6/6, stylist dark-contrast source 3/3; pet Python provjera PASS. Commit `4996d1d` CI **45775652262 5/5**, ali schedule/debts/completion batch je još lokalni i treba vlastiti CI. Rendered keyboard path i konačni S10 5/5 ostaju kapije; nema merge/deploya niti S11 rada.
+> **S11 — u toku, autorizovan nakon S10 CI gate-a:** S10 commit `e6b4271` / CI [45781994850](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45781994850) **5/5 success** (uključujući rendered a11y). 15 novih rendered Chromium testova × BS/EN (30 axe scans) obuhvata public home + guest booking, admin dashboard + settings hub, stylist inbox u classic/Aurum light/Aurum dark; koriste javni theme control i `api/settings/public`, bez direktnog DOM/localStorage override-a. 320 CSS px reflow, simulirani 200% tekst i text-spacing mjere su dodani; `typecheck:e2e`, Playwright discovery (15 testova) i WCAG source-contract suite **18/18** lokalno PASS. Novi S11 testovi još nisu CI-validirani. S10 focused i lokalni dokazni rezultati prethodno navedeni ostaju; manualni keyboard poslovni tok inbox → start → completion, stvarni 200/400% zoom, OS forced-colors i screen reader su otvoreni. Legacy admin template audit: 14/14 starih TS/TSX modula imaju koda-potrošača; bez brisanja nedokazanog mrtvog koda. Nema merge/deploya.
+
+## S11 ručna/rendered provjera — otvoreno
+
+| Provjera | Status | Granica / dokaz |
+|---|---|---|
+| Stylist inbox → start → completion, keyboard-only | 🟡 Nije ručno izvršeno | S11 rendered axe spec pokriva inbox theme states, ne cijeli poslovni tok |
+| Browser zoom 200% i 400% na reprezentativnim rutama | 🟡 Nije izvršeno | 320 CSS px i root-font-size simulacije nisu browser zoom |
+| Text-spacing u stvarnom browseru, `forced-colors` OS | 🟡 Nije izvršeno | Lokalni DOM/style probes nisu OS high-contrast audit |
+| NVDA/VoiceOver statusi/fokus kroz tri teme | 🟡 Nije izvršeno | Nema screen readera u sandboxu |
+| Fokus povratak poslije brisanja reda/promjene rute | 🟡 Nije cjelovito pregledano | Osloniti se na po-kriteriju dokaz; ne zatvarati općenito |
+
+> S11 automatizovani axe/reflow testovi još čekaju CI; ova tabela se ne može zatvoriti samo na osnovu source checks.
 
 > **S9 (lokalno, 2026-11-25):** admin sadržaj i postavke su razbijeni u orkestrator-stranice
 > (11 fajlova, svi ≤ 132 linije) sa modulima u `features/*`; `EmailSettings` 1416 → 101 linija

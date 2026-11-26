@@ -1,6 +1,6 @@
 # SOURCE OF TRUTH — Beauty Salon Nejra v2
 
-**Current code/documentation snapshot:** 2026-10-21. This is a repository-level orientation, not a claim that every behavior has passed runtime or production verification.
+**Current code/documentation snapshot:** 2026-11-26. This is a repository-level orientation, not a claim that every behavior has passed runtime or production verification. S10 commit `e6b4271` passed CI run `45781994850` (5/5). S11 defines 15 rendered Chromium test cases across BS/EN and three themes (30 planned axe scans); local source/E2E checks pass, but these tests await CI. Browser zoom and assistive-technology checks remain open.
 
 ## Authority and evidence
 
@@ -16,7 +16,7 @@
 - **Mobile:** Expo `~57.0.14`, React Native `0.86.2`, Expo Router route tree, screen adapter, Zustand, Axios and SecureStore. Client and stylist experiences are modes/routes in the same app. The mobile translation resource is Bosnian only.
 - **Persistence and files:** PostgreSQL is external to the root Compose file. Prisma migrations are repository artifacts, not evidence of production migration state. Upload files are served under `/uploads/`; Compose mounts a host upload directory. Production topology, DB contents, backup/recovery, TLS and proxy policy are not verified by this source snapshot.
 - **Realtime and jobs:** Socket.IO and in-process scheduled jobs run in the backend. No Redis client/adapter/queue/distributed lock is wired in the repository; adding Redis is conditional, not a current dependency or required fix.
-- **Build/test baseline:** frontend production build and mobile TypeScript check pass in the audit workspace; frontend bundle warning remains. Backend Prisma engine/client setup was blocked by sandbox TLS; backend test/build status is recorded with evidence and limitations in the audit handoff. No live HTTP, production DB, browser accessibility or physical-device test is implied.
+- **Build/test baseline:** S10 local frontend Node suite **1041/1041**, strict TypeScript, E2E typecheck, production build and repository checks passed; CI `45781994850` for `e6b4271` completed **5/5**, including rendered a11y against the CI test environment. This does not prove production behavior, all three skin states, actual browser zoom, screen-reader, forced-colors OS, or physical-device use. S11 has added 15 multi-skin rendered test cases locally; they await their own CI run. See [CI scope](docs/audit/CI.md) and the Aurum refactor handoff.
 - **CI:** `.github/workflows/ci.yml` is branch-local verification only, triggered by `arena/**` push/manual dispatch. It does not deploy, merge or operate on production. See [CI.md](docs/audit/CI.md).
 
 ## Safe local commands

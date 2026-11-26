@@ -1,6 +1,8 @@
 # UX/UI/A11Y/I18N route inventory — source pass 1
 
-**Snapshot:** 2026-11-05, branch source at the time of inventory. This is a source-derived route/component inventory, not visual, browser, screen-reader, or physical-device acceptance.
+**Current S11 update (2026-11-26):** S10 commit `e6b4271` passed CI run `45781994850` 5/5. S11 adds 15 local rendered axe test cases × BS/EN (30 scans) across Classic/Aurum light/Aurum dark on public home + guest booking entry, admin dashboard/settings, and stylist inbox; local E2E typecheck and test discovery pass, but these new cases await CI. The route inventory below remains a source-derived inventory, not visual, browser-zoom, screen-reader, or physical-device acceptance. `/rezervacija` in the guest spec is expected to redirect to `/login`; it is not an authenticated booking-flow audit.
+
+**Historical source-pass snapshot:** 2026-11-05, branch source at the time of inventory. This is a source-derived route/component inventory, not visual, browser, screen-reader, or physical-device acceptance.
 
 ## Scope and evidence boundaries
 

@@ -63,7 +63,7 @@ export default defineConfig({
     // `--project=chromium` nabroji 26 testova (11 javnih + 15 admin).
     {
       name: 'chromium',
-      testIgnore: [/a11y-admin\.spec\.ts/, /a11y-stylist\.spec\.ts/, /auth\.setup\.ts/],
+      testIgnore: [/a11y-admin\.spec\.ts/, /a11y-stylist\.spec\.ts/, /a11y-aurum-admin\.spec\.ts/, /a11y-aurum-stylist\.spec\.ts/, /auth\.setup\.ts/],
       use: { ...devices['Desktop Chrome'] },
     },
     // `/admin/**` traži prijavljenu sesiju → prvo setup (login), pa admin testovi.
@@ -72,7 +72,7 @@ export default defineConfig({
     {
       name: 'admin',
       dependencies: ['setup'],
-      testMatch: /a11y-admin\.spec\.ts/,
+      testMatch: /a11y-(admin|aurum-admin)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: ADMIN_STATE },
     },
     // `/stylist/**` traži ulogu STYLIST (`StylistRoute`), pa ima ZASEBAN storageState —
@@ -80,7 +80,7 @@ export default defineConfig({
     {
       name: 'stylist',
       dependencies: ['setup'],
-      testMatch: /a11y-stylist\.spec\.ts/,
+      testMatch: /a11y-(stylist|aurum-stylist)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: STYLIST_STATE },
     },
   ],

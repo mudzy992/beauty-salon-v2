@@ -1,6 +1,6 @@
 # S11 — Završni prolaz: rendered a11y za 3 stanja, reflow, docs, dead code
 
-**Status:** 🟡 čeka odobrenje S10 · **Posljednji segment; nakon njega nema STOP-a za sljedeći segment, nego predaja projekta.**
+**Status:** 🟡 U TOKU · last updated 2026-11-26. S10 approval received; CI run `45781994850` is 5/5 success for commit `e6b4271`. User explicitly authorized S11. Current implementation defines 15 rendered test cases × BS/EN (30 planned axe scans), with theme/language interaction and reflow simulation, and passes the local suite/build/repository checks recorded in `HANDOFF.md`. S11 cases are not CI-validated yet; manual zoom/AT checks remain open. **Posljednji segment; nakon njega slijedi predaja projekta.**
 
 ---
 
@@ -20,7 +20,7 @@ S10 završen (5/5); sve 58 deklaracija ruta refaktorisano; `HANDOFF.md` ima broj
 
 | Fajl | Akcija |
 |---|---|
-| `frontend/e2e/a11y-aurum.spec.ts` | **NOVO** — rendered axe + osnovne interakcije u `aurum-light` i `aurum-dark` na reprezentativnim rutama (javna početna, rezervacija, admin dashboard, settings, stylist inbox); pokreće ga **postojeći** `test:a11y-routes` (`npx playwright test` pokupi sve specove) → nema nove npm skripte ni novog CI koraka |
+| `frontend/e2e/a11y-aurum{,-admin,-stylist}.spec.ts`, `aurum-a11y.ts` | **NOVO** — 15 rendered axe/interactions testova za `classic`, `aurum-light`, `aurum-dark` preko public home + guest booking entry, authenticated admin dashboard/settings, stylist inbox. Booking guest case asserts redirect to `/login`, not authenticated booking behavior. Existing `test:a11y-routes` (`npx playwright test`) discovers all specs; no new npm script/CI step |
 | `frontend/e2e/a11y-routes.spec.ts`, `a11y-admin.spec.ts`, `a11y-stylist.spec.ts`, `wcag-rendered.spec.ts` | **IZMJENA samo ako treba** — parametrizacija stanja teme bez slabljenja postojećih asertacija |
 | `frontend/e2e/dom-metrics.mjs`, `tab-traversal.mjs`, `axe-coverage.mjs` | **IZMJENA** — mjere za 3 stanja; `test:dom-metrics`, `test:tab-traversal`, `test:axe-coverage` zadržavaju istu garanciju |
 | `frontend/src/features/shell/admin/ui/*` (stari šabloni) | **BRISANJE** — samo fajlovi s **0 potrošača** (grep dokaz u `CHANGELOG.md`); testovi koji su ih čitali ažuriraju se na nove primitive uz obrazloženje |
@@ -47,8 +47,8 @@ S10 završen (5/5); sve 58 deklaracija ruta refaktorisano; `HANDOFF.md` ima broj
 ## 5. Koraci
 
 1. `grep -rn` svih potrošača starih šablona → spisak s 0 potrošača → brisanje → ažuriranje pogođenih testova → `check_ci_index.py` + puna `test:*` petlja.
-2. `a11y-aurum.spec.ts`: za svako od 3 stanja postaviti `localStorage`/`data-skin` prije posjete ruti (kroz javni `ThemeSwitcher`, ne privatnim hackom), pokrenuti axe (`critical`/`serious` asertacije kao u postojećim specovima), provjeriti `aria-pressed` izbornika, fokus prsten, `role="status"` najavu i kontrast; **classic ostaje default i njime se ne manipulira u ostalim specovima**.
-3. `dom-metrics` / `tab-traversal` / `axe-coverage`: proširiti mjerenje na 320 px / 200% / 400% zoom i 3 stanja; `test:settle-animations` i `prefers-reduced-motion` ostaju.
+2. S11 `a11y-aurum` specovi use the existing public `/api/settings/public` contract fixture to select `classic` vs `aurum`; do not mutate `documentElement` or localStorage to force a skin. Reach Aurum dark/light through visible ThemeSwitcher keyboard interaction. Switch BS/EN via visible LanguageSwitcher and run axe in both locales; keep the same `critical`/`serious` assertions and verify `aria-pressed`, status announcement and focus indicator. Existing default-classic specs remain unchanged.
+3. S11 DOM probes measure 320 CSS px, simulated 200% root-font-size and WCAG text-spacing on representative states; explicitly label these as simulations, not true 200/400% browser zoom. Existing `test:dom-metrics`, `test:tab-traversal`, `test:axe-coverage`, settle and reduced-motion contracts remain.
 4. Ručna checklista u `CHECKLIST.md`: tastatura end-to-end (CRUD, filteri, dijalozi, kalendar, upload, izvoz), zoom 200/400%, text-spacing, `forced-colors`, NVDA/VoiceOver, fokus-povratak nakon brisanja reda i promjene rute. **Svaka stavka dobija ✅ (s dokazom) / 🟡 (nije provjereno u renderu) / ➖ (nije primjenjivo, zašto)**; u sandboxu se ne glumi prolaz.
 5. Docs sync: ažurirati navedene fajlove; u `docs/audit/CI.md` upisati točan broj `test:*` skripti, 140 kontrastnih parova, nove CI korake i id zelenog runa.
 6. Matrice: `aurum-theme/MATRIX.md` i `aurum-route-coverage/MATRIX.md` → svi redovi ✅ ili 🟡 s razlogom; `dashboard-a11y/MATRIX.md` ažurirati samo za kriterije koje je S11 stvarno izmjerio.

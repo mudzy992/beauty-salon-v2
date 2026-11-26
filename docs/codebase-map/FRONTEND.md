@@ -1,6 +1,6 @@
 # FRONTEND Codebase Map (React + Vite)
 
-**Verified snapshot:** 2026-10-21 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results.
+**Verified snapshot:** 2026-11-26 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results. S10 commit `e6b4271` passed CI run `45781994850` (5/5). S11 three-skin rendered specs are present locally but await CI validation.
 
 ## Overview
 
@@ -187,10 +187,12 @@ Defined directly in `frontend/src/app/router.tsx`:
   - helper: `setAppLanguage('bs' | 'en')`
 - **Usage**: `useTranslation()` across pages and layouts (e.g. `frontend/src/features/shell/admin/admin-layout.tsx`)
 
-## Theme (dark / light)
+## Theme (Classic / Aurum light / Aurum dark)
 
-- **Support**: Tailwind dark variants + CSS variable overrides exist (`frontend/tailwind.config.js`, `frontend/src/styles/globals.css`).
-- **Toggle**: no dedicated “theme switch” implementation found in `frontend/src` (no `classList.toggle('dark')` pattern detected); components still include `dark:*` classes for styling.
+- **State owner:** `frontend/src/features/shell/theme/theme-context.tsx` and `theme-state.mjs`; global skin/mode arrives through `SettingsProvider` from the public settings contract. Aurum light/dark mode preference persists under the documented local preference key; Classic remains the default/fallback.
+- **User control:** `frontend/src/features/shell/theme/theme-switcher.tsx` exposes an accessible `aria-pressed` toggle in the public, admin and stylist shells. Classic hides the Aurum-only mode toggle; Aurum changes modes through that visible control.
+- **Styling:** Tailwind dark variants + semantic CSS tokens in `frontend/tailwind.config.js` and `frontend/src/styles/globals.css`; source contrast checks are not rendered proofs.
+- **Rendered evidence:** CI `45781994850` passed the existing rendered-a11y job before S11. S11 now defines 15 additional Chromium test cases and 30 axe scans across BS/EN × `classic`/`aurum-light`/`aurum-dark` for public home/guest booking entry, admin dashboard/settings, and stylist inbox. Local E2E typecheck/discovery pass; these cases are pending their own CI run. Their 320 CSS px and simulated text-resize/text-spacing probes do not equal actual browser zoom or assistive-technology review.
 
 ## Auth flow
 

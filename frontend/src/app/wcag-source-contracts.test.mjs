@@ -488,3 +488,45 @@ test('2.5.7: svaka drag operacija u src/ ima imenovanu alternativu bez povlačen
   const timeFields = (scheduler.match(/type="time"/g) ?? []).length
   assert.ok(timeFields >= 2, `kalendar treba barem 2 type="time" polja (početak i kraj), nađeno ${timeFields}`)
 })
+
+// ── S11 rendered skin-state coverage ─────────────────────────────────────────
+
+test('S11 rendered axe covers classic and both Aurum modes through the theme UI', () => {
+  const helper = readFileSync(new URL('../../e2e/aurum-a11y.ts', import.meta.url), 'utf8')
+  const specs = [
+    ['../../e2e/a11y-aurum.spec.ts', ['/','/rezervacija']],
+    ['../../e2e/a11y-aurum-admin.spec.ts', ['/admin','/admin/settings']],
+    ['../../e2e/a11y-aurum-stylist.spec.ts', ['/stylist/inbox']],
+  ].map(([path, routes]) => [
+    readFileSync(new URL(path, import.meta.url), 'utf8'),
+    routes,
+  ])
+
+  assert.match(helper, /\*\*\/api\/settings\/public/, 'fixtures must use the public settings contract')
+  assert.match(helper, /getByRole\('button', \{ name: \/dark mode\|tamni režim\/i \}\)/)
+  assert.match(helper, /page\.keyboard\.press\('Enter'\)/, 'Aurum mode changes use the public keyboard control')
+  assert.match(helper, /switch language to\|prebaci jezik na/i, 'both locales must be switched through the public language control')
+  assert.match(helper, /getAttribute\('lang'\)/, 'each locale scan must confirm the rendered html lang')
+  assert.match(helper, /aria-pressed/)
+  assert.match(helper, /getByRole\('status'\)/, 'theme changes must expose the existing live announcement')
+  assert.match(helper, /critical.*serious|serious.*critical/s, 'rendered axe keeps critical/serious assertions')
+  assert.match(helper, /recordAxeCoverage/)
+  assert.match(helper, /assertS11Reflow/)
+  assert.match(helper, /scanRenderedA11y/)
+  assert.doesNotMatch(helper, /localStorage|addInitScript|documentElement\.dataset|setAttribute\(['"]data-(?:skin|mode)/,
+    'theme state must not be forced through private storage/DOM mutation')
+
+  for (const [source, routes] of specs) {
+    assert.match(source, /classic.*aurum-light.*aurum-dark/s, 'all three approved theme choices must be exercised')
+    for (const route of routes) assert.ok(source.includes(`'${route}'`) || source.includes(`"${route}"`), `${route} is missing from S11 rendered route coverage`)
+    assert.match(source, /stubGlobalTheme/)
+    assert.match(source, /activateTheme/)
+    assert.match(source, /scanBothAppLanguages/)
+  }
+
+  const config = readFileSync(new URL('../../playwright.config.ts', import.meta.url), 'utf8')
+  assert.match(config, /a11y-aurum-admin/)
+  assert.match(config, /a11y-aurum-stylist/)
+  assert.match(config, /testMatch: \/a11y-\(admin\|aurum-admin\)/)
+  assert.match(config, /testMatch: \/a11y-\(stylist\|aurum-stylist\)/)
+})
