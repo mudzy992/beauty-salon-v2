@@ -1,216 +1,28 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
-import api from '../../../api/client'
-import { fetchAllPublicServices } from '../../../api/catalog'
-import { getErrorMessage, getErrorCode } from '../../../api/error'
-import { resolveAdminApiError } from '../../admin/admin-api-error.mjs'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
-import { Input } from '../../../components/ui/input'
-import { Label } from '../../../components/ui/label'
-import { Textarea } from '../../../components/ui/textarea'
-import { useAppToast } from '../../../lib/toast/useAppToast'
-import { useAuthStore } from '../../../stores/auth.store'
-import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
-import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
+import { getIntlLocale } from '../../../i18n/locale-utils.mjs'
+import { useStylistDirectBooking } from '../hooks/useStylistDirectBooking'
+import { DirectBookingClientField } from '../components/direct-booking-client-field'
+import { DirectBookingServicesFieldset } from '../components/direct-booking-services-fieldset'
+import { DirectBookingScheduleFields } from '../components/direct-booking-schedule-fields'
 
-type ClientOption = {
-  id: string
-  username: string
-  firstName: string | null
-  lastName: string | null
-  gender?: 'MALE' | 'FEMALE'
-}
-
-type ServiceOption = {
-  id: string
-  name: string
-  durationMinutes?: number
-  price?: number | string
-  gender?: 'MALE' | 'FEMALE'
-}
-
+/**
+ * Direktno zakazivanje (S10) — **tanka kompozicija**.
+ *
+ * Stanje i tok su u `hooks/useStylistDirectBooking.ts`, a prikaz je podijeljen
+ * u tri komponente (`components/direct-booking-*.tsx`).
+ *
+ * Sve poruke, zaštite od zastarjelih odgovora i notifikacije su **identične**
+ * ranijem monolitnom fajlu — razlika je samo u tome gdje se nalaze.
+ */
 export const StylistDirectBookingPage = () => {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
-  const toast = useAppToast()
-  const [services, setServices] = useState<ServiceOption[]>([])
-  const [clients, setClients] = useState<ClientOption[]>([])
-  const [clientSearch, setClientSearch] = useState('')
-  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
-  const [serviceIds, setServiceIds] = useState<string[]>([])
-  const [reservationDate, setReservationDate] = useState(getSalonDateOnly())
-  const [startTime, setStartTime] = useState('09:00')
-  const [endTime, setEndTime] = useState('10:00')
-  const [clientNotes, setClientNotes] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [loadingServices, setLoadingServices] = useState(true)
-  const [servicesLoadError, setServicesLoadError] = useState(false)
-  const [loadingClients, setLoadingClients] = useState(false)
-  const [clientSearchError, setClientSearchError] = useState(false)
-  const servicesRequestIdRef = useRef(0)
-  const clientSearchRequestIdRef = useRef(0)
-  const submitGeneration = useRef(0)
-  const submitInFlight = useRef(false)
-
-  useEffect(() => () => {
-    submitGeneration.current += 1
-    submitInFlight.current = false
-  }, [])
-
-  const loadServices = useCallback(async () => {
-    const requestId = ++servicesRequestIdRef.current
-    setLoadingServices(true)
-    setServicesLoadError(false)
-    try {
-      const result = await fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
-      if (!Array.isArray(result)) throw new Error('Invalid services response')
-      if (requestId === servicesRequestIdRef.current) setServices(result)
-    } catch {
-      if (requestId === servicesRequestIdRef.current) {
-        setServices([])
-        setServicesLoadError(true)
-      }
-    } finally {
-      if (requestId === servicesRequestIdRef.current) setLoadingServices(false)
-    }
-  }, [])
-
-  const searchClients = useCallback(async (query: string) => {
-    const requestId = ++clientSearchRequestIdRef.current
-    setLoadingClients(true)
-    setClientSearchError(false)
-    setClients([])
-    try {
-      const { data } = await api.get<{ items: ClientOption[] }>('/api/users/clients', {
-        params: { page: 0, pageSize: 10, q: query },
-      })
-      if (!Array.isArray(data?.items)) throw new Error('Invalid clients response')
-      if (requestId === clientSearchRequestIdRef.current) setClients(data.items)
-    } catch {
-      if (requestId === clientSearchRequestIdRef.current) {
-        setClients([])
-        setClientSearchError(true)
-      }
-    } finally {
-      if (requestId === clientSearchRequestIdRef.current) setLoadingClients(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void loadServices()
-    return () => {
-      servicesRequestIdRef.current += 1
-    }
-  }, [loadServices])
-
-  useEffect(() => {
-    const query = clientSearch.trim()
-    if (!query) {
-      clientSearchRequestIdRef.current += 1
-      setClients([])
-      setLoadingClients(false)
-      setClientSearchError(false)
-      return
-    }
-
-    const selectedLabel = selectedClient
-      ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ').trim() ||
-        selectedClient.username
-      : ''
-    if (selectedClient && query === selectedLabel) {
-      clientSearchRequestIdRef.current += 1
-      setClients([selectedClient])
-      setLoadingClients(false)
-      setClientSearchError(false)
-      return
-    }
-
-    setClients([])
-    setLoadingClients(true)
-    setClientSearchError(false)
-    const handle = window.setTimeout(() => void searchClients(query), 250)
-    return () => {
-      window.clearTimeout(handle)
-      clientSearchRequestIdRef.current += 1
-    }
-  }, [clientSearch, selectedClient, searchClients])
-
-  const filteredServices = useMemo(() => {
-    const gender = selectedClient?.gender
-    if (gender !== 'MALE' && gender !== 'FEMALE') return []
-    return services.filter((service) => service.gender === gender)
-  }, [selectedClient?.gender, services])
-
-  useEffect(() => {
-    setServiceIds((current) =>
-      current.filter((id) => filteredServices.some((service) => service.id === id)),
-    )
-  }, [filteredServices])
-
-  useEffect(() => {
-    const totalMinutes = serviceIds
-      .map((id) => filteredServices.find((service) => service.id === id)?.durationMinutes ?? 0)
-      .reduce((sum, value) => sum + value, 0)
-    if (totalMinutes <= 0 || !startTime) return
-    const [hours, minutes] = startTime.split(':').map(Number)
-    const total = hours * 60 + minutes + totalMinutes
-    setEndTime(`${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`)
-  }, [filteredServices, serviceIds, startTime])
-
-  const toggleServiceId = (serviceId: string) => {
-    setServiceIds((current) =>
-      current.includes(serviceId)
-        ? current.filter((id) => id !== serviceId)
-        : [...current, serviceId],
-    )
-  }
-
-  const handleSelectClient = (client: ClientOption) => {
-    const label =
-      [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || client.username
-    setSelectedClient(client)
-    setClientSearch(label)
-    setServiceIds([])
-  }
-
-  const handleSubmit = async () => {
-    if (submitInFlight.current) return
-    if (!selectedClient?.gender) {
-      toast.error(t('stylistPortal.directBooking.clientGenderRequired'))
-      return
-    }
-    const generation = ++submitGeneration.current
-    const sessionVersion = useAuthStore.getState().sessionVersion
-    const isCurrent = () => generation === submitGeneration.current && useAuthStore.getState().sessionVersion === sessionVersion
-    submitInFlight.current = true
-    setSaving(true)
-    try {
-      await api.post('/api/reservations/stylist/direct', {
-        clientId: selectedClient.id,
-        serviceIds,
-        reservationDate,
-        startTime,
-        endTime,
-        clientNotes: clientNotes.trim() || undefined,
-      })
-      if (!isCurrent()) return
-      toast.success(t('stylistPortal.directBooking.created'))
-      navigate('/stylist/schedule')
-    } catch (error) {
-      if (!isCurrent()) return
-      const apiErr = resolveAdminApiError(getErrorMessage(error, ''), 'stylistPortal.directBooking.createFailed', getErrorCode(error))
-      toast.error(t(apiErr.key, apiErr.values))
-    } finally {
-      if (generation === submitGeneration.current) {
-        submitInFlight.current = false
-        setSaving(false)
-      }
-    }
-  }
+  const booking = useStylistDirectBooking()
 
   return (
     <div className="space-y-4">
@@ -227,139 +39,39 @@ export const StylistDirectBookingPage = () => {
       </div>
 
       <Card className="space-y-4 p-4">
-        <div className="space-y-2">
-          <Label htmlFor="stylist-direct-booking-client">
-            {t('stylistPortal.directBooking.client')}
-          </Label>
-          <Input
-            id="stylist-direct-booking-client"
-            value={clientSearch}
-            onChange={(e) => {
-              const value = e.target.value
-              setClientSearch(value)
-              if (selectedClient) {
-                const label =
-                  [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ').trim() ||
-                  selectedClient.username
-                if (value.trim() !== label) {
-                  setSelectedClient(null)
-                  setServiceIds([])
-                }
-              }
-            }}
-            placeholder={t('stylistPortal.directBooking.searchClient')}
-          />
-          {loadingClients ? (
-            <p role="status" aria-live="polite" className="text-sm text-content-muted">
-              {t('common.loading')}
-            </p>
-          ) : null}
-          {clientSearchError ? (
-            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-bad-foreground">
-              <span>{t('stylistPortal.directBooking.clientSearchFailed')}</span>
-              <Button type="button" variant="outline" size="sm" onClick={() => void searchClients(clientSearch.trim())}>
-                {t('common.retry')}
-              </Button>
-            </div>
-          ) : null}
-          {!loadingClients && !clientSearchError && clientSearch.trim() && clients.length === 0 ? (
-            <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.noClients')}</p>
-          ) : null}
-          {clients.length > 0 ? (
-            <div className="grid gap-2">
-              {clients.map((client) => {
-                const label =
-                  [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || client.username
-                const selected = selectedClient?.id === client.id
-                return (
-                  <button
-                    key={client.id}
-                    type="button"
-                    aria-pressed={selected}
-                    className={
-                      selected
-                        ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
-                        : 'rounded-lg border border-line px-3 py-2 text-left text-sm'
-                    }
-                    onClick={() => handleSelectClient(client)}
-                  >
-                    <div className="font-medium text-content">{label}</div>
-                    <div className="text-xs text-content-muted">
-                      {client.gender === 'MALE'
-                        ? t('stylistPortal.directBooking.male')
-                        : client.gender === 'FEMALE'
-                          ? t('stylistPortal.directBooking.female')
-                          : t('stylistPortal.directBooking.genderNotDefined')}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          ) : null}
-        </div>
+        <DirectBookingClientField
+          clientSearch={booking.clientSearch}
+          onClientSearchChange={booking.handleClientSearchChange}
+          loadingClients={booking.loadingClients}
+          clientSearchError={booking.clientSearchError}
+          clients={booking.clients}
+          selectedClient={booking.selectedClient}
+          clientLabel={booking.clientLabel}
+          onSelectClient={booking.handleSelectClient}
+          onRetrySearch={() => void booking.searchClients(booking.clientSearch.trim())}
+        />
 
-        <fieldset className="space-y-2 border-0 p-0">
-          <legend className="text-sm font-medium text-content-strong">
-            {t('stylistPortal.directBooking.services')}
-          </legend>
-          {servicesLoadError ? (
-            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-bad-foreground">
-              <span>{t('stylistPortal.directBooking.serviceLoadFailed')}</span>
-              <Button type="button" variant="outline" size="sm" onClick={() => void loadServices()}>
-                {t('common.retry')}
-              </Button>
-            </div>
-          ) : !selectedClient ? (
-            <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
-          ) : !selectedClient.gender ? (
-            <p className="text-sm text-warn-foreground">{t('stylistPortal.directBooking.genderMissing')}</p>
-          ) : loadingServices ? (
-            <p role="status" aria-live="polite" className="text-sm text-content-muted">
-              {t('common.loading')}
-            </p>
-          ) : filteredServices.length === 0 ? (
-            <p className="text-sm text-content-muted">{t('stylistPortal.directBooking.noServices')}</p>
-          ) : (
-            <div className="grid gap-2">
-              {filteredServices.map((service) => (
-                <button
-                  key={service.id}
-                  type="button"
-                  aria-pressed={serviceIds.includes(service.id)}
-                  className={
-                    serviceIds.includes(service.id)
-                      ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
-                      : 'rounded-lg border border-line px-3 py-2 text-left text-sm'
-                  }
-                  onClick={() => toggleServiceId(service.id)}
-                >
-                  <div className="font-medium text-content">{service.name}</div>
-                  <div className="text-xs text-content-muted">{formatLocalizedAmount(Number(service.price ?? 0), locale)}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </fieldset>
+        <DirectBookingServicesFieldset
+          servicesLoadError={booking.servicesLoadError}
+          onRetryServices={() => void booking.loadServices()}
+          selectedClient={booking.selectedClient}
+          loadingServices={booking.loadingServices}
+          filteredServices={booking.filteredServices}
+          serviceIds={booking.serviceIds}
+          onToggleService={booking.toggleServiceId}
+          locale={locale}
+        />
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="stylist-direct-booking-date">{t('stylistPortal.directBooking.date')}</Label>
-            <Input id="stylist-direct-booking-date" type="date" value={reservationDate} onChange={(e) => setReservationDate(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="stylist-direct-booking-start">{t('stylistPortal.directBooking.startTime')}</Label>
-            <Input id="stylist-direct-booking-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="stylist-direct-booking-end">{t('stylistPortal.directBooking.endTime')}</Label>
-            <Input id="stylist-direct-booking-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="stylist-direct-booking-note">{t('stylistPortal.directBooking.note')}</Label>
-          <Textarea id="stylist-direct-booking-note" rows={4} value={clientNotes} onChange={(e) => setClientNotes(e.target.value)} />
-        </div>
+        <DirectBookingScheduleFields
+          reservationDate={booking.reservationDate}
+          onReservationDateChange={booking.setReservationDate}
+          startTime={booking.startTime}
+          onStartTimeChange={booking.setStartTime}
+          endTime={booking.endTime}
+          onEndTimeChange={booking.setEndTime}
+          clientNotes={booking.clientNotes}
+          onClientNotesChange={booking.setClientNotes}
+        />
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => navigate('/stylist/schedule')}>
@@ -368,16 +80,16 @@ export const StylistDirectBookingPage = () => {
           <Button
             type="button"
             disabled={
-              saving ||
-              !selectedClient?.gender ||
-              serviceIds.length === 0 ||
-              !reservationDate ||
-              !startTime ||
-              !endTime
+              booking.saving ||
+              !booking.selectedClient?.gender ||
+              booking.serviceIds.length === 0 ||
+              !booking.reservationDate ||
+              !booking.startTime ||
+              !booking.endTime
             }
-            onClick={() => void handleSubmit()}
+            onClick={() => void booking.handleSubmit()}
           >
-            {saving ? t('stylistPortal.directBooking.creating') : t('stylistPortal.directBooking.create')}
+            {booking.saving ? t('stylistPortal.directBooking.creating') : t('stylistPortal.directBooking.create')}
           </Button>
         </div>
       </Card>

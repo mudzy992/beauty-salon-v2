@@ -37,7 +37,17 @@ const SRC = resolve(HERE, '../..')
 const read = (rel) => readFileSync(resolve(SRC, rel), 'utf8')
 
 const wizard = read('features/finance/catalog/category-wizard-dialog.tsx')
-const workbookNew = read('features/stylist-workbook/pages/workbook-new-entry-page.tsx')
+// S10 (2026-11-18): forma za novi unos je podijeljena na stranicu + hook + kartice,
+// pa se provjera čita nad **cijelim** skupom fajlova te kompozicije.
+const workbookNew = [
+  read('features/stylist-workbook/pages/workbook-new-entry-page.tsx'),
+  read('features/stylist-workbook/hooks/useWorkbookNewEntryForm.ts'),
+  read('features/stylist-workbook/components/new-entry-client-card.tsx'),
+  read('features/stylist-workbook/components/new-entry-service-card.tsx'),
+  read('features/stylist-workbook/components/new-entry-payment-card.tsx'),
+  read('features/stylist-workbook/components/new-entry-loyalty-card.tsx'),
+  read('features/stylist-workbook/components/new-entry-partial-payment-dialog.tsx'),
+].join('\n')
 const detailPage = read('features/stylist-workbook/pages/workbook-detail-page.tsx')
 const reschedule = read('features/stylist-workbook/pages/workbook-reschedule-preview-page.tsx')
 const publicReserve = read('pages/public/PublicReserve.tsx')

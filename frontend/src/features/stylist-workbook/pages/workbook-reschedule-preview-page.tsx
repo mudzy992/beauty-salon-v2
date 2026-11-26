@@ -126,7 +126,7 @@ export const WorkbookReschedulePreviewPage = () => {
   if (loading) {
     return (
       <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-content-muted" aria-hidden="true" />
+        <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none text-content-muted" aria-hidden="true" />
         <span className="text-sm text-content-muted">{t('common.loading')}</span>
       </div>
     )
@@ -245,10 +245,13 @@ export const WorkbookReschedulePreviewPage = () => {
               onClick={() => setIncludeBreaks((v) => !v)}
               disabled={submitting}
             >
-              {/* Aurum: toggle knob namjerno ostaje bijel — kontrast na tamnom/aktiviranom track-u, nije površina teme. */}
+              {/* Aurum: dugme preklopnika koristi `bg-surface` — isti token kao zajednički
+                  Radix `Switch` thumb (`components/ui/switch.tsx`), pa je kontrast na
+                  aktiviranom (`bg-surface-inverse`) i neaktiviranom (`bg-surface-muted`)
+                  track-u jednak u sve tri teme. */}
               <span
                 className={cn(
-                  'h-5 w-5 rounded-full bg-white transition-transform',
+                  'h-5 w-5 rounded-full bg-surface transition-transform',
                   includeBreaks ? 'translate-x-5' : 'translate-x-0',
                 )}
               />
@@ -288,7 +291,7 @@ export const WorkbookReschedulePreviewPage = () => {
             >
               {submitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
                   {t('stylistWorkbook.reschedule.sending')}
                 </>
               ) : (
@@ -328,7 +331,7 @@ export const WorkbookReschedulePreviewPage = () => {
           >
             {submitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
                 {t('stylistWorkbook.reschedule.sending')}
               </>
             ) : (
@@ -353,7 +356,7 @@ export const WorkbookReschedulePreviewPage = () => {
             <Button type="button" onClick={() => void handleCommit()} disabled={submitting}>
               {submitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
                   {t('stylistWorkbook.reschedule.sending')}
                 </>
               ) : (

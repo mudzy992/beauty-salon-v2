@@ -1,6 +1,6 @@
 /**
  * WCAG 1.3.1 (Info and Relationships) — grupisanje povezanih polja u stilističkoj
- * radnoj knjižici (`/stylist/workbook/new`).
+ * radnoj knjizi (`/stylist/workbook/new`).
  *
  * Šta je bio problem (dokazano iz izvora, ne pretpostavljeno)
  * ────────────────────────────────────────────────────────────
@@ -24,6 +24,10 @@
  * `<legend>`. Unutar stranice koja već ima `Card` kutije to bi bio **vidljiv** dvostruki
  * okvir i novi naslov. Semantika (`role="group"`) je ono što kriterij traži, ne `fieldset`.
  *
+ * S10 (2026-11-18): stranica je razdvojena na tanu kompoziciju + kartice u
+ * `components/new-entry-*.tsx`. Ugovori se sada provjeravaju **na fajlu gdje se
+ * markup nalazi**, ali su tvrdnje iste (ista semantika, isti ključevi, isti `useId`).
+ *
  * 🔴 Ograničenje: source-contract. Ne dokazuje da čitač ekrana stvarno najavi naziv grupe.
  */
 import { strict as assert } from 'node:assert'
@@ -37,6 +41,8 @@ const SRC = resolve(HERE, '../..')
 const read = (rel) => readFileSync(resolve(SRC, rel), 'utf8')
 
 const page = read('features/stylist-workbook/pages/workbook-new-entry-page.tsx')
+const paymentCard = read('features/stylist-workbook/components/new-entry-payment-card.tsx')
+const loyaltyCard = read('features/stylist-workbook/components/new-entry-loyalty-card.tsx')
 const card = read('components/ui/card.tsx')
 const bs = JSON.parse(read('i18n/locales/bs.json'))
 const en = JSON.parse(read('i18n/locales/en.json'))
@@ -45,7 +51,7 @@ const en = JSON.parse(read('i18n/locales/en.json'))
 
 test('Card (a ne CardHeader/CardContent) prosljeđuje props na DOM', () => {
   // `{...props}` postoji u SVAKOJ od šest komponenti u card.tsx, pa provjera nad cijelim
-  // fajlom ne dokazuje ništa — mutacija koja skine props samo s `Card` bi prolazila.
+  // fajlom ne dokazuje ništa — mutacija koja skine props samo sa `Card` bi prolazila.
   const start = card.indexOf('const Card = React.forwardRef')
   const kraj = card.indexOf("Card.displayName = 'Card'")
   assert.ok(start > -1 && kraj > start, 'Card komponenta nije nađena u card.tsx')
@@ -58,7 +64,7 @@ test('Card (a ne CardHeader/CardContent) prosljeđuje props na DOM', () => {
 
 test('kartica s datumom, iznosom i napomenom je group s nazivom', () => {
   assert.ok(
-    page.includes('<Card className="p-4 space-y-3" role="group" aria-labelledby={paymentGroupLabelId}>'),
+    paymentCard.includes('<Card className="p-4 space-y-3" role="group" aria-labelledby={paymentGroupLabelId}>'),
     'kartica za plaćanje nije group',
   )
   assert.ok(
@@ -69,8 +75,9 @@ test('kartica s datumom, iznosom i napomenom je group s nazivom', () => {
 })
 
 test('naziv grupe za plaćanje je nevidljiv (sr-only) i ima i18n ključ', () => {
-  assert.ok(
-    page.includes('<span id={paymentGroupLabelId} className="sr-only">{t(\'stylistWorkbook.newEntry.paymentSection\')}</span>'),
+  assert.match(
+    paymentCard,
+    /<span id=\{paymentGroupLabelId\} className="sr-only">\s*\{t\('stylistWorkbook\.newEntry\.paymentSection'\)\}\s*<\/span>/,
     'nedostaje sr-only naziv grupe',
   )
   for (const [ime, d] of [['bs', bs], ['en', en]]) {
@@ -85,10 +92,10 @@ test('naziv grupe za plaćanje je nevidljiv (sr-only) i ima i18n ključ', () => 
 })
 
 test('sva tri polja grupe za plaćanje su stvarno unutar te kartice', () => {
-  const start = page.indexOf('aria-labelledby={paymentGroupLabelId}')
+  const start = paymentCard.indexOf('aria-labelledby={paymentGroupLabelId}')
   assert.ok(start > -1)
-  const kraj = page.indexOf('</Card>', start)
-  const blok = page.slice(start, kraj)
+  const kraj = paymentCard.indexOf('</Card>', start)
+  const blok = paymentCard.slice(start, kraj)
   for (const id of ['id={dateId}', 'id={paidAmountId}', 'id={notesId}']) {
     assert.ok(blok.includes(id), `${id} nije unutar grupe za plaćanje`)
   }
@@ -98,7 +105,7 @@ test('sva tri polja grupe za plaćanje su stvarno unutar te kartice', () => {
 
 test('loyalty kartica je group vezan na postojeći vidljivi naslov', () => {
   assert.ok(
-    page.includes('<Card className="p-4" role="group" aria-labelledby={loyaltyLabelId}>'),
+    loyaltyCard.includes('<Card className="p-4" role="group" aria-labelledby={loyaltyLabelId}>'),
     'loyalty kartica nije group',
   )
   assert.ok(
@@ -106,32 +113,38 @@ test('loyalty kartica je group vezan na postojeći vidljivi naslov', () => {
     'loyaltyLabelId nije izveden iz useId()',
   )
   assert.ok(
-    page.includes('<p id={loyaltyLabelId} className="text-sm font-semibold'),
+    loyaltyCard.includes('<p id={loyaltyLabelId} className="text-sm font-semibold'),
     'id nije stavljen na postojeći vidljivi naslov',
   )
-  // Naziv mora biti postojeći ključ — nije dodan novi vidljivi element.
-  assert.ok(page.includes("{t('stylistWorkbook.newEntry.loyalty')}"))
+  // Naziv mora biti postojeći ključ — nije dodan novi vidljiv element.
+  assert.ok(loyaltyCard.includes("{t('stylistWorkbook.newEntry.loyalty')}"))
 })
 
 test('discount polje je unutar loyalty grupe (inače bi grupa bila prazna)', () => {
-  const start = page.indexOf('aria-labelledby={loyaltyLabelId}')
-  const kraj = page.indexOf('</Card>', start)
+  const start = loyaltyCard.indexOf('aria-labelledby={loyaltyLabelId}')
+  const kraj = loyaltyCard.indexOf('</Card>', start)
   assert.ok(start > -1 && kraj > start, 'loyalty kartica nije nađena')
-  assert.ok(page.slice(start, kraj).includes('id={discountPercentId}'), 'discountPercent nije u grupi')
+  assert.ok(loyaltyCard.slice(start, kraj).includes('id={discountPercentId}'), 'discountPercent nije u grupi')
 })
 
 // ── Nema vidljivih regresija ──────────────────────────────────────────────────────
 
 test('nije uveden fieldset/legend ni FormSection (to bi bilo vidljivo)', () => {
-  assert.ok(!page.includes('<fieldset'), 'fieldset bi dodao vidljiv okvir unutar Card-a')
-  assert.ok(!page.includes('<legend'), 'legend bi dodao vidljiv naslov')
-  assert.ok(!page.includes('FormSection'), 'FormSection renderuje vidljiv border + legend')
+  for (const [ime, src] of [['stranica', page], ['plaćanje', paymentCard], ['lojalnost', loyaltyCard]]) {
+    assert.ok(!src.includes('<fieldset'), `${ime}: fieldset bi dodao vidljiv okvir unutar Card-a`)
+    assert.ok(!src.includes('<legend'), `${ime}: legend bi dodao vidljiv naslov`)
+    assert.ok(!src.includes('FormSection'), `${ime}: FormSection renderuje vidljiv border + legend`)
+  }
 })
 
-test('postoji barem jedan vidljivi naslov po grupi ILI sr-only — nema praznog aria-labelledby', () => {
-  const labelledby = [...page.matchAll(/aria-labelledby=\{([A-Za-z0-9_]+)\}/g)].map((m) => m[1])
-  assert.ok(labelledby.length >= 2, 'očekivane barem dvije grupe')
-  for (const varijabla of labelledby) {
-    assert.ok(page.includes(`id={${varijabla}}`), `${varijabla} ne pokazuje ni na jedan element`)
+test('postoji barem jedan vidljiv naslov po grupi ILI sr-only — nema praznog aria-labelledby', () => {
+  for (const [ime, src] of [['plaćanje', paymentCard], ['lojalnost', loyaltyCard]]) {
+    const labelledby = [...src.matchAll(/aria-labelledby=\{([A-Za-z0-9_]+)\}/g)].map((m) => m[1])
+    assert.ok(labelledby.length >= 1, `${ime}: očekivana barem jedna grupa`)
+    for (const varijabla of labelledby) {
+      assert.ok(src.includes(`id={${varijabla}}`), `${ime}: ${varijabla} ne pokazuje ni na jedan element`)
+    }
   }
+  // Obe grupe moraju dobiti `id` iz istog `useId()` korijena stranice (nema sudara id-ova).
+  assert.match(page, /const formId = useId\(\)/)
 })

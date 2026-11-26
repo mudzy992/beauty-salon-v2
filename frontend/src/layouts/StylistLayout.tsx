@@ -1,82 +1,28 @@
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { HelpCircle, Inbox, BookOpen, CalendarDays, Wallet, ChartNoAxesCombined } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { HelpCircle } from 'lucide-react'
 
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
-import { Button } from '../components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu'
-import { useAuth } from '../context/AuthContext'
-import { normalizeRoles } from '../utils/clientOnboarding'
-import { getUploadUrl } from '../utils/uploadUrl'
-import { userInitials } from '../utils/user-initials.mjs'
 import { LanguageSwitcher } from '../components/i18n/language-switcher'
 import { useFocusOnNavigate } from '../hooks/use-focus-on-navigate'
 import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
 import { SkipLink } from '../features/shell/admin/ui/skip-link'
 import { ThemeSwitcher } from '../features/shell/theme/theme-switcher'
-import { labelWithVisibleText } from '../components/a11y/label-in-name.mjs';
+import { StylistNav } from './stylist-nav'
+import { StylistUserMenu } from './stylist-user-menu'
 
-type NavItem = { path: string; labelKey: string }
-
-const navItems: NavItem[] = [
-  { path: '/stylist/inbox', labelKey: 'shell.stylist.inbox' },
-  { path: '/stylist/workbook', labelKey: 'nav.dailyLog' },
-  { path: '/stylist/schedule', labelKey: 'shell.stylist.schedule' },
-  { path: '/stylist/debts', labelKey: 'shell.stylist.debts' },
-  { path: '/stylist/stats', labelKey: 'shell.stylist.stats' },
-]
-
-const navIcons: Record<string, LucideIcon> = {
-  '/stylist/inbox': Inbox,
-  '/stylist/workbook': BookOpen,
-  '/stylist/schedule': CalendarDays,
-  '/stylist/debts': Wallet,
-  '/stylist/stats': ChartNoAxesCombined,
-}
-
-const isStylistNavItemActive = (pathname: string, path: string) =>
-  pathname === path || pathname.startsWith(`${path}/`)
-
-const stylistNavLinkClass = (active: boolean) =>
-  active
-    ? 'flex min-h-target shrink-0 items-center rounded-md bg-nav-active px-3 text-sm font-semibold text-brand-rose-text'
-    : 'flex min-h-target shrink-0 items-center rounded-md px-3 text-sm text-content hover:bg-surface-muted hover:text-brand-rose-text'
-
-const StylistNavLink = ({ item, pathname }: { item: NavItem; pathname: string }) => {
-  const { t } = useTranslation()
-  const active = isStylistNavItemActive(pathname, item.path)
-  const Icon = navIcons[item.path]
-
-  return (
-    <Link
-      to={item.path}
-      className={stylistNavLinkClass(active)}
-      // WCAG 4.1.2 — trenutna stranica je označena programski, ne samo stilom.
-      aria-current={active ? 'page' : undefined}
-    >
-      {Icon ? <Icon data-aurum-nav-icon aria-hidden="true" className="mr-2 h-4 w-4 shrink-0" /> : null}
-      {t(item.labelKey)}
-    </Link>
-  )
-}
-
+/**
+ * Shell stylist portala (S10).
+ *
+ * Struktura i ponašanje su identični prije refaktora: skip link kao prvi
+ * fokusabilan element, jedna glavna navigacijska landmarka, `header` sa
+ * pomoći + jezikom + temom + korisničkim menijem (WCAG 3.2.6 — pomoć je
+ * odmah prije korisničkog menija), i `main` kao meta skip linka (WCAG 2.4.1).
+ *
+ * Izdvojeno: `stylist-nav.tsx` (stavke navigacije) i `stylist-user-menu.tsx`
+ * (profil / prelazak na klijenta / odjava).
+ */
 export default function StylistLayout() {
-  const location = useLocation()
-  const navigate = useNavigate()
   const { t } = useTranslation()
-  const { logout, user } = useAuth()
-
-  const roles = normalizeRoles(user?.roles)
-  const canSwitchToClient = roles.includes('CLIENT')
-  const avatarInitials = userInitials(user?.username, 'SS')
-  const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
 
   useStylistPortalSocketRefresh()
   // WCAG 2.4.3 — fokus prati promjenu rute.
@@ -91,15 +37,7 @@ export default function StylistLayout() {
             <Link to="/stylist/inbox" className="font-semibold text-content">
               {t('shell.stylist.title')}
             </Link>
-            {/* WCAG 1.3.1 — jedna navigacijska landmarka; responsivnost rješava CSS. */}
-            <nav
-              aria-label={t('shell.mainNavigation')}
-              className="-mx-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap sm:mx-0 sm:overflow-visible sm:whitespace-normal"
-            >
-              {navItems.map((item) => (
-                <StylistNavLink key={item.path} item={item} pathname={location.pathname} />
-              ))}
-            </nav>
+            <StylistNav />
           </div>
 
           <div className="flex items-center gap-2">
@@ -114,58 +52,7 @@ export default function StylistLayout() {
             <LanguageSwitcher />
             {/* NEJRA §12 — stylist header; pomoć ostaje prije korisničkog menija (3.2.6). */}
             <ThemeSwitcher />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={labelWithVisibleText(t('shell.userMenu'), avatarInitials)}
-                >
-                  <Avatar className="h-9 w-9 ring-1 ring-line">
-                    {avatarSrc ? (
-                      <AvatarImage
-                        src={avatarSrc}
-                        alt={
-                          user?.username
-                            ? t('shell.profileForUser', { username: user.username })
-                            : t('shell.profile')
-                        }
-                      />
-                    ) : null}
-                    <AvatarFallback className="text-xs font-semibold">
-                      {avatarInitials}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem
-                  onSelect={() => {
-                    navigate('/profil')
-                  }}
-                >
-                  {t('shell.profile')}
-                </DropdownMenuItem>
-                {canSwitchToClient ? (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      navigate('/')
-                    }}
-                  >
-                    {t('shell.switchToClient')}
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={() => {
-                    if (logout()) navigate('/', { replace: true })
-                  }}
-                >
-                  {t('auth.logout')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <StylistUserMenu />
           </div>
         </div>
       </header>

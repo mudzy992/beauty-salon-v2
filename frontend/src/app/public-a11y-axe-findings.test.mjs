@@ -47,7 +47,7 @@ test('1.1.1: AvatarImage uvijek ima alt (default dekorativan)', () => {
   // dekorativan) — oslanja se na default iz primitiva, pa više nije critical.
   assert.match(at('pages/Register.tsx'), /<AvatarImage src=\{avatarPreview \?\? undefined\} \/>/)
   // pozivaoci koji nose značenje i dalje prosljeđuju svoj alt
-  assert.match(at('layouts/StylistLayout.tsx'), /shell\.profileForUser/)
+  assert.match(at('layouts/stylist-user-menu.tsx'), /shell\.profileForUser/)
   assert.match(at('features/shell/public/public-layout.tsx'), /shell\.profileForUser/)
 })
 

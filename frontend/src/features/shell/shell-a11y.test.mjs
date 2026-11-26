@@ -6,6 +6,9 @@ const read = (relative) => readFileSync(new URL(relative, import.meta.url), 'utf
 
 const adminLayout = read('./admin/admin-layout.tsx')
 const stylistLayout = read('../../layouts/StylistLayout.tsx')
+// S10: stylist shell je razdvojen na shell/nav/user-menu (ista ponašanja).
+const stylistNav = read('../../layouts/stylist-nav.tsx')
+const stylistUserMenu = read('../../layouts/stylist-user-menu.tsx')
 const adminNav = read('./admin/admin-nav-menu.tsx')
 const skipLink = read('./admin/ui/skip-link.tsx')
 const dashboardTitles = read('../../seo/dashboard-titles.ts')
@@ -32,14 +35,16 @@ test('main landmark of both shells is the skip link target and programmatically 
 
 test('navigation links expose their current-page state', () => {
   assert.match(adminNav, /aria-current=\{active \? 'page' : undefined\}/)
-  assert.match(stylistLayout, /aria-current=\{active \? 'page' : undefined\}/)
+  assert.match(stylistNav, /aria-current=\{active \? 'page' : undefined\}/)
 })
 
 test('each shell has exactly one named main navigation landmark', () => {
   assert.equal((adminNav.match(/<nav/g) ?? []).length, 1)
   assert.match(adminNav, /aria-label=\{t\('shell\.mainNavigation'\)\}/)
-  assert.equal((stylistLayout.match(/<nav/g) ?? []).length, 1)
-  assert.match(stylistLayout, /aria-label=\{t\('shell\.mainNavigation'\)\}/)
+  assert.equal((stylistNav.match(/<nav/g) ?? []).length, 1)
+  assert.match(stylistNav, /aria-label=\{t\('shell\.mainNavigation'\)\}/)
+  // Shell smije sadržavati samo tu jednu navigacijsku landmarku.
+  assert.equal((stylistLayout.match(/<nav[\s>]/g) ?? []).length, 0)
 })
 
 test('help is reachable from a consistent place in both shells (WCAG 3.2.6)', () => {
@@ -52,7 +57,7 @@ test('help is reachable from a consistent place in both shells (WCAG 3.2.6)', ()
   // help elementa u shellu" i drzala 3.2.6 kao ❌ — to je bilo pogresno.
   const SHELLS = [
     ['admin', adminLayout, '<AdminUserMenu'],
-    ['stylist', stylistLayout, '<DropdownMenu>'],
+    ['stylist', stylistLayout, '<StylistUserMenu'],
   ]
 
   for (const [name, source, userMenuAnchor] of SHELLS) {
@@ -114,11 +119,11 @@ test('every dashboard page title key exists in both locales', () => {
 import './admin/s6-presentation.test.mjs'
 
 test('stylist icons are decorative and preserve the five labelled routes', () => {
-  const paths = [...stylistLayout.matchAll(/\{ path: '(\/stylist\/[^']+)', labelKey:/g)].map(([, path]) => path)
+  const paths = [...stylistNav.matchAll(/\{ path: '(\/stylist\/[^']+)', labelKey:/g)].map(([, path]) => path)
   assert.deepEqual(paths, ['/stylist/inbox', '/stylist/workbook', '/stylist/schedule', '/stylist/debts', '/stylist/stats'])
-  for (const path of paths) assert.ok(stylistLayout.includes(`'${path}':`))
-  assert.match(stylistLayout, /<Icon data-aurum-nav-icon aria-hidden="true"/)
-  assert.match(stylistLayout, /\{t\(item.labelKey\)\}/)
+  for (const path of paths) assert.ok(stylistNav.includes(`'${path}':`))
+  assert.match(stylistNav, /<Icon data-aurum-nav-icon aria-hidden="true"/)
+  assert.match(stylistNav, /\{t\(item.labelKey\)\}/)
 })
 
 test('auth card header uses configured logo and retains both switchers', () => {

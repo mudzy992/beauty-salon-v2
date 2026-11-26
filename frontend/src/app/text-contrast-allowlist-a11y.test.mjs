@@ -159,10 +159,14 @@ test('1.4.3: svaka svjetla tekstualna paleta-klasa ispod 4.5:1 je obrazložena u
   // 2026-11-25 (S9, admin sadržaj + postavke): tvrde palete u S9 opsegu zamijenjene
   // semantičkim tokenima (ok-foreground / danger / brand-rose-text / info-foreground),
   // pa je set smanjio: scanned 124 → 109, skippedDark 47 → 43, nalazi 17 → 13.
+  // 2026-11-18 (S10, stylist portal + workbook): `text-amber-700 dark:text-amber-300`
+  // u `reservation-detail-actions.tsx` i `reservation-detail-summary.tsx` zamijenjeno
+  // sa `text-warn-foreground` (1.4.3/1.4.11). Time su nestala 2 svjetla i 2 tamna
+  // nalaza: scanned 109 → 107, skippedDark 43 → 41. Nalazi (allowlista) ostaju 13.
   // Ratchet i dalje pada (nikad ne raste) i sada hvata novo uklanjanje klasa.
-  assert.ok(scanned >= 109, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
-  // 2026-11-18 (komponente standardizovane): skippedDark = 48 → S9: 43
-  assert.ok(skippedDark >= 43, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
+  assert.ok(scanned >= 107, `sweep je pregledao samo ${scanned} svjetlih tekstualnih klasa`)
+  // 2026-11-18 (komponente standardizovane): skippedDark = 48 → S9: 43 → S10: 41
+  assert.ok(skippedDark >= 41, `dark: tokena isključeno samo ${skippedDark} — provjera prefiksa je pukla`)
 
   const missing = [...found.keys()].filter((k) => !ALLOWLIST[k])
   assert.deepEqual(missing, [], `neobrazloženi niskokontrastni nalazi:\n${missing.join('\n')}`)
@@ -255,9 +259,14 @@ test('1.4.3/1.4.11: tekst i pozadina na istom elementu imaju >= 4.5:1', () => {
 
 test('1.4.3 ispravljeno: statusni tekstovi više ne koriste emerald-600 / amber-600', () => {
   // Tri stvarna prekršaja iz faze 13 (tekst, ne ikona) — vraćanje bi ih moralo srušiti.
+  // 2026-11-18 (S10): poruka o odabranom klijentu („OK — {ime}") više nije u
+  // `workbook-new-entry-page.tsx` nego u izdvojenoj `new-entry-client-card.tsx`,
+  // pa se provjera premjestila na fajl u kojem poruka stvarno živi.
   const cases = [
-    ['features/stylist-portal/pages/stylist-direct-booking-page.tsx', /text-warn-foreground/, /text-sm text-amber-600/],
-    ['features/stylist-workbook/pages/workbook-new-entry-page.tsx', /text-ok-foreground/, /text-xs text-emerald-600/],
+    // 2026-11-18 (S10): poruka „klijent nema spol" preseljena je u komponentu
+    // za odabir usluga, pa se provjera premjestila na fajl u kojem živi.
+    ['features/stylist-portal/components/direct-booking-services-fieldset.tsx', /text-warn-foreground/, /text-sm text-amber-600/],
+    ['features/stylist-workbook/components/new-entry-client-card.tsx', /text-ok-foreground/, /text-xs text-emerald-600/],
     ['features/users/edit-user-username-field.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
     ['features/users/create-user-dialog.tsx', /text-xs text-ok-foreground/, /text-xs text-emerald-600/],
   ]
@@ -266,6 +275,12 @@ test('1.4.3 ispravljeno: statusni tekstovi više ne koriste emerald-600 / amber-
     assert.match(src, must, `${f}: nedostaje semantički token`)
     assert.doesNotMatch(src, mustNot, `${f}: sirova niskokontrastna klasa se vratila`)
   }
+  // Rastavljanje na komponente ne smi vratiti sirove klase u stranicu iz koje
+  // je poruka izdvojena.
+  const newEntryPage = readFileSync(join(SRC, 'features/stylist-workbook/pages/workbook-new-entry-page.tsx'), 'utf8')
+  assert.doesNotMatch(newEntryPage, /text-xs text-emerald-600/, 'workbook-new-entry-page.tsx: emerald-600 se vratio')
+  const directBookingPage = readFileSync(join(SRC, 'features/stylist-portal/pages/stylist-direct-booking-page.tsx'), 'utf8')
+  assert.doesNotMatch(directBookingPage, /text-sm text-amber-600/, 'stylist-direct-booking-page.tsx: amber-600 se vratio')
   // Both original Users username-availability messages moved into rendered
   // dialogs; retain the old prohibition for the remaining page as well.
   const usersPage = readFileSync(join(SRC, 'pages/Users.tsx'), 'utf8')

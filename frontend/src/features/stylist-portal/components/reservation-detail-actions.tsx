@@ -105,7 +105,10 @@ export const ReservationDetailActions = ({
             {isStartOverdue ? t('stylistPortal.reservationDetail.handleOverrun') : t('stylistPortal.reservationDetail.startReservation')}
           </Button>
           {startBlockedReason ? (
-            <p className="text-sm text-amber-700 dark:text-amber-300">
+            // S10 (1.4.3 / 1.4.11): `text-amber-700 dark:text-amber-300` → `text-warn-foreground`.
+            // Semantički token je temski (web svijetlo 8.35:1 / web tamno 11.64:1 /
+            // Aurum svijetlo 6.39:1 / Aurum tamno 9.75:1 na `surface`).
+            <p className="text-sm text-warn-foreground">
               {startBlockedReason}
             </p>
           ) : null}

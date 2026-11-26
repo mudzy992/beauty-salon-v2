@@ -647,6 +647,12 @@ jobs:
       - name: Test S9 semantic color tokens
         working-directory: frontend
         run: npm run test:s9-semantic-colors
+      - name: Test S10 reduced-motion protection
+        working-directory: frontend
+        run: npm run test:s10-reduced-motion
+      - name: Test S10 semantic color tokens
+        working-directory: frontend
+        run: npm run test:s10-semantic-colors
       - name: Test admin settings control accessibility
         working-directory: frontend
         run: npm run test:admin-settings-controls-a11y

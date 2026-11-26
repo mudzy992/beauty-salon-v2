@@ -305,7 +305,7 @@ test('2.5.3: vidljivi inicijali su uvijek 2 alfanumerička znaka (userInitials h
   // `src/utils/user-initials.mjs`. AvatarFallback i labelWithVisibleText dijele isti izlaz.
   const sites = [
     '../features/shell/admin/admin-layout.tsx',
-    '../layouts/StylistLayout.tsx',
+    '../layouts/stylist-user-menu.tsx',
     '../features/shell/public/public-layout.tsx',
   ]
   for (const file of sites) {
@@ -332,7 +332,7 @@ test('2.5.3: dugmad s avatarom uključuju vidljivi tekst u pristupačno ime', ()
   const sites = [
     ['../features/shell/admin/admin-user-menu.tsx', 'shell.adminMenu', 'initials'],
     ['../features/shell/public/public-layout.tsx', 'shell.userMenu', 'avatarInitials'],
-    ['../layouts/StylistLayout.tsx', 'shell.userMenu', 'avatarInitials'],
+    ['../layouts/stylist-user-menu.tsx', 'shell.userMenu', 'avatarInitials'],
   ]
   for (const [file, key, visible] of sites) {
     const src = readFileSync(new URL(file, import.meta.url), 'utf8')

@@ -93,7 +93,7 @@ test('ThemeSwitcher je u javnom (desktop + drawer), admin i stylist headeru', ()
   const userAdmin = adminLayout.indexOf('<AdminUserMenu', adminLayout.indexOf('<header'))
   assert.ok(helpAdmin > -1 && userAdmin > helpAdmin, 'admin: pomoć mora ostati prije menija')
   const helpStylist = stylistLayout.indexOf('to="/kontakt"')
-  const userStylist = stylistLayout.indexOf('<DropdownMenu>')
+  const userStylist = stylistLayout.indexOf('<StylistUserMenu')
   assert.ok(helpStylist > -1 && userStylist > helpStylist, 'stylist: pomoć mora ostati prije menija')
 })
 

@@ -47,7 +47,11 @@ const KM_INLINE_ALLOWED = {
   'i18n/locale-utils.mjs': 'jedino mjesto gdje " KM" treba biti',
   'pages/public/PublicServiceDetail.tsx':
     'Intl.NumberFormat + getIntlLocale — ispravno, ali duplicirano; javna stranica (ne dira se)',
-  'features/stylist-workbook/pages/workbook-new-entry-page.tsx':
+  // 2026-11-18 (S10): sastavljanje " KM" izdvojeno iz monolitne
+  // `workbook-new-entry-page.tsx` u `workbook-amount.ts` (`formatKm`), jer isti
+  // prikaz koriste kartica usluge, kartica plaćanja i kartica lojalnosti.
+  // Semantika je **nepromijenjena** (0,00 KM na nevažećem unosu, ne —).
+  'features/stylist-workbook/workbook-amount.ts':
     'formatKm — ispravno, ali se razlikuje na nevažećem unosu (0,00 KM vs —)',
 }
 

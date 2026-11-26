@@ -185,6 +185,8 @@
     "test:settings-semantic-tokens": "node --test src/features/settings/settings-semantic-tokens.test.mjs",
     "test:s9-reduced-motion": "node --test src/app/s9-reduced-motion.test.mjs",
     "test:s9-semantic-colors": "node --test src/app/s9-semantic-colors.test.mjs",
+    "test:s10-reduced-motion": "node --test src/app/s10-reduced-motion.test.mjs",
+    "test:s10-semantic-colors": "node --test src/app/s10-semantic-colors.test.mjs",
     "test:admin-settings-controls-a11y": "node --test src/features/settings/admin-settings-controls-a11y.test.mjs",
     "test:settings-hub-redirect": "node --test src/features/settings/settings-hub-redirect.test.mjs",
     "test:analytics-hub-redirect": "node --test src/features/analytics/analytics-hub-redirect.test.mjs",

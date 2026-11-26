@@ -82,7 +82,9 @@ export const ReservationDetailSummary = ({
             </p>
           ) : null}
           {reservation.rescheduleStatus === 'PENDING' ? (
-            <p className="text-sm text-amber-700 dark:text-amber-300">
+            // S10 (1.4.3 / 1.4.11): `text-amber-700 dark:text-amber-300` → `text-warn-foreground`
+            // (8.35 / 11.64 / 6.39 / 9.75:1 na `surface` u četiri žive teme).
+            <p className="text-sm text-warn-foreground">
               {t('stylistPortal.reservationDetail.pendingReschedule')}
             </p>
           ) : null}

@@ -33,7 +33,10 @@ const SRC = [...walk(join(root, 'features/stylist-portal')), ...walk(join(root, 
 const rel = (p) => p.slice(root.length + 1)
 
 test('4.1.3: upload status ima role="status" + aria-live', () => {
-  const src = at('features/stylist-workbook/pages/workbook-detail-page.tsx')
+  // S10 (2026-11-18): status uploada je preselio u karticu slika
+  // (`workbook-detail-images-card.tsx`) — provjera se premjestila na fajl u
+  // kojem poruka stvarno živi.
+  const src = at('features/stylist-workbook/components/workbook-detail-images-card.tsx')
   const i = src.indexOf("t('stylistWorkbook.detail.uploadInProgress')")
   assert.ok(i > 0, 'upload status poruka nije nadena')
   const container = src.slice(src.lastIndexOf('<div', i), i)
@@ -47,7 +50,11 @@ test('3.3.1 / 4.1.3: error poruke u obrascima imaju role="alert"', () => {
   const disposition = at('features/stylist-workbook/components/daily-log-disposition-panel.tsx')
   assert.match(disposition, /<p role="alert" className="text-sm text-bad-foreground">/)
 
-  const newEntry = at('features/stylist-workbook/pages/workbook-new-entry-page.tsx')
+  // 2026-11-18 (S10): „spol klijenta je obavezan" više nije u monolitnom
+  // `workbook-new-entry-page.tsx` nego u izdvojenoj `new-entry-service-card.tsx`
+  // (poruka se prikazuje uz polje za uslugu). Provjera se premjestila na fajl
+  // u kojem poruka stvarno živi — semantika (role="alert") ostaje ista.
+  const newEntry = at('features/stylist-workbook/components/new-entry-service-card.tsx')
   const i = newEntry.indexOf("t('stylistWorkbook.newEntry.clientGenderRequired')}")
   assert.ok(i > 0)
   const tag = newEntry.slice(newEntry.lastIndexOf('<p', i), i)

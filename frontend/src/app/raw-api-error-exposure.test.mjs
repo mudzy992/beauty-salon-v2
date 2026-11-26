@@ -55,7 +55,14 @@ const RESOLVERS = [
 // (odluka vlasnika, opcija (a) za I18N-01), pa je inventar sada PRAZAN.
 const EXPECTED_RAW_TITLE = {}
 const EXPECTED_MAPPED_COUNT = 24
-const EXPECTED_TOAST_API_ERROR_CALLS = 37
+// 2026-11-18 (S10): 37 → 36. U monolitnom `workbook-new-entry-page.tsx` dva
+// **identična** `toastApiError(err, t('stylistWorkbook.newEntry.createFailed'))`
+// poziva (za „zanemari dug" i „zapiši dug") bila su duplikat — isti payload, isti
+// catch, ista poruka. Izdvajanjem u `hooks/useWorkbookNewEntryForm.ts` sada postoji
+// **jedan** zajednički handler (`confirmPartialPayment`), pa je broj poziva 36.
+// Ovo je **deduplikacija, ne gubitak pokrivenosti**: oba puta i dalje hvataju
+// `createDailyLogEntry` grešku i pokazuju isti prevedeni naslov.
+const EXPECTED_TOAST_API_ERROR_CALLS = 36
 
 function sourceFiles() {
   const out = []
@@ -226,7 +233,9 @@ test('pozitivna kontrola: klasifikator razlikuje mapirano od sirovog na poznatom
   // i ostalih 5 fajlova koji su nekad bili sirovi
   for (const f of [
     'features/reservations/components/ReservationScheduler.tsx',
-    'features/stylist-portal/pages/stylist-direct-booking-page.tsx',
+    // S10 (2026-11-18): `resolveAdminApiError` poziv u direktnom zakazivanju
+    // preselio je iz stranice u hook `useStylistDirectBooking.ts`.
+    'features/stylist-portal/hooks/useStylistDirectBooking.ts',
     // S9 (2026-11-25): `resolveAdminApiError` pozivi su preseljeni iz
     // `pages/AppReleases.tsx` u `features/app-releases/use-app-releases.ts`.
     'features/app-releases/use-app-releases.ts',

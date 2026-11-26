@@ -32,6 +32,17 @@ const PAGES = [
   'features/stylist-workbook/pages/workbook-list-page.tsx',
   'features/stylist-workbook/pages/workbook-new-entry-page.tsx',
   'features/stylist-workbook/pages/workbook-reschedule-preview-page.tsx',
+  // S10 (2026-11-18): loader lojalnosti je preselio u karticu lojalnosti, pa je
+  // skup fajlova za ovaj ugovor proširen — broj loader-a je isti (11), samo je
+  // raspodijeljen na više fajlova.
+  'features/stylist-workbook/components/new-entry-loyalty-card.tsx',
+  // S10 (2026-11-18): detalj unosa je podijeljen na stranicu + karticu zbirnog
+  // prikaza + karticu slika + dijalog potvrde. Tri spinnera koja su prije bila
+  // u `workbook-detail-page.tsx` sada žive u tim fajlovima — ukupni broj (11),
+  // podjela samostalnih (4) i submit (7) spinnera ostaju **isti**.
+  'features/stylist-workbook/components/workbook-detail-summary-card.tsx',
+  'features/stylist-workbook/components/workbook-detail-images-card.tsx',
+  'features/stylist-workbook/components/workbook-detail-complete-dialog.tsx',
 ]
 
 /**
@@ -114,7 +125,9 @@ test('prvi loader u new-entry ima role="status" + aria-live + tekst', () => {
   assert.match(block, /<span className="text-sm text-content-muted">\{t\('common\.loading'\)\}<\/span>/)
   // status poruka (sadrzaj se mijenja: loading -> summary/unavailable)
   // 2026-11-18 (Faza C): text-slate-600 dark:text-slate-300 → text-content-strong (AAA token).
-  assert.match(src, /<p role="status" aria-live="polite" className="mt-1 text-sm text-content-strong">/)
+  // S10 (2026-11-18): ova status regija je u kartici lojalnosti.
+  const loyalty = at('features/stylist-workbook/components/new-entry-loyalty-card.tsx')
+  assert.match(loyalty, /<p role="status" aria-live="polite" className="mt-1 text-sm text-content-strong">/)
   // status kontejner ne smije biti skriven od AT-a (aria-hidden smije biti samo na ikoni)
   const container = src.slice(src.lastIndexOf('<div', i), i)
   assert.doesNotMatch(container, /aria-hidden/)

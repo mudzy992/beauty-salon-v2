@@ -105,7 +105,12 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
   }
 
   return (
-    <div className="mt-6 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+    // S10 (1.4.3 / 1.4.11): `border-amber-200 bg-amber-50/60 dark:border-amber-900/40
+    // dark:bg-amber-950/20` → `border-line bg-warn`. Upozorenje je sada tematsko:
+    // `warn-bg` je 48 96.5% 88.8% (web svijetlo) / 42.2 73% 14.5% (web tamno) /
+    // bijela (Aurum svijetlo) / 30 23.8% 8.2% (Aurum tamno), a tekst na njemu je
+    // `text-content` (17.96 / 12.20 / 17.55 / 15.60:1).
+    <div className="mt-6 space-y-3 rounded-xl border border-line bg-warn p-4">
       <div>
         <p className="font-semibold text-content">
           {t(DISPOSITION_PANEL_TITLE_KEY)}

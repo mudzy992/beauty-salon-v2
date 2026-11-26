@@ -9,5 +9,8 @@ test('stylist workbook new-entry drawer exposes its visible title and descriptio
   // Faza 11: `text-slate-500` -> `text-content-muted` (1.4.3 — slate-500 je 3.75:1 na tamnoj
   // povrsini, a `--text-muted` ima dark varijantu: 5.61:1 svjetlo / 6.56:1 tamno).
   assert.match(source, /<DialogDescription className="text-xs text-content-muted">[\s\S]*?stylistWorkbook\.newEntry\.drawerDescription[\s\S]*?<\/DialogDescription>/)
-  assert.match(source, /import \{ Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle \}/)
+  // S10 (2026-11-18): `Dialog`/`DialogContent`/`DialogFooter`/`DialogHeader` su preseljeni u
+  // `components/new-entry-partial-payment-dialog.tsx` (dijalog djelimičnog plaćanja),
+  // pa stranica uvozi samo dva elementa koja stvarno koristi.
+  assert.match(source, /import \{ DialogTitle, DialogDescription \} from '\.\.\/\.\.\/\.\.\/components\/ui\/dialog'/)
 })

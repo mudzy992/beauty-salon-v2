@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { isAxiosError } from 'axios'
@@ -6,158 +6,58 @@ import { Loader2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
-import { Badge } from '../../../components/ui/badge'
-import { Input } from '../../../components/ui/input'
-import { Label } from '../../../components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog'
-import { useAppToast } from '../../../lib/toast/useAppToast'
-import { MediaImage } from '../../../components/media-image'
-import { getUploadUrl } from '../../../utils/uploadUrl'
 import { formatDateOnlyLocale } from '../../../../../shared/business-date.mjs'
-import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
-import {
-  attachDailyLogImage,
-  completeDailyLogEntry,
-  proposeReschedule,
-  uploadDailyLogImage,
-} from '../api/stylist-workbook.api'
+import { getIntlLocale } from '../../../i18n/locale-utils.mjs'
 import { useWorkbookEntry } from '../hooks/useWorkbookEntry'
+import { useWorkbookDetailActions } from '../hooks/useWorkbookDetailActions'
 import { DailyLogDispositionPanel } from '../components/daily-log-disposition-panel'
-import { getCollectedTotal, getSettledDebtsSum } from '../workbook-display'
+import { WorkbookDetailSummaryCard } from '../components/workbook-detail-summary-card'
+import { WorkbookDetailImagesCard } from '../components/workbook-detail-images-card'
+import { WorkbookDetailCompleteDialog } from '../components/workbook-detail-complete-dialog'
+import { WorkbookDetailLatenessDialog } from '../components/workbook-detail-lateness-dialog'
 
-const formatKm = (v: number, language: string) => formatLocalizedAmount(Number(v || 0), language)
-
+/**
+ * Detalj unosa u dnevnoj knjizi (S10) — **tanka kompozicija**.
+ *
+ * Akcije (upload slika, završetak unosa, ponuda za promjenu termina) su u
+ * `hooks/useWorkbookDetailActions.ts`, a prikaz je podijeljen u četiri
+ * komponente (`components/workbook-detail-*.tsx`).
+ *
+ * Sve poruke, validacije, redoslijed koraka i notifikacije su **identični**
+ * ranijem monolitnom fajlu — razlika je samo u tome gdje se nalaze.
+ */
 export const WorkbookDetailPage = () => {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const { entryId } = useParams()
-  const { toastApiError, success, warning } = useAppToast()
 
   const id = String(entryId ?? '')
   const { entry, isLoading, isFetching, refetch, error: entryError } = useWorkbookEntry(id)
 
-  const [acting, setActing] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [beforeDescription, setBeforeDescription] = useState('')
-  const [afterDescription, setAfterDescription] = useState('')
-  const beforeFileRef = useRef<HTMLInputElement>(null)
-  const afterFileRef = useRef<HTMLInputElement>(null)
-  const beforeButtonRef = useRef<HTMLButtonElement>(null)
-  const afterButtonRef = useRef<HTMLButtonElement>(null)
-  const focusAfterUpload = useRef<HTMLButtonElement | null>(null)
-
-  useEffect(() => {
-    if (uploading || !focusAfterUpload.current) return
-    const trigger = focusAfterUpload.current
-    focusAfterUpload.current = null
-    const active = document.activeElement
-    // Disabling the trigger can drop focus to body. Do not override a user's later move.
-    if (trigger.isConnected && (active === document.body || active === beforeFileRef.current || active === afterFileRef.current)) trigger.focus()
-  }, [uploading])
-
-  const [confirmOpen, setConfirmOpen] = useState(false)
-
-  const [reschedulePromptOpen, setReschedulePromptOpen] = useState(false)
-  const [rescheduleReservationId, setRescheduleReservationId] = useState<string | null>(null)
-  const [rescheduleOverrunLabel, setRescheduleOverrunLabel] = useState<number>(0)
+  const actions = useWorkbookDetailActions({
+    entry,
+    refetch: () => refetch(),
+    onReschedulePreview: (reservationId, includeBreaks) => {
+      // Izbor se prenosi **URL-om** (3.3.7) — preview stranica čita isti
+      // parametar `includeBreaks` i ne pita korisnika ponovo.
+      navigate(
+        includeBreaks
+          ? `/stylist/workbook/reschedule-preview/${reservationId}?includeBreaks=1`
+          : `/stylist/workbook/reschedule-preview/${reservationId}?includeBreaks=0`,
+      )
+    },
+  })
 
   const canComplete = entry?.status !== 'COMPLETED'
   const beforeImages = useMemo(() => entry?.images?.filter((i) => i.isBefore) ?? [], [entry?.images])
   const afterImages = useMemo(() => entry?.images?.filter((i) => i.isAfter) ?? [], [entry?.images])
   const hasBeforeAfter = beforeImages.length > 0 || afterImages.length > 0
 
-  const handleUpload = async (isBefore: boolean, e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    if (!entry) return
-    const description = (isBefore ? beforeDescription : afterDescription).trim()
-    if (description.length < 3) return
-    const trigger = isBefore ? beforeButtonRef.current : afterButtonRef.current
-    const active = document.activeElement
-    if (active === trigger || active === e.target || active === document.body) focusAfterUpload.current = trigger
-    setUploading(true)
-    try {
-      const upload = await uploadDailyLogImage(file)
-      await attachDailyLogImage({
-        entryId: entry.id,
-        body: { uploadId: upload.id, isBefore, isAfter: !isBefore, description },
-      })
-      success(
-        t('stylistWorkbook.detail.imageAddedTitle'),
-        t('stylistWorkbook.detail.imageAddedMessage'),
-      )
-      await refetch()
-    } catch (err) {
-      toastApiError(err, t('stylistWorkbook.detail.imageUploadFailed'))
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleComplete = async () => {
-    if (!entry) return
-    setConfirmOpen(false)
-    setActing(true)
-    const reservationId = entry.reservationId ?? null
-    try {
-      await completeDailyLogEntry(entry.id)
-      await refetch()
-
-      if (!reservationId) {
-        success(
-          t('stylistWorkbook.detail.completedTitle'),
-          t('stylistWorkbook.detail.completedMessage'),
-        )
-        return
-      }
-
-      try {
-        const proposal = await proposeReschedule({
-          reservationId,
-          includeBreaks: false,
-          mode: 'actual_overrun',
-        })
-
-        const delay = proposal?.delayMinutes ?? 0
-        const itemCount = proposal?.items?.length ?? 0
-        const overrunLabel = proposal?.overrunMinutes ?? delay
-
-        if (delay > 0 && itemCount > 0) {
-          setRescheduleReservationId(reservationId)
-          setRescheduleOverrunLabel(overrunLabel)
-          setReschedulePromptOpen(true)
-          return
-        }
-
-        if (delay > 0 && itemCount === 0) {
-          warning(
-            t('stylistWorkbook.detail.latenessTitle'),
-            t('stylistWorkbook.detail.noRescheduleNeeded', { minutes: overrunLabel }),
-          )
-        }
-      } catch {
-        // optional step: ignore errors (matches mobile)
-      }
-    } catch (err) {
-      toastApiError(err, t('stylistWorkbook.detail.actionFailed'))
-    } finally {
-      setActing(false)
-    }
-  }
-
   if (isLoading) {
     return (
       <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-content-muted" aria-hidden="true" />
+        <Loader2 className="h-6 w-6 animate-spin motion-reduce:animate-none text-content-muted" aria-hidden="true" />
         <span className="text-sm text-content-muted">{t('common.loading')}</span>
       </div>
     )
@@ -221,222 +121,31 @@ export const WorkbookDetailPage = () => {
         </div>
       </div>
 
-      <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-3 w-full">
-            <div>
-              <p className="text-sm font-semibold text-content">
-                {t('stylistWorkbook.detail.services')}
-              </p>
-              <ul className="mt-1 space-y-1">
-                {(entry.items && entry.items.length > 0
-                  ? entry.items
-                  : entry.service
-                    ? [{ serviceId: entry.serviceId, service: entry.service, unitPrice: entry.actualPrice }]
-                    : []
-                ).map((it) => (
-                  <li
-                    key={it.serviceId}
-                    className="flex justify-between text-sm text-content-strong"
-                  >
-                    <span>{it.service?.name ?? t('stylistWorkbook.serviceFallback')}</span>
-                    <span>{formatKm(Number(it.unitPrice ?? 0), i18n.language)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {(entry.debtPaymentEntries?.length ?? 0) > 0 ? (
-              <div>
-                <p className="text-sm font-semibold text-content">
-                  {t('stylistWorkbook.detail.debtPayments')}
-                </p>
-                <ul className="mt-1 space-y-1">
-                  {entry.debtPaymentEntries!.map((dp) => (
-                    <li
-                      key={dp.id}
-                      className="flex justify-between text-sm text-content-strong"
-                    >
-                      <span>
-                        {dp.debt?.service?.name ??
-                          dp.service?.name ??
-                          t('stylistWorkbook.detail.debtFallback')}
-                        {dp.debt?.createdAt
-                          ? ` · ${formatDateOnlyLocale(String(dp.debt.createdAt).slice(0, 10), locale)}`
-                          : ''}
-                      </span>
-                      <span>{formatKm(Number(dp.actualPrice), i18n.language)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            <div className="text-sm text-content-strong">
-              {t('stylistWorkbook.detail.client')}
-              <span className="font-medium text-content">
-                {entry.client
-                  ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') ||
-                    entry.client.user?.username ||
-                    '—'
-                  : '—'}
-              </span>
-            </div>
-            <div className="text-sm text-content-strong">
-              {t('stylistWorkbook.detail.totalCollected')}
-              <span className="font-semibold text-content">
-                {formatKm(getCollectedTotal(entry), i18n.language)}
-              </span>
-              <span className="block text-xs mt-1">
-                {t('stylistWorkbook.detail.servicesAmount', {
-                  amount: formatKm(Number(entry.actualPrice), i18n.language),
-                })}
-                {getSettledDebtsSum(entry) > 0
-                  ? ` · ${t('stylistWorkbook.detail.debtsAmount', {
-                      amount: formatKm(getSettledDebtsSum(entry), i18n.language),
-                    })}`
-                  : ''}
-                {Number(entry.tipAmount) > 0
-                  ? ` · ${t('stylistWorkbook.detail.tipAmount', {
-                      amount: formatKm(Number(entry.tipAmount), i18n.language),
-                    })}`
-                  : ''}
-              </span>
-            </div>
-            {entry.notes ? (
-              <div className="text-sm text-content-strong">
-                {t('stylistWorkbook.detail.notes')}:{' '}
-                <span className="text-content">{entry.notes}</span>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Badge variant={entry.status === 'COMPLETED' ? 'success' : 'warning'}>
-              {entry.status === 'COMPLETED'
-                ? t('stylistWorkbook.completed')
-                : t('stylistWorkbook.pending')}
-            </Badge>
-            {canComplete ? (
-              <Button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                disabled={acting}
-                className="whitespace-nowrap"
-              >
-                {acting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                    {t('stylistWorkbook.detail.finishing')}
-                  </>
-                ) : entry.reservationId ? (
-                  t('stylistWorkbook.detail.finishWithReservation')
-                ) : (
-                  t('stylistWorkbook.detail.finishEntry')
-                )}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </Card>
+      <WorkbookDetailSummaryCard
+        entry={entry}
+        language={i18n.language}
+        locale={locale}
+        canComplete={canComplete}
+        acting={actions.acting}
+        onRequestComplete={() => actions.setConfirmOpen(true)}
+      />
 
       {(canComplete || hasBeforeAfter) ? (
-        <Card className="mt-4 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-base font-semibold text-content">
-                {t('stylistWorkbook.detail.beforeAfter')}
-              </p>
-              <p className="mt-1 text-sm text-content-strong">
-                {t('stylistWorkbook.detail.beforeAfterHint')}
-              </p>
-            </div>
-          </div>
-
-          {beforeImages.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-sm font-semibold text-content">{t('stylistWorkbook.detail.before')}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {beforeImages.map((img) => {
-                  const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
-                  return (
-                    <MediaImage
-                      key={img.id}
-                      src={uri}
-                      alt={img.description || t('stylistWorkbook.detail.before')}
-                      className="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
-                      loading="lazy"
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {afterImages.length > 0 ? (
-            <div className="mt-4">
-              <p className="text-sm font-semibold text-content">{t('stylistWorkbook.detail.after')}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {afterImages.map((img) => {
-                  const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
-                  return (
-                    <MediaImage
-                      key={img.id}
-                      src={uri}
-                      alt={img.description || t('stylistWorkbook.detail.after')}
-                      className="h-20 w-20 rounded-lg object-cover ring-1 ring-line"
-                      loading="lazy"
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {canComplete ? (
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <p id="image-description-help" className="w-full text-sm text-content-strong">{t('stylistWorkbook.detail.descriptionHelp')}</p>
-              <div className="grid w-full gap-1">
-                <Label htmlFor="before-image-description">{t('stylistWorkbook.detail.beforeDescription')}</Label>
-                <Input id="before-image-description" maxLength={500} value={beforeDescription} onChange={(event) => setBeforeDescription(event.target.value)} aria-describedby="image-description-help" />
-              </div>
-              <div className="grid w-full gap-1">
-                <Label htmlFor="after-image-description">{t('stylistWorkbook.detail.afterDescription')}</Label>
-                <Input id="after-image-description" maxLength={500} value={afterDescription} onChange={(event) => setAfterDescription(event.target.value)} aria-describedby="image-description-help" />
-              </div>
-              <input
-                ref={beforeFileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => void handleUpload(true, e)}
-                disabled={uploading}
-              />
-              <Button ref={beforeButtonRef} type="button" variant="outline" size="sm" disabled={uploading || beforeDescription.trim().length < 3} onClick={() => beforeFileRef.current?.click()}>
-                {uploading
-                  ? t('stylistWorkbook.detail.uploading')
-                  : t('stylistWorkbook.detail.addBefore')}
-              </Button>
-              <input
-                ref={afterFileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => void handleUpload(false, e)}
-                disabled={uploading}
-              />
-              <Button ref={afterButtonRef} type="button" variant="outline" size="sm" disabled={uploading || afterDescription.trim().length < 3} onClick={() => afterFileRef.current?.click()}>
-                {uploading
-                  ? t('stylistWorkbook.detail.uploading')
-                  : t('stylistWorkbook.detail.addAfter')}
-              </Button>
-              {uploading ? (
-                <div role="status" aria-live="polite" className="text-xs text-content-muted flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  {t('stylistWorkbook.detail.uploadInProgress')}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </Card>
+        <WorkbookDetailImagesCard
+          beforeImages={beforeImages}
+          afterImages={afterImages}
+          canComplete={canComplete}
+          uploading={actions.uploading}
+          beforeDescription={actions.beforeDescription}
+          onBeforeDescriptionChange={actions.setBeforeDescription}
+          afterDescription={actions.afterDescription}
+          onAfterDescriptionChange={actions.setAfterDescription}
+          beforeFileRef={actions.beforeFileRef}
+          afterFileRef={actions.afterFileRef}
+          beforeButtonRef={actions.beforeButtonRef}
+          afterButtonRef={actions.afterButtonRef}
+          onUpload={actions.handleUpload}
+        />
       ) : null}
 
       <DailyLogDispositionPanel
@@ -447,90 +156,30 @@ export const WorkbookDetailPage = () => {
         }}
       />
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('stylistWorkbook.detail.confirmTitle')}</DialogTitle>
-            <DialogDescription>
-              {entry.reservationId
-                ? t('stylistWorkbook.detail.confirmReservation')
-                : t('stylistWorkbook.detail.confirmEntry')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="ghost" onClick={() => setConfirmOpen(false)} disabled={acting}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={() => void handleComplete()} disabled={acting}>
-              {acting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  {t('stylistWorkbook.detail.finishing')}
-                </>
-              ) : (
-                t('stylistWorkbook.detail.finish')
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <WorkbookDetailCompleteDialog
+        open={actions.confirmOpen}
+        onOpenChange={actions.setConfirmOpen}
+        acting={actions.acting}
+        hasReservation={!!entry.reservationId}
+        onConfirm={() => void actions.handleComplete()}
+      />
 
-      <Dialog
-        open={reschedulePromptOpen}
+      <WorkbookDetailLatenessDialog
+        open={actions.reschedulePromptOpen}
         onOpenChange={(v) => {
-          setReschedulePromptOpen(v)
+          actions.setReschedulePromptOpen(v)
           if (!v) {
-            setRescheduleReservationId(null)
-            setRescheduleOverrunLabel(0)
+            actions.setRescheduleReservationId(null)
+            actions.setRescheduleOverrunLabel(0)
           }
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('stylistWorkbook.detail.latenessTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('stylistWorkbook.detail.latenessDescription', {
-                minutes: rescheduleOverrunLabel,
-              })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setReschedulePromptOpen(false)
-              }}
-            >
-              {t('stylistWorkbook.detail.notNow')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (!rescheduleReservationId) return
-                navigate(
-                  `/stylist/workbook/reschedule-preview/${rescheduleReservationId}?includeBreaks=0`,
-                )
-              }}
-            >
-              {t('stylistWorkbook.detail.withoutBreaks')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                if (!rescheduleReservationId) return
-                navigate(
-                  `/stylist/workbook/reschedule-preview/${rescheduleReservationId}?includeBreaks=1`,
-                )
-              }}
-            >
-              {t('stylistWorkbook.detail.includeBreaks')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        overrunMinutes={actions.rescheduleOverrunLabel}
+        onNotNow={() => actions.setReschedulePromptOpen(false)}
+        onPreview={(includeBreaks) => {
+          if (!actions.rescheduleReservationId) return
+          actions.onReschedulePreview(actions.rescheduleReservationId, includeBreaks)
+        }}
+      />
     </div>
   )
 }
-

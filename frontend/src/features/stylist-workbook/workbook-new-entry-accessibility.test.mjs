@@ -2,20 +2,38 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const source = readFileSync(new URL('./pages/workbook-new-entry-page.tsx', import.meta.url), 'utf8')
+/**
+ * S10 — dostupnost forme za novi unos u radnoj knjizi.
+ *
+ * Od 2026-11-18 stranica je **tanka kompozicija**: logika je u
+ * `hooks/useWorkbookNewEntryForm.ts`, a kartice (klijent / usluge / naplata /
+ * lojalnost) su u `components/new-entry-*.tsx`. Ugovori su isti — ali se sada
+ * provjeravaju **na fajlu gdje se nalaze**, ne na fajlu stranice.
+ *
+ * Ovaj test je namjerno ostao „source contract" (bez browsera): provjerava
+ * vezu `<Label htmlFor>` → `<Input id>` i tastaturnu operabilnost prijedloga.
+ */
+const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
+
+const page = read('./pages/workbook-new-entry-page.tsx')
+const clientCard = read('./components/new-entry-client-card.tsx')
+const serviceCard = read('./components/new-entry-service-card.tsx')
+const paymentCard = read('./components/new-entry-payment-card.tsx')
+const loyaltyCard = read('./components/new-entry-loyalty-card.tsx')
+const form = read('./hooks/useWorkbookNewEntryForm.ts')
 
 test('new-entry form labels are connected to the client and service search inputs', () => {
-  assert.match(source, /import \{[^}]*\buseId\b[^}]*\} from 'react'/)
-  assert.match(source, /<Label htmlFor=\{clientSearchId\}>[\s\S]*?stylistWorkbook\.newEntry\.client[\s\S]*?<\/Label>[\s\S]*?<Input\s+id=\{clientSearchId\}/)
-  assert.match(source, /<Label htmlFor=\{serviceSearchId\}>[\s\S]*?stylistWorkbook\.newEntry\.service[\s\S]*?<\/Label>[\s\S]*?<Input\s+id=\{serviceSearchId\}/)
+  assert.match(page, /import \{ useId \} from 'react'/)
+  assert.match(clientCard, /<Label htmlFor=\{clientSearchId\}>[\s\S]*?stylistWorkbook\.newEntry\.client[\s\S]*?<\/Label>[\s\S]*?<Input\s+id=\{clientSearchId\}/)
+  assert.match(serviceCard, /<Label htmlFor=\{serviceSearchId\}>[\s\S]*?stylistWorkbook\.newEntry\.service[\s\S]*?<\/Label>[\s\S]*?<Input\s+id=\{serviceSearchId\}/)
 })
 
 test('date, amount, notes, and discount labels target their controls', () => {
-  for (const [label, id, control] of [
-    ['date', 'dateId', 'Input'],
-    ['paidAmount', 'paidAmountId', 'Input'],
-    ['notesOptional', 'notesId', 'Textarea'],
-    ['discountPercent', 'discountPercentId', 'Input'],
+  for (const [label, id, control, source] of [
+    ['date', 'dateId', 'Input', paymentCard],
+    ['paidAmount', 'paidAmountId', 'Input', paymentCard],
+    ['notesOptional', 'notesId', 'Textarea', paymentCard],
+    ['discountPercent', 'discountPercentId', 'Input', loyaltyCard],
   ]) {
     const expression = new RegExp(
       `<Label htmlFor=\\{${id}\\}>[\\s\\S]*?stylistWorkbook\\.newEntry\\.${label}[\\s\\S]*?<\\/Label>[\\s\\S]*?<${control}\\s+id=\\{${id}\\}`,
@@ -25,15 +43,15 @@ test('date, amount, notes, and discount labels target their controls', () => {
 })
 
 test('client and service suggestions are keyboard-operable buttons', () => {
-  assert.match(source, /filteredClients\.map\(\(c\) => \([\s\S]*?<li key=\{c\.id\}>\s*<button\s+type="button"[\s\S]*?onClick=\{\(\) => handleSelectClient\(c\)\}/)
-  assert.match(source, /filteredServices\.map\(\(svc\) => \([\s\S]*?<li key=\{svc\.id\}>\s*<button\s+type="button"[\s\S]*?onClick=\{\(\) => toggleService\(svc\)\}[\s\S]*?aria-pressed=\{serviceIds\.includes\(svc\.id\)\}/)
-  assert.match(source, /aria-label=\{`\$\{t\('common\.delete'\)\}: \$\{s\.name\}`\}/)
+  assert.match(clientCard, /filteredClients\.map\(\(c\) => \([\s\S]*?<li key=\{c\.id\}>\s*<button\s+type="button"[\s\S]*?onClick=\{\(\) => onSelectClient\(c\)\}/)
+  assert.match(serviceCard, /filteredServices\.map\(\(svc\) => \([\s\S]*?<li key=\{svc\.id\}>\s*<button\s+type="button"[\s\S]*?onClick=\{\(\) => onToggleService\(svc\)\}[\s\S]*?aria-pressed=\{serviceIds\.includes\(svc\.id\)\}/)
+  assert.match(serviceCard, /aria-label=\{`\$\{t\('common\.delete'\)\}: \$\{s\.name\}`\}/)
 })
 
 test('selected client is retained independently from changing search results', () => {
-  assert.match(source, /const \[selectedClient, setSelectedClient\] = useState<ClientOption \| null>\(null\)/)
-  assert.match(source, /if \(selectedClient\) return/)
-  assert.match(source, /setSelectedClient\(c\)/)
-  assert.match(source, /setSelectedClient\(null\)[\s\S]*?setServiceIds\(\[\]\)/)
-  assert.doesNotMatch(source, /clients\.find\(\(c\) => c\.id === clientId\)/)
+  assert.match(form, /const \[selectedClient, setSelectedClient\] = useState<ClientOption \| null>\(null\)/)
+  assert.match(form, /if \(selectedClient\) return/)
+  assert.match(form, /setSelectedClient\(c\)/)
+  assert.match(form, /setSelectedClient\(null\)[\s\S]*?setServiceIds\(\[\]\)/)
+  assert.doesNotMatch(form, /clients\.find\(\(c\) => c\.id === clientId\)/)
 })

@@ -10,8 +10,15 @@ const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 
 test('stylist workbook detail and disposition UI use keys present in both locales', () => {
+  // S10 (2026-11-18): detalj unosa je podijeljen na stranicu + kartice +
+  // dijalog, pa se ključevi sakupljaju iz **svih** tih fajlova.
   const sources = [
     './pages/workbook-detail-page.tsx',
+    './components/workbook-detail-summary-card.tsx',
+    './components/workbook-detail-images-card.tsx',
+    './components/workbook-detail-complete-dialog.tsx',
+    './components/workbook-detail-lateness-dialog.tsx',
+    './hooks/useWorkbookDetailActions.ts',
     './components/daily-log-disposition-panel.tsx',
     './components/disposition-copy.ts',
   ].map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
