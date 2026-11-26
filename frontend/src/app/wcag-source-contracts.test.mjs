@@ -495,6 +495,8 @@ test('S11 rendered axe covers classic and both Aurum modes through the theme UI'
   const helper = readFileSync(new URL('../../e2e/aurum-a11y.ts', import.meta.url), 'utf8')
   const login = readFileSync(new URL('../pages/Login.tsx', import.meta.url), 'utf8')
   const authHeader = readFileSync(new URL('../features/auth/auth-card-header.tsx', import.meta.url), 'utf8')
+  const adminLayout = readFileSync(new URL('../features/shell/admin/admin-layout.tsx', import.meta.url), 'utf8')
+  const stylistLayout = readFileSync(new URL('../layouts/StylistLayout.tsx', import.meta.url), 'utf8')
   const specs = [
     ['../../e2e/a11y-aurum.spec.ts', ['/','/rezervacija']],
     ['../../e2e/a11y-aurum-admin.spec.ts', ['/admin','/admin/settings']],
@@ -516,6 +518,8 @@ test('S11 rendered axe covers classic and both Aurum modes through the theme UI'
   assert.match(authHeader, /import \{ ThemeSwitcher \}/)
   assert.match(authHeader, /<LanguageSwitcher \/>/)
   assert.match(authHeader, /<ThemeSwitcher \/>/)
+  assert.match(adminLayout, /flex-wrap/, 'admin shell must allow compact/large-text header reflow')
+  assert.match(stylistLayout, /flex-wrap/, 'stylist shell must allow compact/large-text header reflow')
   assert.match(helper, /critical.*serious|serious.*critical/s, 'rendered axe keeps critical/serious assertions')
   assert.match(helper, /recordAxeCoverage/)
   assert.match(helper, /assertS11Reflow/)

@@ -32,8 +32,8 @@ export default function StylistLayout() {
     <div data-stylist-shell className="admin-shell min-h-screen bg-surface-sunken">
       <SkipLink targetId="main" />
       <header data-stylist-header className="sticky top-0 z-20 border-b border-line bg-surface">
-        <div className="mx-auto max-w-[1600px] px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0 flex items-center gap-4">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0 flex-1 flex items-center gap-4">
             <Link to="/stylist/inbox" className="font-semibold text-content">
               {t('shell.stylist.title')}
             </Link>

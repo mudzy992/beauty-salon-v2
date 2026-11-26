@@ -83,8 +83,8 @@ export const AdminLayout = () => {
     <div className="admin-shell min-h-screen bg-surface-sunken">
       <SkipLink targetId="main" />
       <header data-admin-header className="sticky top-0 z-20 border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <AdminMobileNav
               brand={brand}
               username={user?.username}

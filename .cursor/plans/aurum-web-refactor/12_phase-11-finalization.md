@@ -1,6 +1,6 @@
 # S11 — Završni prolaz: rendered a11y za 3 stanja, reflow, docs, dead code
 
-**Status:** 🟡 U TOKU · last updated 2026-11-26. S10 approval received; CI run `45781994850` is 5/5 success for commit `e6b4271`. User explicitly authorized S11. Current implementation defines 15 rendered test cases × BS/EN (30 planned axe scans), with theme/language interaction and reflow simulation, and passes the local suite/build/repository checks recorded in `HANDOFF.md`. S11 cases are not CI-validated yet; manual zoom/AT checks remain open. **Posljednji segment; nakon njega slijedi predaja projekta.**
+**Status:** 🟡 U TOKU · last updated 2026-11-26. S10 approval received; CI run `45781994850` is 5/5 success for commit `e6b4271`. User explicitly authorized S11. Current implementation defines 15 rendered test cases × BS/EN (30 planned axe scans), with theme/language interaction and reflow simulation, and passes the local suite/build/repository checks recorded in `HANDOFF.md`. CI run `45798919542` failed 12 cases; retry `45806770602` passed 3195 and failed 5 (2 classic admin routes, stylist inbox in all 3 themes). Latest shell flex-wrap mitigation is local and awaits its rendered rerun; no S11 rendered pass is claimed. Manual zoom/AT checks remain open. **Posljednji segment; nakon njega slijedi predaja projekta.**
 
 ---
 

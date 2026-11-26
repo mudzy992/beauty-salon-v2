@@ -1,6 +1,6 @@
 # FRONTEND Codebase Map (React + Vite)
 
-**Verified snapshot:** 2026-11-26 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results. S10 commit `e6b4271` passed CI run `45781994850` (5/5). S11 three-skin rendered specs are present locally but await CI validation.
+**Verified snapshot:** 2026-11-26 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results. S10 commit `e6b4271` passed CI run `45781994850` (5/5). S11 three-skin rendered specs are present locally; CI attempts `45798919542` and `45806770602` failed, with the latter at 3195 passed / 5 failed. Latest admin/stylist shell flex-wrap change awaits CI.
 
 ## Overview
 
