@@ -24,7 +24,9 @@ test('login submission prevents duplicates and ignores results after unmount', (
   assert.match(source, /loginRequestGeneration\.current \+= 1/)
 })
 
-test('login navigation uses a single styled link control', () => {
-  assert.match(source, /<Button asChild variant="ghost" className="mb-8">\s*<Link to="\/">\{t\('auth\.backHome'\)\}<\/Link>\s*<\/Button>/)
+test('login navigation remains a single styled link alongside visible language and theme controls', () => {
+  assert.match(source, /<Button asChild variant="ghost">\s*<Link to="\/">\{t\('auth\.backHome'\)\}<\/Link>\s*<\/Button>/)
+  assert.match(source, /<LanguageSwitcher \/>/)
+  assert.match(source, /<ThemeSwitcher \/>/)
   assert.doesNotMatch(source, /<Link[^>]*>\s*<Button/)
 })
