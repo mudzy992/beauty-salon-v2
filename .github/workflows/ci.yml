@@ -1023,11 +1023,10 @@ jobs:
             # ~4 KB — stare varijante bi odsijecale baš redak s greškom pa je suite pao
             # bez vidljivog uzroka (run `44325979327`). `Error|Timed out|violation` su tu
             # kao rezervna mreža ako gore navedeni obrasci ne daju ništa.
-            # ✘ (naziv pada) + NEPRAZNE violations liste (`"violations":[]` ne matcha) +
-            # završni 'N failed/passed' sažetak. BEZ spec.ts/Error obrasca — svaki red
-            # matchirao je jednom cijelom linijom testa, a 'Error' hvatao i
-            # '[WebServer] read ECONNRESET' šum pa je head/tail odsijecao baš redak s greškom.
-            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|"violations":( )?\[\{|Timed out' "$RUNNER_TEMP/axe.log" | tail -n 40 | tr '\n' ' ' | tr -d '\r')
+            # ✘ (naziv pada) + ne-prazne axe violation liste + završni sažetak.
+            # Uključiti Playwright-ovim `Error:` prefiksom ispisane expect poruke, ali ne
+            # proizvoljno svaki 'Error' red (koji bi hvatao i [WebServer] ECONNRESET šum).
+            msg=$(grep -aE '✘|[0-9]+ (passed|failed)|"violations":( )?\[\{|Timed out|^[[:space:]]*Error:|^[[:space:]]*Expected:|^[[:space:]]*Received:' "$RUNNER_TEMP/axe.log" | tail -n 40 | tr '\n' ' ' | tr -d '\r')
             if [ -z "$msg" ]; then
               msg=$(tail -c 2000 "$RUNNER_TEMP/axe.log" | tr '\n' ' ' | tr -d '\r')
             fi
