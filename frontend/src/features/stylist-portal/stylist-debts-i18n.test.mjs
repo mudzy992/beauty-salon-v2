@@ -5,7 +5,12 @@ import test from 'node:test'
 const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
-const source = readFileSync(new URL('./pages/stylist-debts-page.tsx', import.meta.url), 'utf8')
+// S10: dialog copy and repayment feedback moved to focused component/hook modules.
+const source = [
+  readFileSync(new URL('./pages/stylist-debts-page.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./components/stylist-debt-repayment-dialog.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./hooks/useStylistDebtRepayment.ts', import.meta.url), 'utf8'),
+].join('\n')
 const keys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined

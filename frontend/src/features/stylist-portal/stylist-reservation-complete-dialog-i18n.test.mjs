@@ -9,6 +9,7 @@ const locales = ['bs', 'en'].map((language) =>
 )
 const sourceFiles = [
   './components/complete-reservation-dialog.tsx',
+  './hooks/useCompleteReservationDialogState.ts',
   './components/client-debt-selector.tsx',
   './utils/complete-dialog-helpers.ts',
 ].map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))

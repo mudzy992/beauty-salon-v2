@@ -4,13 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { Card } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog'
 import { Label } from '../../../components/ui/label'
-import { useAppToast } from '../../../lib/toast/useAppToast'
 import api from '../../../api/client'
 import { useSessionQuery as useQuery } from '../../../query/use-session-query'
-import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
+import { useStylistDebtRepayment } from '../hooks/useStylistDebtRepayment'
+import { StylistDebtRepaymentDialog } from '../components/stylist-debt-repayment-dialog'
 
 type DebtRow = {
   id: string
@@ -35,13 +34,7 @@ const formatDateOnly = (value: string, locale: string) => {
 export const StylistDebtsPage = () => {
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
-  const { toastApiError, success } = useAppToast()
   const [q, setQ] = useState('')
-  const [repayOpen, setRepayOpen] = useState(false)
-  const [repayDebtId, setRepayDebtId] = useState<string | null>(null)
-  const [repayDate, setRepayDate] = useState(() => getSalonDateOnly())
-  const [repayNote, setRepayNote] = useState('')
-  const [repaying, setRepaying] = useState(false)
 
   const query = useQuery({
     queryKey: ['stylistDebts', 'me'],
@@ -68,30 +61,7 @@ export const StylistDebtsPage = () => {
 
   const total = filtered.reduce((acc, d) => acc + (Number(d.amount) || 0), 0)
 
-  const openRepay = (debtId: string) => {
-    setRepayDebtId(debtId)
-    setRepayDate(getSalonDateOnly())
-    setRepayNote('')
-    setRepayOpen(true)
-  }
-
-  const submitRepay = async () => {
-    if (!repayDebtId) return
-    setRepaying(true)
-    try {
-      await api.post(`/api/client-debts/${repayDebtId}/repay`, {
-        date: repayDate,
-        note: repayNote.trim() || undefined,
-      })
-      success(t('stylistPortal.debts.repaidTitle'), t('stylistPortal.debts.repaidDescription'))
-      setRepayOpen(false)
-      await query.refetch()
-    } catch (err) {
-      toastApiError(err, t('stylistPortal.debts.repayFailed'))
-    } finally {
-      setRepaying(false)
-    }
-  }
+  const repayment = useStylistDebtRepayment(query.refetch)
 
   return (
     <div data-debt-list className="space-y-4">
@@ -149,7 +119,7 @@ export const StylistDebtsPage = () => {
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-semibold tabular-nums text-content">{formatMoney(d.amount, locale)}</div>
-                    <Button type="button" size="sm" className="mt-2" onClick={() => openRepay(d.id)}>
+                    <Button type="button" size="sm" className="mt-2" onClick={() => repayment.openRepay(d.id)}>
                       {t('stylistPortal.debts.repayDebt')}
                     </Button>
                   </div>
@@ -160,39 +130,16 @@ export const StylistDebtsPage = () => {
         )}
       </Card>
 
-      <Dialog open={repayOpen} onOpenChange={setRepayOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('stylistPortal.debts.dialogTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('stylistPortal.debts.dialogDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="repayDate">{t('common.date')}</Label>
-              <Input id="repayDate" type="date" value={repayDate} onChange={(e) => setRepayDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="repayNote">{t('stylistPortal.debts.noteOptional')}</Label>
-              <Input id="repayNote" value={repayNote} onChange={(e) => setRepayNote(e.target.value)} />
-            </div>
-          </div>
-          {repaying ? (
-            <p role="status" aria-live="polite" className="text-sm text-content-muted">
-              {t('common.loading')}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRepayOpen(false)} disabled={repaying}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="button" onClick={submitRepay} disabled={repaying} aria-busy={repaying}>
-              {t('stylistPortal.debts.confirmRepayment')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StylistDebtRepaymentDialog
+        open={repayment.repayOpen}
+        onOpenChange={repayment.setRepayOpen}
+        date={repayment.repayDate}
+        onDateChange={repayment.setRepayDate}
+        note={repayment.repayNote}
+        onNoteChange={repayment.setRepayNote}
+        pending={repayment.repaying}
+        onSubmit={() => void repayment.submitRepay()}
+      />
     </div>
   )
 }

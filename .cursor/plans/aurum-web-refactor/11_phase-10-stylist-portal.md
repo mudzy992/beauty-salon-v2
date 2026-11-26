@@ -71,7 +71,7 @@ Lokalno: 5 Python + puna `test:*` petlja + `npm run build` (`stylist inbox` 17,9
 - 🟡 Implementacija 10 ekrana + shell je u toku/završena lokalno; `stylist-portal.api.ts` je 0 diff. CI/rendered potvrda još nije urađena.
 - 🟡 `stylist-dark-contrast-a11y` source ugovor lokalno **3/3**; Aurum tamna rendered potvrda u CI je pending.
 - 🟡 58/58 deklaracija/ruta ostaju u routeru; S10 route refactor je lokalno provjeren, ali konačno označavanje matrice čeka CI i STOP sažetak.
-- 🟡 Lokalni build/testovi i evidencija su ažurirani; CI **5/5 pending**.
+- 🟡 Lokalni build/testovi/evidencija prolaze za trenutno radno stablo; commit `4996d1d` je već **5/5** na CI runu `45775652262`, ali novi schedule/debts/completion batch još treba vlastiti CI **5/5**.
 - 🟡 Rendered tastaturni prolaz kroz inbox → start → završetak → S11.
 - **STOP** → „Odobravaš li S11 (završni prolaz: rendered a11y za 3 stanja, reflow, docs, dead code)?"
 

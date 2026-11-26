@@ -5,7 +5,11 @@ import test from 'node:test'
 const locales = ['bs', 'en'].map((language) =>
   JSON.parse(readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8')),
 )
-const source = readFileSync(new URL('./pages/stylist-schedule-page.tsx', import.meta.url), 'utf8')
+// S10 decomposition: static page and reservation-card copy are checked together.
+const source = [
+  readFileSync(new URL('./pages/stylist-schedule-page.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./components/stylist-schedule-reservation-card.tsx', import.meta.url), 'utf8'),
+].join('\n')
 const keys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
