@@ -43,6 +43,12 @@ const PAGES = [
   'features/stylist-workbook/components/workbook-detail-summary-card.tsx',
   'features/stylist-workbook/components/workbook-detail-images-card.tsx',
   'features/stylist-workbook/components/workbook-detail-complete-dialog.tsx',
+  // S10 (2026-11-18): pregled promjene termina je podijeljen na stranicu +
+  // tri komponente; tri spinnera „sending" sada žive u listi promjena i
+  // dijalogu potvrde — ukupni broj (11) i podjela (4 samostalna / 7 submit)
+  // ostaju **ista**.
+  'features/stylist-workbook/components/reschedule-proposal-list.tsx',
+  'features/stylist-workbook/components/reschedule-confirm-dialog.tsx',
 ]
 
 /**

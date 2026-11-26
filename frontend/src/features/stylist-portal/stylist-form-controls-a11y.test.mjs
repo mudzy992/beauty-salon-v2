@@ -97,11 +97,15 @@ test('nema orphan <Label> (label bez htmlFor ne imenuje ništa)', () => {
 })
 
 test('manualShift polje: id i htmlFor su upareni preko useId', () => {
+  // S10 (2026-11-18): polje za ručno pomjeranje je preseljeno iz stranice u
+  // `components/reschedule-options-card.tsx` — provjera se premjestila na fajl
+  // u kojem kontrola stvarno živi. `useId` je i dalje izvor jedinstvenog id-a.
   const src = readFileSync(
-    join(root, 'features/stylist-workbook/pages/workbook-reschedule-preview-page.tsx'),
+    join(root, 'features/stylist-workbook/components/reschedule-options-card.tsx'),
     'utf8',
   )
-  assert.match(src, /import \{ useEffect, useId, useMemo, useState \} from 'react'/)
+  assert.match(src, /import \{ useId \} from 'react'/)
+  assert.match(src, /const formId = useId\(\)/)
   assert.match(src, /const manualShiftId = `\$\{formId\}-manual-shift`/)
   assert.match(src, /<Label htmlFor=\{manualShiftId\}>\{t\('stylistWorkbook\.reschedule\.manualShift'\)\}<\/Label>/)
   assert.match(src, /<Input\s+id=\{manualShiftId\}/)

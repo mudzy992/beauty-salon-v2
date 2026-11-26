@@ -49,7 +49,17 @@ const workbookNew = [
   read('features/stylist-workbook/components/new-entry-partial-payment-dialog.tsx'),
 ].join('\n')
 const detailPage = read('features/stylist-workbook/pages/workbook-detail-page.tsx')
-const reschedule = read('features/stylist-workbook/pages/workbook-reschedule-preview-page.tsx')
+// S10 (2026-11-18): pregled promjene termina je podijeljen na stranicu + hook
+// + tri komponente. Početne vrijednosti iz URL-a sada čuva hook
+// (`useReschedulePreview.ts`), a preklopnik je u `reschedule-options-card.tsx` —
+// provjera se čita nad **cijelim** skupom fajlova.
+const reschedule = [
+  read('features/stylist-workbook/pages/workbook-reschedule-preview-page.tsx'),
+  read('features/stylist-workbook/hooks/useReschedulePreview.ts'),
+  read('features/stylist-workbook/components/reschedule-options-card.tsx'),
+  read('features/stylist-workbook/components/reschedule-proposal-list.tsx'),
+  read('features/stylist-workbook/components/reschedule-confirm-dialog.tsx'),
+].join('\n')
 const publicReserve = read('pages/public/PublicReserve.tsx')
 const onboarding = read('utils/clientOnboarding.ts')
 
