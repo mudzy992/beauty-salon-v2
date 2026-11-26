@@ -1,18 +1,18 @@
 # CHECKLIST — Aurum web refaktor
 
-> **S11 — u toku, autorizovan nakon S10 CI gate-a:** S10 commit `e6b4271` / CI [45781994850](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45781994850) **5/5 success** (uključujući rendered a11y). 15 novih rendered Chromium testova × BS/EN (30 axe scans) obuhvata public home + guest booking, admin dashboard + settings hub, stylist inbox u classic/Aurum light/Aurum dark; koriste javni theme control i `api/settings/public`, bez direktnog DOM/localStorage override-a; login redirect renderuje shared AuthCardHeader s LanguageSwitcher i ThemeSwitcher kako bi i odredišna stranica podržala sve theme/locale skenove. 320 CSS px reflow, simulirani 200% tekst i text-spacing mjere su dodani; `typecheck:e2e`, Playwright discovery (15 testova) i WCAG source-contract suite **18/18** lokalno PASS. CI pokušaji `45798919542`, `45806770602` i `45815246372` nisu prošli; oba zadnja imaju 3195 passed / 5 failed (2 classic admin rute + stylist inbox kroz tri teme). Flex-wrap shell korekcija nije promijenila neuspjehe; CI annotation sada će prikazati assertion detalje. Bez rendered PASS tvrdnje. S10 focused i lokalni dokazni rezultati prethodno navedeni ostaju; manualni keyboard poslovni tok inbox → start → completion, stvarni 200/400% zoom, OS forced-colors i screen reader su otvoreni. Legacy admin template audit: 14/14 starih TS/TSX modula imaju koda-potrošača; bez brisanja nedokazanog mrtvog koda. Nema merge/deploya.
+> **S11 — u toku:** S10 commit `e6b4271` / CI [45781994850](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45781994850) **5/5 success**. 15 rendered Chromium testova × BS/EN (30 axe scans) obuhvata javnu naslovnicu + guest booking, admin dashboard + settings hub i stylist inbox u Classic/Aurum Light/Aurum Dark; 320 CSS px, simulirani 200% tekst i text-spacing su uključeni. Lokalni `typecheck:e2e`, discovery (15 testova) i source-contract suite **18/18** prolaze. CI `45806770602` i `45815246372` imali su 3195 passed / 5 failed; flex-wrap popravka nije ih uklonila. Diagnostic retry `45823565680` zaustavljen je nakon što rendered korak nije završio ni za ~32 minute. Zamjenski run [45828686415](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45828686415) je u toku: preostala četiri posla su prošla, rendered axe još traje. Još nema S11 rendered PASS tvrdnje. Tačne korisničke, isključivo ručne provjere i upute su u [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md); čekati da se CI zatvori prije njihovog početka. Legacy admin template audit: 14/14 starih TS/TSX modula imaju potrošača; nijedan nedokazano mrtav modul nije brisan. Nema merge/deploya.
 
-## S11 ručna/rendered provjera — otvoreno
+## S11 ručna provjera — isključivo korisnik
 
-| Provjera | Status | Granica / dokaz |
+| Provjera | Status | Upute |
 |---|---|---|
-| Stylist inbox → start → completion, keyboard-only | 🟡 Nije ručno izvršeno | S11 rendered axe spec pokriva inbox theme states, ne cijeli poslovni tok |
-| Browser zoom 200% i 400% na reprezentativnim rutama | 🟡 Nije izvršeno | 320 CSS px i root-font-size simulacije nisu browser zoom |
-| Text-spacing u stvarnom browseru, `forced-colors` OS | 🟡 Nije izvršeno | Lokalni DOM/style probes nisu OS high-contrast audit |
-| NVDA/VoiceOver statusi/fokus kroz tri teme | 🟡 Nije izvršeno | Nema screen readera u sandboxu |
-| Fokus povratak poslije brisanja reda/promjene rute | 🟡 Nije cjelovito pregledano | Osloniti se na po-kriteriju dokaz; ne zatvarati općenito |
+| Stvarni browser zoom 200/400%, text-spacing | 🟡 Čeka korisnika | Pet ciljnih ruta, BS/EN, tri teme; protokol i text-spacing snippet u [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md) |
+| Tastatura/fokus; stylist inbox → start → completion | 🟡 Čeka korisnika | Samo staging + testna rezervacija; očekivani fokus i statusi u protokolu |
+| Čitač ekrana (NVDA/VoiceOver) | 🟡 Čeka korisnika | Imena/uloge/stanja, statusne najave i fokus prema protokolu |
+| OS forced-colors/high contrast | 🟡 Čeka korisnika | Stvarni Windows OS mod; emulacija nije dokaz |
+| OS reduced-motion | 🟡 Čeka korisnika | Stvarni OS setting; funkcije moraju ostati dostupne bez nepotrebne animacije |
 
-> S11 automatizovani axe/reflow testovi još čekaju CI; ova tabela se ne može zatvoriti samo na osnovu source checks.
+> S11 zatvara se tek nakon CI 5/5/rendered PASS, ažurne evidencije i prijave ovih ručnih rezultata ili jasnog N/A razloga. Ne tvrdi se provjera koja nije obavljena.
 
 > **S9 (lokalno, 2026-11-25):** admin sadržaj i postavke su razbijeni u orkestrator-stranice
 > (11 fajlova, svi ≤ 132 linije) sa modulima u `features/*`; `EmailSettings` 1416 → 101 linija

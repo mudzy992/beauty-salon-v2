@@ -1,6 +1,6 @@
 # FRONTEND Codebase Map (React + Vite)
 
-**Verified snapshot:** 2026-11-26 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results. S10 commit `e6b4271` passed CI run `45781994850` (5/5). S11 three-skin rendered specs are present locally; CI attempts `45798919542`, `45806770602` and `45815246372` failed, the latter two at 3195 passed / 5 failed. Shell flex-wrap did not clear the remaining cases; the CI step now annotates Playwright assertion details for the next retry.
+**Verified snapshot:** 2026-11-26 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results. S10 commit `e6b4271` passed CI run `45781994850` (5/5). S11 CI `45806770602` and `45815246372` had 3195 passed / 5 failed; flex-wrap did not clear those cases. Diagnostic run `45823565680` was cancelled after ~32 minutes without result; replacement [run `45828686415`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45828686415) has four jobs successful and rendered axe still in progress. No S11 rendered PASS is claimed yet. Owner-only manual steps are documented in [S11 verification](../../.cursor/plans/aurum-web-refactor/S11_USER_VERIFICATION.md).
 
 ## Overview
 
