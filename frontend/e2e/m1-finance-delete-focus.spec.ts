@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // Delete requests are intercepted. Success removes only a synthetic fixture row.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const viewport of ['desktop', 'mobile'] as const) {
       for (const kind of ['income', 'expense'] as const) {
@@ -36,7 +36,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
                 }
                 return route.abort()
               }
-              if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+              if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
               if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
               if (path === '/api/income-books') return route.fulfill({ json: [incomeBook()] })
               if (path === '/api/income-books/income-book-1') return route.fulfill({ json: incomeBook() })
@@ -48,7 +48,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
               return route.fulfill({ json: {} })
             })
             await page.goto(`/admin/finance?tab=${kind}`, { waitUntil: 'networkidle' })
-            await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+            await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
             await expect(page.locator('html')).toHaveAttribute('lang', language)
             const open = page.getByRole('button', { name: /otvori knjigu.*2026|open book.*2026/i })
             await expect(open).toBeVisible()

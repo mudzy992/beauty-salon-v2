@@ -1,5 +1,7 @@
 # Faza 8 — Salon / Usluge / Frizeri (+ ServiceWorkGallery)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **4 ekrana, 2839 linija, 0 testova** — najslabija sigurnosna mreža u obimu. Prvi korak je dodavanje testova, pa tek onda refaktor.
 
 ---

@@ -155,9 +155,6 @@ jobs:
       - name: Test socket recovery policy
         working-directory: frontend
         run: npm run test:socket-recovery
-      - name: Test dynamic brand contrast colors
-        working-directory: frontend
-        run: npm run test:brand-colors
       - name: Test uploaded brand logo security boundary
         working-directory: frontend
         run: npm run test:uploaded-brand-logo-security
@@ -608,7 +605,7 @@ jobs:
       - name: Test NEJRA full design specification
         working-directory: frontend
         run: npm run test:design-spec
-      - name: Test NEJRA 3-state theme state machine (S1)
+      - name: Test Aurum light/dark theme state machine
         working-directory: frontend
         run: npm run test:theme-state
       - name: Test NEJRA theme switcher accessibility (S1)

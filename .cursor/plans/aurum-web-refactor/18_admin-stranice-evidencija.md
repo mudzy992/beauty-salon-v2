@@ -1,5 +1,7 @@
 # Admin: evidencija pregleda stranica i TSX potrošača
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Cilj vlasnika: svaki admin ekran i njegova TSX stabla, sve vidljive površine/boje kroz postojeću Aurum paletu, ne samo početna. Ovo je **radna evidencija, ne tvrdnja o završenom pregledu**. Pregledati light/dark, Classic paritet, sve uloge, popunjeno/prazno/učitavanje/greške, hover/fokus, mobilno i portale. Grafove, upravljive sadržaje/slike i statusne elemente provjeravati zasebno, jer nisu nužno obične površine. Nijedna skripta sama ne garantuje da je renderirana boja ili kontrast ispravan. Ako nije moguće postići potreban kontrast postojećim tokenima, stati i pitati prije promjene palete.
 
 Legenda: **otvoreno** = detaljan pregled još nije obavljen; **djelimično** = neki konkretni tokovi/komponente provjereni, nije kompletna stranica. Registar u `17_admin-poprecni-pregled.md`; `python3 scripts/audit_tsx_ui.py --json` uključuje sve TSX fajlove, a `--scope admin` statički dosegnute; provjeriti i shared/unclassified i dinamičke importe. Testne fixturee ne smatrati stvarnim salonskim podacima.

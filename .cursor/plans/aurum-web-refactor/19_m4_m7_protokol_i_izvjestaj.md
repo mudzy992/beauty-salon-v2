@@ -1,5 +1,7 @@
 # M4–M7: dokaz, ograničenja i protokol pregleda
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Ovo je radni zapis, ne potvrda da su ručni testovi obavljeni i ne predstavlja nezavisan audit ni izjavu o WCAG usklađenosti. Pregled raditi isključivo na izolovanom testnom okruženju i sintetičkim računima, uslugama, terminima i prilozima; nikada na produkciji ili stvarnim podacima. Ne izvršavati stvarna destruktivna slanja, finansijske transakcije ili upload bez odobrenog izolovanog backenda.
 
 ## Trenutni dokazi i otvorene stavke

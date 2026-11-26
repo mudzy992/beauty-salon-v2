@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // Isolated responses and synthetic image only; no upload or daily-log write reaches a backend.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const imageKind of ['before', 'after'] as const) {
       for (const key of ['Enter', 'Space'] as const) {
@@ -23,7 +23,6 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
               const path = new URL(request.url()).pathname
               if (request.method() === 'GET') {
                 if (path === '/api/settings/public') return route.fulfill({ json: [
-                  { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
                   { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' },
                 ] })
                 if (path === '/api/users/profile') return route.fulfill({ json: {
@@ -55,7 +54,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             await page.goto('/stylist/workbook/entry-test', { waitUntil: 'networkidle' })
             await expect(page).toHaveURL(/\/stylist\/workbook\/entry-test$/)
             await expect(page.getByRole('heading', { name: 'DK-TEST' })).toBeVisible()
-            await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+            await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
             await expect(page.locator('html')).toHaveAttribute('lang', language)
             const description = page.locator(imageKind === 'before' ? '#before-image-description' : '#after-image-description')
             await description.fill('Synthetic hair description')

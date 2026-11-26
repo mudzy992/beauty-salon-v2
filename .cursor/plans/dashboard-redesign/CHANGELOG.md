@@ -1,5 +1,7 @@
 # CHANGELOG — Dashboard redesign
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Format: datum · šta · zašto · dokaz.
 
 ---

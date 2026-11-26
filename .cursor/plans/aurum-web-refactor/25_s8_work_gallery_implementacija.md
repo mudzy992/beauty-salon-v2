@@ -1,5 +1,7 @@
 # S8 — work-gallery: odobreni ugovor i implementacijski kontrolni spisak
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Rad u toku: implementirani su sakrivanje, vraćanje, revizijska ABA zaštita vidljivosti, ručni redoslijed i privatni upload para; CI za paket je zelen, a ostaju završne ručne provjere. Vlasnik je odabrao dodati upload, uklanjanje i redoslijed u S8:
 
 - Novi before/after par veže se za postojeći **završeni zapis usluge**. Novi originali su privatni; javni prikaz zahtijeva zasebnu aktivnu saglasnost stvarnog klijenta za svaku fotografiju.

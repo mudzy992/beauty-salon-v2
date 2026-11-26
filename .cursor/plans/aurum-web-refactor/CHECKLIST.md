@@ -1,5 +1,16 @@
 # CHECKLIST — Aurum web refaktor
 
+## Aktuelni status — provjera 2026-11-18
+
+- Podržani su samo **Aurum light** i **Aurum dark**; paleta je fiksna, bez runtime overrides. Retired theme settings su uklonjeni iz UI/API registra, a migracija uklanja njihove stare app-settings redove.
+- Frontend suite: **209/209** `test:*`; production build i `typecheck:e2e` prolaze. Frontend lint: **0 grešaka, 5 upozorenja**; mobile lint prolazi.
+- Repo hygiene, CI-index, Markdown linkovi (769), BS/EN parity (2,891/2,891), source-token contrast (96/96) i `git diff --check` prolaze.
+- Backend lint nije prolaz (15,592 grešaka, 845 upozorenja). Prisma client generation blokiran je mrežnim preuzimanjem engine-a. Chromium/rendered browser test nije izvršen; posljednji provjereni CI run `45864317438` je otkazan.
+- Ručni **200%/400% zoom** i **text-spacing** pregled i dalje su otvoreni; čitač ekrana nije provjeren. Slijediti [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md). Nema commit-a ni push-a.
+
+> Zapis ispod ove napomene je ranija fazna evidencija i nije aktuelni verification status.
+
+
 > **S11 — završni popravak u toku:** 15 rendered Chromium testova × BS/EN (30 axe scans) pokrivaju javnu naslovnicu/guest booking, admin dashboard/settings i stylist inbox u Classic/Aurum Light/Aurum Dark. Lokalni `typecheck:e2e`, source contracts, fokusirani Node testovi i build prolaze. CI [45828686415](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45828686415) završio je 4/5: **3195 passed / 5 failed** na 320px reflow testu, ne na axe pravilima: `/admin` i `/admin/settings` Classic/BS, te `/stylist/inbox` BS kroz sve tri teme. User report: tema/jezik, guest redirect, admin/stylist pristup, keyboard/focus, forced-colors i reduced-motion rade; stvarni zoom gubi sidebar; čitač ekrana nije testabilan. Responsive patch (menu trigger umjesto avatar, wrap/shrink shell nav i inbox) + 320px drawer/focus e2e je lokalno zelen, novi rendered CI još čeka. Legacy admin template audit: 14/14 modula imaju potrošača. Nema merge/deploya.
 
 ## S11 vlasnikova evidencija i jedino što još treba uraditi

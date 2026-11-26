@@ -44,10 +44,7 @@ export const APPEARANCE_FIELD_COPY_KEYS = {
   app_logo_text_color: 'adminSettings.appearance.fields.logoTextColor',
   app_logo_accent: 'adminSettings.appearance.fields.logoAccentColor',
   app_logo_animated: 'adminSettings.appearance.fields.animateLogo',
-  theme_active_skin: 'adminSettings.appearance.fields.activeSkin',
   theme_default_mode: 'adminSettings.appearance.fields.defaultMode',
-  theme_primary: 'adminSettings.appearance.fields.primarySiteColor',
-  theme_accent: 'adminSettings.appearance.fields.siteAccentColor',
 } as const
 
 export const SEO_GROUP_COPY_KEYS = {

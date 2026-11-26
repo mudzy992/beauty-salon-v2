@@ -10,7 +10,6 @@
     "test:socket-recovery": "node --test src/context/socket-recovery.test.mjs",
     "test:auth-session-race": "node --test src/stores/auth-session-race.test.mjs src/query/session-query-contract.test.mjs",
     "test:auth-session-rendered": "playwright test --config playwright.auth-session.config.ts",
-    "test:brand-colors": "node --test src/utils/brand-colors.test.mjs",
     "test:uploaded-brand-logo-security": "node --test src/components/brand/uploaded-brand-logo-security.test.mjs",
     "test:registration-errors": "node --test src/features/auth/registration-error.test.mjs",
     "test:registration-accessibility": "node --test src/features/auth/registration-accessibility.test.mjs",

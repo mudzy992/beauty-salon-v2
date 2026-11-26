@@ -1,5 +1,7 @@
 # S0 — Dizajn dokumenti + popravka CI baselinea
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **S0 ZAVRŠEN: 199/199 lokalno + 5/5 CI (`43043182552`, docs-only `43046250037`).** Vlasnik je 2026-11-11 naknadno eksplicitno odobrio S1 („Možeš nastaviti, odobravam S1"), pa je S1 pokrenut i implementiran u zasebnom segmentu; ovo ograničenje „S1 ne počinje automatski" je time ispunjeno, ne ukinuto za S2–S11. Plan je odobren odlukom `approve_s0` · **Tip:** isključivo dokumenti + jedan novi source-contract test + registracija tog testa u CI + odobreni CI-only fallback · **Bez produkcijskog UI koda.**
 
 ---

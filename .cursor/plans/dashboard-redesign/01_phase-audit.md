@@ -1,5 +1,7 @@
 # Faza A1 — Audit trenutnog stanja
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Sve brojke u ovom dokumentu su izmjerene grep/wc/proračunom nad `frontend/` na commit-u `9df498a`, 2026-11-08.**
 Ovo su činjenice iz koda, ne procjene. Gdje nešto nije moglo biti provjereno u renderu — eksplicitno je označeno.
 

@@ -64,8 +64,7 @@ export interface SettingGroup {
  *     (`aria-hidden`), ali isti standard kod repozitorija već primjenjuje na
  *     ikone u `allowlist` (npr. „ikona (Trash2) aria-hidden, 3.67:1 ≥ 3:1“).
  *  2. **Tema** — palete nisu poštovale Aurum; semantički tokeni imaju izmjeren
- *     kontrast u sve tri žive teme (classic 8.31–10.44:1, aurum-light
- *     6.39–17.55:1, aurum-dark 8.45–15.60:1).
+ *     kontrast u oba Aurum režima (light 6.39–17.55:1, dark 8.45–15.60:1).
  *
  * Razlikovanje grupa i dalje nosi ikona (Lucide) i naziv grupe, pa boja ostaje
  * samo podređeno vizuelno ojačanje.
@@ -76,7 +75,7 @@ export const GROUP_ICON_TEXT: Record<string, string> = {
   blue: 'text-brand-rose-text',
   green: 'text-ok-foreground',
   pink: 'text-brand-rose-text',
-  // 2026-11-18 (Faza C): text-slate-500 → text-content-muted (theme-aware, Aurum i Classic).
+  // 2026-11-18 (Faza C): text-slate-500 → text-content-muted (theme-aware in both Aurum modes).
   gray: 'text-content-muted',
   teal: 'text-info-foreground',
   cyan: 'text-info-foreground',

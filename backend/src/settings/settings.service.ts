@@ -259,9 +259,6 @@ export class SettingsService {
   async set(key: string, dto: SetSettingDto, updatedBy?: string) {
     const registry = this.getRegistryItemOrThrow(key);
     const rawValue = this.normalizeString(dto.value ?? '');
-    if (key === 'theme_active_skin' && !['classic', 'aurum'].includes(rawValue)) {
-      throw new BadRequestException(apiError('SETTINGS_INVALID_THEME'));
-    }
     if (key === 'theme_default_mode' && !['light', 'dark'].includes(rawValue)) {
       throw new BadRequestException(apiError('SETTINGS_INVALID_THEME_MODE'));
     }
@@ -269,8 +266,6 @@ export class SettingsService {
       'app_logo_svg_color',
       'app_logo_text_color',
       'app_logo_accent',
-      'theme_primary',
-      'theme_accent',
     ]);
     const keySpecific = hexKeys.has(key) ? this.normalizeHexColor(rawValue) : rawValue;
     const normalizedValue =

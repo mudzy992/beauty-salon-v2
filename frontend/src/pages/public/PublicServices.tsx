@@ -193,7 +193,7 @@ export default function PublicServices() {
     setActiveCategoryId(ALL_CATEGORIES)
   }
 
-  /* Ista polja za klasični i Aurum omotač: nema duplih id-jeva ni kontrola. */
+  /* Ista polja u oba prikazna režima: nema duplih id-jeva ni kontrola. */
   const filterFields = (
               <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.8fr)_1.2fr] lg:items-end">
                 <div>

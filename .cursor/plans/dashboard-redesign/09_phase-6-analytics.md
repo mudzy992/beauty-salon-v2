@@ -1,5 +1,7 @@
 # Faza 6 — Analitika (Analytics + ClientAnalytics + StylistAnalytics)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Ovdje se odlučuje o objedinjavanju M1 (Q3).** Bez odobrenja — tri ekrana ostaju odvojene rute, radi se samo redizajn.
 
 ---

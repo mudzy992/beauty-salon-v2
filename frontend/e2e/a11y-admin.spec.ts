@@ -425,8 +425,7 @@ for (const mode of ['light', 'dark'] as const) {
         if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
         const rows = await response.json() as Array<{ key: string; value: string }>
         await route.fulfill({ response, json: [
-          ...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
-          { key: 'theme_active_skin', value: 'aurum' },
+          ...rows.filter((row) => row.key !== 'theme_default_mode'),
           { key: 'theme_default_mode', value: mode },
         ] })
       })
@@ -450,7 +449,7 @@ for (const mode of ['light', 'dark'] as const) {
       const response = await route.fetch()
       if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
       const rows = await response.json() as Array<{ key: string; value: string }>
-      await route.fulfill({ response, json: [...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      await route.fulfill({ response, json: [...rows.filter((row) => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
     })
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/', { waitUntil: 'networkidle' })
@@ -485,7 +484,7 @@ for (const mode of ['light', 'dark'] as const) {
     await page.route('**/api/settings/public', async (route) => {
       const response = await route.fetch()
       const rows = await response.json() as Array<{ key: string; value: string }>
-      await route.fulfill({ response, json: [...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      await route.fulfill({ response, json: [...rows.filter((row) => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
     })
     await page.goto('/profil', { waitUntil: 'networkidle' })
     expect(new URL(page.url()).pathname).toBe('/profil')
@@ -507,7 +506,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       await page.route('**/api/income-books/month/**', route => route.fulfill({ status: 503, json: {} }))
       await page.route('**/api/reservations/dashboard-summary**', route => route.fulfill({ status: 503, json: {} }))
@@ -538,7 +537,7 @@ for (const mode of ['light', 'dark'] as const) {
     await page.route('**/api/settings/public', async route => {
       const response = await route.fetch()
       const rows = await response.json() as Array<{ key: string; value: string }>
-      await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+      await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
     })
     await page.route('**/api/reservations/dashboard-summary**', route => route.fulfill({ json: { reservationsThisMonth: 0, pendingReservations: 0, completedReservations: 0, recentReservations: [] } }))
     await page.goto('/admin', { waitUntil: 'networkidle' })
@@ -573,7 +572,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       await page.route('**/api/blog/comments/pending-count', route => route.fulfill({ json: { pending: 0 } }))
       await page.goto('/admin', { waitUntil: 'networkidle' })
@@ -619,7 +618,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       if (path === '/admin/services') {
         await page.route('**/api/services/admin/categories**', route => route.fulfill({ json: [{ id: 'fixture-category', name: 'Primjer kategorije', description: null, sortOrder: 0, isActive: true }] }))
@@ -654,7 +653,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
@@ -705,7 +704,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
       await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
@@ -804,7 +803,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       await page.route('**/api/users/dashboard-count', route => route.fulfill({ json: { total: 14 } }))
       await page.route('**/api/stylists?**', route => route.fulfill({ json: { total: 3 } }))
@@ -894,7 +893,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       const user = { id: 'fixture-user', username: 'test.stilist', email: 'test@example.test', firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: true, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }], stylistProfile: { id: 'stylist-one', status: 'ACTIVE' } }
       await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
@@ -1082,33 +1081,40 @@ test('users treats malformed debt data as an error and retries without reporting
   expect(attempts).toBeGreaterThanOrEqual(3)
 })
 
-for (const viewport of ['desktop', 'mobile'] as const) {
-  test(`users Classic populated view and edit remain usable: ${viewport}`, async ({ page }) => {
-    await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
-    await page.route('**/api/settings/public', async route => {
-      const response = await route.fetch()
-      const rows = await response.json() as Array<{ key: string; value: string }>
-      await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_active_skin'), { key: 'theme_active_skin', value: 'classic' }] })
+for (const mode of ['light', 'dark'] as const) {
+  for (const viewport of ['desktop', 'mobile'] as const) {
+    test(`users populated view and edit remain usable: Aurum ${mode} ${viewport}`, async ({ page }) => {
+      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
+      await page.addInitScript(value => {
+        localStorage.removeItem('nejra.theme')
+        localStorage.setItem('nejra.theme.mode', value)
+      }, mode)
+      await page.route('**/api/settings/public', async route => {
+        const response = await route.fetch()
+        const rows = await response.json() as Array<{ key: string; value: string }>
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
+      })
+      const user = { id: 'fixture-client', username: 'primjer.klijent', email: null, firstName: 'Primjer', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }
+      await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
+      await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
+      await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
+      await page.goto('/admin/users', { waitUntil: 'networkidle' })
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
+      const root = page.locator('[data-admin-users]')
+      const edit = root.getByRole('button', { name: /uredi korisnika primjer.klijent|edit user primjer.klijent/i }).first()
+      await edit.click()
+      const dialog = page.locator('[data-users-dialog][role="dialog"]')
+      await expect(dialog).toBeVisible()
+      await expect(dialog.locator('#users-auth-first-name')).toHaveValue('Primjer')
+      await page.keyboard.press('Escape')
+      await expect(dialog).toBeHidden()
+      await expect(edit).toBeFocused()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
     })
-    const user = { id: 'fixture-client', username: 'primjer.klijent', email: null, firstName: 'Primjer', lastName: 'Klijent', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }] }
-    await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
-    await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
-    await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
-    await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
-    await page.route('**/api/client-debts?**', route => route.fulfill({ json: [] }))
-    await page.goto('/admin/users', { waitUntil: 'networkidle' })
-    await expect(page.locator('html')).toHaveAttribute('data-skin', 'classic')
-    const root = page.locator('[data-admin-users]')
-    const edit = root.getByRole('button', { name: /uredi korisnika primjer.klijent|edit user primjer.klijent/i }).first()
-    await edit.click()
-    const dialog = page.locator('[data-users-dialog][role="dialog"]')
-    await expect(dialog).toBeVisible()
-    await expect(dialog.locator('#users-auth-first-name')).toHaveValue('Primjer')
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeHidden()
-    await expect(edit).toBeFocused()
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
-  })
+  }
 }
 
 test('users requires a fresh stylist preview after a conflict', async ({ page }) => {
@@ -1273,7 +1279,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }] }
       await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
@@ -1286,44 +1292,6 @@ for (const mode of ['light', 'dark'] as const) {
       await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
       const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
       await expect(dialog.locator('#users-financial-transfer-target').locator('option[value="stylist-two"]')).toHaveCount(1)
-      const axe = await new AxeBuilder({ page }).include('[data-users-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
-      console.log(`USERS_FINANCIAL_${mode}_${viewport} ${JSON.stringify({ violations: axe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: axe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
-      expect(axe.violations).toEqual([])
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
-    })
-  }
-}
-
-for (const mode of ['classic'] as const) {
-  for (const viewport of ['desktop', 'mobile'] as const) {
-    test(`users financial transfer dialog accessibility ${mode} ${viewport}`, async ({ page }) => {
-      await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
-      await page.addInitScript(() => { localStorage.removeItem('nejra.theme'); localStorage.removeItem('nejra.theme.mode') })
-      await page.route('**/api/settings/public', async route => {
-        const response = await route.fetch()
-        const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'classic' }, { key: 'theme_default_mode', value: 'light' }] })
-      })
-      const user = { id: 'fixture-user', username: 'test.stilist', email: null, firstName: 'Test', lastName: 'Stilist', phone: null, gender: 'FEMALE', avatar: null, isActive: true, isEmailVerified: false, createdAt: '2026-01-01T00:00:00Z', userRoles: [{ role: { name: 'CLIENT' } }, { role: { name: 'STYLIST' } }] }
-      await page.route('**/api/users/system-admins**', route => route.fulfill({ json: [] }))
-      await page.route('**/api/users/stylists**', route => route.fulfill({ json: [] }))
-      await page.route('**/api/users/password-reset-candidates**', route => route.fulfill({ json: [] }))
-      await page.route('**/api/users/clients/admin**', route => route.fulfill({ json: { items: [user], total: 1, page: 0, pageSize: 20 } }))
-      await page.route('**/api/users/fixture-user/stylist-removal-preview', route => route.fulfill({ json: { stylistProfileId: 'stylist-one', revision: 'a'.repeat(64), financial: { clientDebtsCount: 2, manualIncomeCount: 1, bookedDailyLogsCount: 0 }, counts: { dailyLogEntriesCount: 0, confirmedReservationsCount: 0, reservationResponsesCount: 0, reviewsCount: 0 } } }))
-      await page.route('**/api/stylists/admin**', route => route.fulfill({ json: [{ id: 'stylist-two', user: { isActive: true, username: 'drugi' }, status: 'ACTIVE', isActive: true }] }))
-      await page.goto('/admin/users', { waitUntil: 'networkidle' })
-      await page.locator('[data-admin-users]').getByRole('button', { name: /ukloni ulogu.*stilist|remove.*stylist/i }).first().click()
-      const dialog = page.getByRole('dialog', { name: /ukloni ulogu stiliste|remove stylist role/i })
-      await expect(dialog.locator('#users-financial-transfer-target').locator('option[value="stylist-two"]')).toHaveCount(1)
-      await expect(page.locator('html')).toHaveAttribute('data-skin', 'classic')
-      const select = dialog.locator('#users-financial-transfer-target')
-      await select.focus()
-      await select.selectOption('stylist-two')
-      await page.keyboard.press('Tab')
-      const checkbox = dialog.getByRole('checkbox')
-      await expect(checkbox).toBeFocused()
-      await page.keyboard.press('Space')
-      await expect(checkbox).toBeChecked()
       const axe = await new AxeBuilder({ page }).include('[data-users-dialog]').withTags([...AXE_RULE_TAGS, 'wcag2aaa']).analyze()
       console.log(`USERS_FINANCIAL_${mode}_${viewport} ${JSON.stringify({ violations: axe.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ target: n.target, summary: n.failureSummary })) })), incomplete: axe.incomplete.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) })) })}`)
       expect(axe.violations).toEqual([])
@@ -1725,7 +1693,7 @@ for (const mode of ['light', 'dark'] as const) {
         await page.route('**/api/settings/public', async route => {
           const response = await route.fetch()
           const rows = await response.json() as Array<{ key: string; value: string }>
-          await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+          await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
         })
         await page.route('**/api/analytics/dashboard**', route => route.fulfill({ json: analyticsDashboardFixture }))
         await page.route('**/api/users/fixture-client/analytics**', route => route.fulfill({ json: { ...clientAnalyticsFixture, topServices: [{ name: 'Usluga test', count: 2, totalSpent: 42 }] } }))
@@ -1862,7 +1830,7 @@ for (const mode of ['light', 'dark'] as const) {
       await page.route('**/api/settings/public', async route => {
         const response = await route.fetch()
         const rows = await response.json() as Array<{ key: string; value: string }>
-        await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+        await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
       })
       const fixture = { ...clientAnalyticsFixture,
         topServices: [{ name: 'Test Usluga', count: 1, totalSpent: 42 }],
@@ -1963,7 +1931,7 @@ test('settings sidebar is grouped while existing settings tab deep links remain 
 //    `/admin/analytics` bez ?tab=). Ovdje ih renderujemo POPULIRANO (fiksturama) i axe-amo,
 //    u oba Aurum režima; `recordAxeCoverage` ih bilježi kao sopstvene rute.
 // 2. Aurum dark sweep: svih 15 admin ruta u Aurum dark-u (defaultni ADMIN_ROUTES sweep je
-//    classic light); cilj: 1.4.6/1.4.3 dokaz na istim stranicama koje axe nikad nije mjerio
+//    Aurum light); cilj: 1.4.6/1.4.3 dokaz na istim stranicama koje axe nikad nije mjerio
 //    u Aurum dark-u (javne rute pokriva theme-policy.spec; admin rute nijedne).
 //    Assert je isti kao postojeći Aurum admin blok (`assertableViolations` = prazno).
 // 3. Aurum light sweep (2026-11-19, owner odluka — simetrija dark sweepa): isti posao za
@@ -1980,8 +1948,7 @@ const configureAurumTheme = async (page: Page, mode: 'light' | 'dark') => {
     if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
     const rows = await response.json() as Array<{ key: string; value: string }>
     await route.fulfill({ response, json: [
-      ...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
-      { key: 'theme_active_skin', value: 'aurum' },
+      ...rows.filter((row) => row.key !== 'theme_default_mode'),
       { key: 'theme_default_mode', value: mode },
     ] })
   })

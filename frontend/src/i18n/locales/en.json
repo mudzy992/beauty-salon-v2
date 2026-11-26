@@ -87,8 +87,6 @@
     "maintenanceMessage": "We’re making improvements. The public site is temporarily unavailable. Please try again later.",
     "maintenanceAdminHint": "For administration, open {{path}} (sign in as an administrator).",
     "theme": {
-      "groupLabel": "Display theme",
-      "classic": "Classic light",
       "aurumLight": "Aurum light",
       "darkToggle": "Dark mode",
       "aurumDark": "Aurum dark",
@@ -412,11 +410,10 @@
         "invalidMode": "Invalid theme mode."
       },
       "title": "Settings — Appearance",
-      "description": "Logo, application name and public website theme colors.",
-      "aurumNote": "The Aurum palette is fixed: the primary and accent colors from these settings are not applied. Classic theme uses them again.",
+      "description": "Logo, application name, and display mode.",
+      "aurumNote": "Aurum is the only available theme. Choose light or dark mode; the palette is fixed.",
       "group": "Branding",
-      "newIdentity": "New identity",
-      "groupDescription": "The logo and application name; theme colors change accents on the public website.",
+      "groupDescription": "The logo and application name, plus the default light or dark mode.",
       "fields": {
         "appTitle": "Application name",
         "logo": "Logo",
@@ -424,10 +421,7 @@
         "logoTextColor": "Text color beside the logo",
         "logoAccentColor": "Logo accent color",
         "animateLogo": "Animate the logo",
-        "activeSkin": "Active identity",
-        "defaultMode": "Default mode for the new theme",
-        "primarySiteColor": "Primary website color",
-        "siteAccentColor": "Website accent color (gold)"
+        "defaultMode": "Default display mode"
       }
     }
   },

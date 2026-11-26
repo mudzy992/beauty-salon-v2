@@ -1,5 +1,7 @@
 # Faza 1 — Dashboard (home) · PILOT
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Namjerno prvi poslije Temelja:** mali (7 fajlova / 788 linija), ima `test:dashboard-count-contract`, idealan za provjeru šablona.
 **Poslije ove faze — KAPIJA: STOP i pregled.**
 

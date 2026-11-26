@@ -14,7 +14,7 @@ export interface SelectProps
 /**
  * Djeljena <select> komponenta za admin dashboard. Zamjenjuje raw <select>
  * sa hardkodiranim selectClass stringom. Theming ide preko semantičkih tokena
- * (border-line / bg-surface / text-content / focus-ring), pa radi u Classic i
+ * (border-line / bg-surface / text-content / focus-ring), pa radi u oba Aurum režima i
  * Aurum skinu. Drži se native <select> zbog pristupačnosti i mobilnog ponašanja.
  */
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(

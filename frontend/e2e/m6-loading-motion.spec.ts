@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // Public catalog responses are held, then fulfilled with empty synthetic data.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const preference of ['reduce', 'no-preference'] as const) {
     test(`M6 public catalog loading ${theme} ${preference}`, async ({ page }) => {
       await page.emulateMedia({ reducedMotion: preference })
@@ -17,12 +17,12 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
       await page.route('**/api/**', async route => {
         const req = route.request(), path = new URL(req.url()).pathname
         if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
         if (path === '/api/services' || path === '/api/services/categories' || path === '/api/services/subcategories') { await gate; return route.fulfill({ json: [] }) }
         return route.fulfill({ json: {} })
       })
       await page.goto('/usluge', { waitUntil: 'domcontentloaded' })
-      await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
       const pulse = page.locator('#service-catalog .animate-pulse').first()
       await expect(pulse).toBeVisible()
       const css = await pulse.evaluate(el => {

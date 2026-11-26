@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 
 // Synthetic finance data only. All backend writes are blocked; print is intercepted.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const kind of ['income', 'expense'] as const) {
       for (const key of ['Enter', 'Space'] as const) {
@@ -34,7 +34,6 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             const req = route.request(), path = new URL(req.url()).pathname
             if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
             if (path === '/api/settings/public') return route.fulfill({ json: [
-              { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
               { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' },
             ] })
             if (path === '/api/users/profile') return route.fulfill({ json: {
@@ -54,7 +53,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           await page.goto(`/admin/finance?tab=${kind}`, { waitUntil: 'networkidle' })
           expect(new URL(page.url()).pathname).toBe('/admin/finance')
           expect(new URL(page.url()).searchParams.get('tab')).toBe(kind)
-          await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
           await expect(page.locator('html')).toHaveAttribute('lang', language)
           const open = page.getByRole('button', { name: /otvori knjigu.*2026|open book.*2026/i })
           await expect(open).toBeVisible()

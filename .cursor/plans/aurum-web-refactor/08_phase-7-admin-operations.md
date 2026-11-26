@@ -1,5 +1,7 @@
 # S7 — Admin operativa: Dnevna knjiga, Finansije, Lojalnost
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** 🟡 čeka odobrenje S6 · **Finansijski proračuni su najstroži paritetni ugovor.**
 
 ---

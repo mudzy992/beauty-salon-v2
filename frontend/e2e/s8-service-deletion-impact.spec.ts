@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 // Synthetic catalogue and writes only; verifies the extracted view against the
 // actual delete/merge workflow, including financial values and blocking conflicts.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     test(`S8 service impact remains accurate ${theme} ${language}`, async ({ page }) => {
       await page.addInitScript(({ mode, locale }) => {
@@ -22,7 +22,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           if (req.method() === 'DELETE' && path === '/api/services/svc-0') return route.fulfill({ json: { ok: true } })
           return route.abort()
         }
-        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
         if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
         if (path === '/api/services/admin/categories') return route.fulfill({ json: [category] })
         if (path === '/api/services/admin/subcategories') return route.fulfill({ json: [sub] })
@@ -41,7 +41,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         return route.fulfill({ json: {} })
       })
       await page.goto('/admin/services', { waitUntil: 'networkidle' })
-      await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
       await page.getByRole('button', { name: /Category fixture/, expanded: false }).click()
       const deleteLabel = language === 'en' ? 'Delete service' : 'Obriši uslugu'
       const first = page.getByRole('button', { name: `${deleteLabel}: Original service (1)`, exact: true })

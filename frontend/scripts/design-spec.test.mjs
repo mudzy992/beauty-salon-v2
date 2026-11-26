@@ -70,8 +70,8 @@ function verifySpec(source) {
     const states = [...doc.querySelectorAll('#theme-states tbody tr')].map((row) =>
       row.getAttribute('data-state'),
     )
-    assert.deepEqual(states, ['classic', 'aurum-light', 'aurum-dark'])
-    assert.match(doc.querySelector('#theme-states').textContent, /theme_primary/)
+    assert.deepEqual(states, ['aurum-light', 'aurum-dark'])
+    assert.doesNotMatch(doc.querySelector('#theme-states').textContent, /theme_primary|theme_accent/)
     assert.match(doc.body.textContent, /Aurum fiksira paletu/)
 
     // §10 — omjeri se racunaju uzivo; nijedan par ne smije pasti.
@@ -93,7 +93,7 @@ function verifySpec(source) {
     // §12 — ugovor izbornika teme.
     const themeSpec = doc.getElementById('theme-spec')
     assert.ok(themeSpec)
-    for (const label of ['Klasična svijetla', 'Aurum svijetla', 'Aurum tamna']) {
+    for (const label of ['Aurum svijetla', 'Aurum tamna']) {
       assert.ok(themeSpec.textContent.includes(label), `nedostaje stanje: ${label}`)
     }
     for (const token of ['localStorage', 'data-skin', 'theme-color', 'role="status"']) {
@@ -124,15 +124,14 @@ function verifySpec(source) {
   }
 }
 
-test('NEJRA: puna specifikacija, 3 stanja, 58 ruta i zivi kontrast', () => verifySpec(html))
+test('NEJRA: puna specifikacija, dva režima, 58 ruta i živi kontrast', () => verifySpec(html))
 
 test('NEJRA: mutacije ugovora se otkrivaju', () => {
   const mutations = [
     ['id="s9"', 'id="sX"'],
     ['id="s14"', 'id="sY"'],
-    ['data-state="classic"', 'data-state="x"'],
+    ['data-state="aurum-light"', 'data-state="x"'],
     ['<td>/stylist/stats</td>', '<td>/stylist/statistika</td>'],
-    ['<code>theme_primary</code>', '<code>boja</code>'],
     ['id="templates"', 'id="sabloni"'],
     ["$('#tok3 tbody').innerHTML=h3;", 'void 0'],
   ]

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 // Test async ordering and retry without writing to a backend.
 for (const language of ['bs', 'en'] as const) {
-  for (const theme of ['classic', 'light', 'dark'] as const) {
+  for (const theme of ['light', 'dark'] as const) {
     for (const scenario of ['race', 'error', 'error-move'] as const) {
       test(`M1 calendar loading ${language} ${theme} ${scenario}`, async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 900 })
@@ -22,7 +22,7 @@ for (const language of ['bs', 'en'] as const) {
         await page.route('**/api/**', async route => {
           const request = route.request(), path = new URL(request.url()).pathname
           if (request.method() !== 'GET') { writes.push(`${request.method()} ${path}`); return route.abort() }
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
           if (path === '/api/stylists') return route.fulfill({ json: [stylist] })
           if (path === '/api/reservations') {
@@ -41,7 +41,7 @@ for (const language of ['bs', 'en'] as const) {
           return route.fulfill({ json: {} })
         })
         await page.goto('/admin/reservations/calendar', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         await expect(page.locator('.rbc-event')).toContainText('Initial')
         const next = page.getByRole('button', { name: /sljedeć|next/i }).first()

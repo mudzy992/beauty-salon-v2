@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // No real clients or photographs; all GET responses are synthetic and all writes blocked.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const placement of ['standalone', 'categories', 'duplicates'] as const) {
       test(`M4 gallery comparison names ${theme} ${language} ${placement}`, async ({ page }) => {
@@ -17,7 +17,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.route('**/api/**', route => {
           const req = route.request(), path = new URL(req.url()).pathname
           if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/gallery/categories') return route.fulfill({ json: placement !== 'standalone' ? categories : [] })
           if (path === '/api/gallery/categories/cat-0') return route.fulfill({ json: categories[0] })
           if (path === '/api/gallery/categories/cat-1') return route.fulfill({ json: categories[1] })
@@ -25,8 +25,8 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           return route.fulfill({ json: {} })
         })
         await page.goto('/galerija', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
-        if (theme !== 'classic') await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         const sliders = page.getByRole('slider')
         await expect(sliders).toHaveCount(placement === 'standalone' ? 2 : 4)

@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 
 // Synthetic catalogue only. The same assertions run before and after the S8
 // extraction; no backend writes are made by this fixture.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const width of [320, 639, 640, 1280]) {
       test(`S8 service rows retain fields and actions ${theme} ${language} ${width}`, async ({ page }) => {
@@ -24,7 +24,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.route('**/api/**', async route => {
           const request = route.request(), path = new URL(request.url()).pathname
           if (request.method() !== 'GET') return route.abort()
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
           if (path === '/api/services/admin/categories') return route.fulfill({ json: [category] })
           if (path === '/api/services/admin/subcategories') return route.fulfill({ json: [sub] })
@@ -32,7 +32,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           return route.fulfill({ json: {} })
         })
         await page.goto('/admin/services', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await page.getByRole('button', { name: /Category fixture/, expanded: false }).click()
         const table = page.locator('table').filter({ hasText: 'Repeated service' })
         const rows = table.locator('tbody tr')
@@ -112,7 +112,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             expect(measured.incomplete).toEqual([])
             expect(measured.passes.some(rule => rule.id === 'color-contrast')).toBe(true)
           }
-          if (theme === 'classic' && language === 'en') {
+          if (theme === 'light' && language === 'en') {
             // Negative control: the same scoped rule must detect unreadable text.
             const selector = 'table.service-catalog-table td[data-label="Loyalty"] [data-ui-badge="brand"]'
             const badge = page.locator(selector)

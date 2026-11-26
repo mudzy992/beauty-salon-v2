@@ -5,7 +5,7 @@ import { settleAnimations } from './settle'
 
 // The HTTP response is intercepted only in this isolated test; all other public
 // settings remain real. This does not write shared settings or touch production.
-async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 'dark', preference?: 'light' | 'dark', preserveOnReload = false, settings: Record<string, string> = {}) {
+async function configure(page: Page, mode: 'light' | 'dark', preference?: 'light' | 'dark', preserveOnReload = false, settings: Record<string, string> = {}) {
   await page.addInitScript(({ value, preserve }) => {
     if (preserve && sessionStorage.getItem('e2e.theme.initialized')) return
     if (preserve) sessionStorage.setItem('e2e.theme.initialized', 'true')
@@ -17,34 +17,30 @@ async function configure(page: Page, skin: 'classic' | 'aurum', mode: 'light' | 
     const response = await route.fetch()
     if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
     const rows = await response.json() as Array<{key: string; value: string}>
-    const filtered = rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode' && !(row.key in settings))
-    await route.fulfill({ response, json: [...filtered, { key: 'theme_active_skin', value: skin }, { key: 'theme_default_mode', value: mode }, ...Object.entries(settings).map(([key, value]) => ({ key, value }))] })
+    const filtered = rows.filter((row) => row.key !== 'theme_default_mode' && !(row.key in settings))
+    await route.fulfill({ response, json: [...filtered, { key: 'theme_default_mode', value: mode }, ...Object.entries(settings).map(([key, value]) => ({ key, value }))] })
   })
 }
 
-for (const { skin, mode, preference, expected } of [
-  { skin: 'classic', mode: 'dark', preference: 'dark', expected: 'classic' },
-  { skin: 'aurum', mode: 'dark', preference: undefined, expected: 'dark' },
-  { skin: 'aurum', mode: 'dark', preference: 'light', expected: 'light' },
+for (const { mode, preference, expected } of [
+  { mode: 'dark', preference: undefined, expected: 'dark' },
+  { mode: 'dark', preference: 'dark', expected: 'dark' },
+  { mode: 'dark', preference: 'light', expected: 'light' },
 ] as const) {
-  test(`global ${skin}/${mode}, local ${preference ?? 'none'}: ${expected}`, async ({ page }) => {
-    await configure(page, skin, mode, preference)
+  test(`Aurum ${mode}, local ${preference}: ${expected}`, async ({ page }) => {
+    await configure(page, mode, preference)
     await page.goto('/login', { waitUntil: 'networkidle' })
     const root = page.locator('html')
-    await expect(root).toHaveAttribute('data-skin', skin)
-    if (skin === 'classic') {
-      await expect(page.getByRole('button', { name: /Tamni režim|Dark mode/i })).toHaveCount(0)
-    } else {
-      await expect(root).toHaveAttribute('data-mode', expected)
-      await expect(page.getByRole('button', { name: /Tamni režim|Dark mode/i })).toHaveCount(1)
-    }
+    await expect(root).toHaveAttribute('data-skin', 'aurum')
+    await expect(root).toHaveAttribute('data-mode', expected)
+    await expect(page.getByRole('button', { name: /Tamni režim|Dark mode/i })).toHaveCount(1)
   })
 }
 
 for (const mode of ['light', 'dark'] as const) {
   for (const path of ['/', '/login']) {
     test(`rendered axe ${mode}: ${path}`, async ({ page }) => {
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       await page.goto(path, { waitUntil: 'networkidle' })
       await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
       await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
@@ -59,7 +55,7 @@ for (const mode of ['light', 'dark'] as const) {
   test(`Aurum ${mode} home reflows at 320px with reduced motion`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await configure(page, 'aurum', mode)
+    await configure(page, mode)
     await page.goto('/', { waitUntil: 'networkidle' })
     await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
     await expect(page.locator('[data-home-hero-content] h1')).toBeVisible()
@@ -78,7 +74,7 @@ for (const mode of ['light', 'dark'] as const) {
 for (const mode of ['light', 'dark'] as const) {
   for (const path of ['/usluge', '/blog', '/galerija', '/kontakt', '/register']) {
     test(`Aurum ${mode} rendered public surface: ${path}`, async ({ page }) => {
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       await page.goto(path, { waitUntil: 'networkidle' })
       expect(new URL(page.url()).pathname).toBe(path)
       await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
@@ -94,7 +90,7 @@ for (const mode of ['light', 'dark'] as const) {
 }
 
 test('icon-only theme controls retain accessible names, keyboard operation and persistence', async ({ page }) => {
-  await configure(page, 'aurum', 'light', undefined, true)
+  await configure(page, 'light', undefined, true)
   await page.goto('/login', { waitUntil: 'networkidle' })
   const toggle = page.getByRole('button', { name: /Tamni režim|Dark mode/i })
   await expect(toggle).toHaveAttribute('aria-pressed', 'false')
@@ -116,7 +112,7 @@ test('icon-only theme controls retain accessible names, keyboard operation and p
 
 test('theme icon respects reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await configure(page, 'aurum', 'light')
+  await configure(page, 'light')
   await page.goto('/login', { waitUntil: 'networkidle' })
   const toggle = page.getByRole('button', { name: /Tamni režim|Dark mode/i })
   await toggle.click()
@@ -129,7 +125,7 @@ test('theme icon respects reduced motion', async ({ page }) => {
 for (const mode of ['light', 'dark'] as const) {
   test(`homepage AAA audit ${mode}: desktop`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
-    await configure(page, 'aurum', mode)
+    await configure(page, mode)
     await page.goto('/', { waitUntil: 'networkidle' })
     await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
     await expect(page.locator('[data-aurum-hero-image]')).toBeVisible()
@@ -151,7 +147,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`homepage AAA audit ${mode}: ${viewport} with populated gallery and review`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       await page.route('**/api/daily-log/before-after**', (route) => route.fulfill({ json: {
         items: Array.from({ length: 5 }, (_, i) => ({ id: `test-${i}`, before: { pathOriginal: 'https://fixture.test/before.jpg' }, after: { pathOriginal: 'https://fixture.test/after.jpg' } })),
       } }))
@@ -184,7 +180,7 @@ for (const mode of ['light', 'dark'] as const) {
   test(`public header and mobile menu AAA ${mode}`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await configure(page, 'aurum', mode)
+    await configure(page, mode)
     await page.goto('/', { waitUntil: 'networkidle' })
     await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
     const trigger = page.locator('[data-aurum-shell="header"] [aria-controls="public-mobile-navigation"]')
@@ -215,7 +211,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`services AAA ${mode} ${viewport}: populated filters and empty result`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode, undefined, false, { public_services_image_badge: 'Njega i ljepota', public_services_image_caption: 'Posjetite nas', public_services_image_subcaption: 'Uživajte u tretmanu', public_services_step_1_title: 'Pronađite tretman', public_services_step_1_description: 'Pregledajte ponudu', public_services_step_2_title: 'Odaberite termin', public_services_step_2_description: 'Izaberite datum', public_services_step_3_title: 'Uživajte u posjeti', public_services_step_3_description: 'Dobro došli' })
+      await configure(page, mode, undefined, false, { public_services_image_badge: 'Njega i ljepota', public_services_image_caption: 'Posjetite nas', public_services_image_subcaption: 'Uživajte u tretmanu', public_services_step_1_title: 'Pronađite tretman', public_services_step_1_description: 'Pregledajte ponudu', public_services_step_2_title: 'Odaberite termin', public_services_step_2_description: 'Izaberite datum', public_services_step_3_title: 'Uživajte u posjeti', public_services_step_3_description: 'Dobro došli' })
       await page.route('**/api/services**', (route) => {
         const path = new URL(route.request().url()).pathname
         if (path === '/api/services/categories') return route.fulfill({ json: [{ id: 'cat-test', name: 'Testdugackinazivkategorijezareflow' }] })
@@ -284,7 +280,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`services AAA ${mode}: ${scenario} state`, async ({ page }) => {
       await page.setViewportSize({ width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       let fail = scenario === 'error-retry'
       await page.route('**/api/services**', (route) => {
         const path = new URL(route.request().url()).pathname
@@ -323,7 +319,7 @@ for (const mode of ['light', 'dark'] as const) {
       test(`service detail ${mode} ${viewport} ${gallery}: contrast and reflow`, async ({ page }) => {
         await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
         await page.emulateMedia({ reducedMotion: 'reduce' })
-        await configure(page, 'aurum', mode, undefined, false, { public_service_prices_enabled: 'true', public_contact_phone: '+387 62 568 580', public_contact_email: 'salon@example.com', public_contact_address: 'Veliko Čajno, Visoko' })
+        await configure(page, mode, undefined, false, { public_service_prices_enabled: 'true', public_contact_phone: '+387 62 568 580', public_contact_email: 'salon@example.com', public_contact_address: 'Veliko Čajno, Visoko' })
         await page.route('**/api/services/detail-test', (route) => route.fulfill({ json: { id: 'detail-test', name: 'Svečana frizura – elegancija za posebne trenutke', heroImage: '/brand/aurum-hero-editorial.jpg', shortDescription: 'Njega za posebne trenutke.', durationMinutes: 60, price: 50, subcategory: { name: 'Kosa', category: { name: 'Žene' } } } }))
         await page.route('**/api/daily-log/before-after**', (route) => route.fulfill({ json: { items: gallery === 'empty' ? [] : [{ id: 'pair-test', before: { pathOriginal: '/brand/aurum-hero-editorial.jpg' }, after: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }], hasMore: false, nextOffset: gallery === 'empty' ? 0 : 1 } }))
         await page.goto('/usluge/detail-test', { waitUntil: 'networkidle' })
@@ -358,7 +354,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`gallery lightbox ${mode} ${viewport} fits image and keyboard closes`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       const category = { id: 'gallery-test', name: 'Frizure', sortOrder: 0, _count: { images: 1 }, images: [{ id: 'image-test', sortOrder: 0, upload: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }] }
       await page.route('**/api/gallery/categories**', (route) => route.fulfill({ json: new URL(route.request().url()).pathname.endsWith('/gallery-test') ? category : [category] }))
       await page.route('**/api/daily-log/before-after**', (route) => route.fulfill({ json: { items: [], hasMore: false, nextOffset: 0 } }))
@@ -402,7 +398,7 @@ for (const mode of ['light', 'dark'] as const) {
   test(`reservation surfaces ${mode} with selected service`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await configure(page, 'aurum', mode)
+    await configure(page, mode)
     await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
     await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
     await page.route('**/api/services**', (route) => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
@@ -429,7 +425,7 @@ for (const mode of ['light', 'dark'] as const) {
 
 for (const mode of ['light', 'dark'] as const) {
   test(`stylist workbook ${mode} populated card uses Aurum surface`, async ({ page }) => {
-    await configure(page, 'aurum', mode)
+    await configure(page, mode)
     await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
     await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, roles: ['STYLIST'] } }))
     await page.route('**/api/stylists/me', (route) => route.fulfill({ json: { id: 'stylist-profile' } }))
@@ -464,7 +460,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`booking ${mode} ${viewport}: select, retry and confirm`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
       await page.route('**/api/users/profile', (route) => route.fulfill({ json: { id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
       await page.route('**/api/services**', (route) => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))
@@ -539,7 +535,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`blog post ${mode} ${viewport}: article and comments recovery`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       await page.route('**/api/blog/slug/test-article', route => route.fulfill({ json: {
         id: 'article-1', slug: 'test-article', title: 'Njega kose i savjeti za svakodnevnu ljepotu',
         excerpt: 'Praktični savjeti za zdraviju kosu i njegu kod kuće.', content: '<p>Koristan članak o njezi kose. <a href="/usluge">Pogledajte usluge</a>.</p><p>Dugatekstbezrazmaka'.concat('a'.repeat(100), '</p>'),
@@ -585,7 +581,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`blog journal ${mode} ${viewport}: populated editorial cards`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       await page.route('**/uploads/editorial-fixture.jpg', route => route.fulfill({ path: 'public/brand/aurum-hero-editorial.jpg', contentType: 'image/jpeg' }))
       await page.route('**/api/blog?**', route => route.fulfill({ json: [
         { id: '1', slug: 'njega-kose', title: 'Kako znati da je kosa oštećena? 7 znakova koje ne treba ignorisati', excerpt: 'Savjeti za zdraviju kosu i njegu kod kuće.', isPublished: true, createdAt: '2025-01-01T12:00:00Z', publishedAt: '2025-01-01T12:00:00Z', heroImage: 'editorial-fixture.jpg' },
@@ -627,7 +623,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`contact ${mode} ${viewport}: hours retry and completed form`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode, undefined, false, { public_contact_address: 'Titova 12, 71000 Sarajevo', public_contact_phone: '+387 61 234 567', public_contact_email: 'salon@example.com', public_social_instagram: 'https://www.instagram.com/example/' })
+      await configure(page, mode, undefined, false, { public_contact_address: 'Titova 12, 71000 Sarajevo', public_contact_phone: '+387 61 234 567', public_contact_email: 'salon@example.com', public_social_instagram: 'https://www.instagram.com/example/' })
       let failed = true
       await page.route('**/api/salon', route => {
         if (failed) { failed = false; return route.fulfill({ status: 503, json: {} }) }
@@ -659,7 +655,7 @@ for (const mode of ['light', 'dark'] as const) {
     test(`satisfied clients ${mode} ${viewport}: error and keyboard slider`, async ({ page }) => {
       await page.setViewportSize(viewport === 'desktop' ? { width: 1440, height: 900 } : { width: 320, height: 720 })
       await page.emulateMedia({ reducedMotion: 'reduce' })
-      await configure(page, 'aurum', mode)
+      await configure(page, mode)
       let failed = true
       await page.route('**/api/daily-log/before-after**', route => {
         if (failed) { failed = false; return route.fulfill({ status: 503, json: {} }) }
@@ -696,7 +692,7 @@ for (const mode of ['light', 'dark'] as const) {
 
 for (const mode of ['light', 'dark'] as const) {
   test(`workbook ${mode}: client selection survives search results and unlocks matching services`, async ({ page }) => {
-    await configure(page, 'aurum', mode)
+    await configure(page, mode)
     await page.addInitScript(() => localStorage.setItem('token', 'test-fixture-token'))
     await page.route('**/api/users/profile', route => route.fulfill({ json: { id: 'stylist-user', username: 'stylist', email: 'stylist@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, roles: ['STYLIST'] } }))
     await page.route('**/api/stylists/me', route => route.fulfill({ json: { id: 'stylist-profile' } }))
@@ -732,19 +728,15 @@ for (const mode of ['light', 'dark'] as const) {
 
 // A browser's configured default text size must not be overwritten by a fixed px root.
 // CDP changes the browser default; a clean iframe independently verifies that it took effect.
-for (const { skin, mode } of [
-  { skin: 'classic', mode: 'light' },
-  { skin: 'aurum', mode: 'light' },
-  { skin: 'aurum', mode: 'dark' },
-] as const) {
+for (const mode of ['light', 'dark'] as const) {
   for (const defaultSize of [16, 20]) {
-    test(`root font respects ${defaultSize}px browser default: ${skin} ${mode}`, async ({ page, context }) => {
+    test(`root font respects ${defaultSize}px browser default: Aurum ${mode}`, async ({ page, context }) => {
       const session = await context.newCDPSession(page)
       await session.send('Page.setFontSizes', { fontSizes: { standard: defaultSize } })
-      await configure(page, skin, mode)
+      await configure(page, mode)
       await page.goto('/login', { waitUntil: 'networkidle' })
-      await expect(page.locator('html')).toHaveAttribute('data-skin', skin)
-      await expect(page.locator('html')).toHaveAttribute('data-mode', skin === 'classic' ? 'light' : mode)
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-mode', mode)
       const result = await page.evaluate(async () => {
         const iframe = document.createElement('iframe')
         iframe.hidden = true
@@ -773,27 +765,22 @@ for (const { skin, mode } of [
 }
 
 // The measured public-header offset belongs only to the Aurum public shell.
-for (const skin of ['aurum', 'classic'] as const) {
-  test(`public header scroll offset lifecycle ${skin}`, async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 })
-    await configure(page, skin, 'light')
-    await page.goto('/', { waitUntil: 'networkidle' })
-    await expect(page.locator('html')).toHaveAttribute('data-skin', skin)
-    const header = page.locator('[data-aurum-shell="header"]')
-    await expect(header).toHaveCSS('position', 'sticky')
-    const offset = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--public-header-offset'))
-    if (skin === 'aurum') {
-      await expect.poll(async () => {
-        const height = await header.evaluate(el => el.getBoundingClientRect().height)
-        return Math.abs(parseFloat(await offset()) - height)
-      }).toBeLessThan(1)
-    } else await expect.poll(offset).toBe('')
-    await header.locator('a[href="/login"]').click()
-    await expect(page).toHaveURL(/\/login$/)
-    await expect.poll(offset).toBe('')
-    await page.goBack()
-    await expect(page.locator('[data-aurum-shell="header"]')).toBeVisible()
-    if (skin === 'aurum') await expect.poll(async () => parseFloat(await offset())).toBeGreaterThan(0)
-    else await expect.poll(offset).toBe('')
+test('Aurum public header scroll offset lifecycle', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await configure(page, 'light')
+  await page.goto('/', { waitUntil: 'networkidle' })
+  await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+  const header = page.locator('[data-aurum-shell="header"]')
+  await expect(header).toHaveCSS('position', 'sticky')
+  const offset = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--public-header-offset'))
+  await expect.poll(async () => {
+    const height = await header.evaluate(el => el.getBoundingClientRect().height)
+    return Math.abs(parseFloat(await offset()) - height)
+  }).toBeLessThan(1)
+  await header.locator('a[href="/login"]').click()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect.poll(offset).toBe('')
+  await page.goBack()
+  await expect(page.locator('[data-aurum-shell="header"]')).toBeVisible()
+  await expect.poll(async () => parseFloat(await offset())).toBeGreaterThan(0)
   })
-}

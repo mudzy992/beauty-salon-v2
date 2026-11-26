@@ -45,11 +45,11 @@ test.afterEach(async ({}, testInfo) => {
 const record = (reference: string) => ({ id: reference, publicReferenceCode: reference, date: '2026-03-04', status: 'COMPLETED', actualPrice: 50, tipAmount: 0, isManual: true, notes: null, completedAt: '2026-03-04T12:00:00Z', deletedAt: null, service: { id: 'service-1', name: 'Test service', price: 50 }, stylistProfile: { id: 'stylist-1', user: { username: 'ana', firstName: 'Ana', lastName: 'Test' } } })
 
 // Every API write is blocked; response order is deliberately controlled.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const viewport of ['desktop', 'mobile'] as const) {
       for (const scenario of ['filters', 'stale-success', 'stale-error', 'stale-late-success', 'stale-late-error', 'stale-latest-error', 'retry', 'retry-failure', 'retry-moved', 'table-scroll'] as const) {
-        if (scenario === 'table-scroll' && (theme === 'classic' || viewport === 'mobile')) continue
+        if (scenario === 'table-scroll' && (viewport === 'mobile')) continue
         test(`M1 daily log filters ${theme} ${language} ${viewport} ${scenario}`, async ({ page }) => {
           await page.setViewportSize(viewport === 'desktop' ? { width: 1280, height: 900 } : { width: 390, height: 844 })
           await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -66,7 +66,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           await page.route('**/api/**', async route => {
             const req = route.request(), url = new URL(req.url()), path = url.pathname
             if (req.method() !== 'GET') return route.abort()
-            if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+            if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
             if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
             if (path === '/api/stylists') return route.fulfill({ json: [{ id: 'stylist-1', user: { username: 'ana', firstName: 'Ana', lastName: 'Test' } }] })
             if (path === '/api/services' || path === '/api/users/for-daily-log') return route.fulfill({ json: [] })
@@ -91,7 +91,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             return route.fulfill({ json: {} })
           })
           await page.goto('/admin/daily-log', { waitUntil: 'networkidle' })
-          await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
           await expect(page.locator('html')).toHaveAttribute('lang', language)
           const from = page.locator('#daily-log-from-date'), to = page.locator('#daily-log-to-date')
           const stylist = page.locator('#daily-log-stylist'), deleted = page.getByRole('switch')

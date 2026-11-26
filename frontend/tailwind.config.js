@@ -21,7 +21,7 @@ export default {
         ],
         /* NEJRA §02 — serifni naslovi u Aurum stanjima. Isključivo sistemski
            fontovi: nema @import-a, nema vanjskih fontova ni mrežnih zahtjeva.
-           Klasični `sans` iznad ostaje netaknut (default = današnji izgled). */
+           Osnovni `sans` stack iznad ostaje definisan za zajedničke komponente. */
         serif: [
           'Palatino',
           'Palatino Linotype',

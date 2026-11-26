@@ -36,8 +36,8 @@ for (const mode of ['light', 'dark'] as const) {
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
             await route.fulfill({ response, json: [
-              ...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)),
-              { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+              ...rows.filter(row => row.key !== 'theme_default_mode'),
+              { key: 'theme_default_mode', value: mode },
             ] })
           })
           await page.route('**/api/users/profile', route => route.fulfill({ json: {

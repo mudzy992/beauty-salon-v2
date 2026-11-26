@@ -1,5 +1,7 @@
 # Faza 13 — Zaključak: globalni a11y prolaz, dead-code sweep, dokumentacija
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 ---
 
 ## 1. Inventar funkcionalnosti

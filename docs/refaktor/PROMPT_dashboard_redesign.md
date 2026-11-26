@@ -1,5 +1,7 @@
 # PROMPT: Plan + implementacija potpunog redizajna dashboarda (Beauty Salon Nejra v2)
 
+> **ARHIVIRANI PROMPT — nije važeća uputa.** Zamijenjen je trenutnom Aurum-only politikom: podržani su samo Aurum light i dark, paleta je fiksna, a izbor kože i dinamičke boje teme ne postoje.
+
 > Kopiraj sve ispod ove linije u agenta (Cursor Agent / Plan mode). Prompt je podijeljen u dvije obavezne etape: **ETAPA A – samo plan (bez izmjene koda)**, pa tek nakon mog odobrenja **ETAPA B – implementacija modul po modul**.
 
 ---
@@ -92,16 +94,13 @@ Postojeće stanje (provjereno u kodu) i šta se očekuje:
 
 ---
 
-## 4. KOLOR ŠEMA – ZADRŽAVA SE
+## 4. AKTUELNA POLITIKA PRIKAZA — AURUM LIGHT/DARK
 
-Zadrži identitet: **bordo/rose `#632238`** (primary), **zlatna `#D4A843`** (accent), **champagne `#F5E6CC`**, tamna `#1A1A1A`/`#2D2D2D`, bijela; postojeći `--brand-*`, `--background/--foreground/--primary/--secondary/--muted/--accent/--destructive/--border/--ring` tokeni u `src/styles/globals.css` i `tailwind.config.js` (`brand.*`). Light i dark varijante postoje – zadrži ih.
+Ovaj arhivski prompt ne određuje više aktivnu paletu ili runtime ponašanje. Mjerodavan je `docs/design/NEJRA – beauty salon · Referentni dokument.html`: Aurum svijetli i tamni režim su jedini podržani, a boje dolaze iz zaključanih semantičkih tokena. Postavke imaju samo zadani režim; dinamičko mijenjanje boja teme nije podržano.
 
-Pravila:
-- **Runtime brand override** (`theme_primary`, `theme_accent`, derivacije u `utils/brand-colors.mjs`, test `brand-colors.test.mjs`) mora nastaviti raditi. Ne hard-code-uj brand boje u komponente; koristi tokene.
-- Zlatna kao **pozadina** sa bijelim tekstom ili zlatna kao **tekst** na bijelom ne prolazi kontrast → koristi postojeće odvojene tokene `gold-text` / `gold-ring`, `rose-text` / `rose-ring`.
-- Ako neki par u dark/light temi ne zadovoljava WCAG kontrast (npr. `--destructive` u dark temi `0 62.8% 30.6%` sa tekstom, `muted-foreground` na `muted`, disabled stanja, placeholder, badge-evi, grafikoni), **koriguj minimalno (samo svjetlinu/zasićenost, ne nijansu)** i **eksplicitno navedi svaku takvu izmjenu u planu i CHANGELOG-u** (token, staro → novo, omjer kontrasta). To je jedini dozvoljeni oblik „promjene boje“.
-- Proširi `scripts/check_ui_contrast.py` novim tokenima/parovima (trenutno 44 para) i drži ga `--strict` zelenim.
-- Boja nikad nije jedini nosilac informacije (status, greška, trend, grafik) – dodaj tekst/ikonu/uzorak.
+- Ne uvoditi dodatne skinove niti runtime paletne override-e.
+- Boja nikad nije jedini nosilac informacije (status, greška, trend, grafikon) – dodati tekst/ikonu/uzorak.
+- Kontrast verifikovati preko `scripts/check_ui_contrast.py --strict` i rendered CI-ja; source provjera sama po sebi nije rendered dokaz.
 
 ---
 

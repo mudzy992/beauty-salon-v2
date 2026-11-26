@@ -1,5 +1,7 @@
 # Faza 10 — Postavke (+ Operations, Appearance, SEO, EmailSettings, Notifications, AppReleases)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **24 produkcijska fajla / 3879 linija / 18 testova.** Ovdje živi paralelna „smeđa“ hex paleta i `EmailSettings.tsx` (1377 ln) sa vizuelnim editorom.
 **Ovdje se odlučuje o objedinjavanju M2 (Q3).**
 

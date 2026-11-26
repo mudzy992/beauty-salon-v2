@@ -5,7 +5,7 @@ import { STYLIST_STATUS, type AdminStatus } from './auth-paths'
 import { activateTheme, assertThemeSwitcherKeyboard, scanBothAppLanguages, stubGlobalTheme, type AurumChoice } from './aurum-a11y'
 
 const ROUTE = { path: '/stylist/inbox', name: 'stylist inbox' }
-const CHOICES: AurumChoice[] = ['classic', 'aurum-light', 'aurum-dark']
+const CHOICES: AurumChoice[] = ['aurum-light', 'aurum-dark']
 
 const readStatus = (): AdminStatus =>
   existsSync(STYLIST_STATUS)
@@ -19,7 +19,7 @@ test.beforeEach(() => {
 
 for (const choice of CHOICES) {
   test(`S11 rendered axe ${choice}: ${ROUTE.name}`, async ({ page }, testInfo) => {
-    await stubGlobalTheme(page, choice)
+    await stubGlobalTheme(page)
     await page.goto(ROUTE.path, { waitUntil: 'networkidle' })
     await expect(page).toHaveURL(/\/stylist\/inbox/)
     await activateTheme(page, choice)

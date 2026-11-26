@@ -9,7 +9,7 @@ import { formatLocalizedNumber } from '../../i18n/locale-utils.mjs'
  * 1.1.1: ikone su `aria-hidden`, a brojčanu alternativu nosi `role="img"` +
  * `aria-label` — bez toga bi ćelije ocjena u tabeli bile prazne za čitač ekrana.
  *
- * Boje (S9): popunjena zvjezdica je `brand-gold-text` (5.35:1 na bijeloj u klasičnoj
+ * Boje (S9): popunjena zvjezdica je `brand-gold-text` (5.35:1 na bijeloj površini
  * temi, 7.95:1 u Aurum svijetloj) umjesto `yellow-400` (1.53:1 — ispod praga 1.4.11),
  * a prazna je `content-strong` umjesto `slate-300` (1.47:1).
  */

@@ -1,5 +1,7 @@
 # Faza 7 — Korisnici
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Najveći fajl u repou: `pages/Users.tsx` = 1535 linija, 1 produkcijski fajl, 1 test.**
 Osjetljivo: role, deaktivacija, privremene lozinke, write-off duga.
 

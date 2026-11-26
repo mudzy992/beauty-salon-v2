@@ -8,12 +8,10 @@ import { useTheme } from './theme-context'
 /** Jedno stabilno dugme: pritisnuto znači tamni režim; ikona prikazuje aktivni režim. */
 export const ThemeSwitcher = ({ className }: { className?: string }) => {
   const { t } = useTranslation()
-  const { choice, setChoice, skin } = useTheme()
+  const { choice, setChoice } = useTheme()
   const statusId = useId()
   const [announcement, setAnnouncement] = useState('')
   const isDark = choice === 'aurum-dark'
-
-  if (skin === 'classic') return null
 
   return (
     <div className={cn('flex items-center', className)}>

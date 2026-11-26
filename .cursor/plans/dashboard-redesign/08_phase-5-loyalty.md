@@ -1,5 +1,7 @@
 # Faza 5 — Lojalnost
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Mali modul: `pages/Loyalty.tsx` (296 ln) + `features/loyalty` — ukupno **2 produkcijska fajla / 478 linija / 1 test**.
 
 ---

@@ -5,20 +5,16 @@ import { AXE_RULE_TAGS, assertableViolations, defaultCoverageDir, recordAxeCover
 import { settleAnimations } from './settle'
 import { clippedSnapshot, hasVisibleFocusIndicator, overflowingElements } from './dom-metrics.mjs'
 
-export type AurumChoice = 'classic' | 'aurum-light' | 'aurum-dark'
+export type AurumChoice = 'aurum-light' | 'aurum-dark'
 
 /** Supply the same public settings contract consumed by SettingsProvider, without mutating DOM state. */
-export async function stubGlobalTheme(page: Page, choice: AurumChoice): Promise<void> {
-  const skin = choice === 'classic' ? 'classic' : 'aurum'
-  // Start Aurum in light mode. Dark mode is reached only through the visible ThemeSwitcher.
+export async function stubGlobalTheme(page: Page): Promise<void> {
+  // Start in Aurum light; dark is reached only through the visible ThemeSwitcher.
   await page.route('**/api/settings/public', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([
-        { key: 'theme_active_skin', value: skin },
-        { key: 'theme_default_mode', value: 'light' },
-      ]),
+      body: JSON.stringify([{ key: 'theme_default_mode', value: 'light' }]),
     }),
   )
 }
@@ -26,33 +22,25 @@ export async function stubGlobalTheme(page: Page, choice: AurumChoice): Promise<
 /** Assert the effective theme, and exercise the public keyboard-operable mode control. */
 export async function activateTheme(page: Page, choice: AurumChoice): Promise<void> {
   const root = page.locator('html')
-  const expectedSkin = choice === 'classic' ? 'classic' : 'aurum'
   const expectedMode = choice === 'aurum-dark' ? 'dark' : 'light'
 
-  await expect.poll(() => root.getAttribute('data-skin')).toBe(expectedSkin)
-  if (choice !== 'classic') {
-    await expect.poll(() => root.getAttribute('data-mode')).toBe('light')
-    const toggle = page.getByRole('button', { name: /dark mode|tamni režim/i })
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
-    if (choice === 'aurum-dark') {
-      await toggle.focus()
-      await page.keyboard.press('Enter')
-      await expect(toggle).toHaveAttribute('aria-pressed', 'true')
-      await expect(page.getByRole('status').filter({ hasText: /active theme|aktivna tema/i })).toContainText(
-        /aurum dark|aurum tamna/i,
-      )
-    }
+  await expect.poll(() => root.getAttribute('data-skin')).toBe('aurum')
+  await expect.poll(() => root.getAttribute('data-mode')).toBe('light')
+  const toggle = page.getByRole('button', { name: /dark mode|tamni režim/i })
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  if (choice === 'aurum-dark') {
+    await toggle.focus()
+    await page.keyboard.press('Enter')
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('status').filter({ hasText: /active theme|aktivna tema/i })).toContainText(
+      /aurum dark|aurum tamna/i,
+    )
   }
   await expect.poll(() => root.getAttribute('data-mode')).toBe(expectedMode)
   await expect.poll(() => root.evaluate((element) => element.classList.contains('dark'))).toBe(choice === 'aurum-dark')
 }
 
 export async function assertThemeSwitcherKeyboard(page: Page, choice: AurumChoice): Promise<void> {
-  if (choice === 'classic') {
-    await expect(page.getByRole('button', { name: /dark mode|tamni režim/i })).toHaveCount(0)
-    return
-  }
-
   const toggle = page.getByRole('button', { name: /dark mode|tamni režim/i })
   await toggle.focus()
   await page.keyboard.press('Enter')

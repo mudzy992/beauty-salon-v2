@@ -90,7 +90,7 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <span class="num">REFERENTNI DOKUMENT · PUNA SPECIFIKACIJA · JEDINI IZVOR ISTINE</span>
 <h1 style="font-size:clamp(2.4rem,7vw,4.5rem)">NEJRA <span style="color:var(--brand)">Aurum</span></h1>
 <p class="muted" style="max-width:36em;font-size:1.1rem">Dizajn sistem i iskustvo aplikacije za beauty salon NEJRA – javna stranica, admin, uloge i smjernice za implementaciju. Ovaj dokument je živ: prebacite temu, isprobajte komponente, filtrirajte dashboard i napravite rezervaciju.</p>
-<p class="muted" style="max-width:44em">Sekcije 09–14 proširuju dokument u <strong>punu specifikaciju</strong>: mapa svih 58 deklaracija ruta, tokeni za 3 stanja teme s izračunatim kontrastom, katalog šablona, ugovor izbornika teme, paritet i CI matrica. Ovaj dokument je <strong>jedini izvor istine</strong> za refaktor; datoteke <code>referentni-prijedlog-v2.html</code> i <code>referentni-prijedlog-v3.html</code> su samo ilustrovani vizuelni koncepti i nisu specifikacija.</p>
+<p class="muted" style="max-width:44em">Sekcije 09–14 proširuju dokument u <strong>punu specifikaciju</strong>: mapa svih 58 deklaracija ruta, tokeni za Aurum svijetli i tamni režim s izračunatim kontrastom, katalog šablona, ugovor izbornika teme, paritet i CI matrica. Ovaj dokument je <strong>jedini izvor istine</strong> za refaktor; datoteke <code>referentni-prijedlog-v2.html</code> i <code>referentni-prijedlog-v3.html</code> su samo ilustrovani vizuelni koncepti i nisu specifikacija.</p>
 </header>
 
 <main class="wrap">
@@ -238,12 +238,11 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 </tbody></table></div>
 <p class="spec-note">Redirecti (<code>&lt;Navigate replace&gt;</code> i <code>TabRedirect</code>) nemaju vlastiti ekran, ali svaki stari URL i dalje mora raditi, uključujući <code>?tab=</code> deep-linkove. Svaki ekran ima jedan <code>&lt;h1&gt;</code>, landmark-e, vidljiv fokus, poruku greške uz polje i prazno stanje sa sljedećim korakom.</p></section>
 
-<section class="doc" id="s10"><span class="num">10</span><h2>Dizajn tokeni za 3 stanja teme</h2>
-<p class="muted">Tri ravnopravno specificirana stanja. Klasična svijetla je <strong>default</strong> i zadržava današnji identitet iz koda; Aurum stanja koriste paletu „Aurum Noir" iz sekcije 03. Vrijednosti se nikad ne koriguju bez odobrenja — ako par padne, staje se i pita.</p>
+<section class="doc" id="s10"><span class="num">10</span><h2>Dizajn tokeni za dva režima prikaza</h2>
+<p class="muted">Aurum svijetli i tamni režim su jedina podržana stanja i koriste paletu „Aurum Noir" iz sekcije 03. Vrijednosti se nikad ne koriguju bez odobrenja — ako par padne, staje se i pita.</p>
 <div class="tw"><table id="theme-states" class="tight"><thead><tr><th>Stanje</th><th>CSS blok (vlasnik)</th><th>Paleta</th><th>Precedencija boja</th><th>Provjera</th></tr></thead><tbody>
-<tr data-state="classic"><td>1 · Klasična svijetla <span class="tag">default</span></td><td><code>:root</code> (<code>.dark</code> je uspavan)</td><td>bordo <code>#632238</code> · zlato <code>#D4A843</code> · champagne <code>#F5E6CC</code></td><td>runtime override <code>theme_primary</code> i <code>theme_accent</code> su aktivni</td><td><code>check_ui_contrast.py</code> 80/80</td></tr>
-<tr data-state="aurum-light"><td>2 · Aurum svijetla</td><td><code>[data-skin="aurum"][data-mode="light"]</code></td><td>slonovača <code>#FAF6EF</code> · zlato <code>#7A5A12</code> · rosé <code>#9B3D4F</code></td><td>Aurum fiksira paletu; runtime override je neaktivan</td><td>tablica uživo + S1 skript</td></tr>
-<tr data-state="aurum-dark"><td>3 · Aurum tamna</td><td><code>.dark[data-skin="aurum"]</code></td><td>ugljen <code>#0E0B08</code> · zlato <code>#D4AF6A</code> · rosé <code>#E8A89A</code></td><td>Aurum fiksira paletu; runtime override je neaktivan</td><td>tablica uživo + S1 skript</td></tr>
+<tr data-state="aurum-light"><td>1 · Aurum svijetla</td><td><code>[data-skin="aurum"][data-mode="light"]</code></td><td>slonovača <code>#FAF6EF</code> · zlato <code>#7A5A12</code> · rosé <code>#9B3D4F</code></td><td>Aurum fiksira paletu; runtime override je neaktivan</td><td>tablica uživo + S1 skript</td></tr>
+<tr data-state="aurum-dark"><td>2 · Aurum tamna</td><td><code>.dark[data-skin="aurum"]</code></td><td>ugljen <code>#0E0B08</code> · zlato <code>#D4AF6A</code> · rosé <code>#E8A89A</code></td><td>Aurum fiksira paletu; runtime override je neaktivan</td><td>tablica uživo + S1 skript</td></tr>
 </tbody></table></div>
 <h3 style="margin-top:28px">Izračunati omjeri kontrasta (uživo, WCAG 2.2)</h3>
 <p class="muted">Računica koristi istu formulu relativne luminancije kao sekcija 03, nad istim vrijednostima koje stranica koristi. Običan tekst ≥ 4,5:1, veliki tekst i UI elementi ≥ 3:1. Status nikad samo bojom – uvijek tačka + tekst.</p>
@@ -256,7 +255,7 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <tr><td><code>brand</code> / <code>onbrand</code> / <code>accent</code></td><td>akcija, brend, naglašeni detalj</td><td>zlato štedljivo, samo za akciju i brend</td></tr>
 <tr><td><code>border</code> / <code>ok</code> / <code>warn</code> / <code>err</code></td><td>okvir kontrole i statusi</td><td>≥ 3:1 za UI; status uvijek tekst + tačka</td></tr>
 </tbody></table></div>
-<p class="spec-note"><strong>Odluka o precedenciji (Q9):</strong> dok je aktivan bilo koji Aurum skin, Aurum fiksira paletu: runtime override se ne primjenjuje, a u <code>Postavke → Izgled</code> stoji vidljiva lokalizovana napomena. Povratak na klasičnu temu vraća iste korisničke boje bez gubitka postavki.</p></section>
+<p class="spec-note">Paleta je fiksna. <code>Postavke → Izgled</code> omogućavaju izbor svijetlog ili tamnog režima i objašnjavaju da su boje brenda dio teme.</p></section>
 
 <section class="doc" id="s11"><span class="num">11</span><h2>Dizajn sistem — katalog šablona</h2>
 <p class="muted">Pravila za cijeli sistem: minimalna ciljna površina 44 px (2.5.8 minimum 24 px u gustim tabelama), vidljiv fokus ≥ 3:1, greške uz polje, potvrda prije destruktivne radnje, <code>prefers-reduced-motion</code>, <code>forced-colors</code>, bez gubitka kolona na 320 px.</p>
@@ -271,21 +270,20 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <tr><td>Toast</td><td><code>role="status"</code> / <code>aria-live="polite"</code>, bez otimanja fokusa, podesivo trajanje (2.2.2)</td><td>sve povratne poruke</td></tr>
 <tr><td>FormSection / FormField</td><td><code>fieldset</code>/<code>legend</code>, <code>aria-describedby</code>, <code>aria-invalid</code>, <code>required</code> vidljivo + programski, sažetak grešaka s linkovima, <code>autocomplete</code></td><td>sve forme</td></tr>
 <tr><td>ResponsiveDialog / Drawer</td><td>ista Radix semantika na desktopu i mobilnom, <code>aria-expanded</code>/<code>aria-controls</code> na okidaču, <code>Esc</code></td><td>mobilni drawer-i, kalendar</td></tr>
-<tr><td>ThemeSwitcher</td><td><code>role="group"</code> + lokalizovan <code>aria-label</code>, 3 × <code>button[aria-pressed]</code>, 44 px mete, <code>role="status"</code> najava</td><td>svi shellovi + ekrani bez layouta</td></tr>
+<tr><td>ThemeSwitcher</td><td>jedno dugme <code>aria-pressed</code>, 44 px meta, <code>role="status"</code> najava</td><td>svi shellovi + ekrani bez layouta</td></tr>
 </tbody></table></div>
 <p class="spec-note">Grafikoni (recharts) uz obavezni tekstualni sažetak i tabelu podataka; kalendar uz listu termina kao alternativu i tastaturnu zamjenu za povlačenje (2.5.7). Sve animacije poštuju smanjeno kretanje.</p></section>
 
 <section class="doc" id="s12"><span class="num">12</span><h2>Izbornik teme — ugovor</h2>
 <div id="theme-spec">
 <div class="grid" style="margin-bottom:20px">
-<div class="card rec"><span class="tag">Default</span><h3>Klasična svijetla</h3><p>Današnji izgled. Bez korisničkog odabira aplikacija izgleda točno kao prije; runtime brand override radi.</p></div>
 <div class="card"><h3>Aurum svijetla</h3><p>Slonovača, antičko zlato, serifni naslovi. Iste komponente, drugi tokeni; podaci i ponašanje identični.</p></div>
 <div class="card"><h3>Aurum tamna</h3><p>Ugljeno-crna radna površina, zlatna akcija, rosé akcent. Ista pravila kontrasta, ista struktura.</p></div>
 </div>
-<p><strong>Pravila:</strong> jedan izbornik s tri opcije, bez kombinacije „klasična + tamna". Nepoznata spremljena vrijednost vraća default. Izbor se pamti u <code>localStorage</code> (ključ <code>nejra.theme</code>) i primjenjuje na <code>&lt;html&gt;</code> kroz <code>data-skin</code>, <code>data-mode</code>, klasu <code>dark</code>, <code>color-scheme</code> i <code>&lt;meta name="theme-color"&gt;</code>. <code>&lt;html lang&gt;</code> i dalje prati BS/EN i18n.</p>
+<p><strong>Pravila:</strong> jedno dugme prebacuje između Aurum svijetlog i tamnog režima. Nepoznata spremljena vrijednost vraća Aurum svijetli režim. Izbor se pamti u <code>localStorage</code> (ključ <code>nejra.theme</code>) i primjenjuje na <code>&lt;html&gt;</code> kroz <code>data-skin</code>, <code>data-mode</code>, klasu <code>dark</code>, <code>color-scheme</code> i <code>&lt;meta name="theme-color"&gt;</code>. <code>&lt;html lang&gt;</code> i dalje prati BS/EN i18n.</p>
 <p><strong>Pozicije:</strong> javni header i mobilni drawer · admin header · stylist header · auth/onboarding kartice · fullscreen kalendar (izvan layouta). Na istom relativnom mjestu na svim ekranima (3.2.6).</p>
 <p><strong>Pristupačnost:</strong> vidljiv tekst je dio pristupačnog imena (2.5.3), fokus ostaje na kliknutom dugmetu, promjena se najavljuje <code>role="status"</code>, bez otimanja fokusa, bez oslanjanja isključivo na boju. Svi natpisi, <code>aria-label</code> i najave idu kroz i18n ključeve u <code>bs.json</code> i <code>en.json</code>.</p>
-<p><strong>Precedencija:</strong> Aurum fiksira paletu; <code>Postavke → Izgled</code> prikazuje napomenu da korisničke primarne/akcent boje nisu aktivne dok je Aurum odabran. Povratak na klasičnu temu ih vraća.</p>
+<p><strong>Paleta:</strong> boje su dio Aurum teme i nisu zasebno podesive u postavkama.</p>
 </div></section>
 
 <section class="doc" id="s13"><span class="num">13</span><h2>Paritet i CI verifikacija</h2>
@@ -311,7 +309,7 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <tr><td>7–8</td><td><code>npm run build</code> (tsc + Vite + budžet ≤ 300 KiB) · <code>typecheck:e2e</code></td><td>✅</td><td><code>frontend</code></td></tr>
 <tr><td>9</td><td>Frontend Docker image (root context)</td><td>➖</td><td><code>frontend</code></td></tr>
 <tr><td>10</td><td>Prisma generate/validate, migracije na disposable PostgreSQL, build, DB-backed HTTP, Jest</td><td>➖</td><td><code>backend</code></td></tr>
-<tr><td>11</td><td>Rendered axe nad 32 rute za 3 stanja teme (Chromium + PostgreSQL + Redis)</td><td>🟡</td><td><code>a11y-e2e</code></td></tr>
+<tr><td>11</td><td>Rendered axe nad odabranim javnim, admin i stylist rutama u Aurum light/dark (Chromium + PostgreSQL + Redis)</td><td>🟡</td><td><code>a11y-e2e</code></td></tr>
 <tr><td>12</td><td><code>npm run typecheck</code> + <code>test:socket-recovery</code></td><td>➖</td><td><code>mobile</code></td></tr>
 <tr><td>13</td><td><code>git diff --check HEAD</code></td><td>✅</td><td><code>repo-checks</code></td></tr>
 </tbody></table></div>
@@ -321,7 +319,7 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <p class="muted">Dvanaest segmenata; nijedan ne počinje dok prethodni nema zelen CI i odobrenje. Gumb „Odobravam pravac" u sekciji 08 ostaje potvrda dizajnerskog pravca.</p>
 <div class="tw"><table class="tight"><thead><tr><th>Segment</th><th>Obim</th><th>Kapija</th></tr></thead><tbody>
 <tr><td><span class="seg">S0</span></td><td>Dizajn dokumenti + popravka CI baselinea</td><td>prvi zeleni run 5/5</td></tr>
-<tr><td><span class="seg">S1</span></td><td>Temelj: tokeni, 3-state tema, nove primitive</td><td>140/140 kontrast, 203/203 testa</td></tr>
+<tr><td><span class="seg">S1</span></td><td>Temelj: tokeni, Aurum light/dark, nove primitive</td><td>140/140 kontrast, 203/203 testa</td></tr>
 <tr><td><span class="seg">S2</span></td><td>Javni shell + Početna + Usluge + Detalj</td><td>5/5 + budžet</td></tr>
 <tr><td><span class="seg">S3</span></td><td>Javni sadržaj: blog, galerija, kontakt, klijenti</td><td>5/5</td></tr>
 <tr><td><span class="seg">S4</span></td><td>Javni tokovi: rezervacija, profil, token, odjava</td><td>FSM paritet</td></tr>
@@ -331,11 +329,11 @@ code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
 <tr><td><span class="seg">S8</span></td><td>Analitika, Korisnici, Salon, Usluge, Frizeri</td><td>razbijanje fajlova</td></tr>
 <tr><td><span class="seg">S9</span></td><td>Sadržaj + Postavke hub (7 tabova)</td><td><code>?tab=</code> paritet</td></tr>
 <tr><td><span class="seg">S10</span></td><td>Stylist portal (10 ekrana + 2 redirecta)</td><td>tamni kontrast</td></tr>
-<tr><td><span class="seg">S11</span></td><td>Rendered a11y za 3 stanja, reflow, docs, dead code</td><td>58/58 + konačni 5/5</td></tr>
+<tr><td><span class="seg">S11</span></td><td>Rendered a11y za Aurum light/dark, reflow, docs, dead code</td><td>58/58 + konačni 5/5</td></tr>
 </tbody></table></div>
 <h3 style="margin-top:24px">Šta se ne smije izgubiti</h3>
-<p>Jedna jasna akcija po ekranu · kontrast iz tabele (03 i 10) · status uz tekst, ne samo bojom · fokus i 44 px ciljevi · obje Aurum teme ravnopravne s klasičnom · potvrda prije otkazivanja · tokeni kao jedini izvor boja · paritet iz sekcije 13.</p>
-<ul class="chk" id="impl"><li><label style="font-weight:400"><input type="checkbox">Tokeni su u kodu pod semantičkim imenima, bez tvrdih boja u komponentama</label></li><li><label style="font-weight:400"><input type="checkbox">Sva 3 stanja prolaze AA za sve parove</label></li><li><label style="font-weight:400"><input type="checkbox">Forme imaju poruke greške uz polje</label></li><li><label style="font-weight:400"><input type="checkbox">Prazna, učitavanje i greška stanja postoje za svaki modul</label></li><li><label style="font-weight:400"><input type="checkbox">58/58 ruta refaktorisano, stari URL-ovi rade</label></li><li><label style="font-weight:400"><input type="checkbox">CI 5/5 zeleno za svaki segment, bez izmišljenih ✅ tvrdnji</label></li></ul>
+<p>Jedna jasna akcija po ekranu · kontrast iz tabele (03 i 10) · status uz tekst, ne samo bojom · fokus i 44 px ciljevi · Aurum svijetli i tamni režim imaju jednak status · potvrda prije otkazivanja · tokeni kao jedini izvor boja · paritet iz sekcije 13.</p>
+<ul class="chk" id="impl"><li><label style="font-weight:400"><input type="checkbox">Tokeni su u kodu pod semantičkim imenima, bez tvrdih boja u komponentama</label></li><li><label style="font-weight:400"><input type="checkbox">Aurum light i dark prolaze AA za sve deklarisane parove</label></li><li><label style="font-weight:400"><input type="checkbox">Forme imaju poruke greške uz polje</label></li><li><label style="font-weight:400"><input type="checkbox">Prazna, učitavanje i greška stanja postoje za svaki modul</label></li><li><label style="font-weight:400"><input type="checkbox">58/58 ruta refaktorisano, stari URL-ovi rade</label></li><li><label style="font-weight:400"><input type="checkbox">CI 5/5 zeleno za svaki segment, bez izmišljenih ✅ tvrdnji</label></li></ul>
 </section>
 </main>
 <footer class="wrap muted" style="padding:32px 20px 56px">NEJRA Aurum · referentni dokument · svi podaci su ilustrativni.</footer>
@@ -402,7 +400,7 @@ bk();
 /* odluka */
 const cs=$$('#dec input'),ap=$('#appr');cs.forEach(c=>c.onchange=()=>ap.disabled=!cs.every(x=>x.checked));
 ap.onclick=()=>{$('#apm').textContent='Pravac odobren – '+new Date().toLocaleDateString('bs');toast('Odobrenje zabilježeno.')};
-/* §10 — uživo izračunati omjeri za dva Aurum stanja (klasično stanje provjerava check_ui_contrast.py). */
+/* §10 — uživo izračunati omjeri za oba podržana Aurum režima. */
 const T3=[['aurum-light',T.light],['aurum-dark',T.dark]];
 let h3='';
 for(const[st,tk]of T3){for(const[a,b,g,n]of pairs){const r=CR(tk[a],tk[b]);

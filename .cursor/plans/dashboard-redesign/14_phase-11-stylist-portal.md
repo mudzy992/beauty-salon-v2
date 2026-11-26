@@ -1,5 +1,7 @@
 # Faza 11 — Stylist portal
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **37 produkcijskih fajlova / 5782 linije / 26 testova.** Najbolje testiran dio dashboarda — ali i najviše pristupačnosnih testova koji asertuju markup.
 
 ---

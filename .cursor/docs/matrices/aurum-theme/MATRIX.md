@@ -1,5 +1,7 @@
 # MATRIX — Aurum theme / skin sustav
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 > **S11 (u toku):** S10 baseline `/` CI `45781994850` je 5/5. CI `45828686415` završio je 4/5; rendered job 3195/3200 passed, a 5 padova su 320px reflow overflow assertion: admin dashboard/settings Classic/BS + stylist inbox BS u sve tri teme (ne axe violations). User report kaže da sidebar nestaje pri 200–400% zoomu. Responsive fix (čitljiv menu icon → drawer, header/nav/inbox reflow, 320px drawer/focus e2e + detaljnija overflow dijagnostika) je lokalno testiran; novi rendered CI još treba. Korisnik je prijavio keyboard/focus, forced-colors i reduced-motion PASS; screen reader nije moguć. Ostaje samo zoom/text-spacing retest nakon potvrđene ispravke; upute/evidencija: `.cursor/plans/aurum-web-refactor/S11_USER_VERIFICATION.md`.
 
 > **Aktuelni M2 status:** završen na osnovu korisnikove prijave pregleda u Brave i Edge na Windowsu (200%/400%, text-spacing, sve rute/uloge/jezici/teme, verzija `718fbe0`) i automatizovanih 320px fiksura. [CI 44940081950](https://github.com/mudzy992/beauty-salon-v2/actions/runs/44940081950) 5/5, rendered 1505/0/0. Prijava nije nezavisni audit; viewport i pojedinačna stanja nisu specificirani. Ostaju zasebne provjere tastature, čitača ekrana, stvarnog forced-colors i reduced-motion te nepotpuni axe nalazi. Detalji: `.cursor/plans/aurum-web-refactor/15_rucni-pregled.md`. Stariji statusi ispod su historijski.

@@ -6,7 +6,7 @@ async function tabTo(page: Page, target: Locator) {
 }
 
 // Held availability response keeps calendar content stable while the date panel mounts.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const preference of ['reduce', 'no-preference'] as const) {
     test(`M6 booking date expansion ${theme} ${preference}`, async ({ page }) => {
       await page.emulateMedia({ reducedMotion: preference })
@@ -33,7 +33,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
       await page.route('**/api/**', async route => {
         const req = route.request(), path = new URL(req.url()).pathname
         if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
         if (path === '/api/users/profile') return route.fulfill({ json: { id: 'fixture-client', username: 'test', email: 'test@example.test', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } })
         if (path === '/api/services') return route.fulfill({ json: [{ id: 'service-one', name: 'Fixture service', durationMinutes: 60, gender: 'FEMALE' }] })
         if (path === '/api/reservations/availability/dates') { await gate; return route.fulfill({ json: [] }) }
@@ -43,7 +43,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
       })
       await page.goto('/rezervacija', { waitUntil: 'domcontentloaded' })
       await expect.poll(() => page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(preference === 'reduce')
-      await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
       const search = page.locator('#public-service-search')
       await expect(search).toBeVisible()
       await tabTo(page, search)

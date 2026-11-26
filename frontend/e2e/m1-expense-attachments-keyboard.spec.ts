@@ -17,7 +17,7 @@ async function tabTo(page: Page, target: Locator, limit = 150) {
 }
 
 // Synthetic files and intercepted requests only; no real upload or expense is created.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const viewport of ['desktop', 'mobile'] as const) {
       for (const kind of ['fixed', 'bulk'] as const) {
@@ -51,7 +51,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
                 if (req.method() === 'POST' && path === '/api/expenses') { writes.push(req.postDataJSON()); return route.fulfill({ json: { id: 'fixture-expense' } }) }
                 return route.abort()
               }
-              if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+              if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
               if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
               if (path === '/api/expense-books') return route.fulfill({ json: [book] })
               if (path === '/api/expense-books/expense-book-1') return route.fulfill({ json: book })
@@ -59,7 +59,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
               return route.fulfill({ json: {} })
             })
             await page.goto('/admin/finance?tab=expense', { waitUntil: 'networkidle' })
-            await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+            await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
             await expect(page.locator('html')).toHaveAttribute('lang', language)
             const bookButton = page.getByRole('button', { name: /otvori knjigu.*2026|open book.*2026/i })
             await tabTo(page, bookButton)

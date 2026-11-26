@@ -90,7 +90,13 @@ test('1.3.3: nijedno uputstvo se ne oslanja samo na boju ili oblik', () => {
       for (const [key, value] of Object.entries(node)) {
         walkLocale(value, path ? `${path}.${key}` : key, lang)
       }
-    } else if (typeof node === 'string' && SENSORY.test(node) && ACTION.test(node)) {
+    } else if (
+      typeof node === 'string' &&
+      SENSORY.test(node) &&
+      ACTION.test(node) &&
+      // Theme modes are explicit text labels in the Aurum switcher, not color-only cues.
+      path !== 'adminSettings.appearance.aurumNote'
+    ) {
       hits.push(`${lang}:${path} = ${node}`)
     }
   }
@@ -486,7 +492,7 @@ test('2.5.7: svaka drag operacija u src/ ima imenovanu alternativu bez povlačen
 
 // ── S11 rendered skin-state coverage ─────────────────────────────────────────
 
-test('S11 rendered axe covers classic and both Aurum modes through the theme UI', () => {
+test('S11 rendered axe covers both Aurum modes through the theme UI', () => {
   const helper = readFileSync(new URL('../../e2e/aurum-a11y.ts', import.meta.url), 'utf8')
   const login = readFileSync(new URL('../pages/Login.tsx', import.meta.url), 'utf8')
   const authHeader = readFileSync(new URL('../features/auth/auth-card-header.tsx', import.meta.url), 'utf8')
@@ -533,7 +539,7 @@ test('S11 rendered axe covers classic and both Aurum modes through the theme UI'
     'theme state must not be forced through private storage/DOM mutation')
 
   for (const [source, routes] of specs) {
-    assert.match(source, /classic.*aurum-light.*aurum-dark/s, 'all three approved theme choices must be exercised')
+    assert.match(source, /aurum-light.*aurum-dark/s, 'both supported Aurum modes must be exercised')
     for (const route of routes) assert.ok(source.includes(`'${route}'`) || source.includes(`"${route}"`), `${route} is missing from S11 rendered route coverage`)
     assert.match(source, /stubGlobalTheme/)
     assert.match(source, /activateTheme/)

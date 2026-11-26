@@ -1,5 +1,7 @@
 # Plan — Aurum web refaktor: javne stranice + svi dashboardi
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **PLAN ODOBREN (`approve_s0`) · S0–S5 ZAVRŠENI (svaki 5/5 CI)**. S1 `43100889990`/`ae87acf` · S2 `43110763869`/`d1fb55d` · S3 `43116167107`/`a12cf5b` · **S4 `43177106881`/`7d2ab0e` (204/204, 2730/2730 BS/EN, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`, 281,3/300 KiB)**. **S5 `43181880043`/`90acca2` (204/204, 2730/2730 BS/EN, 140/140 source-only kontrast, rendered axe 252/252 na default `classic`, 281,6/300 KiB, `ThemeSwitcher` u zaglavlju auth kartice). S6–S11 ostaju budući segmenti i dalje traže STOP + eksplicitno odobrenje.** U S0 nije diran produkcijski UI kod; S1 je uveo jedini novi feature (izbornik teme), S2 je prvi potrošač temelja, S3 je proširio Aurum na 5 sadržajnih javnih ruta, S4 na 6 javnih tokova uz diff-om potvrđen nulti FSM/API zahvat, a S5 na 7 ekrana izvan shellova uz nulti auth-flow diff.
 
 **Datum:** 2026-11-11

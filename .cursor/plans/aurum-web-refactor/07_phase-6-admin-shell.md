@@ -1,5 +1,7 @@
 # S6 — Admin shell + Dashboard + Rezervacije + fullscreen kalendar
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** 🟡 S6 odobren (`approve_s6`); mapa A odobrena (`approve_map_a`), implementacija u toku · **Prvi dashboard segment; ovdje se zamjenjuju stari admin šabloni (Q4).**
 
 ---

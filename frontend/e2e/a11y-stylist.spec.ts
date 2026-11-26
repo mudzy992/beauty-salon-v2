@@ -331,8 +331,7 @@ for (const mode of ['light', 'dark'] as const) {
         if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
         const rows = await response.json() as Array<{ key: string; value: string }>
         await route.fulfill({ response, json: [
-          ...rows.filter((row) => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
-          { key: 'theme_active_skin', value: 'aurum' },
+          ...rows.filter((row) => row.key !== 'theme_default_mode'),
           { key: 'theme_default_mode', value: mode },
         ] })
       })
@@ -374,8 +373,7 @@ for (const mode of ['light', 'dark'] as const) {
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
           await intercepted.fulfill({ response, json: [
-            ...rows.filter(row => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
-            { key: 'theme_active_skin', value: 'aurum' },
+            ...rows.filter(row => row.key !== 'theme_default_mode'),
             { key: 'theme_default_mode', value: mode },
           ] })
         })
@@ -440,8 +438,8 @@ for (const mode of ['light', 'dark'] as const) {
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
           await intercepted.fulfill({ response, json: [
-            ...rows.filter(row => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
-            { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+            ...rows.filter(row => row.key !== 'theme_default_mode'),
+            { key: 'theme_default_mode', value: mode },
           ] })
         })
         const entry = {
@@ -529,8 +527,8 @@ for (const mode of ['light', 'dark'] as const) {
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
           await intercepted.fulfill({ response, json: [
-            ...rows.filter(row => row.key !== 'theme_active_skin' && row.key !== 'theme_default_mode'),
-            { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+            ...rows.filter(row => row.key !== 'theme_default_mode'),
+            { key: 'theme_default_mode', value: mode },
           ] })
         })
         const reservation = {
@@ -637,8 +635,8 @@ for (const mode of ['light', 'dark'] as const) {
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
             await intercepted.fulfill({ response, json: [
-              ...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)),
-              { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+              ...rows.filter(row => row.key !== 'theme_default_mode'),
+              { key: 'theme_default_mode', value: mode },
             ] })
           })
           const name = 'Svečana frizura i posebna njega za dugu kosu'
@@ -745,7 +743,7 @@ for (const mode of ['light', 'dark'] as const) {
             const response = await route.fetch()
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
-            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+            await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
           })
           const proposal = { delayMinutes: 15, overrunMinutes: 15, shiftMinutes: 15, items: [{ id: 'r-next', clientId: 'c-next', serviceName: 'Svečana frizura i njega duge kose', clientName: 'Ana Test', oldStartTime: '12:00', oldEndTime: '13:00', newStartTime: '12:15', newEndTime: '13:15', shiftMinutes: 15, reducedBreakMinutes: 0 }] }
           const requests: unknown[] = []
@@ -837,7 +835,7 @@ for (const mode of ['light', 'dark'] as const) {
             const response = await route.fetch()
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
-            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+            await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
           })
           const debt = { id: 'debt-1', amount: 125.5, createdAt: '2026-01-02T10:00:00Z', client: { id: 'c1', username: 'amela', firstName: 'Amela', lastName: 'Dugoprezime-Testiranje' }, service: { id: 's', name: 'Svečana frizura i njega kose' }, reservation: { id: 'r', publicReferenceCode: 'M2-DEBT-001', reservationDate: '2026-01-02', startTime: '10:00', endTime: '11:00' } }
           const mutations: string[] = []
@@ -930,7 +928,7 @@ for (const mode of ['light', 'dark'] as const) {
             const response = await route.fetch()
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
-            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+            await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
           })
           const name = 'Amela Dugoprezime Test Klijent'
           const service = 'Svečana frizura i detaljna njega duge kose'

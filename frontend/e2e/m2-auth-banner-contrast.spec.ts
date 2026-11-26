@@ -21,8 +21,8 @@ for (const path of ['/login', '/register'] as const) {
             const copy = 'This deliberately long fixture describes the salon and its services to visitors in several sentences. '
             const key = path === '/login' ? 'public_login_subtitle' : 'public_register_subtitle'
             await route.fulfill({ response, json: [
-              ...rows.filter(row => !['theme_active_skin', 'theme_default_mode', key].includes(row.key)),
-              { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+              ...rows.filter(row => row.key !== 'theme_default_mode' && row.key !== key),
+              { key: 'theme_default_mode', value: mode },
               { key, value: copy.repeat(5) },
             ] })
           })

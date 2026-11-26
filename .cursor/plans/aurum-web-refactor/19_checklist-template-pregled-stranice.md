@@ -1,5 +1,7 @@
 # Protokol i šablon za detaljan pregled jedne admin stranice
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 ## 1. Pravilo rada
 
 Korisnik zadaje **jednu stranicu**. Obrađuje se samo ta stranica i kod koji ona zaista koristi; ne prelazi se na drugu stranicu bez nove upute. Pregled nije samo pretraga boja, niti samo prolazak testova: svaki red datoteka u obuhvatu treba pročitati i razumjeti u kontekstu izvršavanja.

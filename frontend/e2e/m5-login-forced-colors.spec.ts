@@ -6,7 +6,7 @@ async function tabTo(page: Page, target: Locator) {
 }
 
 // Chromium emulation is not a real operating-system high-contrast test.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     test(`M5 forced-colors login ${theme} ${language}`, async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 900 })
@@ -21,11 +21,11 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
       await page.route('**/api/**', route => {
         const req = route.request(), path = new URL(req.url()).pathname
         if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
         return route.fulfill({ json: {} })
       })
       await page.goto('/login', { waitUntil: 'networkidle' })
-      await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
       await expect(page.locator('html')).toHaveAttribute('lang', language)
       const username = page.locator('#usernameOrEmail'), password = page.locator('#password')
       const submit = page.locator('form').getByRole('button', { name: /^prijava$|^log in$|^sign in$/i })

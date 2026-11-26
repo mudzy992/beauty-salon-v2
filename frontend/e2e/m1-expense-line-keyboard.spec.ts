@@ -6,7 +6,7 @@ async function tabTo(page: Page, target: Locator, limit = 150) {
   await expect(target).toBeFocused()
 }
 
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const viewport of ['desktop', 'mobile'] as const) {
       for (const outcome of ['success', 'failure', 'moved'] as const) {
@@ -45,7 +45,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             }
             return route.abort()
           }
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
           if (path === '/api/expense-books') return route.fulfill({ json: [book] })
           if (path === '/api/expense-books/expense-book-1') return route.fulfill({ json: book })

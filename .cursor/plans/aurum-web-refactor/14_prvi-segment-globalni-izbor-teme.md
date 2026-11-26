@@ -1,5 +1,7 @@
 # Prvi segment revidiranog plana — globalni izbor identiteta i režima
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status: PRIJEDLOG, čeka eksplicitno odobrenje implementacije.** Vizuelni koncept `docs/design/aurum-novi-identitet-koncept.html` je odobren kao smjer, uz premium/unikatne detalje, diskretne animacije, modernije ikone i komponentni standard. Ovaj segment je funkcionalni temelj; **ne završava novi vizuelni identitet** ni revidirane S2–S4.
 
 ## Utvrđeno iz postojećeg koda

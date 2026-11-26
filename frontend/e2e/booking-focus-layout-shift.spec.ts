@@ -8,7 +8,7 @@ async function focusedCenterVisible(target: Locator) {
   })
 }
 
-for (const theme of ['classic', 'light', 'dark'] as const) for (const motion of ['reduce', 'no-preference'] as const) {
+for (const theme of ['light', 'dark'] as const) for (const motion of ['reduce', 'no-preference'] as const) {
   test(`focused booking control survives delayed layout shift (${theme}, ${motion}) without overriding user scrolling`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.emulateMedia({ reducedMotion: motion })
@@ -20,7 +20,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) for (const motion of 
     await page.route('**/api/**', async route => {
       const request = route.request(), path = new URL(request.url()).pathname
       if (request.method() !== 'GET') return route.abort()
-      if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+      if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
       if (path === '/api/users/profile') return route.fulfill({ json: { id: 'fixture', username: 'test', email: 'test@example.test', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } })
       if (path === '/api/services') return route.fulfill({ json: [{ id: 's1', name: 'Long fixture service for layout movement', durationMinutes: 60, gender: 'FEMALE' }] })
       if (path === '/api/reservations/availability/dates') return route.fulfill({ json: [] })

@@ -1,5 +1,7 @@
 # Faza A2 — Dizajn sistem
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Pravilo iz prompta §4: paleta se zadržava.** Ovo nije novi brand — ovo je **semantički sloj** preko postojeće palete.
 Svi omjeri kontrasta u ovom dokumentu su **izračunati** istim algoritmom kao [`scripts/check_ui_contrast.py`](../../../scripts/check_ui_contrast.py)
 (WCAG 2.x relativna luminanca), a ne prepisani iz reference. Tamo gdje se moj proračun i referenca slažu — naznačeno je.

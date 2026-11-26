@@ -1,5 +1,7 @@
 # S10 — Stylist portal: 10 ekrana + shell
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Izvršni plan za S10. Faza (`11_phase-10-stylist-portal.md`) je vlasnik odobrio 2026-11-25
 nastavkom „nastavi S10”. Ovaj fajl je mjerenje, redoslijed rada i evidencija dokaza;
 faza ostaje vlasnički dokument.

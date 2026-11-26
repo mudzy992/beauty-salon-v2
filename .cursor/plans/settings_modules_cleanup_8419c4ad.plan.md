@@ -25,6 +25,8 @@ isProject: false
 
 # Settings: moduli, cleanup i stvarni efekat
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Plan folder (više od 3 faze): `.cursor/plans/settings-modules-cleanup/` (`00_overview.md`, `01_phase-*.md`, `CHECKLIST.md`, `CHANGELOG.md`, `HANDOFF.md`).
 
 Odluke iz reviewa su fiksirane. Izvor kontrakta ostaje [backend/src/settings/settings-registry.ts](../../backend/src/settings/settings-registry.ts). Admin UI danas je monolit [frontend/src/pages/Settings.tsx](../../frontend/src/pages/Settings.tsx) (~1000 linija) — mora se rascijepiti (limit ~200 linija po fajlu).

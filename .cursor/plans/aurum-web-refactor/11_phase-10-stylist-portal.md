@@ -1,5 +1,7 @@
 # S10 — Stylist portal (10 ekrana + 2 redirecta)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ S10 implementacija i CI gate završeni · CI run `45781994850` je 5/5 za `e6b4271`; S11 je odobren i aktivan. Ručni stylist keyboard flow ostaje otvoren u S11 checklisti · **Zatvara posljednju grupu ekrana iz Q3.**
 
 ---

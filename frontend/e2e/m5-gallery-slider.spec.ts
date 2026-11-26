@@ -9,7 +9,7 @@ async function tabTo(page: Page, target: Locator) {
 }
 
 // Synthetic pair and intercepted GETs. Browser emulation is not a Windows contrast theme or AT.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const palette of ['light', 'dark'] as const) {
       for (const photo of ['white', 'black'] as const) {
@@ -31,14 +31,14 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           await page.route('**/api/**', route => {
             const request = route.request(), path = new URL(request.url()).pathname
             if (request.method() !== 'GET') { writes.push(`${request.method()} ${path}`); return route.abort() }
-            if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+            if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
             if (path === '/api/gallery/categories') return route.fulfill({ json: [] })
             if (path === '/api/daily-log/before-after') return route.fulfill({ json: { items: [{ id: 'pair', before: { pathOriginal: '/fixture-photo.svg' }, after: { pathOriginal: '/fixture-photo.svg' } }] } })
             return route.fulfill({ json: {} })
           })
           await page.goto('/galerija', { waitUntil: 'networkidle' })
-          await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
-          if (theme !== 'classic') await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
           await expect(page.locator('html')).toHaveAttribute('lang', language)
           expect(await page.evaluate(() => matchMedia('(forced-colors: active)').matches)).toBe(true)
           expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(palette === 'dark')
@@ -74,7 +74,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             return { width: css.borderWidth, style: css.borderStyle, color: css.borderColor, background: css.backgroundColor }
           })
           console.log(`M5_GALLERY_HANDLE_${theme}_${language}_${palette}_${photo} ${JSON.stringify({ focus, lineStyle, thumbStyle })}`)
-          if (theme === 'classic' && language === 'bs' && palette === 'light' && photo === 'white') {
+          if (theme === 'light' && language === 'bs' && palette === 'light' && photo === 'white') {
             await test.info().attach('gallery-slider-forced-colors', { body: await slider.screenshot(), contentType: 'image/png' })
           }
           expect(lineStyle.leftStyle, JSON.stringify(lineStyle)).toBe('solid')
@@ -113,7 +113,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
 }
 
 // The same caption is rendered in the auto-published category branch.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   test(`M7 gallery auto-published comparison ${theme}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.addInitScript(({ mode }) => {
@@ -127,15 +127,15 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
     await page.route('**/api/**', route => {
       const req = route.request(), path = new URL(req.url()).pathname
       if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-      if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+      if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
       if (path === '/api/gallery/categories') return route.fulfill({ json: [category] })
       if (path === '/api/gallery/categories/fixture-cat') return route.fulfill({ json: category })
       if (path === '/api/daily-log/before-after') return route.fulfill({ json: { items: [{ id: 'fixture', before: { pathOriginal: '/brand/aurum-hero-editorial.jpg' }, after: { pathOriginal: '/brand/aurum-hero-editorial.jpg' } }] } })
       return route.fulfill({ json: {} })
     })
     await page.goto('/galerija', { waitUntil: 'networkidle' })
-    await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
-    if (theme !== 'classic') await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
+    await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+    await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
     await expect(page.getByRole('heading', { name: 'Fixture category' })).toBeVisible()
     await expect(page.getByRole('slider', { name: 'Before and after photo comparison' })).toHaveCount(1)
     await expect.poll(async () => (await settleAnimations(page))?.stillRunning ?? -1).toBe(0)

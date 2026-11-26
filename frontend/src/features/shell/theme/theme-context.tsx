@@ -1,9 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
-import {
-  applyTheme,
-  THEME_META,
-} from './theme-state.mjs'
+import { applyTheme, THEME_META } from './theme-state.mjs'
 import type { ThemeChoice, ThemeMode, ThemeSkin } from './theme-state.mjs'
 import { readModePreference, resolveTheme, writeModePreference } from './theme-policy.mjs'
 
@@ -14,30 +11,26 @@ type ThemeContextValue = {
   setChoice: (choice: ThemeChoice) => void
   skin: ThemeSkin
   mode: ThemeMode
-  setGlobalTheme: (skin: string | undefined, mode: string | undefined) => void
+  setGlobalTheme: (mode: string | undefined) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
-/**
- * Jedini vlasnik stanja teme. Administratorske postavke dolaze preko
- * SettingsProvider-a, a lokalno se pamti samo Aurum svijetli/tamni režim.
- * Dok postavke nisu dostupne primjenjuje se odobreni Aurum svijetli default.
- */
+/** Aurum is the only skin; admins set the default mode and users may override it locally. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [globalTheme, setGlobalThemeState] = useState({ skin: 'aurum', mode: 'light' })
+  const [defaultMode, setDefaultMode] = useState('light')
   const [preference, setPreference] = useState<ThemeMode | null>(() => {
     try { return typeof window === 'undefined' ? null : readModePreference(window.localStorage) }
     catch { return null }
   })
-  const choice = resolveTheme(globalTheme.skin, globalTheme.mode, preference)
+  const choice = resolveTheme(defaultMode, preference)
 
   useEffect(() => {
     applyTheme(document.documentElement, choice, document)
   }, [choice])
 
-  const setGlobalTheme = useCallback((skin: string | undefined, mode: string | undefined) => {
-    setGlobalThemeState({ skin: skin === 'classic' ? 'classic' : 'aurum', mode: mode === 'dark' ? 'dark' : 'light' })
+  const setGlobalTheme = useCallback((mode: string | undefined) => {
+    setDefaultMode(mode === 'dark' ? 'dark' : 'light')
   }, [])
   const setChoice = useCallback((next: ThemeChoice) => {
     if (next !== 'aurum-light' && next !== 'aurum-dark') return
@@ -48,7 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<ThemeContextValue>(() => {
     const meta = THEME_META[choice]
-    return { choice, setChoice, setGlobalTheme, skin: meta.skin, mode: meta.mode }
+    return { choice, setChoice, setGlobalTheme, skin: 'aurum', mode: meta.mode }
   }, [choice, setChoice, setGlobalTheme])
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

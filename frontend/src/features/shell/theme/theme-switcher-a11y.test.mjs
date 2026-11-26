@@ -30,22 +30,20 @@ const resolveKey = (locale, key) =>
   key.split('.').reduce((acc, part) => (acc && typeof acc === 'object' ? acc[part] : undefined), locale)
 
 const THEME_KEYS = [
-  'shell.theme.groupLabel',
-  'shell.theme.classic',
   'shell.theme.aurumLight',
   'shell.theme.aurumDark',
   'shell.theme.darkToggle',
   'shell.theme.announcement',
 ]
 
-test('jedno dugme ima stabilno ime i stanje, skriva se u classic i mijenja režim', () => {
+test('Aurum light/dark prekidač je uvijek dostupan i mijenja samo režim', () => {
   assert.equal((code.match(/<button/g) ?? []).length, 1)
   assert.match(code, /aria-label=\{t\('shell\.theme\.darkToggle'\)\}/)
   assert.match(code, /aria-pressed=\{isDark\}/)
   assert.match(code, /const isDark = choice === 'aurum-dark'/)
   assert.match(code, /const next = isDark \? 'aurum-light' : 'aurum-dark'/)
   assert.match(code, /setChoice\(next\)/)
-  assert.match(code, /if \(skin === 'classic'\) return null/)
+  assert.doesNotMatch(code, /skin ===/)
   assert.match(code, /<Sun aria-hidden="true"/)
   assert.match(code, /<Moon aria-hidden="true"/)
 })
@@ -102,8 +100,10 @@ test('runtime ugovor: ThemeProvider iznad SettingsProvider i meta theme-color', 
   const settings = providers.indexOf('<SettingsProvider>')
   assert.ok(theme > -1 && settings > theme, 'SettingsContext mora moći čitati useTheme()')
   assert.match(providers, /<MotionConfig reducedMotion="user">/)
-  assert.match(indexHtml, /<meta name="theme-color" content="#0f172a" \/>/,
-    'početna vrijednost ostaje; runtime je održava')
+  assert.match(indexHtml, /<html[^>]*data-skin="aurum"[^>]*data-mode="light"/,
+    'početni HTML mora odmah koristiti podržani Aurum light režim')
+  assert.match(indexHtml, /<meta name="theme-color" content="#FAF6EF" \/>/,
+    'početna theme-color mora odgovarati Aurum light paleti')
 })
 
 test('mutacije a11y ugovora se odbijaju (detektor nije prazna provjera)', () => {

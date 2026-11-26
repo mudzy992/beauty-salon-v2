@@ -122,10 +122,9 @@
     color-scheme: dark;
   }
 
-  /* ── NEJRA §10 · 3-state tema (S1) ────────────────────────────────────────────
+  /* ── NEJRA §10 · Aurum light/dark modes ────────────────────────────────────────
      `:root` i `.dark` iznad ostaju NETAKNUTI: bez korisničkog odabira `<html>`
-     nema `data-skin="aurum"`, pa se svaka `dark:` klasa i svaki klasični token
-     ponaša točno kao prije (ugovor §4.1). Oba Aurum selektora imaju
+     oba podržana prikazna režima imaju `data-skin="aurum"`. Selektori imaju
      specifičnost (0,2,0) i zato pobjedjuju `:root` i `.dark` (0,1,0) — odluka
      `dark_yes`: `Aurum tamna` dobija i klasu `dark` i `data-skin="aurum"`.
 
@@ -287,7 +286,7 @@
     color-scheme: dark;
   }
 
-  /* NEJRA §02/§11 — serifni naslovi SAMO u Aurum stanjima. Klasični `font-sans`
+  /* NEJRA §02/§11 — serifni naslovi su ograničeni na Aurum prikaz. Osnovni `font-sans`
      stack se ne dira; nema vanjskih fontova ni mrežnih zahtjeva. */
   [data-skin="aurum"] .aurum-heading {
     font-family: var(--font-aurum-serif);
@@ -353,7 +352,7 @@
   }
 
   /* Aurum admin: enlarged text must wrap instead of disappearing in the header.
-     Keep the Classic layout unchanged. */
+     Keep the shared layout rules unchanged. */
   [data-skin="aurum"] [data-admin-header] .app-logo {
     min-width: 0;
     gap: 0.5rem;
@@ -502,7 +501,7 @@
 }
 
 /* ── NEJRA §07/§10 · S2 javni shell i katalog — SAMO Aurum ─────────────────────
-   Svako pravilo je pod [data-skin="aurum"]; klasični :root/.dark blokovi i sav
+   Svako pravilo je pod [data-skin="aurum"]; zajednički :root/.dark tokeni i sav
    postojeći TSX mark-up ostaju NETAKNUTI, pa je default izgled identičan. Boje
    dolaze iz --aurum-* (12 tačnih hexova NEJRA §10) i izvedenih HSL tokena.
    Hero je namjerna iznimka §07: „uvijek filmski tamno" u OBJE Aurum teme, s
@@ -566,7 +565,7 @@
   color: hsl(var(--text));
 }
 
-/* Hero: filmski tamna kompozicija iz §07, bez klasičnog crnog overlay-a. */
+/* Hero: filmski tamna kompozicija iz §07, bez dodatnog crnog overlay-a. */
 [data-skin="aurum"] [data-aurum-hero] {
   position: relative;
   isolation: isolate;
@@ -614,7 +613,7 @@
 }
 
 /* Kataloške stranice: tvrde legacy hex klase u TSX-u se pod Aurumom prebacuju na
-   semantičke tokene; klasično stanje ih i dalje koristi tačno kao prije. */
+   semantičke tokene za Aurum prikaz. */
 [data-skin="aurum"] [data-aurum-page="services"] > section:first-of-type,
 [data-skin="aurum"] [data-aurum-page="service-detail"] > section:first-of-type {
   background-color: hsl(var(--surface-sunken));
@@ -711,7 +710,7 @@
 
 /* ── NEJRA §07/§09/§11 · S3 javni sadržaj — SAMO Aurum ────────────────────────
    /blog, /blog/:slug, /galerija, /kontakt, /zadovoljni-klijenti. Svako pravilo
-   je pod [data-skin="aurum"]; klasični :root/.dark blokovi i TSX markup ostaju
+   je pod [data-skin="aurum"]; zajednički tokeni i TSX markup ostaju
    netaknuti, pa je default izgled identičan. Boje isključivo iz --aurum-* / HSL
    semantičkih tokena i --nejra-hero-* (S2, NEJRA §10). Nema novih animacija:
    globalni prefers-reduced-motion i MotionConfig reducedMotion="user" već važe. */
@@ -868,7 +867,7 @@
    /rezervacija, /moj-termin/:token, /moje-rezervacije(/:id), /unsubscribe, /profil
    i dijeljene komponente (kartica rezervacije, payment summary, media consent,
    potvrdni dijalog). Blok je SAMO dodan na kraj fajla: S2 i S3 pravila ostaju
-   netaknuta, a svako novo pravilo je pod [data-skin="aurum"], pa klasični prikaz
+   netaknuta, a svako novo pravilo je pod [data-skin="aurum"], pa osnovni prikaz
    nema nikakvu promjenu. Boje isključivo iz --aurum-* / HSL semantičkih tokena
    (140/140 u scripts/check_ui_contrast.py). Nema novih animacija ni fontova. */
 
@@ -979,7 +978,7 @@
    Blok je SAMO dodan na kraj fajla: S2 :432, S3 :646 i S4 :811 ostaju netaknuti.
    Nijedno pravilo ne definise novu CSS promjenljivu niti tvrdi boju — koriste se
    iskljucivo var(--aurum-*), var(--nejra-hero-*) i hsl(var(--*)) iz SSOT-a.
-   Bez [data-skin="aurum"] klasicni prikaz je identican, uz jedinu namjernu
+   Aurum stilovi ostaju ograničeni na [data-skin="aurum"], uz jedinu namjernu
    iznimku: odobreni red s izbornikom teme/jezika (Q8 / §12). Nema animacija. */
 
 /* Kartica: neprozirna SSOT povrsina + 1,5 px linija. Gasimo legacy
@@ -1081,7 +1080,7 @@
   color: hsl(var(--text));
 }
 
-/* Admin identity: decorative navigation icons are absent visually in classic. */
+/* Admin identity: show decorative navigation icons in the themed shell. */
 [data-aurum-nav-icon] { display: none; }
 [data-skin="aurum"] [data-aurum-nav-icon] { display: block; }
 [data-skin="aurum"] [data-admin-sidebar] > div {
@@ -1135,7 +1134,7 @@
 }
 
 /* Editorial homepage identity. All existing content and feature gates are shared
-   with classic; only Aurum changes composition, using the approved token pairs. */
+   across all routes; the Aurum identity uses the approved token pairs. */
 [data-skin="aurum"] [data-aurum-page="home"] [data-home-hero-content] {
   width: 100%;
   max-width: 80rem;
@@ -1802,7 +1801,7 @@
 }
 [data-skin="aurum"] [data-admin-dashboard] [data-dashboard-recent] { border-radius: 1rem; padding: clamp(1rem, 2.5vw, 1.5rem); }
 
-/* Shared admin states keep their Classic appearance; Aurum uses paired palette tokens. */
+/* Shared admin states use the paired semantic palette tokens. */
 [data-skin="aurum"] [data-admin-state="loading"] [data-admin-skeleton-cell] {
   background-color: hsl(var(--surface-muted));
 }
@@ -1853,7 +1852,7 @@
   border-color: hsl(var(--line));
 }
 
-/* Admin shared primitives: paired Aurum surfaces and foregrounds, Classic unchanged. */
+/* Admin shared primitives: paired Aurum surfaces and foregrounds. */
 [data-skin="aurum"] .admin-shell [data-admin-tabs-list] {
   background-color: hsl(var(--surface-muted));
   color: hsl(var(--text-muted-strong));
@@ -1918,7 +1917,7 @@
   background: hsl(var(--surface-muted));
 }
 
-/* Scoped user-management surfaces and action icons, preserving Classic. */
+/* Scoped user-management surfaces and action icons. */
 [data-skin="aurum"] [data-admin-users] :is(svg.text-teal-600, svg.text-blue-600) { color: hsl(var(--text)); }
 [data-skin="aurum"] [data-admin-users] svg.text-rose-600 { color: hsl(var(--bad-fg)); }
 [data-skin="aurum"] [data-users-dialog] :is(.text-ok-foreground, .text-amber-700, .text-rose-600, .text-rose-700, [data-users-remove-action]) { color: hsl(var(--text)); }
@@ -1940,7 +1939,7 @@
 /* Chart cards must be able to shrink below their content's intrinsic width
    (grid track minimum) — mirrors the Recharts zero-width measurement below. */
 [data-analytics-hub] .grid > [data-default-card-surface] { min-width: 0; }
-/* Keep manual-entry notes readable when text grows; Classic retains its existing truncation. */
+/* Keep manual-entry notes readable when text grows. */
 [data-skin="aurum"] [data-analytics-hub] [data-analytics-manual-note] {
   overflow: visible;
   white-space: normal;

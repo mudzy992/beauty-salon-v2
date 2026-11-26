@@ -35,7 +35,7 @@ const css = read(join(HERE, '..', '..', '..', '..', 'index.css'))
  */
 
 // 2026-11-18: tokenizovano (border-line / text-content-strong). `text-content-strong`
-// je AAA-validan u sva tri skin-a (Classic 7.28:1, Aurum ~13:1) — slate-500 nije bio.
+// je AAA-validan u oba Aurum režima (~13:1) — slate-500 nije bio.
 const HEAD_ROW = 'border-b border-line text-left text-xs uppercase text-content-strong'
 const BODY_ROW = 'border-b border-line'
 

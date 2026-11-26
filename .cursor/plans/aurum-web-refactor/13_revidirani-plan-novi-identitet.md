@@ -1,5 +1,7 @@
 # Revidirani plan — potpuni novi web identitet
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status: PRIJEDLOG — čeka odobrenje.** S6 je pauziran; ne implementirati ovaj plan prije odobrenja. Historijski S0–S5 CI rezultati ostaju tačni za tadašnji opseg, ali nisu dokaz da je novi zahtjev za potpunim identitetom zadovoljen. Konkretno, S2–S4 treba ponovo dizajnerski i funkcionalno pregledati i realizovati prema ovom planu.
 
 ## Odluke vlasnika

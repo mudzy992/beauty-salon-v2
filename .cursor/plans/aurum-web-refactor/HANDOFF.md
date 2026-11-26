@@ -1,5 +1,18 @@
 # HANDOFF — Aurum web refaktor
 
+## Aktuelni handoff — provjera 2026-11-18
+
+Podržani su samo **Aurum light/dark**, s fiksnom paletom. Retired theme settings su uklonjeni iz UI/API registra; DB cleanup migration je dodana. Historijski CI/run zapisi ispod ostaju historijski i ne potvrđuju ovaj diff.
+
+- Frontend: **209/209** `test:*`, production build (293.6 KiB gzip / 300 KiB budget) i `typecheck:e2e` prolaze. Lint ima 0 grešaka i 5 upozorenja. Mobile lint prolazi.
+- Repo hygiene, CI-index, lokalni Markdown links (769), BS/EN parity (2,891/2,891), source-token contrast (96/96) i `git diff --check` prolaze.
+- Backend lint nije green: **15,592 grešaka / 845 upozorenja**. `prisma generate --no-engine` nije uspio jer se sandbox nije mogao spojiti na `binaries.prisma.sh`.
+- Rendered CI/browser test nije potvrđen; posljednji provjereni CI run `45864317438` je otkazan. Manual **200%/400% zoom** i **text-spacing** provjere ostaju obavezne i otvorene; screen-reader provjera je nepotvrđena. Upute: [`S11_USER_VERIFICATION.md`](S11_USER_VERIFICATION.md).
+- Worktree je necommitovan; nema push-a. Prije bilo kakvog commit/push-a dovršiti pregled cijelog diff-a i dogovorenu verifikaciju.
+
+> Svi raniji statusi i rezultati ispod su historijska evidencija, ne aktuelna potvrda.
+
+
 ## Aktuelni status — S11 zoom/reflow ispravka u toku, grana `arena/dadb4053-beauty-salon-v2`
 
 S10 [run `45781994850`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/45781994850) je 5/5. S11 adds 15 rendered Chromium cases × BS/EN (30 axe scans) for public home/guest booking, admin dashboard/settings and stylist inbox across Classic/Aurum Light/Aurum Dark. Existing baseline local checks were Node **1042/1042**, WCAG source contracts **18/18**, E2E typecheck/discovery, build **294.7/300 KiB gzip**, repo gates. The new follow-up has targeted source tests **18/18**, navigation drawer **6/6**, shell **14/14**, inbox accessibility **3/3**, inbox i18n **1/1**, `typecheck:e2e` and production build PASS. Local rendered Playwright still SKIPS because Chromium is unavailable.

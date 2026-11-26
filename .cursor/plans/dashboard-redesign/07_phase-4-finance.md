@@ -1,5 +1,7 @@
 # Faza 4 — Finansije (KIF/KUF, knjige prihoda/rashoda, katalog kategorija, dužnici)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Najrizičniji modul (novac).** 55 produkcijskih fajlova / 6798 linija / **21 test**.
 Matrice: [`finance`](../../docs/matrices/finance/MATRIX.md) i [`client-debts`](../../docs/matrices/client-debts/MATRIX.md) — **ne mijenjaju se.**
 

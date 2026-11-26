@@ -1,5 +1,7 @@
 # Faza 12 — Onboarding / ForceChangePassword (+ Profile ako Q2 tako odluči)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **WCAG 3.3.8 Accessible Authentication je ovdje najkritičniji.**
 
 ---

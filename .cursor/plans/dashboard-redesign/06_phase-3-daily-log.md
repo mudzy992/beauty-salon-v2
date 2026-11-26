@@ -1,5 +1,7 @@
 # Faza 3 — Dnevna knjiga
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Matrica: [`.cursor/docs/matrices/daily-log/MATRIX.md`](../../docs/matrices/daily-log/MATRIX.md) — **izvor istine za poslovnu logiku, ne mijenja se.**
 
 ---

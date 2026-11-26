@@ -1,5 +1,7 @@
 # S3 — Javni sadržaj: Blog, Galerija, Kontakt, Zadovoljni klijenti
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **ZAVRŠEN** — odobrenje `approve_s3`; kod `a12cf5b` (`a12cf5b3a169d8315fb1c1bd23b522178ab1022f`) · CI run **`43116167107` = 5/5 success** · režim: plan → implementacija → 5/5 CI → evidencija → **STOP**. **Obuhvata 5 javnih ruta + dijeljene blog komponente.**
 
 ---

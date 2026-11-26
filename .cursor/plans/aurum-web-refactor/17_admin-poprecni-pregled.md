@@ -1,5 +1,7 @@
 # Poprečni pregled admin faza — komponente i tokeni
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Početni inventar iz koda, nije završen vizuelni audit · 2026-11-11**
 
 Vlasnik traži da se admin faze pregledaju zajedno i očite nedosljednosti ispravljaju odmah. Ovo dopunjuje plan 16: S6–S9 se otvaraju za poprečni pregled sada, uz očuvanje redoslijeda dovršavanja; S10 je stylist, a S11 završna provjera. Ispravka zajedničke komponente ne znači da su svi njeni potrošači pojedinačno pregledani. Trenutni rad na javnim stranicama se ne ponavlja.

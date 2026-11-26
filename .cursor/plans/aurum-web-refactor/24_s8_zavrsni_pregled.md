@@ -1,5 +1,7 @@
 # S8 — pregled preostalih kriterija i odluka
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Stanje nakon vlasnikovih odluka, refaktora bočne trake (jedna stavka po području) i lokalne implementacije tablista; ovo je pregled dokaza, **ne potvrda završetka S8**. Opseg su analitika (tri pogleda i hub), korisnici, salon, usluge, frizeri i galerija radova uz uslugu. S9 i produkcijski deploy nisu pokrenuti.
 
 ## Najnoviji dokazi (lokalni nastavak refaktora navigacije)

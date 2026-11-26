@@ -1,5 +1,7 @@
 # Pregled stranice /admin — Dashboard
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 - Status: **u toku**, nije završeno. Protokol: `19_checklist-template-pregled-stranice.md`.
 - Ruta: `/admin`; glavni prikaz admina. Outbox je samo za OWNER/SYSTEM_ADMIN, server mora provoditi vlastitu autorizaciju.
 - Plan: (1) inventar i čitanje namjenskih fajlova, (2) pratiti relevantne zajedničke kontrole, tokene, prijevode i API ugovore, (3) ispraviti nalaze s regresijskim testovima, (4) provjeriti stanja, uloge, light/dark i viewport, (5) dokumentovati dokaze i ograničenja. Ne obrađivati druge stranice.

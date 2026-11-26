@@ -1,5 +1,7 @@
 # Ručni pregled novog identiteta — radni protokol
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Korisnikov M2 izvještaj:** korisnik je prijavio Brave i Edge na Windowsu, sve rute, uloge, jezike i teme, uredan ishod bez preklapanja, odsijecanja ili nedostupnih kontrola. Naknadno je izričito potvrdio stvarni browser zoom na 200% i 400%, text-spacing override i pregled verzije s popravkom `718fbe0`. Viewport, verzije browsera, pojedinačna stanja i vrijeme pregleda nisu navedeni. Ovo je korisnikov izvještaj, ne nezavisno provjeren audit. M2 se zatvara na osnovu te potvrde i automatizovanih 320px fiksura; čitač ekrana, sistemski forced-colors i druge nepokrivene provjere ostaju zasebno otvorene.
 
 Sandbox je koristio izolovani Chromium s fiksurama; ograničena vizuelna procjena statičnih snimaka zabilježena je u [ciljanom pregledu](16_ciljani-vizuelni-pregled.md). Ona nije zamjena za čitač ekrana ni stvarne sistemske postavke. Automatizovani a11y-e2e i source provjere također nisu zamjena. Ne koristiti stvarne klijentske podatke.

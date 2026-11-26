@@ -1,5 +1,7 @@
 # S9 — Admin sadržaj + Postavke hub (+ 7 tabova)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** 🟢 implementacija završena lokalno 2026-11-25 (dokazi u `26_s9_sadrzaj_postavke_motion_boje.md` i `CHANGELOG.md`) · **Zatvara svih 24 admin rute.** CI run, merge/deploy i S10 nisu odobreni; ostaju vlasnikove potvrde (stvarni AT/zoom 200%/400%, ručni pregled) i revizija `AdminConfirmDialog` toka u `Reviews`.
 
 ---

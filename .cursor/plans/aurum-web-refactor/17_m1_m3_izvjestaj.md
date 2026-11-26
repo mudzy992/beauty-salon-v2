@@ -1,5 +1,7 @@
 # M1 i M3 — radni izvještaj tastature i fokusa
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status: u toku, M1 i M3 nisu kompletirani.** Ovo je evidencija stvarno izvršenih provjera, ne potpuni WCAG audit, pregled svih mogućih podataka i stanja, ni ručni prolazak čovjeka. Sva nova ispitivanja ispod koriste sintetične naloge/podatke i izolovane odgovore; mutacije su presretnute i nisu došle do stvarnog backenda. Klijentske transakcije, stvarni upload i štampa nisu izvršeni. M2 je već zatvoren zasebno prema korisnikovoj potvrdi i 320px fiksurama.
 
 ## Dosadašnja osnova

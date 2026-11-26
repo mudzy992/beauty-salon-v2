@@ -1,5 +1,7 @@
 # CHANGELOG — aurum-theme matrica
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 ## 2026-11-11 · K0 · Matrica kreirana (PLAN)
 
 **Šta:** kreirana `MATRIX.md` s modelom 3 stanja (Q8), state machineom, DOM primjenom, Q9 precedencijom boja, tokenima/kontrastom (80 → 140 parova), mjestima izbornika, testovima i CI pokrivenošću.

@@ -1,5 +1,7 @@
 # Plan usklađivanja admina do S6 i nastavak nakon S6
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Aktuelni plan rada · 2026-11-11**
 
 ## Polazna tačka i odluke

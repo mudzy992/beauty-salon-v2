@@ -1,5 +1,7 @@
 # Pregled `/admin/users`
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 - Status: u toku; korisnik je izričito zadao ovu stranicu prije analitike. Koristi protokol i šablon iz `19_checklist-template-pregled-stranice.md`.
 - Svrha: pregled klijenata, stilista i administratora, upravljanje ulogama, statusom, podacima, dugovanjima i početnim pristupom. Stvarne izmjene i pristup moraju ostati autorizovani na backendu.
 - Plan: (1) čitanje cijelog page fajla i popis zavisnosti; (2) ugovori, hardkod, tokeni, i18n, interakcije i a11y; (3) ispravke i izolirani testovi sa reprezentativnim podacima za sve pogođene tokove; (4) CI i dokumentovanje ograničenja, pa korisnikov vizuelni pregled.

@@ -1,5 +1,7 @@
 # Faza 2 — Rezervacije (lista + fullscreen kalendar)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Najveći a11y izazov:** drag&drop kalendar (2.5.7), socket refresh (4.1.3), `react-big-calendar` (4.1.2).
 
 ---

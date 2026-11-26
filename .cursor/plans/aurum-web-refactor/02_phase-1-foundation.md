@@ -1,5 +1,7 @@
 # S1 — Temelj: tokeni, 3-state tema, novi dizajn-sistem
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **S1 ZAVRŠEN (5/5 CI `43100889990`)** (odluka vlasnika 2026-11-11: „Možeš nastaviti, odobravam S1"). Lokalno: **203/203** `test:*`, **140/140** kontrastnih parova, build **279,1 / 300 KiB** (+2,2 KiB), `typecheck:e2e` 0, 5 Python gate-ova ✅, `git diff --check` čist. **CI:** commit `ae87acf` (`ae87acfbde4b2b2411afcd3ed5ade5c20ed72ec4`), run **`43100889990`** = **5/5 success**; `a11y-e2e` job `130791757930`: **252 passed | 0 failed | 0 skipped** nad 32 rute na **default `classic`**, artifact `playwright-a11y-report.zip` ID `13891846859` (331192 B); 4 nova S1 koraka (`130791757438` #155–#158) su `success`. · **Tip:** jedini segment koji uvodi **novi feature** (izbornik teme, Q8) i postavlja sloj koji S2–S10 konzumiraju.
 
 ---

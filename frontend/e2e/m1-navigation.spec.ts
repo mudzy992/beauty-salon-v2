@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // Synthetic data only; mutations are blocked, and navigation is exercised with Tab and Enter.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const action of ['not-found', 'direct', 'details', 'payment'] as const) {
       test(`M1 keyboard navigation ${theme} ${language} ${action}`, async ({ page }) => {
@@ -27,7 +27,6 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           const path = new URL(request.url()).pathname
           if (request.method() !== 'GET') { writes.push(`${request.method()} ${path}`); return route.abort() }
           if (path === '/api/settings/public') return route.fulfill({ json: [
-            { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
             { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' },
           ] })
           if (path === '/api/users/profile') return route.fulfill({ json: {
@@ -42,7 +41,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           return route.fulfill({ json: {} })
         })
         await page.goto(action === 'not-found' ? '/m1-nonexistent-route' : '/stylist/schedule', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         const target = action === 'not-found'
           ? page.getByRole('link', { name: /nazad na početnu|back to home/i })

@@ -1,5 +1,7 @@
 # S4 — Javni tokovi: Rezervacija, Moj termin, Moje rezervacije, Unsubscribe, Profil
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **ZAVRŠEN 2026-11-11** — odluka `approve_s4`, commit `7d2ab0e` (`7d2ab0eebafdd08f7fcaf106b134ff4098f73344`), CI run **`43177106881` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`. **Najosjetljiviji segment: rezervacijski FSM i podaci — `git diff -U0` potvrđuje 0 izmjena logike (vidi §10).**
 
 ---

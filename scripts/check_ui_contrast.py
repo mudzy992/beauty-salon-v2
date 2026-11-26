@@ -181,41 +181,30 @@ def main() -> int:
         ("NEJRA §10: muted / page", "aurum-muted", "aurum-page", TEXT_THRESHOLD),
         ("NEJRA §10: brand / page", "aurum-brand", "aurum-page", TEXT_THRESHOLD),
         ("NEJRA §10: accent / page", "aurum-accent", "aurum-page", TEXT_THRESHOLD),
-        # Aurum-only AAA za semantički text-muted (vlasnikova odluka 2026-11-18:
+        # AAA za semantički text-muted u oba Aurum režima (vlasnikova odluka 2026-11-18:
         # dark #BFAF96 = 7.31:1 na surface-muted / 8.45:1 na surface; light #524738
-        # = 9.06:1). Klasični web ostaje na TEXT_THRESHOLD (5.59/5.10 — AA),
-        # namjerno nepromjenjeno.
+        # = 9.06:1).
         ("text-muted / surface (Aurum AAA)", "text-muted", "surface", AAA_TEXT_THRESHOLD),
         ("text-muted / surface-muted (Aurum AAA)", "text-muted", "surface-muted", AAA_TEXT_THRESHOLD),
-        # Aurum-only AAA za semantički accent text (vlasnikova odluka 2026-11-18:
-        # light #8A3346 = 7.95:1 na surface / 7.38:1 na page (sunken); #9B3D4F je
-        # 6.62/6.14 — AA, ne AAA). Klasični light (#8A641E, 5.35:1) ostaje na
-        # TEXT_THRESHOLD (AA), namjerno nepromjenjeno. `surface-sunken` se mapira na
+        # AAA za semantički accent text u svijetlom režimu (vlasnikova odluka 2026-11-18:
+        # #8A3346 = 7.95:1 na surface / 7.38:1 na page (sunken); #9B3D4F je
+        # 6.62/6.14 — AA, ne AAA. `surface-sunken` se mapira na
         # NEJRA `page` (HSL_MAP). Nav-active (#EFE6D4): 6.41:1 — accent-text se tamo
         # ne koristi kao tekst, prag namjerno nije podignut.
         ("brand-accent-text / surface (Aurum AAA)", "brand-accent-text", "surface", AAA_TEXT_THRESHOLD),
         ("brand-accent-text / surface-sunken (Aurum AAA)", "brand-accent-text", "surface-sunken", AAA_TEXT_THRESHOLD),
     )
     web_states = (
-        ("web light", ":root", False),
-        ("web dark", ".dark", False),
-        ("aurum light", '[data-skin="aurum"][data-mode="light"]', True),
-        ("aurum dark", '.dark[data-skin="aurum"]', True),
+        ("Aurum light", '[data-skin="aurum"][data-mode="light"]'),
+        ("Aurum dark", '.dark[data-skin="aurum"]'),
     )
-    root_tokens: dict[str, tuple[float, float, float]] = {}
-    for mode, selector, is_aurum in web_states:
+    for mode, selector in web_states:
         block = css_block(css, selector)
         if block is None:
             print(f"FAIL: CSS selector block not found: {selector}", file=sys.stderr)
             return 2
-        # `.dark` i oba Aurum bloka nasljeđuju deklaracije iz `:root`
-        # (npr. brand varijable), pa se slojevi spajaju.
-        inherited = None if selector == ":root" else root_raw
-        tokens = parse_css_vars(block, inherited)
-        if selector == ":root":
-            root_tokens = tokens
-        else:
-            tokens = {**root_tokens, **tokens}
+        # Oba Aurum bloka nasljeđuju samo zajedničke deklaracije iz `:root`.
+        tokens = parse_css_vars(block, root_raw)
         pairs = (
             ("primary / background", "primary", "background", TEXT_THRESHOLD),
             ("primary-foreground / primary", "primary-foreground", "primary", TEXT_THRESHOLD),
@@ -245,7 +234,7 @@ def main() -> int:
             ("info-fg / info-bg (status)", "info-fg", "info-bg", TEXT_THRESHOLD),
             ("neutral-fg / neutral-bg (status)", "neutral-fg", "neutral-bg", TEXT_THRESHOLD),
         )
-        for label, foreground, background, threshold in pairs + (AURUM_EXTRA_PAIRS if is_aurum else ()):
+        for label, foreground, background, threshold in pairs + AURUM_EXTRA_PAIRS:
             if not append_pair(
                 checks,
                 f"{mode}: {label}",

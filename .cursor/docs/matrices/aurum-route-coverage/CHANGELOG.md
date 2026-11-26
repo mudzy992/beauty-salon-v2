@@ -1,5 +1,7 @@
 # CHANGELOG — aurum-route-coverage matrica
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 ## 2026-11-11 · K0 · Matrica kreirana (PLAN)
 
 **Šta:** popisano **58 deklaracija ruta** (javne 14, auth/izuzeci 8, admin 24, stylist 12) + 13 dijeljenih slojeva, svaki s vlasničkim segmentom S0–S11, ključnim testovima i statusom.

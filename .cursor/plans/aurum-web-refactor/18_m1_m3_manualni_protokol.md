@@ -1,5 +1,7 @@
 # M1/M3 — protokol za završni stvarni tastaturni i vizuelni pregled
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status: nije izvršen.** Ovo je kontrolna lista, a ne izvještaj o prolazu. Ranije Playwright fiksure i presretnuti API odgovori ne zamjenjuju stvarnu upotrebu aplikacije. Posebno nisu dokaz sistemskog izbora datoteke, stvarne štampe ili stvarne transakcije. Evidencija dosadašnjih automatizovanih provjera je u [radnom izvještaju](17_m1_m3_izvjestaj.md).
 
 ## Sigurni preduslovi i evidencija

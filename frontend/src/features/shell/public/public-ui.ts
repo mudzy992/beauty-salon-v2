@@ -17,7 +17,7 @@ export const publicSection = {
   subtle: 'bg-surface-sunken',
 } as const
 
-/* NEJRA §10/§11 — semantički tokeni za Aurum stanja (S2). Klasični `public*`
+/* NEJRA §10/§11 — semantički tokeni za Aurum stanja (S2). Osnovni `public*`
    objekti iznad ostaju NETAKNUTI: bez `data-skin="aurum"` nijedna se vrijednost
    ne primjenjuje, pa je default izgled identičan. Nema tvrdih hexova ni vanjskih fontova. */
 export const publicAurum = {

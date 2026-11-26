@@ -1,5 +1,7 @@
 # Faza 9 — Sadržaj: Blog, Galerija, Recenzije
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **16 produkcijskih fajlova / 2024 linije / 14 testova.** Predlog M3: **zajednički obrazac stranice, bez spajanja ruta.**
 
 ---

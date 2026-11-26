@@ -1,5 +1,7 @@
 # S9 — Admin sadržaj + Postavke, motion i boje
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Izvršni plan za S9. Faza (`10_phase-9-admin-content-settings.md`) je vlasnik odobrio 2026-11-25
 uz napomenu: „unutar S9 možeš provjeriti motion i boje“. Ovaj fajl je mjerenje, redoslijed
 rada i evidencija dokaza; faza ostaje vlasnički dokument.

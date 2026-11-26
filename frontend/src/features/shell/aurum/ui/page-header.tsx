@@ -14,7 +14,7 @@ type PageHeaderProps = {
  * NEJRA §11 — PageHeader za Aurum dizajn-sistem.
  *
  * `aurum-heading` dobija serifni font ISKLJUČIVO pod `[data-skin="aurum"]`
- * (`globals.css`), pa klasični izgled ostaje identičan. Namjerno je `div`, ne
+ * (`globals.css`), pa se osnovni izgled zadržava. Namjerno je `div`, ne
  * `<header>`: landmark strukturu drže shellovi, a naslov ostaje jedini `<h1>`.
  */
 export const PageHeader = ({ title, description, actions, className }: PageHeaderProps) => (

@@ -1,5 +1,7 @@
 # S2 — Javni shell + Početna + Usluge + Detalj usluge
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **S2 ZAVRŠEN (5/5 CI `43110763869` na `d1fb55d` / `d1fb55d7006e8e74c24f6f0ee018424136c92ba7`)** · **Prvi segment koji konzumira nove tokene i primitive.** Odobrenje: „Možeš krenuti sa S2"; STOP uvjet iz §9 riješen odlukom `dopuna_ssot`: NEJRA §10 dopunjen izračunatim hero kontrastom bez izmjene palete. Sljedeći korak: **STOP** → pitanje za S3.
 
 ---

@@ -7,7 +7,7 @@ async function tabTo(page: Page, target: Locator, limit = 150) {
 }
 
 // All writes intercepted. The table is populated only with synthetic data.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const viewport of ['desktop', 'mobile'] as const) {
       for (const scenario of ['detail', 'edit-escape', 'edit-submit', 'complete-failure', 'complete-success', 'complete-moved', 'delete-escape', 'delete-failure', 'delete-success', 'restore-escape', 'restore-failure', 'restore-success', 'restore-moved', 'restore-reset', 'restore-new-date', 'restore-future-direct', 'restore-future-standard'] as const) {
@@ -52,7 +52,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
               }
               return route.abort()
             }
-            if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+            if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
             if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
             if (path === '/api/daily-log') return route.fulfill({ json: mutated ? [] : [entry] })
             if (path === '/api/stylists') return route.fulfill({ json: [{ id: 'stylist-1', user: { username: 'ana', firstName: 'Ana', lastName: 'Test' } }] })
@@ -61,7 +61,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
             return route.fulfill({ json: {} })
           })
           await page.goto('/admin/daily-log', { waitUntil: 'networkidle' })
-          await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+          await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
           await expect(page.locator('html')).toHaveAttribute('lang', language)
           const name = scenario === 'detail' ? /pregledaj unos|view entry/i
             : scenario.startsWith('edit') ? /uredi unos|edit entry/i

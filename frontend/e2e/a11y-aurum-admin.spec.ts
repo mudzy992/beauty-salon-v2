@@ -8,7 +8,7 @@ const ROUTES = [
   { path: '/admin', name: 'dashboard' },
   { path: '/admin/settings', name: 'settings hub' },
 ] as const
-const CHOICES: AurumChoice[] = ['classic', 'aurum-light', 'aurum-dark']
+const CHOICES: AurumChoice[] = ['aurum-light', 'aurum-dark']
 
 const readStatus = (): AdminStatus =>
   existsSync(ADMIN_STATUS)
@@ -45,7 +45,7 @@ test.beforeEach(() => {
 for (const choice of CHOICES) {
   for (const route of ROUTES) {
     test(`S11 rendered axe ${choice}: admin ${route.name}`, async ({ page }, testInfo) => {
-      await stubGlobalTheme(page, choice)
+      await stubGlobalTheme(page)
       await page.goto(route.path, { waitUntil: 'networkidle' })
       await expect(page).not.toHaveURL(/\/login/)
       await activateTheme(page, choice)

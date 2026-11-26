@@ -1,5 +1,7 @@
 # HANDOFF — Dashboard redesign
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Stanje:** **FAZE 0–10 ZAVRŠENE** + **M1 i M2 (arhitektura) ZAVRŠENI**. Sljedeće: **faza 11
 (Stylist portal)**.
 **Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a`

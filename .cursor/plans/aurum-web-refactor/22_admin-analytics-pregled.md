@@ -1,5 +1,7 @@
 # Pregled `/admin/analytics` — u toku
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 ## Opseg i plan
 - Hub: overview, klijentski i stilistički detalj te postojeći deep linkovi i legacy redirecti. Uloge: dashboard i klijentska analitika OWNER/SYSTEM_ADMIN na API-ju; stilistički ugovor provjeriti posebno. Očuvati sve podatke i funkcionalnosti, globalnu paletu i Classic; korisnik je rekao da Classic nije prioritet opsežne matrice.
 - Inventar: `AnalyticsHub.tsx`, `analytics-tab-nav.tsx`, `Analytics.tsx`, `ClientAnalytics.tsx`, `StylistAnalytics.tsx`, shared Card/Button/Input/Label, Recharts i tabele; povezani backend `analytics` service/controller/DTO, users client analytics, stylists analytics, auth/route; lokalizacije BS/EN, E2E i source testovi. Pregled širiti na stvarne zavisnosti, ne tvrditi cijeli backend audit.

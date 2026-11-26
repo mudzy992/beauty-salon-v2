@@ -1,5 +1,7 @@
 # Dashboard redesign — Overview (ETAPA A: plan)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** Plan **ODOBREN 2026-11-08**; Q1–Q7 riješeni po preporuci agenta (§7). ETAPA B u toku — faza 0.
 **Datum plana:** 2026-11-08 · **Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a`
 **Izvor zahtjeva:** [`docs/refaktor/PROMPT_dashboard_redesign.md`](../../../docs/refaktor/PROMPT_dashboard_redesign.md)

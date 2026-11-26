@@ -18,7 +18,7 @@ for (const language of ['bs', 'en'] as const) {
     const firstGrantGate = new Promise<void>(resolve => { releaseFirstGrant = resolve })
     await page.route('**/api/**', async route => {
       const req = route.request(), path = new URL(req.url()).pathname
-      if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: 'light' }] })
+      if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: 'light' }] })
       if (path === '/api/users/profile') return route.fulfill({ json: profile })
       if (path === '/api/preview-fixture') return route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>' })
       if (path === '/api/media/consents/me') {

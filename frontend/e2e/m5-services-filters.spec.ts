@@ -23,7 +23,7 @@ async function tabTo(page: Page, target: Locator) {
 }
 
 // Synthetic catalogue, no writes; browser emulation does not substitute for OS contrast themes.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const palette of ['light', 'dark'] as const) {
       test(`M5 services filter ${theme} ${language} ${palette}`, async ({ page }) => {
@@ -39,15 +39,15 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.route('**/api/**', route => {
           const req = route.request(), path = new URL(req.url()).pathname
           if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/services/categories') return route.fulfill({ json: [{ id: 'cat-a', name: 'Fixture Alpha' }, { id: 'cat-b', name: 'Fixture Beta' }] })
           if (path === '/api/services/subcategories') return route.fulfill({ json: [{ id: 'sub-a', categoryId: 'cat-a', name: 'Fixture first' }, { id: 'sub-b', categoryId: 'cat-b', name: 'Fixture second' }] })
           if (path === '/api/services') return route.fulfill({ json: [{ id: 'service-a', subcategoryId: 'sub-a', name: 'Fixture cut', durationMinutes: 45 }, { id: 'service-b', subcategoryId: 'sub-b', name: 'Fixture color', durationMinutes: 60 }] })
           return route.fulfill({ json: {} })
         })
         await page.goto('/usluge', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
-        if (theme !== 'classic') await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         expect(await page.evaluate(() => matchMedia('(forced-colors: active)').matches)).toBe(true)
         expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(palette === 'dark')
@@ -142,7 +142,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
   }
 }
 
-for (const theme of ['classic', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   test(`M4 services configured catalogue heading ${theme}`, async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.removeItem('token')
@@ -155,7 +155,6 @@ for (const theme of ['classic', 'dark'] as const) {
       const req = route.request(), path = new URL(req.url()).pathname
       if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
       if (path === '/api/settings/public') return route.fulfill({ json: [
-        { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
         { key: 'theme_default_mode', value: 'dark' },
         { key: 'public_services_catalog_heading', value: 'Fixture catalogue heading' },
       ] })
@@ -163,7 +162,7 @@ for (const theme of ['classic', 'dark'] as const) {
       return route.fulfill({ json: {} })
     })
     await page.goto('/usluge', { waitUntil: 'networkidle' })
-    await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+    await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
     await expect(page.locator('#service-catalog h2')).toHaveCount(1)
     await expect(page.getByRole('heading', { level: 2, name: 'Fixture catalogue heading' })).toBeVisible()
     expect(writes).toEqual([])

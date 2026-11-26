@@ -12,6 +12,7 @@ const read = (relative) => readFileSync(new URL(relative, import.meta.url), 'utf
 const blankComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
 const specHtml = read('../../../../../docs/design/NEJRA – beauty salon · Referentni dokument.html')
 const globalsCss = read('../../../styles/globals.css')
+const indexHtml = read('../../../../index.html')
 const tailwindConfig = read('../../../../tailwind.config.js')
 const tailwindCode = blankComments(tailwindConfig)
 const contrastScript = read('../../../../../scripts/check_ui_contrast.py')
@@ -100,6 +101,11 @@ const SELECTORS = {
   dark: '.dark[data-skin="aurum"]',
 }
 
+test('početni HTML koristi Aurum light dok se lokalna preferencija ne učita', () => {
+  assert.match(indexHtml, /<html[^>]*data-skin="aurum"[^>]*data-mode="light"/)
+  assert.match(indexHtml, /<meta name="theme-color" content="#FAF6EF"/)
+})
+
 test('oba Aurum bloka postoje, s većom specifičnošću i ispravnim color-scheme', () => {
   assert.ok(cssBlock(SELECTORS.light), 'nedostaje blok Aurum svijetla')
   assert.ok(cssBlock(SELECTORS.dark), 'nedostaje blok Aurum tamna')
@@ -111,7 +117,7 @@ test('oba Aurum bloka postoje, s većom specifičnošću i ispravnim color-schem
     '.dark[data-skin="aurum"] mora biti poslije .dark bloka')
   assert.match(css, /\[data-skin="aurum"\] \.aurum-heading \{\s*font-family: var\(--font-aurum-serif\);/)
 
-  // Klasični blokovi ostaju netaknuti i bez Aurum tokena.
+  // Global fallback tokens remain isolated from the Aurum token blocks.
   const root = cssBlock(':root')
   const dark = cssBlock('.dark')
   assert.ok(root && dark)
@@ -189,15 +195,15 @@ test('light: --brand-primary-text(-light) namjerno odstupa od §10 brand (AAA od
 test('fontFamily.serif koristi samo sistemske fontove; nema vanjskih izvora', () => {
   assert.match(tailwindCode, /serif:\s*\[\s*'Palatino',\s*'Palatino Linotype',\s*'Book Antiqua',\s*'Georgia',\s*'serif',\s*\]/)
   assert.doesNotMatch(tailwindCode, /@import|https?:\/\/|fonts\.googleapis|@font-face/)
-  assert.match(tailwindCode, /sans:\s*\[/, 'klasični sans stack ostaje')
+  assert.match(tailwindCode, /sans:\s*\[/, 'system sans stack remains available')
 })
 
-test('check_ui_contrast.py mjeri 4 stanja i 4 nova NEJRA para po Aurum stanju', () => {
+test('check_ui_contrast.py measures both supported Aurum modes and their fixed-palette pairs', () => {
   for (const selector of [SELECTORS.light, SELECTORS.dark]) {
-    assert.ok(contrastScript.includes(selector), `nedostaje ${selector} u kontrast skripti`)
+    assert.ok(contrastScript.includes(selector), `missing ${selector} in contrast script`)
   }
   assert.equal((contrastScript.match(/NEJRA §10: (text|muted|brand|accent) \/ page/g) ?? []).length, 4)
-  assert.equal((contrastScript.match(/\("(aurum light|aurum dark|web light|web dark)",/g) ?? []).length, 4)
+  assert.equal((contrastScript.match(/\("Aurum (light|dark)",/g) ?? []).length, 2)
 })
 
 test('mutacije SSOT sinkronizacije se odbijaju (detektor nije prazna provjera)', () => {

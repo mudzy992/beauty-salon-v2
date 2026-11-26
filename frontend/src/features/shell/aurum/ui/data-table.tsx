@@ -46,7 +46,7 @@ const SortIndicator = ({ direction, unsorted = true }: { direction: 'asc' | 'des
  * WCAG 1.3.1: `<caption>`, `scope="col"`, `data-label` za card prikaz <640px
  * (`.data-table` u `index.css`). WCAG 4.1.2: `aria-sort` i tekstualno ime dugmeta.
  * WCAG 1.4.1: smjer sortiranja je programski, ne samo strelica.
- * Samo semantički tokeni — klasični i Aurum skin dijele isti markup.
+ * Samo semantički tokeni — oba Aurum režima dijele isti markup.
  */
 export function DataTable<T>({
   caption,

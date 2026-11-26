@@ -1,5 +1,7 @@
 # Faza 0 — Temelj: tokeni, a11y infrastruktura, shell, primitivi, page templates
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Najveći uticaj, najveći rizik (dijeljene komponente). Poslije ove faze — KAPIJA: STOP i pregled.**
 
 ---

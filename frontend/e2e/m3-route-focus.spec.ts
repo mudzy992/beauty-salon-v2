@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // Synthetic admin session; no backend writes. Forced colors is browser emulation, not OS validation.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const colors of ['none', 'active'] as const) {
       test(`M3 admin route and skip-link focus ${theme} ${language} ${colors}`, async ({ page }) => {
@@ -18,7 +18,6 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           const req = route.request(), path = new URL(req.url()).pathname
           if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
           if (path === '/api/settings/public') return route.fulfill({ json: [
-            { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
             { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' },
           ] })
           if (path === '/api/users/profile') return route.fulfill({ json: {
@@ -29,7 +28,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           return route.fulfill({ json: {} })
         })
         await page.goto('/admin/finance', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         const main = page.locator('main#main')
         const verifyMain = async () => {

@@ -36,7 +36,7 @@ async function measureBackgroundContrast(target: Locator) {
   }
 }
 
-async function installFixtures(page: Page, theme: 'classic' | 'light' | 'dark', image: 'black' | 'white') {
+async function installFixtures(page: Page, theme: 'light' | 'dark', image: 'black' | 'white') {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.addInitScript(mode => {
     localStorage.setItem('token', 'fixture-admin-token')
@@ -50,7 +50,6 @@ async function installFixtures(page: Page, theme: 'classic' | 'light' | 'dark', 
     const req = route.request(), path = new URL(req.url()).pathname
     if (req.method() !== 'GET') return route.abort()
     if (path === '/api/settings/public') return route.fulfill({ json: [
-      { key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' },
       { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' },
       ...['public_blog_bg', 'public_gallery_bg', 'public_contact_bg'].map(key => ({ key, value: svg })),
     ] })
@@ -81,15 +80,15 @@ test('measurement detects deliberately unreadable text over the real hero', asyn
   expect(result.min).toBeLessThan(4.5)
 })
 
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const image of ['black', 'white'] as const) {
     for (const path of ['/blog', '/galerija', '/kontakt'] as const) {
       test(`rendered hero contrast ${theme} ${image} ${path}`, async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 900 })
         await installFixtures(page, theme, image)
         await page.goto(path, { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
-        if (theme !== 'classic') await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-mode', theme)
         const hero = page.locator('[data-aurum-page-hero]')
         await expect(hero.locator('h1')).toBeVisible()
         const imageLayer = hero.locator('div[style*="background-image"]').first()

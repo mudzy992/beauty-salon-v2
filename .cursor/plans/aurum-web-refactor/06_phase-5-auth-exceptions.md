@@ -1,5 +1,7 @@
 # S5 — Auth + onboarding + NotFound
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 **Status:** ✅ **ZAVRŠEN 2026-11-11** — `approve_s5` + O2 = `card_header`; commit `90acca2` (`90acca29ec760a48a0dea489c6f004c2d9409780`), CI run **`43181880043` = 5/5 success**, rendered axe **252 passed | 0 failed | 0 skipped** / 32 rute na default `classic`. **Zatvara sve ekrane izvan tri shella.**
 
 ---

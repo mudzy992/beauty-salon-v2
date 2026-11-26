@@ -5,7 +5,7 @@ export const APPEARANCE_GROUPS: SettingGroup[] = [
   {
     label: 'Branding',
     prefix: 'app_',
-    description: 'Logo i naziv. Boje teme mijenjaju akcent na javnom webu.',
+    description: 'Logo i naziv te zadani svijetli ili tamni režim prikaza.',
     icon: Star,
     color: 'pink',
     defaults: [
@@ -15,10 +15,7 @@ export const APPEARANCE_GROUPS: SettingGroup[] = [
       { key: 'app_logo_text_color', desc: 'Boja teksta pored loga', type: 'color' },
       { key: 'app_logo_accent', desc: 'Accent loga', type: 'color' },
       { key: 'app_logo_animated', desc: 'Animacija loga', type: 'boolean' },
-      { key: 'theme_active_skin', desc: 'theme_active_skin', type: 'select' },
       { key: 'theme_default_mode', desc: 'theme_default_mode', type: 'select' },
-      { key: 'theme_primary', desc: 'Primarna boja sajta', type: 'color' },
-      { key: 'theme_accent', desc: 'Akcent boja sajta (gold)', type: 'color' },
     ],
   },
 ]

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // The move is intercepted, never sent to a real backend; input fill isolates the focus-return behaviour.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     test(`M3 calendar focus after moved event disappears ${theme} ${language}`, async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 900 })
@@ -23,14 +23,14 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
           if (request.method() === 'PATCH' && path === '/api/reservations/res') return route.fulfill({ json: {} })
           return route.abort()
         }
-        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+        if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
         if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
         if (path === '/api/stylists') return route.fulfill({ json: [stylist] })
         if (path === '/api/reservations') return route.fulfill({ json: writes.length ? [] : [reservation] })
         return route.fulfill({ json: {} })
       })
       await page.goto('/admin/reservations/calendar', { waitUntil: 'networkidle' })
-      await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
       await expect(page.locator('html')).toHaveAttribute('lang', language)
       const event = page.locator('.rbc-event').first()
       await expect(event).toBeVisible()

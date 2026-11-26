@@ -1,5 +1,7 @@
 # 23 — Standardizacija admin dashboarda (handoff)
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 > **Ovo je namjenski handoff za novu sesiju.** Glavni `HANDOFF.md` je i dalje na S5 STOP
 > (vidi dole "Poveznica s glavnim HANDOFF.md"). Ovaj dokument je samodostatan: referencira
 > izvorne dokumente, definiše tačnu fazu i daje korak-po-korak sljedeći korak.

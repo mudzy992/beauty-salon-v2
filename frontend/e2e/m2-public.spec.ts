@@ -43,7 +43,7 @@ for (const mode of ['light', 'dark'] as const) {
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
           const settings: Record<string, string> = {
-            theme_active_skin: 'aurum', theme_default_mode: mode,
+            theme_default_mode: mode,
             public_feature_blog: 'true', public_feature_gallery: 'true', public_feature_reviews: 'true',
           }
           await intercepted.fulfill({ response, json: [
@@ -114,7 +114,7 @@ for (const mode of ['light', 'dark'] as const) {
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
           const settings: Record<string, string> = {
-            theme_active_skin: 'aurum', theme_default_mode: mode, public_feature_blog: 'true',
+            theme_default_mode: mode, public_feature_blog: 'true',
             public_service_prices_enabled: 'true', public_contact_phone: '+387 62 568 580',
             public_contact_email: 'salon@example.test', public_contact_address: 'Visoko',
           }
@@ -196,7 +196,7 @@ for (const mode of ['light', 'dark'] as const) {
           const response = await intercepted.fetch()
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
-          const settings: Record<string, string> = { theme_active_skin: 'aurum', theme_default_mode: mode, public_feature_gallery: 'true' }
+          const settings: Record<string, string> = { theme_default_mode: mode, public_feature_gallery: 'true' }
           await intercepted.fulfill({ response, json: [
             ...rows.filter(row => !(row.key in settings)),
             ...Object.entries(settings).map(([key, value]) => ({ key, value })),
@@ -297,8 +297,8 @@ for (const mode of ['light', 'dark'] as const) {
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
             await intercepted.fulfill({ response, json: [
-              ...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)),
-              { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode },
+              ...rows.filter(row => row.key !== 'theme_default_mode'),
+              { key: 'theme_default_mode', value: mode },
             ] })
           })
           const booking = ['date-error', 'dates', 'slot-error', 'slots', 'summary'].includes(state)
@@ -447,7 +447,7 @@ for (const mode of ['light', 'dark'] as const) {
             const response = await route.fetch()
             if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
             const rows = await response.json() as Array<{ key: string; value: string }>
-            await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+            await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
           })
           let requests = 0
           const payload = { publicReferenceCode: 'M2-CANCEL-001', reservationDate: '2026-11-20', startTime: '10:00', endTime: '11:00', status: 'CANCELLED_BY_CLIENT', serviceName: 'Svečana frizura i njega duge kose', stylistName: 'Ana Test', clientNotes: 'Važna napomena termina', cancelReason: 'Klijent nije u mogućnosti doći na zakazani termin.', cancelledAt: '2026-11-19T10:00:00Z', rescheduleStatus: null, rescheduleProposedStartTime: null, rescheduleProposedEndTime: null }
@@ -520,7 +520,7 @@ for (const mode of ['light', 'dark'] as const) {
           const response = await route.fetch()
           if (!response.ok()) throw new Error(`Public settings failed: ${response.status()}`)
           const rows = await response.json() as Array<{ key: string; value: string }>
-          await route.fulfill({ response, json: [...rows.filter(row => !['theme_active_skin', 'theme_default_mode'].includes(row.key)), { key: 'theme_active_skin', value: 'aurum' }, { key: 'theme_default_mode', value: mode }] })
+          await route.fulfill({ response, json: [...rows.filter(row => row.key !== 'theme_default_mode'), { key: 'theme_default_mode', value: mode }] })
         })
         await page.route('**/api/users/profile', route => route.fulfill({ json: { id: 'test-user', username: 'test', firstName: 'Test', lastName: 'User', createdAt: '2025-01-01T00:00:00.000Z', email: 'test@example.com', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } }))
         await page.route('**/api/services**', route => route.fulfill({ json: [{ id: 'book-test', name: 'Svečana frizura', durationMinutes: 60, gender: 'FEMALE', subcategory: { name: 'Kosa', category: { name: 'Žene' } } }] }))

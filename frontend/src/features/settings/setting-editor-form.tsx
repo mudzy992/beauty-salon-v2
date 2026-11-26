@@ -4,7 +4,6 @@ import { Check, Loader2, X } from 'lucide-react'
 
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
-import { isSupportedHexColor } from '../../utils/brand-colors.mjs'
 import { SettingEditorField } from './setting-editor-field'
 import type { AppSetting, SettingDef } from './types'
 import { useSettingEditorUpload } from './use-setting-editor-upload'
@@ -16,8 +15,6 @@ import { useSettingEditorUpload } from './use-setting-editor-upload'
  * Render polja je u `setting-editor-field.tsx`, upload u
  * `use-setting-editor-upload.ts`.
  *
- * **Validacija boja je zadržana bez izmjene**: `theme_primary` i
- * `theme_accent` i dalje moraju biti podržana hex boja (`isSupportedHexColor`).
  */
 export function SettingEditorForm({
   def,
@@ -50,9 +47,6 @@ export function SettingEditorForm({
 
   const validate = (): string | null => {
     const normalizedValue = value.trim()
-    if (['theme_primary', 'theme_accent'].includes(def.key) && normalizedValue && !isSupportedHexColor(normalizedValue)) {
-      return t('adminSettings.editor.invalidHex')
-    }
     if (def.type === 'number') {
       const numberValue = Number(normalizedValue)
       if (!normalizedValue || !Number.isFinite(numberValue)) return t('adminSettings.editor.invalidNumber')

@@ -1,5 +1,7 @@
 # Ciljani vizuelni pregled fiksura — M2 i nepotpuni kontrast
 
+> **ARHIVA:** Ovo je historijski plan, zapis ili dokaz. Ne opisuje aktuelnu temu ni trenutne verifikacijske rezultate. Podržani su samo Aurum light i Aurum dark.
+
 Ovaj zapis opisuje pregled **statičnih snimaka** i izmjerenih CSS vrijednosti, ne punu interaktivnu provjeru u korisnikovom pregledniku, čitačem ekrana ili stvarnim sistemskim forced-colors režimom. Podaci i sesije su isključivo izolovane fiksure, bez stvarnih klijenata i bez finansijskih transakcija. Pregled ne zatvara cijeli M2 ili WCAG audit.
 
 ## Legenda analitike: dio prethodno nepotpunih axe nalaza

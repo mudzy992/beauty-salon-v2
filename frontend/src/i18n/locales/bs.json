@@ -87,8 +87,6 @@
     "maintenanceMessage": "Radimo na poboljšanjima. Javna stranica je privremeno nedostupna. Pokušajte kasnije.",
     "maintenanceAdminHint": "Za administraciju otvorite {{path}} (prijava kao administrator).",
     "theme": {
-      "groupLabel": "Tema prikaza",
-      "classic": "Klasična svijetla",
       "aurumLight": "Aurum svijetla",
       "darkToggle": "Tamni režim",
       "aurumDark": "Aurum tamna",
@@ -412,11 +410,10 @@
         "invalidMode": "Neispravan režim teme."
       },
       "title": "Postavke — Izgled",
-      "description": "Logo, naziv aplikacije i boje teme javnog sajta.",
-      "aurumNote": "Aurum paleta je fiksna: primarna i akcentna boja iz ovih postavki nisu aktivne. Klasična tema ih ponovo koristi.",
+      "description": "Logo, naziv aplikacije i režim prikaza.",
+      "aurumNote": "Aurum je jedina dostupna tema. Odaberite svijetli ili tamni režim; paleta boja je fiksna.",
       "group": "Vizuelni identitet",
-      "newIdentity": "Novi identitet",
-      "groupDescription": "Logo i naziv aplikacije; boje teme mijenjaju akcentne boje javnog sajta.",
+      "groupDescription": "Logo i naziv aplikacije te zadani svijetli ili tamni režim.",
       "fields": {
         "appTitle": "Naziv aplikacije",
         "logo": "Logo",
@@ -424,10 +421,7 @@
         "logoTextColor": "Boja teksta uz logotip",
         "logoAccentColor": "Akcentna boja logotipa",
         "animateLogo": "Animiraj logotip",
-        "activeSkin": "Aktivni identitet",
-        "defaultMode": "Početni režim nove teme",
-        "primarySiteColor": "Primarna boja sajta",
-        "siteAccentColor": "Akcentna boja sajta (zlatna)"
+        "defaultMode": "Zadani režim prikaza"
       }
     }
   },

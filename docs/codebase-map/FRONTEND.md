@@ -1,6 +1,6 @@
 # FRONTEND Codebase Map (React + Vite)
 
-**Verified snapshot:** 2026-11-26 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results. S10 CI `45781994850` passed 5/5. S11 CI `45828686415` completed 4/5; rendered returned 3195 passed / 5 failed on the 320px overflow probe, not axe rules. The open cases are admin dashboard/settings Classic/BS and stylist inbox BS in all themes. User reports the admin sidebar is lost at real 200–400% zoom. Responsive menu/reflow fix, 320px drawer/focus test and fuller overflow diagnostics are locally checked but await rendered CI. User-reported keyboard/focus, OS forced-colors and reduced-motion pass; screen reader is unavailable. Zoom/text-spacing recheck instructions: [S11 verification](../../.cursor/plans/aurum-web-refactor/S11_USER_VERIFICATION.md).
+**Verified snapshot:** 2026-11-18. Theme policy now supports only Aurum light and Aurum dark. Local source tests, build and E2E typecheck have passed for the current implementation; current rendered CI has not yet run. Prior CI found 320px overflow in the Stylist inbox, and the responsive patch still needs rendered CI confirmation. Manual zoom/text-spacing review and assistive-technology review remain separate evidence items; see [S11 verification](../../.cursor/plans/aurum-web-refactor/S11_USER_VERIFICATION.md).
 
 ## Overview
 
@@ -187,12 +187,12 @@ Defined directly in `frontend/src/app/router.tsx`:
   - helper: `setAppLanguage('bs' | 'en')`
 - **Usage**: `useTranslation()` across pages and layouts (e.g. `frontend/src/features/shell/admin/admin-layout.tsx`)
 
-## Theme (Classic / Aurum light / Aurum dark)
+## Theme (Aurum light / Aurum dark)
 
-- **State owner:** `frontend/src/features/shell/theme/theme-context.tsx` and `theme-state.mjs`; global skin/mode arrives through `SettingsProvider` from the public settings contract. Aurum light/dark mode preference persists under the documented local preference key; Classic remains the default/fallback.
-- **User control:** `frontend/src/features/shell/theme/theme-switcher.tsx` exposes an accessible `aria-pressed` toggle in the public, admin and stylist shells. Classic hides the Aurum-only mode toggle; Aurum changes modes through that visible control.
-- **Styling:** Tailwind dark variants + semantic CSS tokens in `frontend/tailwind.config.js` and `frontend/src/styles/globals.css`; source contrast checks are not rendered proofs.
-- **Rendered evidence:** CI `45781994850` passed the existing rendered-a11y job before S11. S11 now defines 15 additional Chromium test cases and 30 axe scans across BS/EN × `classic`/`aurum-light`/`aurum-dark` for public home/guest booking entry, admin dashboard/settings, and stylist inbox. Local E2E typecheck/discovery pass; these cases are pending their own CI run. Their 320 CSS px and simulated text-resize/text-spacing probes do not equal actual browser zoom or assistive-technology review.
+- **State owner:** `frontend/src/features/shell/theme/theme-context.tsx` and `theme-state.mjs`; `SettingsProvider` supplies the default mode, and the user's preference selects light or dark.
+- **User control:** `frontend/src/features/shell/theme/theme-switcher.tsx` exposes an accessible `aria-pressed` toggle in the public, admin and stylist shells.
+- **Styling:** semantic CSS tokens and Tailwind dark variants in `frontend/tailwind.config.js` and `frontend/src/styles/globals.css`; source contrast checks are not rendered proofs.
+- **Rendered evidence:** the S11 suite targets both Aurum modes on public home/guest booking entry, admin dashboard/settings and Stylist inbox. E2E typecheck/discovery does not replace a rendered CI run, real browser zoom or assistive-technology review.
 
 ## Auth flow
 

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 // Forced colors is emulated in Chromium, not a real operating-system check.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const colors of ['none', 'active'] as const) {
       test(`M3 calendar skip focus ${theme} ${language} ${colors}`, async ({ page }) => {
@@ -16,13 +16,13 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.route('**/api/**', route => {
           const request = route.request(), path = new URL(request.url()).pathname
           if (request.method() !== 'GET') return route.abort()
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/users/profile') return route.fulfill({ json: { id: 'admin', username: 'test', email: 'admin@example.test', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['ADMIN'] } })
           if (path === '/api/reservations' || path === '/api/stylists') return route.fulfill({ json: [] })
           return route.fulfill({ json: {} })
         })
         await page.goto('/admin/reservations/calendar', { waitUntil: 'networkidle' })
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         const skip = page.locator('a[href="#calendar-main"]')
         const main = page.locator('#calendar-main')

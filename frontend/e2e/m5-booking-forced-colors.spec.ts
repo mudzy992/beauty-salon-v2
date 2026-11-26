@@ -4,7 +4,7 @@ import { AXE_RULE_TAGS, assertableViolations } from './axe-coverage.mjs'
 import { settleAnimations } from './settle'
 
 // Chromium forced-colors emulation, synthetic client and GETs, all writes blocked.
-for (const theme of ['classic', 'light', 'dark'] as const) {
+for (const theme of ['light', 'dark'] as const) {
   for (const language of ['bs', 'en'] as const) {
     for (const palette of ['light', 'dark'] as const) {
       test(`M5 booking state forced-colors ${theme} ${language} ${palette}`, async ({ page }) => {
@@ -21,7 +21,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.route('**/api/**', route => {
           const req = route.request(), url = new URL(req.url()), path = url.pathname
           if (req.method() !== 'GET') { writes.push(`${req.method()} ${path}`); return route.abort() }
-          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_active_skin', value: theme === 'classic' ? 'classic' : 'aurum' }, { key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
+          if (path === '/api/settings/public') return route.fulfill({ json: [{ key: 'theme_default_mode', value: theme === 'dark' ? 'dark' : 'light' }] })
           if (path === '/api/users/profile') return route.fulfill({ json: { id: 'fixture-client', username: 'test', email: 'test@example.test', phone: '+387 61 123 456', gender: 'FEMALE', genderOnboardingCompleted: true, isEmailVerified: true, mustChangePassword: false, roles: ['CLIENT'] } })
           if (path === '/api/services') return route.fulfill({ json: [{ id: 'service-one', name: 'Fixture service', durationMinutes: 60, gender: 'FEMALE' }] })
           if (path === '/api/reservations/availability/dates') return route.fulfill({ json: [{ date: url.searchParams.get('fromDate'), available: true }, { date: '2026-03-05', available: true }] })
@@ -33,7 +33,7 @@ for (const theme of ['classic', 'light', 'dark'] as const) {
         await page.goto('/rezervacija', { waitUntil: 'networkidle' })
         expect(await page.evaluate(() => matchMedia('(forced-colors: active)').matches)).toBe(true)
         expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(palette === 'dark')
-        await expect(page.locator('html')).toHaveAttribute('data-skin', theme === 'classic' ? 'classic' : 'aurum')
+        await expect(page.locator('html')).toHaveAttribute('data-skin', 'aurum')
         await expect(page.locator('html')).toHaveAttribute('lang', language)
         const progress = page.getByRole('progressbar', { name: /napredak rezervacije|reservation progress/i })
         await expect(progress).toHaveAttribute('aria-valuemin', '1')
